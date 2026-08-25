@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MVTEACHES — ملخص الدراسة الفنية والتكلفة</title>
+<title>MVTEACHES — ملخص الدراسة الفنية والتكلفة (محدَّث)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -57,8 +57,8 @@
     color:var(--teal); background:var(--teal-soft);
     padding:6px 14px; border-radius:100px; margin-bottom:18px;
   }
-  .hero h1{font-size:34px; font-weight:800; margin:0 0 10px; color:var(--navy); line-height:1.35;}
-  .hero p.lead{font-size:16.5px; color:var(--ink-soft); max-width:640px; margin:0 0 26px;}
+  .hero h1{font-size:32px; font-weight:800; margin:0 0 10px; color:var(--navy); line-height:1.4;}
+  .hero p.lead{font-size:16.5px; color:var(--ink-soft); max-width:680px; margin:0 0 26px;}
   .meta-row{display:flex; flex-wrap:wrap; gap:10px;}
   .meta-chip{
     background:var(--paper); border:1px solid var(--line); border-radius:10px;
@@ -70,8 +70,9 @@
   .hero-stat{
     background:var(--navy); color:#fff; border-radius:16px; padding:22px 22px;
   }
-  .hero-stat .big{font-size:28px; font-weight:600; font-family:'IBM Plex Mono';}
+  .hero-stat .big{font-size:25px; font-weight:600; font-family:'IBM Plex Mono';}
   .hero-stat .lbl{font-size:13px; opacity:.75; margin-top:6px;}
+  .hero-stat .flag{font-size:11.5px; font-weight:700; color:#8fd6c4; margin-top:8px;}
 
   /* ===== sections ===== */
   section{padding:46px 0; border-bottom:1px solid var(--line);}
@@ -96,20 +97,22 @@
   th{background:#F2F3F6; color:var(--navy); font-weight:700; font-size:13px;}
   tr:last-child td{border-bottom:none;}
   td.num, th.num{font-family:'IBM Plex Mono'; font-variant-numeric:tabular-nums;}
+  td.old{color:var(--ink-soft); text-decoration:line-through;}
+  td.new{color:var(--teal); font-weight:600;}
 
   /* cost tier cards */
-  .tiers{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:22px 0 10px;}
+  .tiers{display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin:22px 0 10px;}
   .tier{background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:14px;}
   .tier .tag{font-size:11.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em;}
   .tier .who{font-size:13px; color:var(--ink-soft); margin-top:2px;}
-  .tier .total{font-family:'IBM Plex Mono'; font-size:30px; font-weight:600; color:var(--navy); margin:6px 0 0;}
+  .tier .total{font-family:'IBM Plex Mono'; font-size:28px; font-weight:600; color:var(--navy); margin:6px 0 0;}
   .tier .total span{font-size:14px; font-weight:500; color:var(--ink-soft);}
   .tier .rows{border-top:1px solid var(--line); padding-top:12px; display:flex; flex-direction:column; gap:8px;}
   .tier .rowline{display:flex; justify-content:space-between; font-size:13.5px; color:var(--ink-soft);}
   .tier .rowline b{color:var(--ink); font-weight:600; font-family:'IBM Plex Mono';}
   .tier.growth{border-color:var(--amber);}
+  .tier.win{border-color:var(--teal);}
 
-  /* stacked bar (signature element) */
   .barblock{background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:24px 22px; margin-top:22px;}
   .barblock h4{margin:0 0 4px; font-size:15px; color:var(--navy); font-weight:700;}
   .barblock .note{font-size:13px; color:var(--ink-soft); margin:0 0 18px;}
@@ -120,7 +123,8 @@
   .bar{display:flex; height:26px; border-radius:6px; overflow:hidden;}
   .seg-infra{background:var(--teal);}
   .seg-other{background:var(--amber);}
-  .legend{display:flex; gap:18px; margin-top:16px; font-size:12.5px; color:var(--ink-soft);}
+  .seg-zero{background:var(--line);}
+  .legend{display:flex; flex-wrap:wrap; gap:18px; margin-top:16px; font-size:12.5px; color:var(--ink-soft);}
   .legend span{display:inline-flex; align-items:center; gap:6px;}
   .dot{width:10px; height:10px; border-radius:3px; display:inline-block;}
 
@@ -132,6 +136,7 @@
   .badge{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:100px; margin-left:6px;}
   .badge.block{background:var(--red-soft); color:var(--red);}
   .badge.watch{background:var(--amber-soft); color:var(--amber);}
+  .badge.done{background:var(--teal-soft); color:var(--teal);}
 
   .qa{display:flex; flex-direction:column; gap:10px; margin-top:16px;}
   .qa-item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px 16px; font-size:14px;}
@@ -155,217 +160,184 @@
   @media(max-width:720px){
     .tiers{grid-template-columns:1fr;}
     .hero-stats{grid-template-columns:1fr;}
-    .hero h1{font-size:26px;}
+    .hero h1{font-size:24px;}
   }
 </style>
 </head>
 <body>
 
 <nav class="nav">
-  <a href="#found">ماذا وجدنا في ملفاتك</a>
-  <a href="#cost">التكلفة</a>
-  <a href="#risks">أخطر المخاطر</a>
-  <a href="#blocking">الأسئلة المحجوبة</a>
-  <a href="#stack">التقنية المقترحة</a>
-  <a href="#final">توصية CTO</a>
+  <a href="#found">ما تغيّر منذ v1</a>
+  <a href="#cost">التكلفة المحدَّثة</a>
+  <a href="#risks">أخطر المخاطر اليوم</a>
+  <a href="#blocking">المطلوب من المالك</a>
+  <a href="#stack">التقنية المعتمدة</a>
+  <a href="#final">الخلاصة</a>
 </nav>
 
 <div class="wrap">
 
   <section class="hero" style="border-bottom:none; padding-bottom:0;">
-    <span class="eyebrow">● ملخص تنفيذي — MVTEACHES Technical Study v1.0</span>
-    <h1>دراسة الجدوى موجودة فعلًا في ملفك — هذا تلخيصها ورقم التكلفة الذي طلبته</h1>
-    <p class="lead">قرأت وثيقتك (3233 سطرًا) المبنية على 7 مصادر: طلبك، ملف الباقات، بروفايل الشركة، صور SRS، إعلان إنستجرام، الموقع الحي، ومصادر خارجية رسمية (Meta، Zoom، Stripe...). فيما يلي المهم فقط.</p>
+    <span class="eyebrow">● ملخص محدَّث — بعد 66 قرارًا معتمدًا ودراسات القاعدة/الفيديو/الدفع (2026-08-24)</span>
+    <h1>هذا الملخص كان مبنيًا على المسودة الأولى — والمشروع تغيّر جوهريًا منذ ذلك الحين. هذه النسخة المحدَّثة.</h1>
+    <p class="lead">النسخة السابقة من هذه الصفحة قرأت مسودة v1 التي فيها تناقضات بين المصادر (دول، أسعار، دورات). كل تلك التناقضات حُسمت لاحقًا عبر 67 قرارًا رسميًا من المالك (D-01…D-66 + D-83)، ثم ثلاث دراسات إضافية غيّرت أرقام التكلفة تغييرًا حقيقيًا. هذه الصفحة تعرض <b>الحالة الفعلية اليوم</b> — لا مسودة قديمة.</p>
     <div class="meta-row">
-      <div class="meta-chip">الحالة: <b>قابل للتنفيذ — بشرط جلسة حسم واحدة</b></div>
-      <div class="meta-chip">حجم الوثيقة الأصلية: <b>٥٤ قسمًا</b></div>
-      <div class="meta-chip">تاريخ التحقق: <b>2026-08-17</b></div>
+      <div class="meta-chip">الحالة: <b>جاهز فنيًا — بانتظار 7 بنود من المالك فقط</b></div>
+      <div class="meta-chip">الدراسة المعتمدة: <b>v3.1 — 47 قسمًا</b></div>
+      <div class="meta-chip">آخر تحديث: <b>2026-08-24</b></div>
     </div>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="big">140 – 223 <span style="font-size:14px;opacity:.7;">يوم عمل</span></div>
-        <div class="lbl">تطوير: من MVP الأدنى (٧ أشهر) إلى النسخة الكاملة (١١ شهرًا) — بمطوّر واحد</div>
+        <div class="big">≈192 يوم عمل <span style="font-size:14px;opacity:.7;">(≈221 بالاحتياطي)</span></div>
+        <div class="lbl">تطوير النسخة الكاملة — ≈11 شهرًا لمطوّر واحد</div>
+        <div class="flag">⚠️ تقدير من v2 — لم يُعَد حسابه بعد قرارات v3.0/v3.1 (تبسيط نموذج البيع يرجّح خفضه لا رفعه)</div>
       </div>
       <div class="hero-stat">
-        <div class="big">$120 – $3,700 <span style="font-size:14px;opacity:.7;">/ شهر</span></div>
-        <div class="lbl">تشغيل شهري: من MVP (٥٠٠ طالب) حتى مرحلة النمو (٢٠,٠٠٠ طالب)</div>
+        <div class="big">≈$8–12 <span style="font-size:14px;opacity:.7;">/ شهر</span></div>
+        <div class="lbl">بنية تحتية مؤكَّدة رسميًا + Zoom $0 على المعهد — واتساب يُراجَع من حسابك</div>
+        <div class="flag">⭐ كان يُقدَّر بـ$120/شهر في v1 — رقم Hetzner الآن من صفحته الرسمية مباشرة، لا تقديرًا</div>
       </div>
     </div>
   </section>
 
-  <!-- ============ WHAT WE FOUND ============ -->
+  <!-- ============ WHAT CHANGED ============ -->
   <section id="found">
     <div class="kicker">القسم ١</div>
-    <h2>ماذا وجدنا في ملفاتك؟</h2>
-    <p class="section-sub">الاكتشاف الأهم في الدراسة كلها: مصادرك الأربعة الرئيسية (طلبك، ملف الباقات، بروفايل الشركة، والموقع الحي) <b>تصف أربعة مشاريع مختلفة تقريبًا</b> من ناحية الدول والأسعار والدورات.</p>
+    <h2>ما تغيّر منذ v1 — سبعة انقلابات جوهرية</h2>
+    <p class="section-sub">النسخة الأولى من هذا الملخص ركّزت على تناقضات بين مصادر (طلبك، ملف الباقات، بروفايل الشركة، الموقع). تلك حُسمت. لكن الأهم أن <b>نموذج البيع نفسه انقلب</b> عبر جولات القرارات الثلاث (37 + 10 + 19 + 1 قرارًا)، وثلاث دراسات لاحقة صحّحت افتراضات كانت خاطئة.</p>
 
     <table>
       <thead>
-        <tr><th>البُعد</th><th>طلبك (S1)</th><th>ملف الباقات (S2)</th><th>بروفايل الشركة (S3)</th><th>الموقع الحي (S6)</th></tr>
+        <tr><th>البُعد</th><th>ما كان مفترضًا (v1)</th><th>الحالة المعتمدة اليوم</th></tr>
       </thead>
       <tbody>
-        <tr><td><b>الدول</b></td><td>الأردن، فلسطين، بريطانيا</td><td>الأردن فقط (JD)</td><td>لندن، عمّان، الناصرة، بوغوتا</td><td>لندن (UK) فقط</td></tr>
-        <tr><td><b>الأسعار</b></td><td>٢٥ دينار/حصة فردية</td><td>٧٥ / ١٥٠ / ٤٥٠ دينار لكل ٣٠ حصة</td><td>—</td><td>غير معروضة</td></tr>
-        <tr><td><b>الدورات</b></td><td>مستويات A1–C2 فقط</td><td>A1–C2</td><td>+ IELTS، TOEFL، أطفال، شركات</td><td>عام، محادثة، IELTS</td></tr>
-        <tr><td><b>الفئات العمرية</b></td><td>٥–١٢ / ١٢–١٧ / ١٨–٣٠</td><td>—</td><td>٧–١٧ / ١٨+</td><td>—</td></tr>
-        <tr><td><b>طرق الدفع</b></td><td>Visa/MC/PayPal</td><td>—</td><td>بطاقات + تحويل بنكي</td><td>—</td></tr>
+        <tr><td><b>نموذج البيع</b></td><td class="old">باقات ثابتة (75/150/450 دينار لكل 30 حصة)</td><td class="new">⭐ محفظة ساعات حرة — الطالب يشتري 3 أو 30 ساعة كما يشاء</td></tr>
+        <tr><td><b>تحديد المستوى</b></td><td class="old">امتحان رسمي يقدّمه الطالب</td><td class="new">✅ لا امتحان — مقابلة تحديد مستوى 1:1 مع المعلم فقط</td></tr>
+        <tr><td><b>بيانات الطفل</b></td><td class="old">غير محسومة — مخاطرة قانونية مفتوحة</td><td class="new">⭐ خمسة حقول فقط · بلا هاتف ولا بريد ولا صورة · كل التواصل عبر ولي الأمر</td></tr>
+        <tr><td><b>قناة الدفع</b></td><td class="old">Stripe (بريطانيا) بافتراض شركة مسجّلة هناك</td><td class="new">✅ CliQ/تحويل بنكي يدوي (صفر عمولة) + MEPS اختياريًا لغير الأردن</td></tr>
+        <tr><td><b>رخص Zoom</b></td><td class="old">تُحسب على فاتورة المعهد ($40–730/شهر حسب الحجم)</td><td class="new">🔴 ⭐ كل معلم يملك حسابه ويدفع اشتراكه بنفسه — <b>$0 على المعهد</b></td></tr>
+        <tr><td><b>تسجيل الحضور</b></td><td class="old">المعلم يؤشّر حضور كل طالب يدويًا بعد كل حصة</td><td class="new">⭐ <b>الطالب يضغط زر Join فيُخصم منه فورًا</b> — وولي الأمر يضغطه عن الطفل · من لم يضغط لا يُخصم منه شيء · مسار المعلم صار لأجره وحده (<code>D-83</code>)</td></tr>
+        <tr><td><b>قاعدة البيانات</b></td><td class="old">PostgreSQL مُدارة (DigitalOcean) بتكلفة إضافية</td><td class="new">✅ PostgreSQL على نفس خادم التطبيق — <b>$0 إضافي</b></td></tr>
       </tbody>
     </table>
 
-    <div class="callout red">
-      <b>لماذا هذا مهم:</b> كل صف في هذا الجدول يغيّر تصميم قاعدة البيانات فعليًا (عدد الفروع، وحدة التسعير، هل «المستوى» هو المحور أم «البرنامج»). البدء بالبرمجة قبل حسم هذا التناقض يعني إعادة كتابة طبقة التسعير والحجز خلال أشهر قليلة من الإطلاق.
-    </div>
-
-    <div class="callout amber">
-      <b>ملاحظة على اكتمال الملفات:</b> صور SRS التي أرفقتها (٦ من أصل ١٤ صفحة) تفتقد بالتحديد الصفحات ١ و٣ — وهي التي تحتوي «نظرة عامة على المشروع» و«البنية العامة للفروع»، أي أهم قسمين في تحديد الشكل النهائي لقاعدة البيانات. يُنصح بطلب النسخة الكاملة من صاحب المشروع قبل تجميد النطاق.
+    <div class="callout">
+      <b>لماذا هذا الجدول هو أهم ما في الصفحة:</b> ثلاثة من هذه الانقلابات (Zoom · القاعدة · قناة الدفع) خفّضت الفاتورة الشهرية بشكل حقيقي وموثَّق، لا تقديري. والأربعة الأخرى (نموذج البيع · تحديد المستوى · بيانات الطفل · تسجيل الحضور) بسّطت النطاق التقني بدل تعقيده.
     </div>
 
     <div class="callout">
-      كذلك اكتُشف أن السعر الحقيقي المُعلن تجاريًا (ملف الباقات) هو <b>باقات</b> وليس حصصًا مفردة (٧٥ / ١٥٠ / ٤٥٠ دينار لكل ٣٠ حصة)، وأن الدفع يجوز أن يتم على <b>دفعتين (50%/50%)</b> — وهذه سياسة معلنة موجودة في مصدرك التجاري لكنها غائبة تمامًا عن نص الطلب الأصلي.
+      <b>✅ صفحتا SRS 1 و3 أُغلقتا (2026-08-25):</b> «الفرع» في الوثيقة الأصلية يعني البلد/السوق نفسه (الأردن، فلسطين) بتأكيد المالك — لا فروع فعلية مستقلة داخل نفس الدولة في الـMVP، ولا حاجة لكيان <code>Branch</code> منفصل؛ <code>Country</code> كافٍ. انظر القسم ٤ أدناه.
     </div>
   </section>
 
   <!-- ============ COST ============ -->
   <section id="cost">
     <div class="kicker">القسم ٢ — الأهم</div>
-    <h2>التكلفة: كم سيكلّف المشروع؟</h2>
-    <p class="section-sub">جزآن منفصلان: تكلفة تطوير (مرة واحدة) وتكلفة تشغيل شهرية متكررة. الأرقام مأخوذة من أسعار مزوّدين رسميين تم التحقق منها بتاريخ 2026-08-17، إلا ما وُسم صراحة كتقدير.</p>
+    <h2>التكلفة الفعلية بعد التصحيحات الثلاثة</h2>
+    <p class="section-sub">فاتورة MVP تراجعت من التقدير الأول ($120/شهر) إلى ≈$8–12 — رقم البنية التحتية الآن رسمي من Hetzner مباشرة، و<b>Zoom لم يعد بندًا على المعهد إطلاقًا.</b> فاتورة واتساب غير محدَّدة بعد (تُراجَع من حسابك على Meta) ولا تحجب البدء.</p>
 
-    <h3 style="font-size:16px; color:var(--navy); margin:0 0 4px;">أ) تكلفة التطوير — بالأيام لا بالمبلغ</h3>
-    <p style="font-size:13.5px; color:var(--ink-soft); margin:0 0 14px;">لم تُخترع أي قيمة بالدولار هنا عمدًا — سعر يوم العمل يختلف جذريًا بين مطوّر مستقل وشركة، وبين الأردن وبريطانيا. اضرب عدد الأيام في سعر يومك لتحصل على الرقم.</p>
-    <table>
-      <thead><tr><th>السيناريو</th><th class="num">أيام العمل</th><th>المدة التقريبية (مطوّر واحد)</th></tr></thead>
-      <tbody>
-        <tr><td>MVP الأدنى القابل للتشغيل</td><td class="num">~140 يوم</td><td>≈ 7 أشهر</td></tr>
-        <tr><td>النسخة الكاملة (كل الأقسام)</td><td class="num">~223 يوم</td><td>≈ 11 شهرًا</td></tr>
-        <tr><td>مطوّران يعملان بالتوازي بعد المرحلة الثانية</td><td class="num">~223 يوم</td><td>≈ 6–7 أشهر</td></tr>
-      </tbody>
-    </table>
-    <div class="stack-note">
-      <b>بنود إضافية خارج هذا الرقم:</b> تصميم UI/UX احترافي (+15–25 يومًا)، مراجعة قانونية وDPIA (أتعاب محامٍ)، اختبار اختراق قبل الإطلاق (موصى به بشدة لنظام يتعامل مع أموال وبيانات أطفال)، وصيانة سنوية تُقدَّر بـ <b>15–20% من تكلفة التطوير سنويًا</b>. كذلك: موافقة قوالب واتساب من Meta وفتح حساب تاجر لدى بوابة الدفع قد يستغرقان أسابيع — يجب البدء بهما بالتوازي مع أول أسبوع تطوير، لا بعده.
-    </div>
-
-    <h3 style="font-size:16px; color:var(--navy); margin:30px 0 4px;">ب) التكلفة التشغيلية الشهرية — ثلاث مراحل نمو</h3>
     <div class="tiers">
-      <div class="tier">
+      <div class="tier win">
         <div>
-          <div class="tag">المرحلة ١</div>
-          <div class="who">MVP — حتى 500 طالب نشط</div>
+          <div class="tag">الفاتورة الأساسية</div>
+          <div class="who">تشغيل MVP — بلا بوابة بطاقات</div>
         </div>
-        <div class="total">$120<span>/شهر</span></div>
+        <div class="total">$8–12<span>/شهر</span></div>
         <div class="rows">
-          <div class="rowline">بنية تحتية <b>$30</b></div>
-          <div class="rowline">Zoom (٣ حصص متزامنة) <b>$40</b></div>
-          <div class="rowline">WhatsApp (~5,000 رسالة) <b>$50</b></div>
+          <div class="rowline">خادم + قاعدة بيانات (على نفس الخادم) <b>$0 إضافي</b></div>
+          <div class="rowline">تخزين R2 + نسخ احتياطي <b>≈$5</b></div>
+          <div class="rowline">خادم Hetzner <b>≈$12</b></div>
+          <div class="rowline">الدومين <b>≈$1.5</b></div>
+          <div class="rowline">واتساب (هدف D-57) <b>≈$0</b></div>
+          <div class="rowline">Zoom (حساب كل معلم الخاص) <b>$0</b></div>
+          <div class="rowline">مقعد Zoom احتياطي اختياري <b>+$14</b></div>
         </div>
       </div>
       <div class="tier">
         <div>
-          <div class="tag">المرحلة ٢</div>
-          <div class="who">إنتاج موصى به — حتى 2,000 طالب</div>
+          <div class="tag">عند تفعيل بطاقات الدفع</div>
+          <div class="who">MEPS — فقط بعد حجم بطاقات ≈2,000 د.أ/شهر</div>
         </div>
-        <div class="total">$490<span>/شهر</span></div>
+        <div class="total">+30 د.أ<span>ثابت/شهر</span></div>
         <div class="rows">
-          <div class="rowline">بنية تحتية <b>$132</b></div>
-          <div class="rowline">Zoom (٨ حصص متزامنة) <b>$107</b></div>
-          <div class="rowline">WhatsApp (~25,000 رسالة) <b>$250</b></div>
-        </div>
-      </div>
-      <div class="tier growth">
-        <div>
-          <div class="tag">المرحلة ٣</div>
-          <div class="who">نمو — حتى 20,000 طالب</div>
-        </div>
-        <div class="total">$3,700<span>/شهر</span></div>
-        <div class="rows">
-          <div class="rowline">بنية تحتية <b>$500</b></div>
-          <div class="rowline">Zoom (٤٠ حصة متزامنة) ⚠️ <b>$730</b></div>
-          <div class="rowline">WhatsApp (~250,000 رسالة) <b>$2,500</b></div>
+          <div class="rowline">اشتراك شهري ثابت <b>30 د.أ ≈ $42</b></div>
+          <div class="rowline">عمولة لكل عملية <b>2.5% + 0.10 د.أ</b></div>
+          <div class="rowline">قبل هذا الحجم، النسبة الفعلية <b>5–33%</b></div>
         </div>
       </div>
     </div>
-    <p style="font-size:13px; color:var(--ink-soft); margin-top:10px;">+ عمولة بوابة الدفع تُضاف فوق ذلك، تقريبًا <b class="num">2.5–3.5%</b> من الإيراد الشهري (تُحدَّد نهائيًا بعد اختيار البوابة).</p>
 
     <div class="barblock">
-      <h4>الاكتشاف الأهم في تحليل التكلفة</h4>
-      <p class="note">البنية التحتية (سيرفر، قاعدة بيانات، تخزين) هي أرخص بند دائمًا. البند الذي ينفجر مع النمو هو WhatsApp + Zoom معًا — يصل إلى <b>87%</b> من الفاتورة الشهرية عند 20,000 طالب.</p>
+      <h4>الاكتشاف الأهم في تحليل التكلفة المحدَّث</h4>
+      <p class="note">في v1، كان Zoom+WhatsApp يبتلعان حتى 87% من الفاتورة عند النمو. اليوم: WhatsApp يُستهدَف بصفر تقريبًا (D-57)، وZoom خرج من فاتورة المعهد كليًا. <b>أكبر بند متكرر محتمل صار اشتراك بوابة الدفع الاختيارية (MEPS) — وهو وحده يعادل ضعف كل البنية التحتية.</b></p>
 
       <div class="barrow">
-        <div class="label"><span>MVP — $120/شهر</span><b>بنية تحتية 25% · واتساب+زوم 75%</b></div>
-        <div class="bar"><div class="seg-infra" style="flex:25;"></div><div class="seg-other" style="flex:75;"></div></div>
+        <div class="label"><span>MVP اليوم — $8–12/شهر</span><b>كله بنية تحتية مؤكَّدة رسميًا · صفر Zoom · واتساب يُراجَع لاحقًا</b></div>
+        <div class="bar"><div class="seg-infra" style="flex:100;"></div></div>
       </div>
       <div class="barrow">
-        <div class="label"><span>إنتاج — $490/شهر</span><b>بنية تحتية 27% · واتساب+زوم 73%</b></div>
-        <div class="bar"><div class="seg-infra" style="flex:27;"></div><div class="seg-other" style="flex:73;"></div></div>
-      </div>
-      <div class="barrow">
-        <div class="label"><span>نمو — $3,700/شهر</span><b>بنية تحتية 13% · واتساب+زوم 87%</b></div>
-        <div class="bar"><div class="seg-infra" style="flex:13;"></div><div class="seg-other" style="flex:87;"></div></div>
+        <div class="label"><span>مع تفعيل MEPS — +$42/شهر ثابت</span><b>بنية تحتية 40% · اشتراك MEPS 60%</b></div>
+        <div class="bar"><div class="seg-infra" style="flex:40;"></div><div class="seg-other" style="flex:60;"></div></div>
       </div>
 
       <div class="legend">
         <span><i class="dot" style="background:var(--teal);"></i> بنية تحتية (سيرفر / قاعدة بيانات / تخزين)</span>
-        <span><i class="dot" style="background:var(--amber);"></i> WhatsApp + Zoom</span>
+        <span><i class="dot" style="background:var(--amber);"></i> اشتراك MEPS الثابت</span>
       </div>
     </div>
 
-    <p style="font-size:14px; margin-top:20px; color:var(--ink-soft);">النتيجة العملية: المفاضلة بين مزوّد استضافة وآخر لتوفير $10 شهريًا لا تستحق الوقت. أما هذه الإجراءات الثلاثة فتوفّر مبالغ حقيقية:</p>
+    <p style="font-size:14px; margin-top:20px; color:var(--ink-soft);">وثلاثة قرارات تشغيلية تحافظ على هذه الفاتورة منخفضة:</p>
     <ul class="action-list">
-      <li><b>1</b> دمج رسالتَي التذكير (قبل ساعة + قبل خمس دقائق) في رسالة واحدة أذكى ← يوفّر تقريبًا نصف فاتورة واتساب.</li>
-      <li><b>2</b> تقييم Jitsi أو LiveKit كبديل لـ Zoom قبل الالتزام ← قد يوفّر حتى $700/شهر عند مرحلة النمو، لأن رخص Zoom تُحسب حسب عدد الحصص المتزامنة في وقت الذروة لا حسب عدد المعلمين الكلي.</li>
-      <li><b>3</b> استخدام البريد الإلكتروني للإشعارات غير الحرجة ← البريد أرخص من واتساب بحوالي 100 مرة.</li>
+      <li><b>1</b> لا تُفعَّل MEPS قبل أن يبلغ حجم مبيعات البطاقات ≈2,000 د.أ/شهر — قبلها، الرسم الثابت وحده يأكل 5–9% من كل عملية.</li>
+      <li><b>2</b> ملخّص واتساب صباحي واحد لكل عائلة (بدل رسالة لكل ابن) يفتح نافذة الخدمة المجانية 24 ساعة ويُسقط أغلب الفاتورة المتبقية.</li>
+      <li><b>3</b> مقعد Zoom احتياطي واحد بـ~$14/شهر باسم المعهد — يمنع إلغاء حصة حين ينقطع اشتراك معلم فجأة، بثمن أرخص من أي رخصة إضافية.</li>
     </ul>
   </section>
 
   <!-- ============ RISKS ============ -->
   <section id="risks">
     <div class="kicker">القسم ٣</div>
-    <h2>أخطر ما وُجد في المشروع</h2>
-    <p class="section-sub">ليست مخاطر برمجية معقدة — بل قرارات تصميم إن اتُّخذت خطأً من اليوم الأول، تكلفتها لاحقًا إعادة بناء لا تعديلًا بسيطًا.</p>
+    <h2>أخطر ما في المشروع اليوم</h2>
+    <p class="section-sub">مخاطر v1 (Stripe لا يقبل حسابات أردنية، تناقض الأسعار، غياب نموذج ولي الأمر) حُسمت جميعًا. هذه هي المخاطر الفعلية القائمة الآن.</p>
     <div class="risk-grid">
-      <div class="risk-row"><span class="n">01</span> عدّادات حصص بدل «دفتر حركات» — يعني ضياع حق طالب في نزاع دون إثبات قابل للرجوع إليه.</div>
-      <div class="risk-row"><span class="n">02</span> إمكانية أن يحجز طالبان آخر مقعد في نفس اللحظة (Race Condition) دون حماية على مستوى قاعدة البيانات.</div>
-      <div class="risk-row"><span class="n">03</span> الاعتماد على وصول المستخدم لصفحة «نجاح الدفع» كدليل دفع بدل التحقق من مزوّد الدفع مباشرة (Webhook).</div>
-      <div class="risk-row"><span class="n">04</span> أخطاء التوقيت الصيفي (DST) بين الأردن وبريطانيا — قد تُنتج حصصًا بساعة خاطئة مرتين سنويًا دون أن يلاحظ أحد فورًا.</div>
-      <div class="risk-row"><span class="n">05</span> بيانات أطفال (٥–١٢ سنة) بلا نموذج حساب وليّ أمر واضح — مخاطرة قانونية حقيقية.</div>
-      <div class="risk-row"><span class="n">06</span> ربط السعر والحجز بـ«المستوى» مباشرة يجعل تمثيل IELTS وTOEFL والتدريب المؤسسي شبه مستحيل لاحقًا دون إعادة هيكلة.</div>
-      <div class="risk-row"><span class="n">07</span> بوابة الدفع الخاصة بفلسطين غير محسومة بعد، وهذا معروف للعميل نفسه.</div>
-      <div class="risk-row"><span class="n">08</span> Bus Factor = 1 — الاعتماد على مطوّر واحد بلا توثيق أو نسخ خارجية من الأسرار.</div>
+      <div class="risk-row"><span class="n">01</span> طلاب مُرحَّلون قد يُحجبون خطأً يوم الإطلاق إن لم يُكتب قيد تسوية مالي مع كل صف مستورَد — أمام عملاء دافعين فعليًا.</div>
+      <div class="risk-row"><span class="n">02</span> توثيق واتساب لدى Meta أُرسل وبانتظار الرد — أسابيع انتظار متوقَّعة لا يملك أحد تسريعها، وبدونه لا OTP ولا تذكيرات ولا روابط Zoom تلقائية.</div>
+      <div class="risk-row"><span class="n">03</span> حصص خاصة 1:1 بين معلم بالغ وطفل من عمر 5 سنوات — بلا مراجعة قانونية بعد، وأربعة أسئلة محدَّدة بانتظار محامٍ.</div>
+      <div class="risk-row"><span class="n">04</span> 🔴 حسابات Zoom ملك المعلمين لا المعهد — لا سلطة للإدارة على فرض غرفة الانتظار أو كلمة المرور، وانقطاع اشتراك معلم قد يُلغي حصة على أطفال ينتظرون.</div>
+      <div class="risk-row"><span class="n">05</span> ملف ترحيل الطلاب يجب أن يُجمَّع برقم هاتف ولي الأمر لا برقم الطالب — وإلا صار لكل ابن حساب ولي أمر منفصل بنفس الرقم، فينهار تصميم الأسرة الموحّدة يوم الإطلاق.</div>
+      <div class="risk-row"><span class="n">06</span> تفعيل MEPS قبل بلوغ حجم بطاقات كافٍ يحمّل المشروع رسمًا ثابتًا شهريًا يعادل ضعف بنيته التحتية بلا مقابل.</div>
+      <div class="risk-row"><span class="n">07</span> الحصة الخاصة (1:1) قد تُباع بخسارة إن سُعِّرت كسعر الحصة الجماعية — أجر المعلم ثابت بالساعة بصرف النظر عن عدد الطلاب.</div>
+      <div class="risk-row"><span class="n">08</span> Bus Factor = 1 — الاعتماد على مطوّر واحد بلا توثيق أو نسخ خارجية من الأسرار يبقى قائمًا كما في v1.</div>
     </div>
   </section>
 
-  <!-- ============ BLOCKING QUESTIONS ============ -->
+  <!-- ============ FROM OWNER ============ -->
   <section id="blocking">
     <div class="kicker">القسم ٤</div>
-    <h2>٦ أسئلة تحجب البدء بالتصميم النهائي لقاعدة البيانات</h2>
-    <p class="section-sub">لا تمنع البدء بالبرمجة كليًا (يمكن البدء بطبقة المصادقة والملفات الشخصية فورًا)، لكنها <b>يجب أن تُحسم قبل تصميم جداول التسعير والاشتراكات والفروع</b>.</p>
+    <h2>صفر أسئلة تحجب البدء — وبند واحد فعليًا لا يزال مطلوبًا من المالك</h2>
+    <p class="section-sub">الأسئلة الستة التي كانت تحجب v1 (الشركة المسجّلة، الفروع، الباقات، القاصرين، الأسعار المتضاربة، IELTS/TOEFL) حُسمت كلها ضمن 66 قرارًا رسميًا. وتوضيحك بتاريخ 2026-08-25 أغلق ستة بنود إضافية دفعة واحدة — لم يبقَ سوى انتظار خارجي واحد.</p>
     <div class="qa">
-      <div class="qa-item"><div class="qhead">1. هل توجد شركة مسجّلة رسميًا في بريطانيا؟ وأين الحساب البنكي التجاري؟<span class="badge block">يحجب</span></div><div class="why">يحدد بنية بوابات الدفع بالكامل — Stripe لا يقبل حسابات تجارية من الأردن أو فلسطين مباشرة.</div></div>
-      <div class="qa-item"><div class="qhead">2. كم عدد الفروع فعليًا؟ وهل الناصرة وبوغوتا ضمن النطاق؟<span class="badge block">يحجب</span></div><div class="why">«الفرع» هو مفتاح التقسيم الأساسي لكل جدول تقريبًا في قاعدة البيانات.</div></div>
-      <div class="qa-item"><div class="qhead">3. ما الفرق الحقيقي بين باقة Basic (٧٥ دينار) وStandard (١٥٠ دينار)؟<span class="badge block">يحجب</span></div><div class="why">يحدد هل سعة الحصة (٤ طلاب) ثابتة دائمًا أم صفة تتغير حسب الباقة.</div></div>
-      <div class="qa-item"><div class="qhead">4. هل يسجّل طفل عمره ٧ سنوات بنفسه؟ ومن يوقّع العقد ويدفع؟<span class="badge block">يحجب</span></div><div class="why">يحدد ملكية الحساب، العقد، الدفع، وجهة استقبال الإشعارات.</div></div>
-      <div class="qa-item"><div class="qhead">5. أي قائمة أسعار هي المعتمدة فعليًا: ملف الباقات أم إعلان إنستجرام؟<span class="badge block">يحجب</span></div><div class="why">السعر الفردي يظهر بقيمتين مختلفتين (١٥ و٢٥ دينار) في مصدرين مختلفين.</div></div>
-      <div class="qa-item"><div class="qhead">6. هل IELTS وTOEFL والتدريب المؤسسي ضمن النسخة الأولى؟<span class="badge block">يحجب</span></div><div class="why">يحدد هل يُبنى كيان «البرنامج» بشكل عام من اليوم الأول أم يُؤجَّل.</div></div>
+      <div class="qa-item"><div class="qhead">1. توثيق واتساب لدى Meta<span class="badge block">🔴 بانتظار الرد</span></div><div class="why">أُرسل البريد بالفعل (2026-08-25) — لا إجراء إضافي الآن سوى الانتظار.</div></div>
     </div>
-    <div class="stack-note">توجد أيضًا 42 سؤالًا إضافيًا (سياسات إلغاء، أجور معلمين، فوترة ضريبية، خصوصية...) في الوثيقة الأصلية — غير محجوبة لكنها تستحق الحسم قبل الإطلاق. أستطيع تلخيصها لك في رسالة منفصلة إن احتجتها.</div>
+    <div class="stack-note">✅ بنود أُغلقت بتوضيحك (2026-08-25): سلّم درجات الشهادة (المعلم/الأدمن يحدّدها حرًّا، <code>D-52</code>) · قائمة الأسعار النهائية (الأدمن يكتبها من اللوحة لكل باقة) · صفحتا SRS 1 و3 (فرع = بلد، لا كيان Branch) · ملف الترحيل (مؤجَّل بقرارك) · فحص مقاعد Zoom (ألغيته — كل معلم مؤكِّد) · أسئلة MEPS (أُرسلت). التفاصيل الكاملة موجودة في أربع دراسات مرفقة بالمستودع — راجع <code>README.md</code>.</div>
   </section>
 
   <!-- ============ STACK ============ -->
   <section id="stack">
     <div class="kicker">القسم ٥</div>
-    <h2>الحزمة التقنية الموصى بها باختصار</h2>
+    <h2>الحزمة التقنية المعتمدة اليوم</h2>
     <table>
-      <thead><tr><th>المجال</th><th>التوصية</th><th>السبب باختصار</th></tr></thead>
+      <thead><tr><th>المجال</th><th>القرار المعتمد</th><th>السبب باختصار</th></tr></thead>
       <tbody>
-        <tr><td>البنية العامة</td><td class="num">ASP.NET Core — Modular Monolith</td><td>لا Microservices ولا Kubernetes — الحجم لا يبررهما</td></tr>
-        <tr><td>قاعدة البيانات</td><td>PostgreSQL مُدارة (DigitalOcean)</td><td>نسخ احتياطي لحظي (PITR) بأقل تكلفة تأمين في المشروع</td></tr>
-        <tr><td>الاستضافة</td><td>Hetzner (سيرفر) خلف Cloudflare</td><td>خادم واحد كافٍ للـ MVP، بلا تعقيد إضافي</td></tr>
+        <tr><td>البنية العامة</td><td class="num">ASP.NET Core 10 — Modular Monolith</td><td>لا Microservices — الحجم لا يبررها</td></tr>
+        <tr><td>قاعدة البيانات</td><td>PostgreSQL 16 على نفس خادم التطبيق</td><td>⭐ $0 إضافي · قراءات غير محدودة · تفوّقت على Firestore وMongoDB بعد دراسة مخصَّصة</td></tr>
+        <tr><td>الاستضافة</td><td>Hetzner خلف Cloudflare</td><td>خادم واحد كافٍ للـMVP</td></tr>
         <tr><td>التخزين</td><td>Cloudflare R2</td><td>بدون رسوم إخراج بيانات (Egress)</td></tr>
-        <tr><td>واتساب</td><td>Meta Cloud API مباشرة</td><td>بلا رسوم وسيط إضافية</td></tr>
-        <tr><td>الدفع (بريطانيا)</td><td>Stripe</td><td>أفضل SDK وWebhooks ودعم اشتراكات</td></tr>
-        <tr><td>الدفع (الأردن)</td><td>PayTabs</td><td>الأوضح حضورًا محليًا ودعمًا للدينار</td></tr>
-        <tr><td>الدفع (فلسطين)</td><td>PayPal + تحويل بنكي</td><td>التحويل البنكي هو الخيار الوحيد المضمون حاليًا</td></tr>
-        <tr><td>الطوابير / الإشعارات</td><td>Hangfire على PostgreSQL</td><td>بلا Redis أو RabbitMQ إضافي في هذه المرحلة</td></tr>
+        <tr><td>واتساب</td><td>Meta Cloud API + بريد إلكتروني للـOTP</td><td>هدف D-57 + حد مجاني معروف من المالك — الرقم النهائي يُراجَع من حسابه</td></tr>
+        <tr><td>الدفع الأساسي</td><td>CliQ / تحويل بنكي يدوي (D-39)</td><td>صفر عمولة على أكبر شريحة (الأردن)</td></tr>
+        <tr><td>الدفع الدولي</td><td>MEPS — اختياري ومؤجَّل</td><td>يُفعَّل فقط عند حجم بطاقات ≈2,000 د.أ/شهر</td></tr>
+        <tr><td>الحصص المرئية</td><td>حساب Zoom الخاص بكل معلم + طبقة IMeetingProvider</td><td>🔴 $0 على المعهد — قابل للتبديل لـJitsi بيوم عمل عند الحاجة</td></tr>
+        <tr><td>الطوابير / الإشعارات</td><td>Hangfire داخل العملية</td><td>بلا Redis أو RabbitMQ في هذه المرحلة</td></tr>
       </tbody>
     </table>
   </section>
@@ -373,17 +345,17 @@
   <!-- ============ FINAL ============ -->
   <section id="final" style="border-bottom:none;">
     <div class="kicker">القسم ٦</div>
-    <h2>الخلاصة كما وردت في الوثيقة</h2>
+    <h2>الخلاصة اليوم</h2>
     <blockquote>
-      المشروع يستحق البناء، والمعمارية المقترحة صحيحة له، والتكلفة معقولة.<br><br>
-      لكن <b>أكبر خطر عليه ليس تقنيًا — بل البدء بالبرمجة قبل حسم الأسئلة الستة المحجوبة أعلاه.</b><br><br>
-      يوم واحد مع صاحب المشروع الآن يوفّر شهرين من إعادة العمل لاحقًا — وهذه الخطوة الوحيدة الموصى بها قبل أي سطر برمجي.
+      المشروع تحوّل من مسودة فيها تناقضات بين مصادرها إلى دراسة مغلقة بـ66 قرارًا رسميًا، وفاتورة تشغيل انخفضت من ~$120 إلى ~$8–12 شهريًا لأسباب حقيقية موثَّقة — لا تقديرية.<br><br>
+      <b>لا يوجد اليوم سؤال واحد يحجب البدء بالتصميم.</b> المتبقي بند واحد فعليًا: انتظار رد Meta على توثيق واتساب.<br><br>
+      الخطوة التالية: المتابعة مع Meta، وملف الترحيل يُملأ متى قرّرت — لا عجلة، ولا يحجب ذلك بدء التطوير.
     </blockquote>
   </section>
 
 </div>
 
-<footer>هذا تلخيص لدراسة أطول (54 قسمًا) موجودة في ملفك المرفوع — اسألني عن أي قسم منها وسأشرحه بالتفصيل.</footer>
+<footer>ملخص محدَّث لدراسة v3.1 (47 قسمًا) + أربع دراسات إضافية (القاعدة · الفيديو وبيانات الأطفال · الدفع والتقارير) — الملفات الكاملة في جذر المستودع، ابدأ من <code>README.md</code>.</footer>
 
 </body>
 </html>

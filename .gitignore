@@ -1,27 +1,5 @@
-# OS
+.vs/
 Thumbs.db
-ehthumbs.db
 Desktop.ini
-.DS_Store
-
-# Office / Word temp & lock files
-~$*
 *.tmp
-
-# Archives (المحتوى نفسه موجود كـ Markdown)
-*.rar
-*.zip
-*.7z
-
-# Editors
-.vscode/
-.idea/
-*.swp
-
-# Secrets — لا يُرفع أي سر إلى المستودع إطلاقًا
-.env
-.env.*
-*.pem
-*.key
-secrets.json
-appsettings.*.local.json
+~$*
