@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MVTeaches.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(MvTeachesDbContext))]
-    [Migration("20260826190425_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260826191309_AddDatabaseLevelInvariants")]
+    partial class AddDatabaseLevelInvariants
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -313,11 +313,11 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("created_by");
 
-                    b.Property<DateOnly>("EffectiveFrom")
+                    b.Property<LocalDate>("EffectiveFrom")
                         .HasColumnType("date")
                         .HasColumnName("effective_from");
 
-                    b.Property<DateOnly?>("EffectiveTo")
+                    b.Property<LocalDate?>("EffectiveTo")
                         .HasColumnType("date")
                         .HasColumnName("effective_to");
 
@@ -869,7 +869,7 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("notes");
 
-                    b.Property<DateOnly?>("PaidOn")
+                    b.Property<LocalDate?>("PaidOn")
                         .HasColumnType("date")
                         .HasColumnName("paid_on");
 
@@ -901,11 +901,11 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("student_id");
 
-                    b.Property<DateOnly?>("SubscriptionEnd")
+                    b.Property<LocalDate?>("SubscriptionEnd")
                         .HasColumnType("date")
                         .HasColumnName("subscription_end");
 
-                    b.Property<DateOnly?>("SubscriptionStart")
+                    b.Property<LocalDate?>("SubscriptionStart")
                         .HasColumnType("date")
                         .HasColumnName("subscription_start");
 
@@ -1175,11 +1175,11 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("country_id");
 
-                    b.Property<DateOnly>("PeriodEnd")
+                    b.Property<LocalDate>("PeriodEnd")
                         .HasColumnType("date")
                         .HasColumnName("period_end");
 
-                    b.Property<DateOnly>("PeriodStart")
+                    b.Property<LocalDate>("PeriodStart")
                         .HasColumnType("date")
                         .HasColumnName("period_start");
 
@@ -1219,11 +1219,11 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("created_by");
 
-                    b.Property<DateOnly>("EffectiveFrom")
+                    b.Property<LocalDate>("EffectiveFrom")
                         .HasColumnType("date")
                         .HasColumnName("effective_from");
 
-                    b.Property<DateOnly?>("EffectiveTo")
+                    b.Property<LocalDate?>("EffectiveTo")
                         .HasColumnType("date")
                         .HasColumnName("effective_to");
 

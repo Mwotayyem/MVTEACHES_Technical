@@ -360,9 +360,9 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                     remaining_minutes = table.Column<int>(type: "integer", nullable: true),
                     amount_paid = table.Column<decimal>(type: "numeric(12,3)", nullable: true),
                     currency = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: true),
-                    paid_on = table.Column<DateOnly>(type: "date", nullable: true),
-                    subscription_start = table.Column<DateOnly>(type: "date", nullable: true),
-                    subscription_end = table.Column<DateOnly>(type: "date", nullable: true),
+                    paid_on = table.Column<LocalDate>(type: "date", nullable: true),
+                    subscription_start = table.Column<LocalDate>(type: "date", nullable: true),
+                    subscription_end = table.Column<LocalDate>(type: "date", nullable: true),
                     notes = table.Column<string>(type: "text", nullable: true),
                     status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     error_message = table.Column<string>(type: "text", nullable: true),
@@ -430,8 +430,8 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     country_id = table.Column<int>(type: "integer", nullable: false),
-                    period_start = table.Column<DateOnly>(type: "date", nullable: false),
-                    period_end = table.Column<DateOnly>(type: "date", nullable: false),
+                    period_start = table.Column<LocalDate>(type: "date", nullable: false),
+                    period_end = table.Column<LocalDate>(type: "date", nullable: false),
                     status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "Open"),
                     approved_by = table.Column<long>(type: "bigint", nullable: true),
                     approved_at_utc = table.Column<Instant>(type: "timestamp with time zone", nullable: true)
@@ -476,8 +476,8 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                     currency = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false),
                     validity_days = table.Column<int>(type: "integer", nullable: false),
                     is_active = table.Column<bool>(type: "boolean", nullable: false),
-                    effective_from = table.Column<DateOnly>(type: "date", nullable: false),
-                    effective_to = table.Column<DateOnly>(type: "date", nullable: true),
+                    effective_from = table.Column<LocalDate>(type: "date", nullable: false),
+                    effective_to = table.Column<LocalDate>(type: "date", nullable: true),
                     created_by = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
@@ -693,8 +693,8 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                     rate_amount = table.Column<decimal>(type: "numeric(12,3)", nullable: false),
                     rate_currency = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false),
                     rate_unit = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    effective_from = table.Column<DateOnly>(type: "date", nullable: false),
-                    effective_to = table.Column<DateOnly>(type: "date", nullable: true),
+                    effective_from = table.Column<LocalDate>(type: "date", nullable: false),
+                    effective_to = table.Column<LocalDate>(type: "date", nullable: true),
                     created_by = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
@@ -1188,42 +1188,11 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
                 table: "teachers",
                 column: "user_id",
                 unique: true);
-
-            // ⭐⭐ Technical Study §14.2 — makes a teacher schedule conflict a
-            // physical impossibility, not an application-level check. EF Core's
-            // fluent API has no first-class support for PostgreSQL EXCLUDE
-            // constraints, so this is raw SQL (master engineering prompt §19:
-            // "database-level protection for teacher schedule conflicts").
-            migrationBuilder.Sql("CREATE EXTENSION IF NOT EXISTS btree_gist;");
-            migrationBuilder.Sql(@"
-                ALTER TABLE class_sessions ADD CONSTRAINT no_teacher_overlap
-                  EXCLUDE USING gist (
-                      teacher_id WITH =,
-                      tstzrange(starts_at_utc, ends_at_utc, '[)') WITH &&
-                  ) WHERE (status <> 'Cancelled');");
-
-            // §20.5 rule 1: append-only at the database level, not merely by
-            // convention in application code.
-            migrationBuilder.Sql(@"
-                CREATE OR REPLACE FUNCTION forbid_ledger_mutation() RETURNS trigger AS $$
-                BEGIN
-                    RAISE EXCEPTION 'entitlement_ledger is append-only (Technical Study §20.5 rule 1) — % is not permitted', TG_OP;
-                END;
-                $$ LANGUAGE plpgsql;
-
-                CREATE TRIGGER trg_entitlement_ledger_append_only
-                    BEFORE UPDATE OR DELETE ON entitlement_ledger
-                    FOR EACH ROW EXECUTE FUNCTION forbid_ledger_mutation();
-            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("DROP TRIGGER IF EXISTS trg_entitlement_ledger_append_only ON entitlement_ledger;");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS forbid_ledger_mutation();");
-            migrationBuilder.Sql("ALTER TABLE class_sessions DROP CONSTRAINT IF EXISTS no_teacher_overlap;");
-
             migrationBuilder.DropTable(
                 name: "age_groups");
 

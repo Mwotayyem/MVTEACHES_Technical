@@ -1,3 +1,4 @@
+using NodaTime;
 using MVTeaches.Domain.Common;
 
 namespace MVTeaches.Domain.Catalog;
@@ -43,15 +44,15 @@ public class PricingPlan
     public int ValidityDays { get; private set; }
 
     public bool IsActive { get; private set; } = true;
-    public DateOnly EffectiveFrom { get; private set; }
-    public DateOnly? EffectiveTo { get; private set; }
+    public LocalDate EffectiveFrom { get; private set; }
+    public LocalDate? EffectiveTo { get; private set; }
     public long CreatedByUserId { get; private set; }
 
     private PricingPlan() { }
 
     public PricingPlan(int countryId, long courseId, int? levelId, int? ageGroupId,
         SessionType sessionType, int sessionsCount, int minutesTotal, Money amount,
-        int validityDays, DateOnly effectiveFrom, long createdByUserId)
+        int validityDays, LocalDate effectiveFrom, long createdByUserId)
     {
         if (sessionsCount <= 0) throw new ArgumentOutOfRangeException(nameof(sessionsCount));
         if (minutesTotal <= 0) throw new ArgumentOutOfRangeException(nameof(minutesTotal));
@@ -73,7 +74,7 @@ public class PricingPlan
 
     /// <summary>§23.3: plans are never UPDATEd once live — a price change closes
     /// this row (<see cref="EffectiveTo"/>) and a new plan row is created.</summary>
-    public void CloseEffectiveness(DateOnly effectiveTo)
+    public void CloseEffectiveness(LocalDate effectiveTo)
     {
         if (effectiveTo <= EffectiveFrom)
         {

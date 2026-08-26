@@ -34,9 +34,9 @@ public class MigrationRecord
     public int? RemainingMinutes { get; private set; }
     public decimal? AmountPaid { get; private set; }
     public string? Currency { get; private set; }
-    public DateOnly? PaidOn { get; private set; }
-    public DateOnly? SubscriptionStart { get; private set; }
-    public DateOnly? SubscriptionEnd { get; private set; }
+    public LocalDate? PaidOn { get; private set; }
+    public LocalDate? SubscriptionStart { get; private set; }
+    public LocalDate? SubscriptionEnd { get; private set; }
     public string? Notes { get; private set; }
 
     public MigrationRecordStatus Status { get; private set; } = MigrationRecordStatus.Draft;
@@ -60,7 +60,7 @@ public class MigrationRecord
     }
 
     public void SetParsedFields(string? levelCode, int? remainingMinutes, decimal? amountPaid, string? currency,
-        DateOnly? paidOn, DateOnly? subscriptionStart, DateOnly? subscriptionEnd, string? notes)
+        LocalDate? paidOn, LocalDate? subscriptionStart, LocalDate? subscriptionEnd, string? notes)
     {
         LevelCode = levelCode;
         RemainingMinutes = remainingMinutes;

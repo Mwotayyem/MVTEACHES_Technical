@@ -1,3 +1,4 @@
+using NodaTime;
 using MVTeaches.Domain.Common;
 
 namespace MVTeaches.Domain.Payroll;
@@ -23,14 +24,14 @@ public class TeacherRate
     public Money Rate { get; private set; } = null!;
     public RateUnit Unit { get; private set; } = RateUnit.PerHour;
 
-    public DateOnly EffectiveFrom { get; private set; }
-    public DateOnly? EffectiveTo { get; private set; }
+    public LocalDate EffectiveFrom { get; private set; }
+    public LocalDate? EffectiveTo { get; private set; }
     public long CreatedByUserId { get; private set; }
 
     private TeacherRate() { }
 
     public TeacherRate(long teacherId, long? courseId, int? levelId, int? ageGroupId, Money rate,
-        RateUnit unit, DateOnly effectiveFrom, long createdByUserId)
+        RateUnit unit, LocalDate effectiveFrom, long createdByUserId)
     {
         if (rate.Amount < 0)
         {
@@ -47,7 +48,7 @@ public class TeacherRate
         CreatedByUserId = createdByUserId;
     }
 
-    public void Close(DateOnly effectiveTo)
+    public void Close(LocalDate effectiveTo)
     {
         if (effectiveTo <= EffectiveFrom)
         {

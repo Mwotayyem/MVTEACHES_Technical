@@ -19,8 +19,8 @@ public class PayrollPeriod
     public long Id { get; private set; }
     public int CountryId { get; private set; }
 
-    public DateOnly PeriodStart { get; private set; }
-    public DateOnly PeriodEnd { get; private set; }
+    public LocalDate PeriodStart { get; private set; }
+    public LocalDate PeriodEnd { get; private set; }
 
     public PayrollPeriodStatus Status { get; private set; } = PayrollPeriodStatus.Open;
     public long? ApprovedByUserId { get; private set; }
@@ -31,7 +31,7 @@ public class PayrollPeriod
 
     private PayrollPeriod() { }
 
-    public PayrollPeriod(int countryId, DateOnly periodStart, DateOnly periodEnd)
+    public PayrollPeriod(int countryId, LocalDate periodStart, LocalDate periodEnd)
     {
         if (periodEnd <= periodStart)
         {
