@@ -179,10 +179,13 @@ sizing.
 
 ## 10. Health checks
 
-**Not yet implemented.** ASP.NET Core's built-in health-check middleware
-(`AddHealthChecks()` + `MapHealthChecks("/health")`) has not been added to
-Program.cs. This is a small, well-understood addition — flagged here as a
-known gap rather than silently skipped.
+`GET /health` — a minimal liveness/readiness probe (`DatabaseHealthCheck`)
+that checks Postgres connectivity only. Returns `200 Healthy` when the
+database is reachable, `503 Unhealthy` otherwise. Deliberately does NOT
+check Zoom/WhatsApp/MEPS — those are optional-until-configured integrations
+(see their own "not configured" stubs), and their absence is expected, not
+a failure. Point your reverse proxy / uptime monitor / orchestrator's
+liveness probe at this endpoint once a VPS exists.
 
 ## 11. Rollback procedure
 

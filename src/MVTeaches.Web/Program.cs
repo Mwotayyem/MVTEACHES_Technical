@@ -12,6 +12,7 @@ using MVTeaches.Application.Settings;
 using MVTeaches.Infrastructure.Attendance;
 using MVTeaches.Infrastructure.Certificates;
 using MVTeaches.Infrastructure.Hangfire;
+using MVTeaches.Infrastructure.Health;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Integrations.Email;
 using MVTeaches.Infrastructure.Integrations.WhatsApp;
@@ -97,6 +98,12 @@ builder.Services.AddScoped<NotificationDispatchJob>();
 
 builder.Services.AddRazorPages();
 
+// Deployment guide §10's flagged gap — a minimal liveness/readiness probe,
+// not a dependency dashboard. See DatabaseHealthCheck's own remarks on why
+// optional integrations (Zoom/WhatsApp/MEPS) are deliberately not checked here.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("postgresql");
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -113,6 +120,7 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
+app.MapHealthChecks("/health");
 
 // Idempotent reference-data seeding (roles, age groups, settings defaults)
 // only — NOT schema migrations. Migrations are a deliberate, separate
