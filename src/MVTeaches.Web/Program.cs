@@ -7,6 +7,7 @@ using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Certificates;
 using MVTeaches.Application.Payments;
 using MVTeaches.Application.Payroll;
+using MVTeaches.Application.Reports;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Application.Settings;
 using MVTeaches.Infrastructure.Attendance;
@@ -21,6 +22,7 @@ using MVTeaches.Infrastructure.Notifications;
 using MVTeaches.Infrastructure.Payments;
 using MVTeaches.Infrastructure.Payroll;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Infrastructure.Reports;
 using MVTeaches.Infrastructure.Scheduling;
 using MVTeaches.Infrastructure.Settings;
 using NodaTime;
@@ -69,6 +71,7 @@ builder.Services.AddScoped<IScheduleGenerationService, ScheduleGenerationService
 builder.Services.AddScoped<IPayrollRateResolver, PayrollRateResolver>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<IPayrollService, PayrollService>();
+builder.Services.AddScoped<IFinancialReportService, FinancialReportService>();
 
 // ---------------------------------------------------------------------
 // Integration boundaries — §5-8 of the master engineering prompt.

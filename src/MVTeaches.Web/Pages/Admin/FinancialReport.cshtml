@@ -1,0 +1,96 @@
+@page
+@model MVTeaches.Web.Pages.Admin.FinancialReportModel
+@{
+    ViewData["Title"] = "Financial Report";
+}
+
+<h1>Financial report</h1>
+
+<form method="get" class="row row-cols-lg-auto g-3 align-items-center mb-4">
+    <div class="col-12">
+        <label class="visually-hidden" asp-for="From">From</label>
+        <div class="input-group">
+            <div class="input-group-text">From</div>
+            <input asp-for="From" type="date" class="form-control" />
+        </div>
+    </div>
+    <div class="col-12">
+        <label class="visually-hidden" asp-for="To">To</label>
+        <div class="input-group">
+            <div class="input-group-text">To</div>
+            <input asp-for="To" type="date" class="form-control" />
+        </div>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Run</button>
+    </div>
+</form>
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+@if (Model.Report is { } report)
+{
+    <p class="text-muted">@report.PeriodStart.ToString("yyyy-MM-dd", null) to @report.PeriodEnd.ToString("yyyy-MM-dd", null) — cash-basis (confirmed payments by confirmation date), live from the database, nothing cached.</p>
+
+    <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Revenue (confirmed payments)</h5>
+                    @if (report.RevenueByCurrency.Count == 0)
+                    {
+                        <p class="card-text text-muted">No confirmed payments in this range.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled mb-0">
+                            @foreach (var line in report.RevenueByCurrency)
+                            {
+                                <li>@line.Amount.ToString("N3", null) @line.Currency</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Payroll cost</h5>
+                    @if (report.PayrollCostByCurrency.Count == 0)
+                    {
+                        <p class="card-text text-muted">No payroll lines in this range.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled mb-0">
+                            @foreach (var line in report.PayrollCostByCurrency)
+                            {
+                                <li>@line.Amount.ToString("N3", null) @line.Currency</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        <div class="col">
+            <div class="card @(report.PaymentBlockedStudents > 0 ? "border-warning" : "")">
+                <div class="card-body">
+                    <h5 class="card-title">Students payment-blocked right now</h5>
+                    <p class="card-text display-6">@report.PaymentBlockedStudents</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Payments awaiting confirmation</h5>
+                    <p class="card-text display-6">@report.PendingPayments</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
