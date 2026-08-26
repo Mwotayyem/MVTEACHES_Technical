@@ -6,9 +6,12 @@ using MVTeaches.Domain.Delivery;
 using MVTeaches.Domain.Payroll;
 using MVTeaches.Domain.People;
 using MVTeaches.Domain.Scheduling;
+using MVTeaches.Domain.Settings;
+using MVTeaches.Infrastructure.Certificates;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Payroll;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Infrastructure.Settings;
 using NodaTime;
 using NodaTime.Testing;
 using Xunit;
@@ -19,6 +22,8 @@ namespace MVTeaches.Tests.Payroll;
 /// Technical Study §18.1/§18.2 (D-26) — the declare → verify → aggregate →
 /// review → approve → pay cycle, against a real PostgreSQL 16 database (the
 /// UNIQUE(period_id, session_id) constraint and the FK graph both matter here).
+/// Verify also exercises the §27.2 certificate-progress recompute it triggers —
+/// see CertificateServiceTests for that recompute's own dedicated coverage.
 /// </summary>
 [Collection(nameof(DatabaseCollection))]
 public class PayrollServiceTests
@@ -49,12 +54,35 @@ public class PayrollServiceTests
         return user.Id;
     }
 
+    /// <summary>VerifyAsync always triggers a certificate-progress recompute
+    /// (§27.2), which reads this setting live — every test that calls Verify
+    /// needs it seeded, same upsert pattern as ScheduleGenerationServiceTests.</summary>
+    private static async Task SeedCertificateHoursSettingAsync(MvTeachesDbContext db, int hours = 30)
+    {
+        var setting = await db.Settings.FirstOrDefaultAsync(s => s.Key == SettingKey.CertificateRequiredHours);
+        if (setting is null)
+        {
+            db.Settings.Add(new Setting(SettingKey.CertificateRequiredHours, hours.ToString()));
+        }
+        else
+        {
+            setting.UpdateValue(hours.ToString(), updatedByUserId: 0, SystemClock.Instance.GetCurrentInstant());
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static PayrollService CreatePayrollService(MvTeachesDbContext db, IClock clock) =>
+        new(db, new PayrollRateResolver(db), new CertificateService(db, new SettingsProvider(db, clock), clock), clock);
+
     private record Fixture(int CountryId, long CourseId, int LevelId, int AgeGroupId, long TeacherId,
         long TeacherUserId, long AdminUserId, long SessionId, ClassSession Session);
 
     private async Task<Fixture> SeedDeclaredDeliveryAsync(MvTeachesDbContext db, decimal rateAmount = 12m,
         RateUnit rateUnit = RateUnit.PerHour, int durationMinutes = 60, bool declare = true)
     {
+        await SeedCertificateHoursSettingAsync(db);
+
         var countryId = (int)NextId();
         var courseId = NextId();
         var levelId = (int)NextId();
@@ -85,7 +113,7 @@ public class PayrollServiceTests
 
         if (declare)
         {
-            var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(now));
+            var service = CreatePayrollService(db, new FakeClock(now));
             var result = await service.DeclareAsync(session.Id, teacherUserId, durationMinutes, "delivered fine", CancellationToken.None);
             Assert.Equal(DeclareDeliveryOutcome.Declared, result.Outcome);
         }
@@ -100,7 +128,7 @@ public class PayrollServiceTests
         var fx = await SeedDeclaredDeliveryAsync(db, rateAmount: 12m, rateUnit: RateUnit.PerHour, durationMinutes: 60);
 
         var now = SystemClock.Instance.GetCurrentInstant();
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(now));
+        var service = CreatePayrollService(db, new FakeClock(now));
         var result = await service.VerifyAsync(fx.SessionId, fx.AdminUserId, "looks good", CancellationToken.None);
 
         Assert.Equal(VerifyDeliveryOutcome.Verified, result.Outcome);
@@ -119,7 +147,7 @@ public class PayrollServiceTests
         var fx = await SeedDeclaredDeliveryAsync(db, rateAmount: 20m, rateUnit: RateUnit.PerSession, durationMinutes: 90);
 
         var now = SystemClock.Instance.GetCurrentInstant();
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(now));
+        var service = CreatePayrollService(db, new FakeClock(now));
         var result = await service.VerifyAsync(fx.SessionId, fx.AdminUserId, null, CancellationToken.None);
 
         Assert.Equal(VerifyDeliveryOutcome.Verified, result.Outcome);
@@ -136,7 +164,7 @@ public class PayrollServiceTests
         await using var db = _fixture.CreateContext();
         var fx = await SeedDeclaredDeliveryAsync(db);
 
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(SystemClock.Instance.GetCurrentInstant()));
+        var service = CreatePayrollService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()));
         var result = await service.VerifyAsync(fx.SessionId, fx.TeacherUserId, null, CancellationToken.None);
 
         Assert.Equal(VerifyDeliveryOutcome.SameActorAsDeclarer, result.Outcome);
@@ -156,7 +184,7 @@ public class PayrollServiceTests
         db.TeacherRates.Remove(rate);
         await db.SaveChangesAsync();
 
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(SystemClock.Instance.GetCurrentInstant()));
+        var service = CreatePayrollService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()));
         var result = await service.VerifyAsync(fx.SessionId, fx.AdminUserId, null, CancellationToken.None);
 
         Assert.Equal(VerifyDeliveryOutcome.NoApplicableRate, result.Outcome);
@@ -175,7 +203,7 @@ public class PayrollServiceTests
         session.MarkNotDelivered();
         await db.SaveChangesAsync();
 
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(SystemClock.Instance.GetCurrentInstant()));
+        var service = CreatePayrollService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()));
         var result = await service.DeclareAsync(fx.SessionId, fx.TeacherUserId, 60, null, CancellationToken.None);
 
         Assert.Equal(DeclareDeliveryOutcome.SessionNotDelivered, result.Outcome);
@@ -190,7 +218,7 @@ public class PayrollServiceTests
         await using var db = _fixture.CreateContext();
         var fx = await SeedDeclaredDeliveryAsync(db);
 
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(SystemClock.Instance.GetCurrentInstant()));
+        var service = CreatePayrollService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()));
         var result = await service.RejectAsync(fx.SessionId, fx.AdminUserId, "teacher no-show, contradicts declaration", CancellationToken.None);
 
         Assert.Equal(RejectDeliveryOutcome.Rejected, result.Outcome);
@@ -206,7 +234,7 @@ public class PayrollServiceTests
         var fx = await SeedDeclaredDeliveryAsync(db, rateAmount: 15m, rateUnit: RateUnit.PerHour, durationMinutes: 60);
 
         var now = SystemClock.Instance.GetCurrentInstant();
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(now));
+        var service = CreatePayrollService(db, new FakeClock(now));
 
         var verifyResult = await service.VerifyAsync(fx.SessionId, fx.AdminUserId, null, CancellationToken.None);
         Assert.Equal(VerifyDeliveryOutcome.Verified, verifyResult.Outcome);
@@ -248,7 +276,7 @@ public class PayrollServiceTests
         var fx = await SeedDeclaredDeliveryAsync(db);
 
         var now = SystemClock.Instance.GetCurrentInstant();
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(now));
+        var service = CreatePayrollService(db, new FakeClock(now));
         await service.VerifyAsync(fx.SessionId, fx.AdminUserId, null, CancellationToken.None);
 
         var zone = DateTimeZoneProviders.Tzdb["Asia/Amman"];
@@ -270,7 +298,7 @@ public class PayrollServiceTests
         await db.SaveChangesAsync();
 
         var now = SystemClock.Instance.GetCurrentInstant();
-        var service = new PayrollService(db, new PayrollRateResolver(db), new FakeClock(now));
+        var service = CreatePayrollService(db, new FakeClock(now));
         var today = now.InZone(DateTimeZoneProviders.Tzdb["Asia/Amman"]).Date;
 
         var period = await service.OpenPeriodAsync(countryId, today.PlusDays(-5), today.PlusDays(5), CancellationToken.None);

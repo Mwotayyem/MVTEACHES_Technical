@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MVTeaches.Application.Certificates;
 using MVTeaches.Application.Payroll;
 using MVTeaches.Domain.Delivery;
 using MVTeaches.Domain.Payroll;
@@ -18,12 +19,15 @@ public class PayrollService : IPayrollService
 {
     private readonly MvTeachesDbContext _db;
     private readonly IPayrollRateResolver _rateResolver;
+    private readonly ICertificateService _certificateService;
     private readonly IClock _clock;
 
-    public PayrollService(MvTeachesDbContext db, IPayrollRateResolver rateResolver, IClock clock)
+    public PayrollService(MvTeachesDbContext db, IPayrollRateResolver rateResolver,
+        ICertificateService certificateService, IClock clock)
     {
         _db = db;
         _rateResolver = rateResolver;
+        _certificateService = certificateService;
         _clock = clock;
     }
 
@@ -92,6 +96,16 @@ public class PayrollService : IPayrollService
         delivery.Verify(verifiedByUserId, session.DurationMinutes, resolved.Rate, resolved.Unit,
             resolved.TeacherRateId, note, _clock.GetCurrentInstant());
         await _db.SaveChangesAsync(ct);
+
+        // §27.2: "recomputed on every delivery verification" — a hard
+        // invariant of the documented design, not left to a future caller to
+        // remember. This is a SEPARATE round trip after the Verify write above
+        // (not one shared transaction) — a crash between the two would leave
+        // the delivery Verified with stale certificate progress until the next
+        // recompute; acceptable for now, and RecomputeLevelProgressForSessionAsync
+        // is itself idempotent, so re-running it later is always safe.
+        await _certificateService.RecomputeLevelProgressForSessionAsync(sessionId, ct);
+
         return new VerifyDeliveryResult(VerifyDeliveryOutcome.Verified);
     }
 

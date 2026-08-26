@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Integrations;
+using MVTeaches.Application.Certificates;
 using MVTeaches.Application.Payments;
 using MVTeaches.Application.Payroll;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Application.Settings;
 using MVTeaches.Infrastructure.Attendance;
+using MVTeaches.Infrastructure.Certificates;
 using MVTeaches.Infrastructure.Hangfire;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Integrations.Email;
@@ -64,6 +66,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<ISettingsProvider, SettingsProvider>();
 builder.Services.AddScoped<IScheduleGenerationService, ScheduleGenerationService>();
 builder.Services.AddScoped<IPayrollRateResolver, PayrollRateResolver>();
+builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<IPayrollService, PayrollService>();
 
 // ---------------------------------------------------------------------

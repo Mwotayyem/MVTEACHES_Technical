@@ -21,13 +21,14 @@ report. Update this file, don't let it drift from what's actually true.
 | Reference data seed | Three age groups (Kids/Teens/Adults, D-04) and ten settings defaults (§19.5), confirmed present in the database with the documented values. |
 | Recurring-schedule generator (§15.3) | `ScheduleGenerationService` — materializes `ClassSession` rows from every Active `RecurringSchedule` out to an admin-configured horizon (`ScheduleGenerationHorizonWeeks` setting, D-65-style — never hardcoded); fully idempotent re-runs; a teacher-overlap collision (the database's own EXCLUDE constraint) or a `TeacherTimeOff` window is never silently dropped — both are recorded as a `ScheduleGenerationException` row for an admin to see. Registered as a nightly Hangfire recurring job (`schedule-generation`); the documented "manual run" path is the Hangfire dashboard's own admin-only "Trigger now" button on that same job, not a second code path. 5 tests. |
 | Payroll declare/verify/pay cycle (§18.1/§18.2, D-26) | `PayrollService` — the full declare → verify → open period → aggregate → review → approve → mark paid → close pipeline, orchestrating the pre-existing `SessionDelivery`/`PayrollPeriod`/`PayrollLine` domain state machines. `PayrollRateResolver` implements the most-specific-wins rate lookup (§9.2/D-27). Separation of duties (§18.3 rule 3) is enforced on both verify and reject. A real bug found and fixed while wiring this up: `SessionDelivery.Verify` always divided by 60 as if every rate were hourly, silently mispaying any `PerSession`-rated teacher — it now branches on `RateUnit`. 9 tests, including a full end-to-end cycle and a `PerSession` flat-rate case. |
+| Certificate progress & issuance (§27.1/§27.2, D-30/D-51/CONF-03/Q-27) | `CertificateService` — `LevelProgress` is fully recomputed (never incremented) every time a delivery is verified, summing minutes only for sessions the student both attended (D-83) AND had delivery-verified (§18), grouped strictly by (student, level, course) — never by subscription (CONF-03). Eligibility is read live against `settings.CertificateRequiredHours` (D-65), never snapshotted onto the student. Per Q-27's resolution, issuance is always a separate, explicit admin action — crossing the threshold alone never issues a certificate. Wired directly into `PayrollService.VerifyAsync` so the recompute can't be forgotten by a future caller. 9 tests. |
 
-**32/32 automated tests passing** (9 attendance/ledger, 5 scheduling
-concurrency, 4 payments, 5 schedule generation, 9 payroll), all against a
-real local PostgreSQL 16 cluster (not SQLite, not EF Core InMemory) —
-because several of the invariants under test (the EXCLUDE constraint, the
-partial unique indexes, the append-only trigger) cannot be honestly
-exercised any other way.
+**41/41 automated tests passing** (9 attendance/ledger, 5 scheduling
+concurrency, 4 payments, 5 schedule generation, 9 payroll, 9 certificates),
+all against a real local PostgreSQL 16 cluster (not SQLite, not EF Core
+InMemory) — because several of the invariants under test (the EXCLUDE
+constraint, the partial unique indexes, the append-only trigger) cannot be
+honestly exercised any other way.
 
 ## Two genuine documentation contradictions found and fixed while implementing
 
@@ -46,7 +47,6 @@ Both are committed with full explanations — see the git log.
 |---|---|
 | Razor UI (any page) | **Not started.** No Dashboard, Student Register, Student Profile, Payment History, or any other screen exists yet. This is almost certainly the single largest remaining item — §14 of the master prompt treats the Visual CRM Dashboard as part of MVP. |
 | Migration import pipeline | Domain model exists (`MigrationBatch`, `MigrationRecord`); no Excel/CSV parsing, validation, preview, or transactional import service exists. |
-| Certificate issuance service | Domain model exists (`LevelProgress`, `Certificate`); no service recomputes `LevelProgress` on delivery verification or evaluates certificate eligibility against `settings.CertificateRequiredHours`. |
 | Homework file upload/signed-URL chain | `FileRecord`/`Homework`/`HomeworkSubmission` entities exist; no object-storage integration (Cloudflare R2), no signed-URL generation, no virus scanning. |
 | Authorization policies on controllers/pages | Roles are seeded; no `[Authorize]` policies, no guardian-scoped query filters, no IDOR test suite exist on any endpoint yet, because no endpoints beyond the default scaffolded Razor Pages exist. |
 | Zoom real integration | Boundary only — see the "honest stub" note above. Requires reading Zoom's current API docs against a live account, which this engagement had neither. |
