@@ -104,6 +104,17 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 
+// Idempotent reference-data seeding (roles, age groups, settings defaults)
+// only — NOT schema migrations. Migrations are a deliberate, separate
+// deployment step (`dotnet ef database update`, see /docs/deployment) run
+// by a human before a new version goes live, never auto-applied by the app
+// process itself (§39/§40: production infra steps stay explicit, not implicit
+// side effects of starting the app).
+using (var scope = app.Services.CreateScope())
+{
+    await MVTeaches.Infrastructure.Persistence.DataSeeder.SeedAsync(scope.ServiceProvider);
+}
+
 // Admin-only Hangfire dashboard — never exposed unauthenticated (§22 IDOR/auth review).
 app.MapHangfireDashboard("/hangfire", new DashboardOptions
 {
