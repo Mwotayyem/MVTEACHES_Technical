@@ -79,6 +79,7 @@ builder.Services.AddScoped<IPayrollService, PayrollService>();
 builder.Services.Configure<ZoomOptions>(builder.Configuration.GetSection(ZoomOptions.SectionName));
 builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection(WhatsAppOptions.SectionName));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
+builder.Services.Configure<BootstrapAdminOptions>(builder.Configuration.GetSection(BootstrapAdminOptions.SectionName));
 
 builder.Services.AddScoped<IZoomMeetingProvider, NotConfiguredZoomMeetingProvider>();
 builder.Services.AddScoped<INotificationSender, NotConfiguredWhatsAppSender>();

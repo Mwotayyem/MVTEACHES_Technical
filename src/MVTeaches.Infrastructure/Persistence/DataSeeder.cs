@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MVTeaches.Application.Settings;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Settings;
@@ -26,6 +28,55 @@ public static class DataSeeder
         await SeedSettingsAsync(db, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
+
+        // A separate step, deliberately AFTER the roles above exist and are
+        // committed — SeedBootstrapAdminAsync needs the Admin role to already
+        // be present to add the user to it.
+        await SeedBootstrapAdminAsync(services, cancellationToken);
+    }
+
+    /// <summary>See BootstrapAdminOptions's remarks. Only ever acts while the
+    /// Admin role has zero members — on every later startup this is a no-op,
+    /// even if BootstrapAdminOptions is still configured.</summary>
+    private static async Task SeedBootstrapAdminAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        var options = services.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
+        if (!options.IsConfigured)
+        {
+            return;
+        }
+
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("MVTeaches.BootstrapAdmin");
+
+        var anyAdminExists = (await userManager.GetUsersInRoleAsync(RoleNames.Admin)).Count > 0;
+        if (anyAdminExists)
+        {
+            return;
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = options.AdminEmail,
+            Email = options.AdminEmail,
+            EmailConfirmed = true,
+        };
+
+        var createResult = await userManager.CreateAsync(user, options.AdminPassword!);
+        if (!createResult.Succeeded)
+        {
+            // Never silently swallowed — a misconfigured bootstrap password
+            // (too short, etc.) must be visible in the logs, not a mystery
+            // "I can't log in" report later.
+            logger.LogError("Bootstrap admin creation failed: {Errors}",
+                string.Join("; ", createResult.Errors.Select(e => e.Description)));
+            return;
+        }
+
+        await userManager.AddToRoleAsync(user, RoleNames.Admin);
+        logger.LogWarning(
+            "Bootstrap admin account created for {Email}. Remove Bootstrap:AdminEmail/AdminPassword from configuration now that an Admin exists.",
+            options.AdminEmail);
     }
 
     private static async Task SeedRolesAsync(RoleManager<ApplicationRole> roleManager)

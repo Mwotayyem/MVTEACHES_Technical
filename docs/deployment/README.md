@@ -36,6 +36,8 @@ placeholder sections. ASP.NET Core reads environment variables with `__`
 | WhatsApp Access Token | `WhatsApp__AccessToken` | No | — |
 | SMTP Host | `Smtp__Host` | Recommended | D-57's OTP backup channel — this one is a REAL, working implementation once configured |
 | SMTP Port / Username / Password | `Smtp__Port`, `Smtp__Username`, `Smtp__Password` | Depends on your provider | — |
+| Bootstrap admin email | `Bootstrap__AdminEmail` | **Yes, for the very first run only** | Creates exactly one Admin account, and only while the Admin role has zero members — see below |
+| Bootstrap admin password | `Bootstrap__AdminPassword` | Same | Must satisfy the app's own password policy (10+ characters) |
 
 **Important:** leaving Zoom/WhatsApp unset is safe — the app starts and
 runs normally. Those features simply report "not configured" instead of
@@ -89,6 +91,22 @@ table's documented default values (§19.5). This is ordinary application
 data, not a schema change, so it runs automatically and safely.
 
 ---
+
+## 3.5. Signing in for the first time
+
+Every account after the first is created by an existing Admin (D-28) — but a
+fresh database has none. Set `Bootstrap__AdminEmail` and
+`Bootstrap__AdminPassword` (or the `dotnet user-secrets` equivalent locally)
+before the app's first startup; it creates exactly one Admin account, and
+only while the `Admin` role has zero members — every later startup is a
+no-op even if these are still set. **Remove both settings once you've logged
+in once** — there is no reason to leave a password sitting in configuration
+after it has done its one job. Sign in at `/Account/Login`.
+
+Guardian/Student sign-in is documented as phone + OTP, which depends on the
+WhatsApp integration (not yet configured — see STATUS.md) and has not been
+built. Only email/password accounts (Admin/SystemAdmin/Teacher) can sign in
+today.
 
 ## 4. Hangfire
 
