@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
     <ProjectReference Include="..\MVTeaches.Domain\MVTeaches.Domain.csproj" />
@@ -16,6 +16,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>af1408e2-6734-4d27-948a-1477a376483d</UserSecretsId>
   </PropertyGroup>
 
 </Project>

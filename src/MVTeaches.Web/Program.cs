@@ -1,26 +1,116 @@
+using Hangfire;
+using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using MVTeaches.Application.Attendance;
+using MVTeaches.Application.Integrations;
+using MVTeaches.Application.Payments;
+using MVTeaches.Application.Settings;
+using MVTeaches.Infrastructure.Attendance;
+using MVTeaches.Infrastructure.Hangfire;
+using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Infrastructure.Integrations.Email;
+using MVTeaches.Infrastructure.Integrations.WhatsApp;
+using MVTeaches.Infrastructure.Integrations.Zoom;
+using MVTeaches.Infrastructure.Notifications;
+using MVTeaches.Infrastructure.Payments;
+using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Infrastructure.Settings;
+using NodaTime;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ---------------------------------------------------------------------
+// Persistence (PostgreSQL 16 + NodaTime — Technical Study §33, §14.4 rule 4)
+// ---------------------------------------------------------------------
+var connectionString = builder.Configuration.GetConnectionString("MvTeaches")
+    ?? throw new InvalidOperationException(
+        "ConnectionStrings:MvTeaches is not set. See /docs/deployment/README.md — " +
+        "this must come from environment/user-secrets, never a committed value.");
+
+builder.Services.AddDbContext<MvTeachesDbContext>(options =>
+    options.UseNpgsql(connectionString, npgsql => npgsql.UseNodaTime()));
+
+// ---------------------------------------------------------------------
+// Identity (§7.1 — long keys, every documented FK is bigint)
+// ---------------------------------------------------------------------
+builder.Services
+    .AddIdentity<ApplicationUser, ApplicationRole>(options =>
+    {
+        // §22 security review defaults — tightened here rather than left at
+        // ASP.NET Core's generic defaults, since this handles minors' data.
+        options.Password.RequiredLength = 10;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.SignIn.RequireConfirmedPhoneNumber = false; // OTP flow confirms via a custom step, not Identity's own token provider
+    })
+    .AddEntityFrameworkStores<MvTeachesDbContext>()
+    .AddDefaultTokenProviders();
+
+// ---------------------------------------------------------------------
+// Time — NodaTime's real clock everywhere except tests (FakeClock there)
+// ---------------------------------------------------------------------
+builder.Services.AddSingleton<IClock>(SystemClock.Instance);
+
+// ---------------------------------------------------------------------
+// Application services
+// ---------------------------------------------------------------------
+builder.Services.AddScoped<IJoinAttendanceService, JoinAttendanceService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ISettingsProvider, SettingsProvider>();
+
+// ---------------------------------------------------------------------
+// Integration boundaries — §5-8 of the master engineering prompt.
+// Each is registered as "not configured" until real credentials exist;
+// swapping in a real, verified implementation is a one-line change here,
+// not a redesign, once D-88/Meta/Zoom credentials are available.
+// ---------------------------------------------------------------------
+builder.Services.Configure<ZoomOptions>(builder.Configuration.GetSection(ZoomOptions.SectionName));
+builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection(WhatsAppOptions.SectionName));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
+
+builder.Services.AddScoped<IZoomMeetingProvider, NotConfiguredZoomMeetingProvider>();
+builder.Services.AddScoped<INotificationSender, NotConfiguredWhatsAppSender>();
+builder.Services.AddScoped<INotificationSender, SmtpEmailSender>(); // real — see SmtpEmailSender's remarks
+
+// ---------------------------------------------------------------------
+// Hangfire — §25: execution mechanism only, PostgreSQL storage (§30.3: no
+// Redis/RabbitMQ needed at this scale).
+// ---------------------------------------------------------------------
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString)));
+builder.Services.AddHangfireServer();
+builder.Services.AddScoped<NotificationDispatchJob>();
+
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
-app.MapRazorPages()
-   .WithStaticAssets();
+app.MapRazorPages().WithStaticAssets();
+
+// Admin-only Hangfire dashboard — never exposed unauthenticated (§22 IDOR/auth review).
+app.MapHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new AdminOnlyDashboardAuthorizationFilter() },
+});
+
+RecurringJob.AddOrUpdate<NotificationDispatchJob>(
+    "notification-dispatch", job => job.RunAsync(CancellationToken.None), "*/1 * * * *");
 
 app.Run();
