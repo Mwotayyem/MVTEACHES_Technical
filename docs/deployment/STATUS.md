@@ -20,12 +20,14 @@ report. Update this file, don't let it drift from what's actually true.
 | RBAC seed | Five roles (Admin, SystemAdmin, Teacher, Guardian, Student) seeded idempotently at startup, confirmed present in the database. |
 | Reference data seed | Three age groups (Kids/Teens/Adults, D-04) and ten settings defaults (§19.5), confirmed present in the database with the documented values. |
 | Recurring-schedule generator (§15.3) | `ScheduleGenerationService` — materializes `ClassSession` rows from every Active `RecurringSchedule` out to an admin-configured horizon (`ScheduleGenerationHorizonWeeks` setting, D-65-style — never hardcoded); fully idempotent re-runs; a teacher-overlap collision (the database's own EXCLUDE constraint) or a `TeacherTimeOff` window is never silently dropped — both are recorded as a `ScheduleGenerationException` row for an admin to see. Registered as a nightly Hangfire recurring job (`schedule-generation`); the documented "manual run" path is the Hangfire dashboard's own admin-only "Trigger now" button on that same job, not a second code path. 5 tests. |
+| Payroll declare/verify/pay cycle (§18.1/§18.2, D-26) | `PayrollService` — the full declare → verify → open period → aggregate → review → approve → mark paid → close pipeline, orchestrating the pre-existing `SessionDelivery`/`PayrollPeriod`/`PayrollLine` domain state machines. `PayrollRateResolver` implements the most-specific-wins rate lookup (§9.2/D-27). Separation of duties (§18.3 rule 3) is enforced on both verify and reject. A real bug found and fixed while wiring this up: `SessionDelivery.Verify` always divided by 60 as if every rate were hourly, silently mispaying any `PerSession`-rated teacher — it now branches on `RateUnit`. 9 tests, including a full end-to-end cycle and a `PerSession` flat-rate case. |
 
-**23/23 automated tests passing** (9 attendance/ledger, 5 scheduling
-concurrency, 4 payments, 5 schedule generation), all against a real local
-PostgreSQL 16 cluster (not SQLite, not EF Core InMemory) — because several
-of the invariants under test (the EXCLUDE constraint, the partial unique
-indexes, the append-only trigger) cannot be honestly exercised any other way.
+**32/32 automated tests passing** (9 attendance/ledger, 5 scheduling
+concurrency, 4 payments, 5 schedule generation, 9 payroll), all against a
+real local PostgreSQL 16 cluster (not SQLite, not EF Core InMemory) —
+because several of the invariants under test (the EXCLUDE constraint, the
+partial unique indexes, the append-only trigger) cannot be honestly
+exercised any other way.
 
 ## Two genuine documentation contradictions found and fixed while implementing
 
@@ -43,7 +45,6 @@ Both are committed with full explanations — see the git log.
 | Area | Status |
 |---|---|
 | Razor UI (any page) | **Not started.** No Dashboard, Student Register, Student Profile, Payment History, or any other screen exists yet. This is almost certainly the single largest remaining item — §14 of the master prompt treats the Visual CRM Dashboard as part of MVP. |
-| Payroll declare/verify service | Domain model exists (`SessionDelivery`, `PayrollPeriod`, `PayrollLine`); no Application-layer service orchestrates the declare→verify→period→payroll-line pipeline yet. |
 | Migration import pipeline | Domain model exists (`MigrationBatch`, `MigrationRecord`); no Excel/CSV parsing, validation, preview, or transactional import service exists. |
 | Certificate issuance service | Domain model exists (`LevelProgress`, `Certificate`); no service recomputes `LevelProgress` on delivery verification or evaluates certificate eligibility against `settings.CertificateRequiredHours`. |
 | Homework file upload/signed-URL chain | `FileRecord`/`Homework`/`HomeworkSubmission` entities exist; no object-storage integration (Cloudflare R2), no signed-URL generation, no virus scanning. |

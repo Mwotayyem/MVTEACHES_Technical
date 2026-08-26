@@ -1,4 +1,5 @@
 using MVTeaches.Domain.Common;
+using MVTeaches.Domain.Payroll;
 using NodaTime;
 
 namespace MVTeaches.Domain.Delivery;
@@ -90,7 +91,7 @@ public class SessionDelivery
     /// <summary>Step 2 — admin verifies and the rate is snapshotted (§9.2/§18.1).
     /// Verified minutes are always the SCHEDULED duration, never a measured value (D-59/D-62) —
     /// the caller must pass the session's scheduled duration, not a Zoom-derived one.</summary>
-    public void Verify(long verifiedByUserId, int verifiedMinutes, Money rate, long rateSourceId, string? note, Instant nowUtc)
+    public void Verify(long verifiedByUserId, int verifiedMinutes, Money rate, RateUnit rateUnit, long rateSourceId, string? note, Instant nowUtc)
     {
         if (State != DeliveryState.Declared)
         {
@@ -115,7 +116,13 @@ public class SessionDelivery
         RateAmount = rate.Amount;
         RateCurrency = rate.Currency;
         RateSourceId = rateSourceId;
-        PayableAmount = Math.Round(verifiedMinutes / 60m * rate.Amount, 3);
+        // §9.2 (D-27): a PerHour rate scales with the scheduled duration; a
+        // PerSession rate is a flat amount regardless of duration — treating
+        // both the same way (as this method used to, always dividing by 60)
+        // would silently overpay or underpay every PerSession-rated teacher.
+        PayableAmount = rateUnit == RateUnit.PerSession
+            ? Math.Round(rate.Amount, 3)
+            : Math.Round(verifiedMinutes / 60m * rate.Amount, 3);
 
         State = DeliveryState.Verified;
     }

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Payments;
+using MVTeaches.Application.Payroll;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Application.Settings;
 using MVTeaches.Infrastructure.Attendance;
@@ -15,6 +16,7 @@ using MVTeaches.Infrastructure.Integrations.WhatsApp;
 using MVTeaches.Infrastructure.Integrations.Zoom;
 using MVTeaches.Infrastructure.Notifications;
 using MVTeaches.Infrastructure.Payments;
+using MVTeaches.Infrastructure.Payroll;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Infrastructure.Scheduling;
 using MVTeaches.Infrastructure.Settings;
@@ -61,6 +63,8 @@ builder.Services.AddScoped<IJoinAttendanceService, JoinAttendanceService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<ISettingsProvider, SettingsProvider>();
 builder.Services.AddScoped<IScheduleGenerationService, ScheduleGenerationService>();
+builder.Services.AddScoped<IPayrollRateResolver, PayrollRateResolver>();
+builder.Services.AddScoped<IPayrollService, PayrollService>();
 
 // ---------------------------------------------------------------------
 // Integration boundaries — §5-8 of the master engineering prompt.
