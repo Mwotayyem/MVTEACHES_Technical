@@ -32,5 +32,6 @@ public static class SettingDefaults
         [SettingKey.DashboardEndingSoonDays] = "5",
         [SettingKey.DashboardStartingSoonDays] = "7",
         [SettingKey.DashboardLowRemainingLessonsThreshold] = "2",
+        [SettingKey.ScheduleGenerationHorizonWeeks] = "8",
     };
 }

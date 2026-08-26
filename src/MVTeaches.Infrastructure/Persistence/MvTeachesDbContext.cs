@@ -57,6 +57,7 @@ public class MvTeachesDbContext : IdentityDbContext<ApplicationUser, Application
     public DbSet<SessionEnrollment> SessionEnrollments => Set<SessionEnrollment>();
     public DbSet<TeacherAvailabilityRule> TeacherAvailabilityRules => Set<TeacherAvailabilityRule>();
     public DbSet<TeacherTimeOff> TeacherTimeOffs => Set<TeacherTimeOff>();
+    public DbSet<ScheduleGenerationException> ScheduleGenerationExceptions => Set<ScheduleGenerationException>();
 
     // Attendance (D-83 anchor)
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();

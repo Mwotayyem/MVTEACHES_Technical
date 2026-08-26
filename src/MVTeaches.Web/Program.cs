@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Payments;
+using MVTeaches.Application.Scheduling;
 using MVTeaches.Application.Settings;
 using MVTeaches.Infrastructure.Attendance;
 using MVTeaches.Infrastructure.Hangfire;
@@ -15,6 +16,7 @@ using MVTeaches.Infrastructure.Integrations.Zoom;
 using MVTeaches.Infrastructure.Notifications;
 using MVTeaches.Infrastructure.Payments;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Infrastructure.Scheduling;
 using MVTeaches.Infrastructure.Settings;
 using NodaTime;
 
@@ -58,6 +60,7 @@ builder.Services.AddSingleton<IClock>(SystemClock.Instance);
 builder.Services.AddScoped<IJoinAttendanceService, JoinAttendanceService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<ISettingsProvider, SettingsProvider>();
+builder.Services.AddScoped<IScheduleGenerationService, ScheduleGenerationService>();
 
 // ---------------------------------------------------------------------
 // Integration boundaries — §5-8 of the master engineering prompt.
@@ -123,5 +126,12 @@ app.MapHangfireDashboard("/hangfire", new DashboardOptions
 
 RecurringJob.AddOrUpdate<NotificationDispatchJob>(
     "notification-dispatch", job => job.RunAsync(CancellationToken.None), "*/1 * * * *");
+
+// §15.3: "مهمة Hangfire ليلية + تشغيل يدوي من الأدمن" — the manual trigger is
+// the Hangfire dashboard's own "Trigger now" button on this same recurring
+// job (admin-only per AdminOnlyDashboardAuthorizationFilter above), not a
+// second code path to keep in sync with the scheduled one.
+RecurringJob.AddOrUpdate<IScheduleGenerationService>(
+    "schedule-generation", job => job.GenerateAsync(CancellationToken.None), "0 2 * * *");
 
 app.Run();

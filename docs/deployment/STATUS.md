@@ -1,4 +1,4 @@
-# Implementation Status — as of 2026-08-26
+# Implementation Status — as of 2026-08-26 (updated)
 
 This is the detailed backing for the chat-delivered final engineering
 report. Update this file, don't let it drift from what's actually true.
@@ -18,13 +18,14 @@ report. Update this file, don't let it drift from what's actually true.
 | Notification dispatch | `NotificationDispatchJob` — idempotent outbox scan, bounded batch, attempt-counted failures — registered as a Hangfire recurring job. |
 | Web host | Program.cs wires EF Core+Npgsql+NodaTime, ASP.NET Core Identity (long keys), Hangfire+PostgreSQL storage, all Application services, an admin-only-protected Hangfire dashboard. **Actually run** against the real database: schema installs, background server starts, HTTP requests are served, the recurring job fires, `/hangfire` correctly 401s when unauthenticated. |
 | RBAC seed | Five roles (Admin, SystemAdmin, Teacher, Guardian, Student) seeded idempotently at startup, confirmed present in the database. |
-| Reference data seed | Three age groups (Kids/Teens/Adults, D-04) and nine settings defaults (§19.5), confirmed present in the database with the documented values. |
+| Reference data seed | Three age groups (Kids/Teens/Adults, D-04) and ten settings defaults (§19.5), confirmed present in the database with the documented values. |
+| Recurring-schedule generator (§15.3) | `ScheduleGenerationService` — materializes `ClassSession` rows from every Active `RecurringSchedule` out to an admin-configured horizon (`ScheduleGenerationHorizonWeeks` setting, D-65-style — never hardcoded); fully idempotent re-runs; a teacher-overlap collision (the database's own EXCLUDE constraint) or a `TeacherTimeOff` window is never silently dropped — both are recorded as a `ScheduleGenerationException` row for an admin to see. Registered as a nightly Hangfire recurring job (`schedule-generation`); the documented "manual run" path is the Hangfire dashboard's own admin-only "Trigger now" button on that same job, not a second code path. 5 tests. |
 
-**18/18 automated tests passing** (9 attendance/ledger, 5 scheduling
-concurrency, 4 payments), all against a real local PostgreSQL 16 cluster
-(not SQLite, not EF Core InMemory) — because several of the invariants
-under test (the EXCLUDE constraint, the partial unique indexes, the
-append-only trigger) cannot be honestly exercised any other way.
+**23/23 automated tests passing** (9 attendance/ledger, 5 scheduling
+concurrency, 4 payments, 5 schedule generation), all against a real local
+PostgreSQL 16 cluster (not SQLite, not EF Core InMemory) — because several
+of the invariants under test (the EXCLUDE constraint, the partial unique
+indexes, the append-only trigger) cannot be honestly exercised any other way.
 
 ## Two genuine documentation contradictions found and fixed while implementing
 
@@ -45,7 +46,6 @@ Both are committed with full explanations — see the git log.
 | Payroll declare/verify service | Domain model exists (`SessionDelivery`, `PayrollPeriod`, `PayrollLine`); no Application-layer service orchestrates the declare→verify→period→payroll-line pipeline yet. |
 | Migration import pipeline | Domain model exists (`MigrationBatch`, `MigrationRecord`); no Excel/CSV parsing, validation, preview, or transactional import service exists. |
 | Certificate issuance service | Domain model exists (`LevelProgress`, `Certificate`); no service recomputes `LevelProgress` on delivery verification or evaluates certificate eligibility against `settings.CertificateRequiredHours`. |
-| Recurring-schedule → session generator | `RecurringSchedule`/`ClassSession` entities exist; the nightly Hangfire job that materializes future sessions from a recurring schedule (§15.3) does not exist. |
 | Homework file upload/signed-URL chain | `FileRecord`/`Homework`/`HomeworkSubmission` entities exist; no object-storage integration (Cloudflare R2), no signed-URL generation, no virus scanning. |
 | Authorization policies on controllers/pages | Roles are seeded; no `[Authorize]` policies, no guardian-scoped query filters, no IDOR test suite exist on any endpoint yet, because no endpoints beyond the default scaffolded Razor Pages exist. |
 | Zoom real integration | Boundary only — see the "honest stub" note above. Requires reading Zoom's current API docs against a live account, which this engagement had neither. |

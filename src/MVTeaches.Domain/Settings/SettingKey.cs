@@ -40,4 +40,9 @@ public enum SettingKey
 
     /// <summary>Dashboard §2.3 — "low remaining lessons" threshold.</summary>
     DashboardLowRemainingLessonsThreshold,
+
+    /// <summary>§15.3 — the generator's horizon is documented as "8–12 weeks
+    /// ahead", a range, not a fixed number; the admin picks the exact value
+    /// within that range from the control panel, never a hardcoded constant.</summary>
+    ScheduleGenerationHorizonWeeks,
 }

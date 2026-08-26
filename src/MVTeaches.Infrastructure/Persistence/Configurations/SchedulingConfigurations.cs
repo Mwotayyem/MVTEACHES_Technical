@@ -145,3 +145,32 @@ public class TeacherTimeOffConfiguration : IEntityTypeConfiguration<TeacherTimeO
         b.Property(x => x.CreatedByUserId).HasColumnName("created_by");
     }
 }
+
+/// <summary>§15.3 — a skipped occurrence is recorded here, never silently dropped.</summary>
+public class ScheduleGenerationExceptionConfiguration : IEntityTypeConfiguration<ScheduleGenerationException>
+{
+    public void Configure(EntityTypeBuilder<ScheduleGenerationException> b)
+    {
+        b.ToTable("schedule_generation_exceptions");
+        b.HasKey(x => x.Id);
+
+        b.Property(x => x.RecurringScheduleId).HasColumnName("recurring_id");
+        b.Property(x => x.OccurrenceDate).HasColumnName("occurrence_date").HasColumnType("date");
+        b.Property(x => x.Reason).HasColumnName("reason").HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.Detail).HasColumnName("detail").IsRequired();
+        b.Property(x => x.DetectedAtUtc).HasColumnName("detected_at_utc");
+        b.Property(x => x.Resolved).HasColumnName("resolved").HasDefaultValue(false);
+        b.Property(x => x.ResolvedByUserId).HasColumnName("resolved_by");
+        b.Property(x => x.ResolvedAtUtc).HasColumnName("resolved_at_utc");
+
+        // The admin screen's default view is "unresolved, newest first" — this
+        // index serves exactly that query, not a speculative one.
+        b.HasIndex(x => new { x.Resolved, x.DetectedAtUtc });
+
+        // One recorded exception per (schedule, occurrence date) — a nightly
+        // rerun that keeps failing the same collision must not pile up
+        // duplicate rows for the admin to wade through.
+        b.HasIndex(x => new { x.RecurringScheduleId, x.OccurrenceDate }).IsUnique()
+            .HasDatabaseName("ux_schedule_generation_exception");
+    }
+}
