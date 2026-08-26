@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!--
+      InvariantGlobalization is explicitly OFF: the platform is bilingual AR/EN
+      (README §MVP scope, Technical Study §31) and needs real culture-aware
+      formatting (dates, numbers) for both languages.
+    -->
+  </PropertyGroup>
+</Project>

@@ -3,3 +3,11 @@ Thumbs.db
 Desktop.ini
 *.tmp
 ~$*
+
+# .NET
+src/**/bin/
+src/**/obj/
+*.user
+
+# Vendored front-end libraries (fetched via libman, not our source)
+src/MVTeaches.Web/wwwroot/lib/
