@@ -32,6 +32,16 @@
                 </select>
             </div>
             <div class="col-auto">
+                <label class="form-label" asp-for="NewPayment.SubscriptionId">Subscription (optional — D-38)</label>
+                <select asp-for="NewPayment.SubscriptionId" class="form-select">
+                    <option value="">-- none --</option>
+                    @foreach (var d in Model.DraftSubscriptions)
+                    {
+                        <option value="@d.Id">#@d.Id @d.StudentName — @d.Amount.ToString("N3", null) @d.Currency</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
                 <label class="form-label" asp-for="NewPayment.Amount">Amount</label>
                 <input asp-for="NewPayment.Amount" class="form-control" />
             </div>

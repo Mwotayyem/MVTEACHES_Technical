@@ -31,14 +31,24 @@ report. Update this file, don't let it drift from what's actually true.
 | **Authorization/IDOR integration tests** | `AuthorizationTests` — a real `WebApplicationFactory<Program>` host running against the same real PostgreSQL test database, with real HTTP requests (real login POST with antiforgery token, real cookie-based session) proving, for all 6 admin-only pages (Dashboard, Students, Payments, Payroll, Certificates, FinancialReport): an unauthenticated request is redirected to `/Account/Login` (not shown data); an authenticated Teacher is turned away; an authenticated Guardian is turned away; an authenticated Admin is shown the page. 24 tests (4 scenarios × 6 pages), the first automated closure of the "no IDOR test suite" gap noted below. |
 | **Security review (focused)** | A dedicated security-focused review pass (SQL injection, auth/authz bypass, IDOR, mass-assignment/overposting via `[BindProperty]`, sensitive-data exposure, password handling, XSS, CSRF) was run specifically against every file added/changed for the four new admin pages and the admission service. **No high-confidence findings.** All writes go through parameterized EF Core LINQ; every audit field (`linkedByUserId`/`assignedByUserId`/`issuedByUserId`) is taken server-side from the authenticated principal, never from a posted form value; no `Html.Raw` anywhere; all forms use Razor Pages' default antiforgery protection. One documented, non-exploitable note: `RegisterGuardianAsync`/`RegisterStudentAsync` set `EmailConfirmed = true` without real proof of ownership — an accepted consequence of the admin-only manual-onboarding design while WhatsApp OTP remains unconfigured, not a vulnerability (only a trusted Admin/SystemAdmin can invoke it). |
 | **CI pipeline** | `.github/workflows/ci.yml` — builds and runs the full test suite against a real `postgres:16` GitHub Actions service container (not SQLite/InMemory), mirroring `TestDatabaseFixture`'s local setup exactly (same port, same trust-auth role). **Written but not yet verified by an actual GitHub Actions run** — this repository's CI has never executed; the workflow is honestly un-triggered until the next push actually runs it. |
+| **Recurring schedules (§15.2, D-23)** | `IRecurringScheduleService`/`RecurringScheduleService` + `/Admin/Schedules` — **closed the single most fundamental gap in the whole repository**: until this pass, there was no way anywhere in the application to create a `RecurringSchedule`, which meant no `ClassSession` could ever exist outside a test's own direct database insert, which meant attendance, payroll declare/verify, and certificate progress could never be exercised against real, admin-created data in a real deployment. Create/pause/resume, with the manual "run generation now" path deliberately left as the Hangfire dashboard's own admin-only button on the existing `schedule-generation` job (a standing decision from an earlier session, not reopened here — no second code path was added). 3 tests. Verified live: created a real recurring schedule through the UI and confirmed every field landed correctly in the database. |
+| **Teacher admission (§9.1, D-28)** | `ITeacherAdmissionService`/`TeacherAdmissionService` + `/Admin/Teachers` — there was also no way to create a Teacher account at all before this. Mirrors the guardian-registration pattern exactly (real Identity login + Teacher role + domain entity), plus deactivate/reactivate. Verified live: registered a real teacher through the UI. |
+| **Teacher pay rates (§9.2, D-27)** | `ITeacherRateService`/`TeacherRateService`, folded into `/Admin/Teachers` — closes the last missing piece of the payroll chain: without a `TeacherRate` row, `IPayrollService.VerifyAsync` could never succeed against a real teacher (the resolver, already tested, always found an empty table). 2 tests. Verified live as part of the full payroll chain below. |
+| **Teacher portal (§18.1 step [1])** | `/Teacher/MySessions` — the teacher-facing half of the payroll cycle had no UI at all before this pass (only the admin-side verify/reject on `/Admin/Payroll` existed). A teacher sees their own sessions (30 days back, 7 forward) and declares delivery on the ones that have actually ended. **A real IDOR was found and fixed during this session's own security review** (see below) before this shipped. |
+| **Subscriptions & pricing plans (§23, §19.2, D-13/D-38)** | `ISubscriptionService`/`SubscriptionService`, `IEntitlementBalanceQuery`/`EntitlementBalanceQuery` + `/Admin/Subscriptions` — closes the other half of "purchase and payment": the domain model (`PricingPlan`/`Subscription`/`EntitlementLedgerEntry`) and `IPaymentService`'s own full-payment-activates-and-posts-Purchase logic already existed and were already tested, but there was no way to create a pricing plan or a subscription in the first place. Admin can create a plan, purchase a Draft subscription against it for a student (activated only once `/Admin/Payments` confirms a matching payment in full — D-38's no-partial-activation rule, unchanged), or grant one free with an immediate AdminGrant ledger entry (D-13). 5 tests. **Verified live, the complete chain**: created a pricing plan → purchased a Draft subscription for a real student → recorded and confirmed a real payment against it on `/Admin/Payments` → confirmed the subscription flipped to `Active` and a `Purchase` ledger entry for the correct minutes was posted, all in the real database. |
+| **The full payroll chain, verified live end-to-end** | With schedules, teachers, and rates now buildable, this session proved the entire declared→verified→aggregated→approved→paid cycle for real, not just in tests: created a recurring schedule, inserted one real ended session, declared delivery as the teacher through `/Teacher/MySessions`, verified it as the admin through `/Admin/Payroll` (payable amount correctly computed from the real rate), opened a payroll period, aggregated, moved to review, approved, and marked paid — final state confirmed in the database (period `Paid`, delivery `Paid`, correct amount). |
+| **A real bug found and fixed via this same live testing** | `/Admin/Payroll`'s "open period" handler didn't catch the real `UNIQUE(country_id, period_start, period_end)` constraint, so re-opening an existing period crashed with a 500 instead of the friendly message every other duplicate-constraint case in this app already shows. Found by hitting it live, fixed, and re-verified live. |
+| **Second focused security review + a real fix** | Reviewed every file added in this pass (subscriptions, teacher admission, schedules, teacher rates, the teacher portal). Found one genuine **High-severity IDOR**: `/Teacher/MySessions`'s declare handler took a bare session id with no check that it belonged to the calling teacher, so any authenticated Teacher-role account could declare delivery on a different teacher's session (falsifying the "declared by" audit trail and locking the rightful teacher out with an `AlreadyDeclared` state). Also found a Medium finding: the "session must have already ended" rule was enforced client-side only. Both fixed in the same page handler (ownership check + server-side end-time check) and proven with a new automated regression test that creates two real teachers and confirms the cross-teacher declare attempt is rejected and leaves no `SessionDelivery` row behind. |
 
-**77/77 automated tests passing** (9 attendance/ledger, 5 scheduling
+**104/104 automated tests passing** (9 attendance/ledger, 5 scheduling
 concurrency, 4 payments, 5 schedule generation, 9 payroll, 9 certificates,
-5 financial reports, 7 student admission, 24 authorization/IDOR), all against
-a real local PostgreSQL 16 cluster (not SQLite, not EF Core InMemory) —
-because several of the invariants under test (the EXCLUDE constraint, the
-partial unique indexes, the append-only trigger) cannot be honestly exercised
-any other way.
+5 financial reports, 7 student admission, 5 subscriptions, 2 teacher rates,
+3 recurring schedules, 41 authorization/IDOR — 9 admin pages × 4 role
+scenarios plus 4 teacher-portal-specific plus the cross-teacher IDOR
+regression test), all against a real local PostgreSQL 16 cluster (not
+SQLite, not EF Core InMemory) — because several of the invariants under test
+(the EXCLUDE constraint, the partial unique indexes, the append-only
+trigger) cannot be honestly exercised any other way.
 
 ## Two genuine documentation contradictions found and fixed while implementing
 
@@ -55,7 +65,7 @@ Both are committed with full explanations — see the git log.
 
 | Area | Status |
 |---|---|
-| Razor UI (remaining pages) | Login, Dashboard, Financial Report, **Students, Payments, Payroll, Certificates** now exist (see above). Still missing: a dedicated Student Profile/detail view (today's Students page is register+list only, no drill-down), a standalone Payment History view scoped to one student, and everything else in §14 not named above (e.g. teacher-facing screens, guardian/student self-service portal). Smaller than before, no longer "almost certainly the largest remaining item." |
+| Razor UI (remaining pages) | Login, Dashboard, Financial Report, Students, Payments, Payroll, Certificates, **Teachers, Schedules, Subscriptions, and the Teacher portal** now exist (see above). Still missing: a dedicated Student Profile/detail view (today's Students page is register+list only, no drill-down), a standalone Payment History view scoped to one student, and the guardian/student self-service portal (blocked on WhatsApp anyway). What remains is materially smaller and less foundational than what was built this session. |
 | TOTP MFA for Admin/SystemAdmin | §22's "إلزامي" requirement — Identity supports TOTP natively, but no enrollment/challenge UI has been built; `Login.cshtml.cs` detects `RequiresTwoFactor` and surfaces this honestly instead of silently bypassing it. |
 | Guardian/Student sign-in (phone + OTP) | Documented as the real flow (§7) but depends on the WhatsApp integration (not configured) for OTP delivery — genuinely blocked, not merely unbuilt. Only email/password accounts can sign in today (now including admin-registered guardians/students — see the admission service above — but real phone+OTP self-service sign-in is still blocked). |
 | Migration import pipeline | **Deliberately not started — the study's own §43/final-open-items list marks this "مؤجَّل بقرار المالك، لا عجلة" (owner-deferred, no rush) pending a real ~10-row sample of the actual source file (§25.6).** Building the column-mapping/parsing logic now would mean inventing a source schema with no connection to reality. The domain model (`MigrationBatch`, `MigrationRecord`, both reversible-by-batch-id per §25.5) is ready to receive it once the sample arrives. Status unchanged this session — still owner-deferred, not dropped. |
@@ -72,15 +82,27 @@ This is a real, substantially-verified foundation — not a prototype and
 not a pile of scaffolding. The highest-risk piece the repository itself
 calls out (D-83's attendance/ledger model) is fully implemented and has
 the most thorough test coverage in the codebase. As of this session, an
-admin can actually click through the core loop end-to-end: register a
-guardian and a student, link them, verify the student, assign a level,
-record and confirm a payment, open and run a payroll period, and issue a
-certificate — all through real screens, backed by real, tested services,
-verified live against a real database, not just unit-tested in isolation.
-Role-based access control on every admin page is now covered by an
-automated integration test suite (77/77 tests total), and a focused
-security review of this session's new surface found no high-confidence
-issues. What remains: a Student Profile/drill-down view, TOTP MFA
+admin can actually click through the ENTIRE core loop end-to-end for real,
+starting from nothing: create a recurring schedule, register a teacher and
+set their pay rate, register a guardian and a student, link them, verify
+the student, assign a level, create a pricing plan and purchase a
+subscription, record and confirm the payment that activates it (posting a
+real entitlement-ledger entry), have the teacher declare delivery on a
+real session through their own portal, verify it as the admin (correctly
+computing the payable amount from the real rate), run the full payroll
+cycle through to Paid, and issue a certificate — all through real screens,
+backed by real, tested services, verified live against a real database at
+every step, not just unit-tested in isolation. A real, High-severity IDOR
+was found by this session's own security review (a teacher could declare
+delivery on another teacher's session) and fixed with a regression test
+before shipping — see above. Role-based access control on every admin page
+and the teacher portal is now covered by an automated integration test
+suite (104/104 tests total). Two dedicated security-review passes were run
+this session, scoped to every file this session added: the first (over
+Students/Payments/Payroll/Certificates) found nothing; the second (over
+Subscriptions/Teachers/Schedules/rates/the teacher portal) found the IDOR
+above, which is now fixed and regression-tested. What remains: a Student
+Profile/drill-down view, TOTP MFA
 enrollment, the migration import pipeline (owner-deferred), Homework/R2
 file storage (an open scope question, not built), the three external
 integrations (Zoom/WhatsApp/MEPS, each genuinely blocked on external

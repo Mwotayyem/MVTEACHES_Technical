@@ -32,6 +32,15 @@
                                 <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Students">Students</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Teachers">Teachers</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Schedules">Schedules</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Subscriptions">Subscriptions</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Payments">Payments</a>
                             </li>
                             <li class="nav-item">
@@ -42,6 +51,12 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-area="" asp-page="/Admin/FinancialReport">Financial Report</a>
+                            </li>
+                        }
+                        @if (User.IsInRole(RoleNames.Teacher))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Teacher/MySessions">My Sessions</a>
                             </li>
                         }
                         <li class="nav-item">

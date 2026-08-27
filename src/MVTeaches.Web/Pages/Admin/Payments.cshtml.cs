@@ -8,6 +8,7 @@ using MVTeaches.Application.Payments;
 using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.People;
+using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 
@@ -37,9 +38,15 @@ public class PaymentsModel : PageModel
     public record PaymentRow(long Id, string StudentName, decimal Amount, string Currency, PaymentMethod Method,
         PaymentStatus Status, string ReferenceCode, string? RejectionReason);
 
+    public record DraftSubscriptionRow(long Id, string StudentName, decimal Amount, string Currency);
+
     public IReadOnlyList<PaymentRow> PendingPayments { get; set; } = Array.Empty<PaymentRow>();
     public IReadOnlyList<PaymentRow> RecentPayments { get; set; } = Array.Empty<PaymentRow>();
     public IReadOnlyList<Student> Students { get; set; } = Array.Empty<Student>();
+
+    /// <summary>Draft subscriptions awaiting their activating payment (D-38) —
+    /// see /Admin/Subscriptions, which is where these get created.</summary>
+    public IReadOnlyList<DraftSubscriptionRow> DraftSubscriptions { get; set; } = Array.Empty<DraftSubscriptionRow>();
 
     [BindProperty]
     public RecordInput NewPayment { get; set; } = new();
@@ -54,6 +61,12 @@ public class PaymentsModel : PageModel
     {
         [Required]
         public long StudentId { get; set; }
+
+        /// <summary>Optional — ties this payment to a Draft subscription so
+        /// confirming it can activate that subscription and post the Purchase
+        /// ledger entry (D-38, already implemented in IPaymentService). Leave
+        /// blank for a generic payment with no subscription attached.</summary>
+        public long? SubscriptionId { get; set; }
 
         [Required, Range(0.001, double.MaxValue)]
         public decimal Amount { get; set; }
@@ -79,7 +92,7 @@ public class PaymentsModel : PageModel
             return Page();
         }
 
-        var request = new RecordPaymentRequest(NewPayment.StudentId, SubscriptionId: null, PayerUserId: null,
+        var request = new RecordPaymentRequest(NewPayment.StudentId, NewPayment.SubscriptionId, PayerUserId: null,
             new Money(NewPayment.Amount, NewPayment.Currency), NewPayment.Method, ProofFileId: null);
         var result = await _payments.RecordManualPaymentAsync(request, HttpContext.RequestAborted);
         StatusMessage = $"Payment recorded — reference {result.ReferenceCode}, awaiting confirmation.";
@@ -133,6 +146,14 @@ public class PaymentsModel : PageModel
     {
         Students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
         var studentNames = Students.ToDictionary(s => s.Id, s => s.FullName);
+
+        var drafts = await _db.Subscriptions
+            .Where(s => s.Status == SubscriptionStatus.Draft)
+            .OrderByDescending(s => s.Id)
+            .Take(100)
+            .ToListAsync();
+        DraftSubscriptions = drafts.Select(s => new DraftSubscriptionRow(
+            s.Id, studentNames.GetValueOrDefault(s.StudentId, $"#{s.StudentId}"), s.Price.Amount, s.Price.Currency)).ToList();
 
         var pending = await _db.Payments
             .Where(p => p.Status == PaymentStatus.Pending)

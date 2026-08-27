@@ -1,0 +1,61 @@
+@page
+@model MVTeaches.Web.Pages.Teacher.MySessionsModel
+@using NodaTime
+@{
+    ViewData["Title"] = "My Sessions";
+}
+
+<h1>My sessions</h1>
+
+@if (Model.NoTeacherProfileLinked)
+{
+    <div class="alert alert-warning">Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you.</div>
+}
+else
+{
+    @if (Model.StatusMessage is not null)
+    {
+        <div class="alert alert-success">@Model.StatusMessage</div>
+    }
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <p class="text-muted">Last 30 days and next 7 days. Declaring is only offered once a session has actually ended (§18.1 step [1]) — an admin verifies afterward on a separate account (§18.3 rule 3).</p>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>When</th><th>Course/Level</th><th>Minutes</th><th>Session status</th><th>Delivery</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.Sessions)
+                {
+                    var zone = DateTimeZoneProviders.Tzdb[s.ScheduleTimeZone];
+                    var local = s.StartsAtUtc.InZone(zone);
+                    <tr>
+                        <td>@local.ToString("yyyy-MM-dd HH:mm", null) (@s.ScheduleTimeZone)</td>
+                        <td>@s.CourseName / @s.LevelCode</td>
+                        <td>@s.DurationMinutes</td>
+                        <td>@s.Status</td>
+                        <td>@(s.DeliveryState?.ToString() ?? "—")</td>
+                        <td>
+                            @if (s.CanDeclare)
+                            {
+                                <form method="post" asp-page-handler="Declare" class="d-flex gap-1">
+                                    <input type="hidden" name="sessionId" value="@s.SessionId" />
+                                    <input type="number" name="declaredMinutes" class="form-control form-control-sm" style="width:6rem" value="@s.DurationMinutes" />
+                                    <input type="text" name="note" class="form-control form-control-sm" placeholder="Note (optional)" />
+                                    <button type="submit" class="btn btn-sm btn-primary">Declare</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.Sessions.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-muted">No sessions in this window.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

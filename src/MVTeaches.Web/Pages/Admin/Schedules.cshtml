@@ -1,0 +1,155 @@
+@page
+@model MVTeaches.Web.Pages.Admin.SchedulesModel
+@using MVTeaches.Domain.Scheduling
+@using NodaTime
+@{
+    ViewData["Title"] = "Schedules";
+}
+
+<h1>Recurring schedules</h1>
+<p class="text-muted">§15.2 (D-23) — a fixed weekly schedule, not a free-form booking calendar. Creating one here is what lets the nightly generator (or an admin's "Trigger now" on <a href="~/hangfire">/hangfire</a>) actually produce real sessions.</p>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Create a recurring schedule</h5>
+        <form method="post" asp-page-handler="Create" class="row g-2">
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.CountryId">Country</label>
+                <select asp-for="NewSchedule.CountryId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var c in Model.Countries)
+                    {
+                        <option value="@c.Id">@c.NameEn</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.CourseId">Course</label>
+                <select asp-for="NewSchedule.CourseId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var c in Model.Courses)
+                    {
+                        <option value="@c.Id">@c.NameEn</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.LevelId">Level</label>
+                <select asp-for="NewSchedule.LevelId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var l in Model.Levels)
+                    {
+                        <option value="@l.Id">@l.Code</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.AgeGroupId">Age group</label>
+                <select asp-for="NewSchedule.AgeGroupId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var a in Model.AgeGroups)
+                    {
+                        <option value="@a.Id">@a.Code</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewSchedule.TeacherId">Teacher</label>
+                <select asp-for="NewSchedule.TeacherId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var t in Model.Teachers)
+                    {
+                        <option value="@t.Id">@t.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">Days of week</label>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach (var day in Enum.GetValues<IsoDayOfWeek>().Where(d => d != IsoDayOfWeek.None))
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="NewSchedule.DaysOfWeek" value="@((int)day)" id="day_@day" />
+                            <label class="form-check-label" for="day_@day">@day</label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.StartLocal">Start time (local)</label>
+                <input asp-for="NewSchedule.StartLocal" type="time" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.DurationMinutes">Duration (minutes)</label>
+                <input asp-for="NewSchedule.DurationMinutes" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.TimeZoneId">Time zone</label>
+                <select asp-for="NewSchedule.TimeZoneId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var tz in Model.TimeZoneIds)
+                    {
+                        <option value="@tz">@tz</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.StartsOn">Starts on</label>
+                <input asp-for="NewSchedule.StartsOn" type="date" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewSchedule.Capacity">Capacity</label>
+                <input asp-for="NewSchedule.Capacity" class="form-control" />
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Create schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h2>Schedules</h2>
+<div class="table-responsive">
+    <table class="table table-sm table-striped">
+        <thead><tr><th>#</th><th>Teacher</th><th>Course/Level/Age</th><th>Days</th><th>Time</th><th>Duration</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var s in Model.Schedules)
+            {
+                <tr>
+                    <td>@s.Id</td>
+                    <td>@s.TeacherName</td>
+                    <td>@s.CourseName / @s.LevelCode / @s.AgeGroupCode</td>
+                    <td>@s.Days</td>
+                    <td>@s.StartLocal (@s.TimeZoneId)</td>
+                    <td>@s.DurationMinutes min</td>
+                    <td>@s.Status</td>
+                    <td>
+                        @if (s.Status == RecurringScheduleStatus.Active)
+                        {
+                            <form method="post" asp-page-handler="Pause">
+                                <input type="hidden" name="scheduleId" value="@s.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Pause</button>
+                            </form>
+                        }
+                        else if (s.Status == RecurringScheduleStatus.Paused)
+                        {
+                            <form method="post" asp-page-handler="Resume">
+                                <input type="hidden" name="scheduleId" value="@s.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-success">Resume</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

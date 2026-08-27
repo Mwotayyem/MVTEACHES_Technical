@@ -1,0 +1,185 @@
+@page
+@model MVTeaches.Web.Pages.Admin.TeachersModel
+@using MVTeaches.Domain.Payroll
+@{
+    ViewData["Title"] = "Teachers";
+}
+
+<h1>Teachers</h1>
+<p class="text-muted">§9.1/D-28 — a teacher account is always admin-created, never self-registered.</p>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Register a teacher</h5>
+        <form method="post" asp-page-handler="Register" class="row g-2">
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewTeacher.FullName">Full name</label>
+                <input asp-for="NewTeacher.FullName" class="form-control" />
+                <span asp-validation-for="NewTeacher.FullName" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewTeacher.Email">Email</label>
+                <input asp-for="NewTeacher.Email" class="form-control" />
+                <span asp-validation-for="NewTeacher.Email" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewTeacher.Password">Temporary password</label>
+                <input asp-for="NewTeacher.Password" type="password" class="form-control" />
+                <span asp-validation-for="NewTeacher.Password" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewTeacher.TimeZoneId">Time zone (IANA)</label>
+                <select asp-for="NewTeacher.TimeZoneId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var tz in Model.TimeZoneIds)
+                    {
+                        <option value="@tz">@tz</option>
+                    }
+                </select>
+                <span asp-validation-for="NewTeacher.TimeZoneId" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Register teacher</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Set a pay rate</h5>
+        <p class="text-muted small">§9.2 (D-27) — most-specific-wins at verification time: (course+level+age group) beats (course+level) beats (course) beats the teacher's own default (leave course/level/age group blank).</p>
+        <form method="post" asp-page-handler="CreateRate" class="row g-2">
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewRate.TeacherId">Teacher</label>
+                <select asp-for="NewRate.TeacherId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var t in Model.Teachers)
+                    {
+                        <option value="@t.Id">@t.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewRate.CourseId">Course (blank = any)</label>
+                <select asp-for="NewRate.CourseId" class="form-select">
+                    <option value="">-- any --</option>
+                    @foreach (var c in Model.Courses)
+                    {
+                        <option value="@c.Id">@c.NameEn</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewRate.LevelId">Level (blank = any)</label>
+                <select asp-for="NewRate.LevelId" class="form-select">
+                    <option value="">-- any --</option>
+                    @foreach (var l in Model.Levels)
+                    {
+                        <option value="@l.Id">@l.Code</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewRate.AgeGroupId">Age group (blank = any)</label>
+                <select asp-for="NewRate.AgeGroupId" class="form-select">
+                    <option value="">-- any --</option>
+                    @foreach (var a in Model.AgeGroups)
+                    {
+                        <option value="@a.Id">@a.Code</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewRate.Amount">Amount</label>
+                <input asp-for="NewRate.Amount" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewRate.Currency">Currency</label>
+                <input asp-for="NewRate.Currency" class="form-control" placeholder="JOD" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewRate.Unit">Unit</label>
+                <select asp-for="NewRate.Unit" class="form-select">
+                    @foreach (var v in Enum.GetValues<RateUnit>())
+                    {
+                        <option value="@v">@v</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="NewRate.EffectiveFrom">Effective from</label>
+                <input asp-for="NewRate.EffectiveFrom" type="date" class="form-control" />
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Create rate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h2>Pay rates</h2>
+<div class="table-responsive mb-4">
+    <table class="table table-sm table-striped">
+        <thead><tr><th>#</th><th>Teacher</th><th>Course</th><th>Level</th><th>Age group</th><th>Rate</th><th>Unit</th><th>From</th><th>To</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model.Rates)
+            {
+                <tr>
+                    <td>@r.Id</td>
+                    <td>@r.TeacherName</td>
+                    <td>@(r.CourseName ?? "any")</td>
+                    <td>@(r.LevelCode ?? "any")</td>
+                    <td>@(r.AgeGroupCode ?? "any")</td>
+                    <td>@r.Amount.ToString("N3", null) @r.Currency</td>
+                    <td>@r.Unit</td>
+                    <td>@r.EffectiveFrom.ToString("yyyy-MM-dd", null)</td>
+                    <td>@(r.EffectiveTo?.ToString("yyyy-MM-dd", null) ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2>Teachers</h2>
+<div class="table-responsive">
+    <table class="table table-sm table-striped">
+        <thead><tr><th>#</th><th>Name</th><th>Time zone</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var t in Model.Teachers)
+            {
+                <tr>
+                    <td>@t.Id</td>
+                    <td>@t.FullName</td>
+                    <td>@t.TimeZoneId</td>
+                    <td>@(t.IsActive ? "Yes" : "No")</td>
+                    <td>
+                        @if (t.IsActive)
+                        {
+                            <form method="post" asp-page-handler="Deactivate">
+                                <input type="hidden" name="teacherId" value="@t.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form method="post" asp-page-handler="Reactivate">
+                                <input type="hidden" name="teacherId" value="@t.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-success">Reactivate</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

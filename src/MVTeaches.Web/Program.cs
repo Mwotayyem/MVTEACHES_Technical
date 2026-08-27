@@ -6,11 +6,13 @@ using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Certificates;
 using MVTeaches.Application.Payments;
+using MVTeaches.Application.Ledger;
 using MVTeaches.Application.Payroll;
 using MVTeaches.Application.People;
 using MVTeaches.Application.Reports;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Application.Settings;
+using MVTeaches.Application.Subscriptions;
 using MVTeaches.Infrastructure.Attendance;
 using MVTeaches.Infrastructure.Certificates;
 using MVTeaches.Infrastructure.Hangfire;
@@ -19,6 +21,7 @@ using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Integrations.Email;
 using MVTeaches.Infrastructure.Integrations.WhatsApp;
 using MVTeaches.Infrastructure.Integrations.Zoom;
+using MVTeaches.Infrastructure.Ledger;
 using MVTeaches.Infrastructure.Notifications;
 using MVTeaches.Infrastructure.Payments;
 using MVTeaches.Infrastructure.Payroll;
@@ -27,6 +30,7 @@ using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Infrastructure.Reports;
 using MVTeaches.Infrastructure.Scheduling;
 using MVTeaches.Infrastructure.Settings;
+using MVTeaches.Infrastructure.Subscriptions;
 using NodaTime;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -75,6 +79,11 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<IPayrollService, PayrollService>();
 builder.Services.AddScoped<IFinancialReportService, FinancialReportService>();
 builder.Services.AddScoped<IStudentAdmissionService, StudentAdmissionService>();
+builder.Services.AddScoped<ITeacherAdmissionService, TeacherAdmissionService>();
+builder.Services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
+builder.Services.AddScoped<ITeacherRateService, TeacherRateService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IEntitlementBalanceQuery, EntitlementBalanceQuery>();
 
 // ---------------------------------------------------------------------
 // Integration boundaries — §5-8 of the master engineering prompt.

@@ -132,6 +132,14 @@ public class PayrollModel : PageModel
             await _payroll.OpenPeriodAsync(NewPeriod.CountryId, start, end, HttpContext.RequestAborted);
             StatusMessage = "Payroll period opened.";
         }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+        {
+            // UNIQUE(country_id, period_start, period_end) — a real, expected
+            // conflict (the admin double-clicked, or this exact period already
+            // exists), not a bug; surface it the same friendly way every other
+            // page in this app handles a genuine unique-constraint hit.
+            ErrorMessage = "A payroll period for this country and date range already exists.";
+        }
         catch (ArgumentException ex)
         {
             ErrorMessage = ex.Message;
