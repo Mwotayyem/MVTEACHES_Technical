@@ -117,6 +117,38 @@
     </div>
 </div>
 
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Enroll a student</h5>
+        <p class="text-muted small">§15.4 (D-24): "session_enrollments is independent of the assignment mechanism" — the study leaves the actual assignment mechanism unspecified (no persistent "group membership" table exists). This enrolls the student directly into every currently-generated, not-yet-started session under the chosen schedule — a one-time bulk action, not a standing membership. A student added to a schedule AFTER new sessions are generated needs enrolling again for those new ones.</p>
+        <form method="post" asp-page-handler="Enroll" class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label" asp-for="Enroll.RecurringScheduleId">Schedule</label>
+                <select asp-for="Enroll.RecurringScheduleId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var s in Model.Schedules)
+                    {
+                        <option value="@s.Id">#@s.Id @s.CourseName/@s.LevelCode — @s.TeacherName (@s.Days @s.StartLocal)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="Enroll.StudentId">Student</label>
+                <select asp-for="Enroll.StudentId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var s in Model.Students)
+                    {
+                        <option value="@s.Id">@s.FullName (#@s.Id)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Enroll into upcoming sessions</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <h2>Schedules</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">

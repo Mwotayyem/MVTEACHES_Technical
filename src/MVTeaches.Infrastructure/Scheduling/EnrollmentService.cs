@@ -1,0 +1,112 @@
+using Microsoft.EntityFrameworkCore;
+using MVTeaches.Application.Scheduling;
+using MVTeaches.Domain.Scheduling;
+using MVTeaches.Infrastructure.Persistence;
+using NodaTime;
+using Npgsql;
+
+namespace MVTeaches.Infrastructure.Scheduling;
+
+/// <inheritdoc cref="IEnrollmentService"/>
+public class EnrollmentService : IEnrollmentService
+{
+    private const string PostgresUniqueViolationSqlState = "23505";
+
+    private readonly MvTeachesDbContext _db;
+    private readonly IClock _clock;
+
+    public EnrollmentService(MvTeachesDbContext db, IClock clock)
+    {
+        _db = db;
+        _clock = clock;
+    }
+
+    public async Task<EnrollResult> EnrollInSessionAsync(long sessionId, long studentId, long enrolledByUserId, CancellationToken cancellationToken)
+    {
+        var session = await _db.ClassSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+        {
+            return new EnrollResult(EnrollOutcome.SessionNotFound);
+        }
+
+        var student = await _db.Students.FirstOrDefaultAsync(s => s.Id == studentId, cancellationToken);
+        if (student is null)
+        {
+            return new EnrollResult(EnrollOutcome.StudentNotFound);
+        }
+
+        // UNIQUE (session_id, student_id) WHERE state <> 'Cancelled' — fast,
+        // friendly pre-check; the real guard against a concurrent double
+        // enrollment is the database constraint caught below.
+        var alreadyEnrolled = await _db.SessionEnrollments.AnyAsync(
+            e => e.SessionId == sessionId && e.StudentId == studentId && e.State == EnrollmentState.Active, cancellationToken);
+        if (alreadyEnrolled)
+        {
+            return new EnrollResult(EnrollOutcome.AlreadyEnrolled);
+        }
+
+        var today = _clock.GetCurrentInstant().InUtc().Date;
+        var age = Period.Between(student.DateOfBirth, today, PeriodUnits.Years).Years;
+        var ageGroup = await _db.AgeGroups.FirstOrDefaultAsync(
+            a => a.MinAge <= age && (a.MaxAge == null || a.MaxAge >= age), cancellationToken);
+        if (ageGroup is null)
+        {
+            return new EnrollResult(EnrollOutcome.NoApplicableAgeGroup);
+        }
+
+        // §15.1's atomic conditional UPDATE — a plain read-then-write
+        // (SELECT seats_taken ... IF ... UPDATE) fails under concurrency by
+        // design; this is the one part of the check-and-write that must be a
+        // single statement. Raw SQL because EF Core's fluent API has no
+        // first-class "conditional increment" operation.
+        var rowsAffected = await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE class_sessions SET seats_taken = seats_taken + 1 WHERE \"Id\" = {sessionId} AND status = 'Scheduled' AND seats_taken < capacity",
+            cancellationToken);
+        if (rowsAffected == 0)
+        {
+            return new EnrollResult(EnrollOutcome.SessionFull);
+        }
+
+        var enrollment = new SessionEnrollment(sessionId, studentId, ageGroup.Id, enrolledByUserId, _clock.GetCurrentInstant());
+        _db.SessionEnrollments.Add(enrollment);
+
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+            return new EnrollResult(EnrollOutcome.Enrolled);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresUniqueViolationSqlState })
+        {
+            // Lost a genuine race against a concurrent enrollment of the same
+            // (session, student) — the seat we just atomically claimed above
+            // is now one seat over-counted, since another request's own claim
+            // already succeeded for this exact pair. Give the seat back.
+            _db.ChangeTracker.Clear();
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE class_sessions SET seats_taken = seats_taken - 1 WHERE \"Id\" = {sessionId} AND seats_taken > 0",
+                cancellationToken);
+            return new EnrollResult(EnrollOutcome.AlreadyEnrolled);
+        }
+    }
+
+    public async Task<int> EnrollInUpcomingSessionsAsync(long recurringScheduleId, long studentId, long enrolledByUserId, CancellationToken cancellationToken)
+    {
+        var now = _clock.GetCurrentInstant();
+        var sessionIds = await _db.ClassSessions
+            .Where(s => s.RecurringScheduleId == recurringScheduleId && s.StartsAtUtc > now && s.Status == ClassSessionStatus.Scheduled)
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
+
+        var enrolledCount = 0;
+        foreach (var sessionId in sessionIds)
+        {
+            var result = await EnrollInSessionAsync(sessionId, studentId, enrolledByUserId, cancellationToken);
+            if (result.Outcome == EnrollOutcome.Enrolled)
+            {
+                enrolledCount++;
+            }
+        }
+
+        return enrolledCount;
+    }
+}

@@ -59,6 +59,12 @@
                                 <a class="nav-link text-dark" asp-area="" asp-page="/Teacher/MySessions">My Sessions</a>
                             </li>
                         }
+                        @if (User.IsInRole(RoleNames.Guardian))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Guardian/MyChildren">My Children</a>
+                            </li>
+                        }
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
                         </li>

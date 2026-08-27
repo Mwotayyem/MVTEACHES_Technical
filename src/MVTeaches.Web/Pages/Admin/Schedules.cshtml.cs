@@ -32,12 +32,15 @@ public class SchedulesModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly IRecurringScheduleService _schedules;
+    private readonly IEnrollmentService _enrollments;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public SchedulesModel(MvTeachesDbContext db, IRecurringScheduleService schedules, UserManager<ApplicationUser> userManager)
+    public SchedulesModel(MvTeachesDbContext db, IRecurringScheduleService schedules, IEnrollmentService enrollments,
+        UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _schedules = schedules;
+        _enrollments = enrollments;
         _userManager = userManager;
     }
 
@@ -51,12 +54,22 @@ public class SchedulesModel : PageModel
     public IReadOnlyList<AgeGroup> AgeGroups { get; set; } = Array.Empty<AgeGroup>();
     public IReadOnlyList<MVTeaches.Domain.People.Teacher> Teachers { get; set; } = Array.Empty<MVTeaches.Domain.People.Teacher>();
     public IReadOnlyList<string> TimeZoneIds { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
 
     [BindProperty]
     public CreateScheduleInput NewSchedule { get; set; } = new();
 
+    [BindProperty]
+    public EnrollInput Enroll { get; set; } = new();
+
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
+
+    public class EnrollInput
+    {
+        [Required] public long RecurringScheduleId { get; set; }
+        [Required] public long StudentId { get; set; }
+    }
 
     public class CreateScheduleInput
     {
@@ -109,6 +122,24 @@ public class SchedulesModel : PageModel
         return Page();
     }
 
+    public async Task<IActionResult> OnPostEnrollAsync()
+    {
+        ModelState.Clear();
+        if (!TryValidateModel(Enroll, nameof(Enroll)))
+        {
+            await LoadAsync();
+            return Page();
+        }
+
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var count = await _enrollments.EnrollInUpcomingSessionsAsync(Enroll.RecurringScheduleId, Enroll.StudentId,
+            actingUserId, HttpContext.RequestAborted);
+        StatusMessage = $"Enrolled the student into {count} upcoming session(s) generated from this schedule.";
+
+        await LoadAsync();
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostPauseAsync(long scheduleId)
     {
         await _schedules.PauseAsync(scheduleId, HttpContext.RequestAborted);
@@ -133,6 +164,7 @@ public class SchedulesModel : PageModel
         AgeGroups = await _db.AgeGroups.OrderBy(a => a.MinAge).ToListAsync();
         Teachers = await _db.Teachers.Where(t => t.IsActive).OrderBy(t => t.FullName).ToListAsync();
         TimeZoneIds = DateTimeZoneProviders.Tzdb.Ids.OrderBy(id => id, StringComparer.Ordinal).ToList();
+        Students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
 
         var teacherNames = Teachers.ToDictionary(t => t.Id, t => t.FullName);
         var courseNames = Courses.ToDictionary(c => c.Id, c => c.NameEn);

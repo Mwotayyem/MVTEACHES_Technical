@@ -1,0 +1,68 @@
+@page
+@model MVTeaches.Web.Pages.Guardian.MyChildrenModel
+@using NodaTime
+@{
+    ViewData["Title"] = "My Children";
+}
+
+<h1>My children</h1>
+
+@if (Model.NoGuardianProfileLinked)
+{
+    <div class="alert alert-warning">Your account has the Guardian role but no linked guardian profile yet — ask an admin to link you to your children on /Admin/Students.</div>
+}
+else
+{
+    @if (Model.StatusMessage is not null)
+    {
+        <div class="alert alert-success">@Model.StatusMessage</div>
+    }
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <p class="text-muted">Yesterday through the next 7 days. Press Join once the session has started — the child's full attendance for that session is recorded immediately (D-83); pressing again does nothing extra.</p>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Child</th><th>When</th><th>Course/Level</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.UpcomingSessions)
+                {
+                    var zone = DateTimeZoneProviders.Tzdb[s.ScheduleTimeZone];
+                    var local = s.StartsAtUtc.InZone(zone);
+                    <tr>
+                        <td>@s.StudentName</td>
+                        <td>@local.ToString("yyyy-MM-dd HH:mm", null) (@s.ScheduleTimeZone)</td>
+                        <td>@s.CourseName / @s.LevelCode</td>
+                        <td>
+                            @if (s.AlreadyPresent)
+                            {
+                                <span class="badge bg-success">Present</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">@s.SessionStatus</span>
+                            }
+                        </td>
+                        <td>
+                            @if (s.CanJoin)
+                            {
+                                <form method="post" asp-page-handler="Join">
+                                    <input type="hidden" name="sessionId" value="@s.SessionId" />
+                                    <input type="hidden" name="studentId" value="@s.StudentId" />
+                                    <button type="submit" class="btn btn-sm btn-primary">Join</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.UpcomingSessions.Count == 0)
+                {
+                    <tr><td colspan="5" class="text-muted">No sessions in this window.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

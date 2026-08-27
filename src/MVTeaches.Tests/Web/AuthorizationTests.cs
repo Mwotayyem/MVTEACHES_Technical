@@ -281,6 +281,43 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Unauthenticated_request_to_the_guardian_portal_is_redirected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/Guardian/MyChildren");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Authenticated_admin_is_turned_away_from_the_guardian_portal()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/Guardian/MyChildren");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_teacher_is_turned_away_from_the_guardian_portal()
+    {
+        var client = await CreateAuthenticatedClientAsync(TeacherEmail);
+        var response = await client.GetAsync("/Guardian/MyChildren");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_guardian_is_shown_the_guardian_portal()
+    {
+        var client = await CreateAuthenticatedClientAsync(GuardianEmail);
+        var response = await client.GetAsync("/Guardian/MyChildren");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     /// <summary>Regression test for a real IDOR found by a security review of
     /// this session's own new code: OnPostDeclareAsync took a bare sessionId
     /// with no check that it belonged to the calling teacher. Proves a Teacher

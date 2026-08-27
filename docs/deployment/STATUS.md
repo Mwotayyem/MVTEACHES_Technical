@@ -38,18 +38,21 @@ report. Update this file, don't let it drift from what's actually true.
 | **Subscriptions & pricing plans (§23, §19.2, D-13/D-38)** | `ISubscriptionService`/`SubscriptionService`, `IEntitlementBalanceQuery`/`EntitlementBalanceQuery` + `/Admin/Subscriptions` — closes the other half of "purchase and payment": the domain model (`PricingPlan`/`Subscription`/`EntitlementLedgerEntry`) and `IPaymentService`'s own full-payment-activates-and-posts-Purchase logic already existed and were already tested, but there was no way to create a pricing plan or a subscription in the first place. Admin can create a plan, purchase a Draft subscription against it for a student (activated only once `/Admin/Payments` confirms a matching payment in full — D-38's no-partial-activation rule, unchanged), or grant one free with an immediate AdminGrant ledger entry (D-13). 5 tests. **Verified live, the complete chain**: created a pricing plan → purchased a Draft subscription for a real student → recorded and confirmed a real payment against it on `/Admin/Payments` → confirmed the subscription flipped to `Active` and a `Purchase` ledger entry for the correct minutes was posted, all in the real database. |
 | **The full payroll chain, verified live end-to-end** | With schedules, teachers, and rates now buildable, this session proved the entire declared→verified→aggregated→approved→paid cycle for real, not just in tests: created a recurring schedule, inserted one real ended session, declared delivery as the teacher through `/Teacher/MySessions`, verified it as the admin through `/Admin/Payroll` (payable amount correctly computed from the real rate), opened a payroll period, aggregated, moved to review, approved, and marked paid — final state confirmed in the database (period `Paid`, delivery `Paid`, correct amount). |
 | **A real bug found and fixed via this same live testing** | `/Admin/Payroll`'s "open period" handler didn't catch the real `UNIQUE(country_id, period_start, period_end)` constraint, so re-opening an existing period crashed with a 500 instead of the friendly message every other duplicate-constraint case in this app already shows. Found by hitting it live, fixed, and re-verified live. |
+| **Session enrollment + the Guardian portal — D-83's real front door (§15.1/§15.4, §16)** | `IEnrollmentService`/`EnrollmentService` closes a gap the Technical Study itself leaves open: §15.4 states "session_enrollments مستقل عن آلية الإسناد" (session_enrollments is independent of the assignment mechanism) but never specifies that assignment mechanism's own schema anywhere (no CREATE TABLE for it exists in the study, matching `SessionEnrollment.cs`'s own long-standing doc comment). Rather than inventing a new persistent "group membership" table to fill that gap, this implements exactly what the schema already has: enroll a student directly into one or many upcoming sessions of a recurring schedule, with §15.1's real atomic conditional `UPDATE ... WHERE seats_taken < capacity` (a plain read-then-write is documented as failing under concurrency) and the age-group-at-enrollment snapshot (§12.2). New admin action on `/Admin/Schedules`. Then `/Guardian/MyChildren` — **the first UI anywhere for `IJoinAttendanceService`**, the single highest-risk, most heavily-tested piece of backend in the whole repository (D-83, 9 dedicated tests including a real concurrency race), which had never been exercised through any screen before this. 4 new `EnrollmentService` tests. **Verified live, for real, for the first time in this project's history**: enrolled a real student into a real upcoming session, logged in as their actual guardian, confirmed the session correctly showed as not-yet-joinable before it started, waited for it to start, pressed Join — attendance was recorded and a real `-60` minute `Consumption` ledger entry was posted against the `+600` minute `Purchase` entry from earlier in this session (net balance correctly at 540) — and confirmed a second Join press is a true no-op (still exactly one attendance row, one consumption entry). The open assignment-mechanism question is flagged below, not silently resolved. |
+| **Third focused security review** | Reviewed `IEnrollmentService`/`EnrollmentService`, the `/Admin/Schedules` enroll form, and `/Guardian/MyChildren`. Specifically checked whether the guardian portal's Join handler (which takes a raw `studentId` from the POST body with no page-level re-check) is an IDOR like the earlier Teacher one — it is **not**: `IJoinAttendanceService.JoinAsync` independently re-verifies the acting user is actually an authorized guardian of that specific student before writing anything, using a server-derived acting-user id, so the safety net exists one layer down regardless of what the page does. Also confirmed the raw `ExecuteSqlInterpolatedAsync` calls in `EnrollmentService` are properly parameterized (no string concatenation of untrusted input) — no SQL injection. No findings. |
 | **Student Profile drill-down (§14)** | `/Admin/StudentDetails/{id}` — the piece the register/list page (`/Admin/Students`) never had: one screen bringing together everything else built this session for a single student — guardians, level history, subscriptions with live balances, payment history, certificates. Purely a read aggregation over already-tested data (no new business logic). 4 tests (unauthenticated, wrong-role, real student, 404 for a nonexistent one — not a crash). Verified live against the real dev database. |
 | **Second focused security review + a real fix** | Reviewed every file added in this pass (subscriptions, teacher admission, schedules, teacher rates, the teacher portal). Found one genuine **High-severity IDOR**: `/Teacher/MySessions`'s declare handler took a bare session id with no check that it belonged to the calling teacher, so any authenticated Teacher-role account could declare delivery on a different teacher's session (falsifying the "declared by" audit trail and locking the rightful teacher out with an `AlreadyDeclared` state). Also found a Medium finding: the "session must have already ended" rule was enforced client-side only. Both fixed in the same page handler (ownership check + server-side end-time check) and proven with a new automated regression test that creates two real teachers and confirms the cross-teacher declare attempt is rejected and leaves no `SessionDelivery` row behind. |
 
-**108/108 automated tests passing** (9 attendance/ledger, 5 scheduling
+**116/116 automated tests passing** (9 attendance/ledger, 5 scheduling
 concurrency, 4 payments, 5 schedule generation, 9 payroll, 9 certificates,
 5 financial reports, 7 student admission, 5 subscriptions, 2 teacher rates,
-3 recurring schedules, 45 authorization/IDOR — 9 admin pages × 4 role
-scenarios plus 4 teacher-portal-specific plus the cross-teacher IDOR
-regression test plus 4 Student Details tests), all against a real local
-PostgreSQL 16 cluster (not SQLite, not EF Core InMemory) — because several
-of the invariants under test (the EXCLUDE constraint, the partial unique
-indexes, the append-only trigger) cannot be honestly exercised any other way.
+3 recurring schedules, 4 enrollment, 49 authorization/IDOR — 9 admin pages
+× 4 role scenarios, 4 teacher-portal-specific, the cross-teacher IDOR
+regression test, 4 Student Details tests, 4 guardian-portal-specific), all
+against a real local PostgreSQL 16 cluster (not SQLite, not EF Core
+InMemory) — because several of the invariants under test (the EXCLUDE
+constraint, the partial unique indexes, the append-only trigger) cannot be
+honestly exercised any other way.
 
 ## Two genuine documentation contradictions found and fixed while implementing
 
@@ -66,7 +69,8 @@ Both are committed with full explanations — see the git log.
 
 | Area | Status |
 |---|---|
-| Razor UI (remaining pages) | Login, Dashboard, Financial Report, Students, Payments, Payroll, Certificates, Teachers, Schedules, Subscriptions, the Teacher portal, and **the Student detail drill-down** now exist (see above). What's left is mainly the guardian/student self-service portal (blocked on WhatsApp anyway) and teacher-facing screens beyond "my sessions." |
+| Razor UI (remaining pages) | Login, Dashboard, Financial Report, Students, Payments, Payroll, Certificates, Teachers, Schedules, Subscriptions, the Teacher portal, the Student detail drill-down, and **the Guardian portal** now exist (see above). Every one of the three personas (Admin, Teacher, Guardian) now has at least one real screen. What's left is mainly a Student-facing self-service screen (for the rarer Teens/Adults case with their own login) and teacher-facing screens beyond "my sessions." |
+| ⚠️ **Open design question the study itself leaves unspecified: the student-to-recurring-schedule "assignment mechanism"** | §15.4 states `session_enrollments` is "independent of the assignment mechanism" but the study never gives that mechanism its own schema anywhere (confirmed by re-reading the restored Technical Study directly). `IEnrollmentService` (see above) implements exactly what the schema already has — enrolling a student into individual sessions, one action at a time — without inventing a new persistent "group membership" table to fill the gap. **Left open for the owner:** should a student enrolled once into a recurring schedule's current sessions also be automatically enrolled into that schedule's FUTURE sessions as the nightly generator creates them (which would require a new persistent table this study doesn't specify), or does an admin re-run the bulk enroll action periodically? Not decided here — flagged, not built around. |
 | TOTP MFA for Admin/SystemAdmin | §22's "إلزامي" requirement — Identity supports TOTP natively, but no enrollment/challenge UI has been built; `Login.cshtml.cs` detects `RequiresTwoFactor` and surfaces this honestly instead of silently bypassing it. |
 | Guardian/Student sign-in (phone + OTP) | Documented as the real flow (§7) but depends on the WhatsApp integration (not configured) for OTP delivery — genuinely blocked, not merely unbuilt. Only email/password accounts can sign in today (now including admin-registered guardians/students — see the admission service above — but real phone+OTP self-service sign-in is still blocked). |
 | Migration import pipeline | **Deliberately not started — the study's own §43/final-open-items list marks this "مؤجَّل بقرار المالك، لا عجلة" (owner-deferred, no rush) pending a real ~10-row sample of the actual source file (§25.6).** Building the column-mapping/parsing logic now would mean inventing a source schema with no connection to reality. The domain model (`MigrationBatch`, `MigrationRecord`, both reversible-by-batch-id per §25.5) is ready to receive it once the sample arrives. Status unchanged this session — still owner-deferred, not dropped. |
@@ -77,38 +81,73 @@ Both are committed with full explanations — see the git log.
 | CI pipeline | **Written, not yet run.** `.github/workflows/ci.yml` builds and tests against a real `postgres:16` service container. Since it has never actually executed on GitHub's infrastructure, treat it as unverified until the first real push triggers it and it either passes or surfaces something to fix. |
 | Deployment to a real VPS/Cloudflare | Not done — no VPS exists yet for this project. The deployment guide describes the standard, correct steps; none of them have been executed against MVTEACHES's actual infrastructure. |
 
+## Incident: all 16 root documentation files found emptied on disk (2026-08-27)
+
+Mid-session, all 16 non-code documents in the repo root (both Technical
+Study versions, Owner Answers R3, every side-study, README, the summary
+HTML) were found at 0 bytes on disk, with git still holding their full
+committed content. Evidence gathered before touching anything: `git
+status`, file sizes/timestamps (all 16 emptied within the same ~13ms
+window, a strong single-bulk-operation signature — not 16 separate manual
+edits), `git diff --numstat`, and confirmation every `HEAD` blob was
+non-empty. This was not caused by anything in this session — none of the
+session's own Write/Edit/Bash calls touched these files — and predates
+this session's start (it was already showing as modified in the very
+first `git status` this session was given). Restored all 16 exactly from
+`HEAD` via `git checkout HEAD -- <file>` (never `git reset`, never a full
+working-tree restore, nothing else touched), then verified: every file
+non-empty, `git diff --stat` empty for all 16 (byte-identical to `HEAD`),
+and a full-repo `git status` came back completely clean. Re-read the
+restored Technical Study afterward to confirm §15.4's assignment-mechanism
+gap (above) before building `IEnrollmentService` against it, rather than
+building from memory of an earlier read.
+
 ## Honest conclusion
 
 This is a real, substantially-verified foundation — not a prototype and
 not a pile of scaffolding. The highest-risk piece the repository itself
-calls out (D-83's attendance/ledger model) is fully implemented and has
-the most thorough test coverage in the codebase. As of this session, an
-admin can actually click through the ENTIRE core loop end-to-end for real,
-starting from nothing: create a recurring schedule, register a teacher and
-set their pay rate, register a guardian and a student, link them, verify
-the student, assign a level, create a pricing plan and purchase a
-subscription, record and confirm the payment that activates it (posting a
-real entitlement-ledger entry), have the teacher declare delivery on a
-real session through their own portal, verify it as the admin (correctly
-computing the payable amount from the real rate), run the full payroll
-cycle through to Paid, and issue a certificate — all through real screens,
-backed by real, tested services, verified live against a real database at
-every step, not just unit-tested in isolation. A real, High-severity IDOR
-was found by this session's own security review (a teacher could declare
-delivery on another teacher's session) and fixed with a regression test
-before shipping — see above. Role-based access control on every admin page
-and the teacher portal is now covered by an automated integration test
-suite (104/104 tests total). Two dedicated security-review passes were run
-this session, scoped to every file this session added: the first (over
-Students/Payments/Payroll/Certificates) found nothing; the second (over
-Subscriptions/Teachers/Schedules/rates/the teacher portal) found the IDOR
-above, which is now fixed and regression-tested. What remains: a Student
-Profile/drill-down view, TOTP MFA
+calls out — D-83's attendance/ledger model — was, until this session,
+fully implemented and heavily tested but had **never once been exercised
+through an actual screen**. That changed this session: a guardian logged
+in, saw their real child's real upcoming session, and pressed Join for
+real — attendance was recorded and a real Consumption entry was posted
+against the real Purchase entry from earlier in the same session, with a
+verified idempotent no-op on a second press. Combined with everything else
+built this session, an admin (and now a teacher, and now a guardian) can
+click through the ENTIRE core loop end-to-end for real, starting from
+nothing: create a recurring schedule, register a teacher and set their pay
+rate, register a guardian and a student, link them, verify the student,
+assign a level, enroll the student in a session, create a pricing plan and
+purchase a subscription, record and confirm the payment that activates it,
+have the teacher declare delivery through their own portal, verify it as
+the admin, run the full payroll cycle through to Paid, issue a
+certificate, and have the guardian actually press Join — all through real
+screens, backed by real, tested services, verified live against a real
+database at every step, not just unit-tested in isolation. A real,
+High-severity IDOR was found by this session's own security review (a
+teacher could declare delivery on another teacher's session) and fixed
+with a regression test before shipping. Role-based access control on
+every admin page, the teacher portal, and the guardian portal is now
+covered by an automated integration test suite (116/116 tests total).
+Three dedicated security-review passes were run this session, each
+scoped to only the files added since the last pass: the first (Students/
+Payments/Payroll/Certificates) found nothing; the second (Subscriptions/
+Teachers/Schedules/rates/the teacher portal) found the IDOR above, fixed
+and regression-tested; the third (enrollment/the guardian portal)
+explicitly checked for the same class of bug and confirmed it does not
+recur there, since `IJoinAttendanceService` independently re-verifies
+guardian authorization regardless of what the page does. Mid-session, all
+16 root documentation files were found emptied on disk by something
+outside this session's own actions; evidence was captured first, then
+they were restored exactly from `HEAD` with nothing else touched — see
+above. What remains: a Student-facing self-service screen, TOTP MFA
 enrollment, the migration import pipeline (owner-deferred), Homework/R2
 file storage (an open scope question, not built), the three external
 integrations (Zoom/WhatsApp/MEPS, each genuinely blocked on external
-access this engagement doesn't have), and an actual run of the
-newly-written CI pipeline. **This is closer to a usable application than
-before, but it is still not production-ready** — no external
-integrations are live, and MFA for admin accounts (documented as
-mandatory) is not yet enforceable.
+access this engagement doesn't have), an actual run of the newly-written
+CI pipeline, and the open question (flagged above, not resolved) of how a
+student gets auto-enrolled into a recurring schedule's future sessions.
+**This is now a genuinely usable, end-to-end application for every one of
+the three personas the MVP names** — but it is still not production-ready:
+no external integrations are live, and MFA for admin accounts (documented
+as mandatory) is not yet enforceable.

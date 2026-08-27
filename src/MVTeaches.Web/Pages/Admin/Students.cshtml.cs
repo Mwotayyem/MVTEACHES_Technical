@@ -39,7 +39,8 @@ public class StudentsModel : PageModel
         string? CurrentLevelCode, IReadOnlyList<string> GuardianNames);
 
     public IReadOnlyList<StudentRow> Students { get; set; } = Array.Empty<StudentRow>();
-    public IReadOnlyList<Guardian> Guardians { get; set; } = Array.Empty<Guardian>();
+    // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Guardian namespace.
+    public IReadOnlyList<MVTeaches.Domain.People.Guardian> Guardians { get; set; } = Array.Empty<MVTeaches.Domain.People.Guardian>();
     public IReadOnlyList<Country> Countries { get; set; } = Array.Empty<Country>();
     public IReadOnlyList<Level> Levels { get; set; } = Array.Empty<Level>();
 
