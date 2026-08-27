@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Delivery;
+using MVTeaches.Domain.Payroll;
 using MVTeaches.Domain.People;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
@@ -282,6 +283,121 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         var response = await client.GetAsync("/Teacher/MySessions");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Unauthenticated_request_to_the_pay_history_page_is_redirected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/Teacher/MyPayHistory");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Authenticated_admin_is_turned_away_from_the_pay_history_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/Teacher/MyPayHistory");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_guardian_is_turned_away_from_the_pay_history_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(GuardianEmail);
+        var response = await client.GetAsync("/Teacher/MyPayHistory");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_teacher_is_shown_the_pay_history_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(TeacherEmail);
+        var response = await client.GetAsync("/Teacher/MyPayHistory");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    /// <summary>The one thing that actually matters on this read-only report:
+    /// a teacher must see their own earnings only. Seeds a distinctive-amount
+    /// PayrollLine for a DIFFERENT teacher and proves it never appears on the
+    /// calling teacher's own page, while their own line does.</summary>
+    [Fact]
+    public async Task A_teacher_only_sees_their_own_payroll_lines_not_another_teachers()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var ownUser = await userManager.FindByEmailAsync(TeacherEmail);
+        var ownTeacher = await EnsureLinkedTeacherAsync(db, ownUser!.Id, "Pay History Owner");
+
+        await EnsureUserAsync(userManager, OtherTeacherEmail, RoleNames.Teacher);
+        var otherUser = await userManager.FindByEmailAsync(OtherTeacherEmail);
+        var otherTeacher = await EnsureLinkedTeacherAsync(db, otherUser!.Id, "Pay History Stranger");
+
+        var countryId = 90_000_003;
+        if (!await db.Countries.AnyAsync(c => c.Id == countryId))
+        {
+            db.Countries.Add(new Country(countryId, "ZW", "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Courses.AnyAsync(c => c.Code == "PAYHIST-COURSE"))
+        {
+            db.Courses.Add(new Course("PAYHIST-COURSE", "دورة", "Course"));
+            await db.SaveChangesAsync();
+        }
+        var courseId = await db.Courses.Where(c => c.Code == "PAYHIST-COURSE").Select(c => c.Id).FirstAsync();
+
+        var levelId = 90_000_002;
+        if (!await db.Levels.AnyAsync(l => l.Id == levelId))
+        {
+            db.Levels.Add(new Level(levelId, "PAYHIST-LVL", "مستوى", "Level", levelId));
+            await db.SaveChangesAsync();
+        }
+
+        var ageGroupId = 90_000_002;
+        if (!await db.AgeGroups.AnyAsync(a => a.Id == ageGroupId))
+        {
+            db.AgeGroups.Add(new AgeGroup(ageGroupId, "PAYHIST-AGE", 5, 12, true));
+            await db.SaveChangesAsync();
+        }
+
+        // Distinct from A_teacher_cannot_declare_delivery_on_another_teachers_session's
+        // own time window for this SAME (idempotently reused) otherTeacher row —
+        // no_teacher_overlap is a real EXCLUDE constraint, so two tests scheduling
+        // the same teacher across overlapping times collide for real.
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var ownSession = new ClassSession(countryId, null, courseId, levelId, ageGroupId, ownTeacher.Id,
+            now.Minus(Duration.FromHours(54)), now.Minus(Duration.FromHours(53)), "Asia/Amman", "10:00",
+            SessionType.Group, capacity: 4, createdAtUtc: now);
+        var otherSession = new ClassSession(countryId, null, courseId, levelId, ageGroupId, otherTeacher.Id,
+            now.Minus(Duration.FromHours(52)), now.Minus(Duration.FromHours(51)), "Asia/Amman", "12:00",
+            SessionType.Group, capacity: 4, createdAtUtc: now);
+        db.ClassSessions.AddRange(ownSession, otherSession);
+        await db.SaveChangesAsync();
+
+        var period = new PayrollPeriod(countryId, new LocalDate(2020, 1, 1), new LocalDate(2020, 1, 31));
+        db.PayrollPeriods.Add(period);
+        await db.SaveChangesAsync();
+
+        db.PayrollLines.Add(new PayrollLine(period.Id, ownTeacher.Id, ownSession.Id, 60, 12.34m, "JOD", 12.34m));
+        // A distinctive amount that must NEVER show up on the owning teacher's page.
+        db.PayrollLines.Add(new PayrollLine(period.Id, otherTeacher.Id, otherSession.Id, 60, 99.99m, "JOD", 99.99m));
+        await db.SaveChangesAsync();
+
+        var client = await CreateAuthenticatedClientAsync(TeacherEmail);
+        var response = await client.GetAsync("/Teacher/MyPayHistory");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("12.34", body);
+        Assert.DoesNotContain("99.99", body);
     }
 
     [Fact]

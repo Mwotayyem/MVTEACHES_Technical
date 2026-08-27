@@ -1,0 +1,66 @@
+@page
+@model MVTeaches.Web.Pages.Teacher.MyPayHistoryModel
+@{
+    ViewData["Title"] = "My Pay History";
+}
+
+<h1>My pay history</h1>
+
+@if (Model.NoTeacherProfileLinked)
+{
+    <div class="alert alert-warning">This account has no linked teacher profile yet — ask an admin to link it on /Admin/Teachers.</div>
+}
+else
+{
+    @if (Model.Totals.Count > 0)
+    {
+        <div class="row mb-3">
+            @foreach (var t in Model.Totals)
+            {
+                <div class="col-auto">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">@t.Currency</h6>
+                            <p class="mb-1"><strong>Paid:</strong> @t.Paid.ToString("0.00")</p>
+                            <p class="mb-0"><strong>Pending (verified, not yet paid):</strong> @t.Pending.ToString("0.00")</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Session date</th>
+                    <th>Course/Level</th>
+                    <th>Minutes</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                    <th>Period</th>
+                    <th>Period status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model.Lines)
+                {
+                    <tr>
+                        <td>@l.SessionStartsAtUtc</td>
+                        <td>@l.CourseName / @l.LevelCode</td>
+                        <td>@l.Minutes</td>
+                        <td>@l.RateAmount.ToString("0.00") @l.Currency</td>
+                        <td>@l.Amount.ToString("0.00") @l.Currency</td>
+                        <td>@l.PeriodStart – @l.PeriodEnd</td>
+                        <td>@l.PeriodStatus</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (Model.Lines.Count == 0)
+        {
+            <p class="text-muted">No payroll lines yet — these appear once a declared delivery is verified and an admin aggregates it into a payroll period.</p>
+        }
+    </div>
+}
