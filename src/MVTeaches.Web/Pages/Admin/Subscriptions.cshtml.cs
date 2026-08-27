@@ -49,7 +49,8 @@ public class SubscriptionsModel : PageModel
 
     public IReadOnlyList<PlanRow> Plans { get; set; } = Array.Empty<PlanRow>();
     public IReadOnlyList<SubscriptionRow> RecentSubscriptions { get; set; } = Array.Empty<SubscriptionRow>();
-    public IReadOnlyList<Student> Students { get; set; } = Array.Empty<Student>();
+    // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Student namespace.
+    public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
     public IReadOnlyList<Country> Countries { get; set; } = Array.Empty<Country>();
     public IReadOnlyList<Course> Courses { get; set; } = Array.Empty<Course>();
     public IReadOnlyList<Level> Levels { get; set; } = Array.Empty<Level>();

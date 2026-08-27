@@ -42,7 +42,8 @@ public class PaymentsModel : PageModel
 
     public IReadOnlyList<PaymentRow> PendingPayments { get; set; } = Array.Empty<PaymentRow>();
     public IReadOnlyList<PaymentRow> RecentPayments { get; set; } = Array.Empty<PaymentRow>();
-    public IReadOnlyList<Student> Students { get; set; } = Array.Empty<Student>();
+    // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Student namespace.
+    public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
 
     /// <summary>Draft subscriptions awaiting their activating payment (D-38) —
     /// see /Admin/Subscriptions, which is where these get created.</summary>

@@ -40,7 +40,8 @@ public class StudentDetailsModel : PageModel
         string ReferenceCode, NodaTime.Instant CreatedAtUtc);
     public record CertificateRow(string CertificateNumber, string LevelCode, CertificateStatus Status, NodaTime.Instant IssuedAtUtc);
 
-    public Student? Student { get; set; }
+    // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Student namespace.
+    public MVTeaches.Domain.People.Student? Student { get; set; }
     public string? CountryName { get; set; }
     public IReadOnlyList<GuardianRow> Guardians { get; set; } = Array.Empty<GuardianRow>();
     public IReadOnlyList<LevelHistoryRow> LevelHistory { get; set; } = Array.Empty<LevelHistoryRow>();

@@ -1,0 +1,53 @@
+@page
+@model MVTeaches.Web.Pages.Student.MySessionsModel
+@{
+    ViewData["Title"] = "My Sessions";
+}
+
+<h1>My sessions</h1>
+
+@if (Model.NoStudentProfileLinked)
+{
+    <div class="alert alert-warning">This account has no linked student profile yet — ask an admin to link it on /Admin/Students.</div>
+}
+else
+{
+    @if (Model.StatusMessage is not null)
+    {
+        <div class="alert alert-success">@Model.StatusMessage</div>
+    }
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Starts</th><th>Course/Level</th><th>Status</th><th>Present?</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.UpcomingSessions)
+                {
+                    <tr>
+                        <td>@s.StartsAtUtc (@s.ScheduleTimeZone)</td>
+                        <td>@s.CourseName / @s.LevelCode</td>
+                        <td>@s.SessionStatus</td>
+                        <td>@(s.AlreadyPresent ? "Yes" : "No")</td>
+                        <td>
+                            @if (s.CanJoin)
+                            {
+                                <form method="post" asp-page-handler="Join">
+                                    <input type="hidden" name="sessionId" value="@s.SessionId" />
+                                    <button type="submit" class="btn btn-sm btn-primary">Join</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (Model.UpcomingSessions.Count == 0)
+        {
+            <p class="text-muted">No sessions in the next 7 days.</p>
+        }
+    </div>
+}

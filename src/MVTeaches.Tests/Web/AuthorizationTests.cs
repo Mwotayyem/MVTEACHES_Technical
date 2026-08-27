@@ -65,6 +65,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         await EnsureUserAsync(userManager, AdminEmail, RoleNames.Admin);
         await EnsureUserAsync(userManager, TeacherEmail, RoleNames.Teacher);
         await EnsureUserAsync(userManager, GuardianEmail, RoleNames.Guardian);
+        await EnsureUserAsync(userManager, StudentEmail, RoleNames.Student);
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -74,6 +75,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
     private const string TeacherEmail = "authtest-teacher@test.mvteaches.local";
     private const string OtherTeacherEmail = "authtest-teacher2@test.mvteaches.local";
     private const string GuardianEmail = "authtest-guardian@test.mvteaches.local";
+    private const string StudentEmail = "authtest-student@test.mvteaches.local";
 
     private static async Task<Teacher> EnsureLinkedTeacherAsync(MvTeachesDbContext db, long userId, string fullName)
     {
@@ -315,6 +317,43 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
     {
         var client = await CreateAuthenticatedClientAsync(GuardianEmail);
         var response = await client.GetAsync("/Guardian/MyChildren");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Unauthenticated_request_to_the_student_portal_is_redirected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/Student/MySessions");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Authenticated_admin_is_turned_away_from_the_student_portal()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/Student/MySessions");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_guardian_is_turned_away_from_the_student_portal()
+    {
+        var client = await CreateAuthenticatedClientAsync(GuardianEmail);
+        var response = await client.GetAsync("/Student/MySessions");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_student_is_shown_the_student_portal()
+    {
+        var client = await CreateAuthenticatedClientAsync(StudentEmail);
+        var response = await client.GetAsync("/Student/MySessions");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
