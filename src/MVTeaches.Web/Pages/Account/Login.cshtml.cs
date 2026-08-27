@@ -18,10 +18,12 @@ namespace MVTeaches.Web.Pages.Account;
 public class LoginModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public LoginModel(SignInManager<ApplicationUser> signInManager)
+    public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
     {
         _signInManager = signInManager;
+        _userManager = userManager;
     }
 
     [BindProperty]
@@ -64,17 +66,30 @@ public class LoginModel : PageModel
 
         if (result.Succeeded)
         {
+            // §22's "MFA إلزامي لـ SystemAdmin وReadOnlyAdmin" (TOTP mandatory
+            // for the most-privileged roles — this codebase's closed 5-role
+            // set has no distinct "ReadOnlyAdmin", so Admin/SystemAdmin are the
+            // two roles that apply here, matching docs/deployment/STATUS.md).
+            // This is an honest nudge — a redirect right after login, not a
+            // hardened per-request block on every later page — see
+            // ManageMfa.cshtml.cs's remarks for why, and STATUS.md for the
+            // further-hardening option this deliberately leaves open.
+            var signedInUser = await _userManager.FindByEmailAsync(Input.Email);
+            if (signedInUser is not null && !await _userManager.GetTwoFactorEnabledAsync(signedInUser))
+            {
+                var roles = await _userManager.GetRolesAsync(signedInUser);
+                if (roles.Contains(RoleNames.Admin) || roles.Contains(RoleNames.SystemAdmin))
+                {
+                    return RedirectToPage("./ManageMfa");
+                }
+            }
+
             return LocalRedirect(returnUrl);
         }
 
         if (result.RequiresTwoFactor)
         {
-            // §22's "MFA إلزامي لـ SystemAdmin وReadOnlyAdmin" (TOTP) is a real,
-            // documented requirement — but the enrollment/challenge UI for it
-            // has not been built yet. Flagged honestly rather than silently
-            // routed around; see docs/deployment/STATUS.md.
-            ErrorMessage = "This account requires two-factor verification, which has not been built yet.";
-            return Page();
+            return RedirectToPage("./LoginWith2fa", new { rememberMe = Input.RememberMe, returnUrl });
         }
 
         if (result.IsLockedOut)
