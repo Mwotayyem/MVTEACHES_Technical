@@ -35,6 +35,18 @@ public class SessionEnrollment
     public Instant EnrolledAtUtc { get; private set; }
     public long EnrolledByUserId { get; private set; }
 
+    /// <summary>Owner clarification (supersedes the earlier standalone
+    /// makeup-credit design): set only when this enrollment is an
+    /// admin-approved replacement lesson for a student who already pressed
+    /// Join on the session this points to and then had a legitimate problem
+    /// (§17.4/line 1018) — never inferred, never set by the ordinary
+    /// enrollment path. IJoinAttendanceService checks this and skips the
+    /// balance debit entirely for this session: the original consumption
+    /// stands untouched, and this is not a second, independently spendable
+    /// credit — it is tied to exactly this one replacement session, usable
+    /// exactly once, the same way any other enrollment is.</summary>
+    public long? CompensatesForSessionId { get; private set; }
+
     private SessionEnrollment() { }
 
     public SessionEnrollment(long sessionId, long studentId, int ageGroupAtEnrollment, long enrolledByUserId, Instant enrolledAtUtc)
@@ -44,6 +56,17 @@ public class SessionEnrollment
         AgeGroupAtEnrollment = ageGroupAtEnrollment;
         EnrolledByUserId = enrolledByUserId;
         EnrolledAtUtc = enrolledAtUtc;
+    }
+
+    /// <summary>The one and only way CompensatesForSessionId gets set — an
+    /// explicit admin decision (IEnrollmentService.ApproveReplacementLessonAsync),
+    /// never the ordinary EnrollInSessionAsync path.</summary>
+    public static SessionEnrollment AsReplacementLesson(long sessionId, long studentId, int ageGroupAtEnrollment,
+        long compensatesForSessionId, long approvedByUserId, Instant enrolledAtUtc)
+    {
+        var enrollment = new SessionEnrollment(sessionId, studentId, ageGroupAtEnrollment, approvedByUserId, enrolledAtUtc);
+        enrollment.CompensatesForSessionId = compensatesForSessionId;
+        return enrollment;
     }
 
     public void Cancel() => State = EnrollmentState.Cancelled;

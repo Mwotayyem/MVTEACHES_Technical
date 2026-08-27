@@ -106,6 +106,7 @@ public class SessionEnrollmentConfiguration : IEntityTypeConfiguration<SessionEn
         b.Property(x => x.State).HasColumnName("state").HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.EnrolledAtUtc).HasColumnName("enrolled_at_utc");
         b.Property(x => x.EnrolledByUserId).HasColumnName("enrolled_by");
+        b.Property(x => x.CompensatesForSessionId).HasColumnName("compensates_for_session_id");
 
         // §15.1: prevents a duplicate ACTIVE enrollment for the same student in
         // the same session — cancelled/transferred history is kept, not unique.

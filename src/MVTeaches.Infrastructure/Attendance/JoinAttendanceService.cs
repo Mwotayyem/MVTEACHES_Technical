@@ -62,10 +62,10 @@ public class JoinAttendanceService : IJoinAttendanceService
             return new JoinAttendanceResult(JoinOutcome.Unauthorized, "Acting user is neither the student nor an active guardian.");
         }
 
-        var isEnrolled = await _db.SessionEnrollments.AnyAsync(
+        var enrollment = await _db.SessionEnrollments.FirstOrDefaultAsync(
             e => e.SessionId == request.SessionId && e.StudentId == request.StudentId && e.State == EnrollmentState.Active,
             cancellationToken);
-        if (!isEnrolled)
+        if (enrollment is null)
         {
             return new JoinAttendanceResult(JoinOutcome.Unauthorized, "Student has no active enrollment in this session.");
         }
@@ -76,6 +76,30 @@ public class JoinAttendanceService : IJoinAttendanceService
         if (alreadyPresent)
         {
             return new JoinAttendanceResult(JoinOutcome.AlreadyRecorded);
+        }
+
+        // Owner clarification (supersedes the earlier standalone-credit design):
+        // a replacement lesson approved for a student who already consumed their
+        // ORIGINAL session (see IEnrollmentService.ApproveReplacementLessonAsync)
+        // must NOT deduct their ordinary purchased balance a second time. This
+        // enrollment carries that link — CompensatesForSessionId — set only by
+        // that explicit admin action, never inferred here. No ledger entry at
+        // all is written for this Join; the attendance record alone (unique per
+        // session+student, same as every other Join) is what makes it "usable
+        // exactly once" — there is no separate spendable credit to track.
+        if (enrollment.CompensatesForSessionId is not null)
+        {
+            _db.AttendanceRecords.Add(new AttendanceRecord(request.SessionId, request.StudentId, request.ActingUserId, now));
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+                return new JoinAttendanceResult(JoinOutcome.Recorded);
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+            {
+                _db.ChangeTracker.Clear();
+                return new JoinAttendanceResult(JoinOutcome.AlreadyRecorded);
+            }
         }
 
         var subscription = await FindConsumableSubscriptionAsync(request.StudentId, session, cancellationToken);
