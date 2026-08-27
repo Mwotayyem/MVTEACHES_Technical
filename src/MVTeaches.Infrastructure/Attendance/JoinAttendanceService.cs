@@ -81,7 +81,18 @@ public class JoinAttendanceService : IJoinAttendanceService
         var subscription = await FindConsumableSubscriptionAsync(request.StudentId, session, cancellationToken);
         if (subscription is null)
         {
-            return new JoinAttendanceResult(JoinOutcome.InsufficientBalance);
+            // TOCTOU race: the "alreadyPresent" fast-path check above and this balance
+            // read are two separate, independently-committed statements (no ambient
+            // transaction spans them), so a concurrent Join for this exact
+            // (session, student) can commit its consumption in between — draining the
+            // very balance we're about to read as insufficient. That is not a real
+            // shortfall; it is the other half of this same idempotent Join succeeding.
+            // Re-check immediately before reporting InsufficientBalance: if attendance
+            // now exists, this request lost the race, not the balance check (D-83:
+            // the loser must be reported as present/idempotent, never as an error).
+            var wonByAConcurrentRequest = await _db.AttendanceRecords.AnyAsync(
+                a => a.SessionId == request.SessionId && a.StudentId == request.StudentId, cancellationToken);
+            return new JoinAttendanceResult(wonByAConcurrentRequest ? JoinOutcome.AlreadyRecorded : JoinOutcome.InsufficientBalance);
         }
 
         var attendance = new AttendanceRecord(request.SessionId, request.StudentId, request.ActingUserId, now);
