@@ -185,6 +185,63 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    // /Admin/StudentDetails/{id} takes a route parameter, so it can't share
+    // AdminOnlyPages' "just assert 200 for admin" theory — that assertion
+    // needs a real student id to exist. Role-gating is exercised the same
+    // way as every other admin page; the data-dependent cases get their own tests.
+    [Fact]
+    public async Task Unauthenticated_request_to_student_details_is_redirected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/Admin/StudentDetails/1");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Authenticated_wrong_role_is_turned_away_from_student_details()
+    {
+        var client = await CreateAuthenticatedClientAsync(TeacherEmail);
+        var response = await client.GetAsync("/Admin/StudentDetails/1");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_viewing_a_nonexistent_student_gets_a_real_404_not_a_crash()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/Admin/StudentDetails/999999999");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_viewing_a_real_student_sees_their_details()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+
+        var countryId = 90_000_002;
+        if (!await db.Countries.AnyAsync(c => c.Id == countryId))
+        {
+            db.Countries.Add(new Country(countryId, "ZX", "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            await db.SaveChangesAsync();
+        }
+
+        var student = new Student(countryId, "Detail Test Student", new LocalDate(2012, 1, 1));
+        db.Students.Add(student);
+        await db.SaveChangesAsync();
+
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync($"/Admin/StudentDetails/{student.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Detail Test Student", body);
+    }
+
     [Fact]
     public async Task Unauthenticated_request_to_the_teacher_portal_is_redirected()
     {

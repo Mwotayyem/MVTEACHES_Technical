@@ -181,7 +181,7 @@
             {
                 <tr>
                     <td>@student.Id</td>
-                    <td>@student.FullName</td>
+                    <td><a asp-page="/Admin/StudentDetails" asp-route-id="@student.Id">@student.FullName</a></td>
                     <td>@student.CountryCode</td>
                     <td>@student.Status</td>
                     <td>@(student.CurrentLevelCode ?? "—")</td>
