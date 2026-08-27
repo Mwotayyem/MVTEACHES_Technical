@@ -85,6 +85,8 @@ builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<ITeacherRateService, TeacherRateService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IEntitlementBalanceQuery, EntitlementBalanceQuery>();
+builder.Services.AddScoped<ISessionCancellationService, SessionCancellationService>();
+builder.Services.AddScoped<IMakeUpCreditService, MakeUpCreditService>();
 
 // ---------------------------------------------------------------------
 // Integration boundaries — §5-8 of the master engineering prompt.
@@ -165,6 +167,11 @@ RecurringJob.AddOrUpdate<NotificationDispatchJob>(
 // second code path to keep in sync with the scheduled one.
 RecurringJob.AddOrUpdate<IScheduleGenerationService>(
     "schedule-generation", job => job.GenerateAsync(CancellationToken.None), "0 2 * * *");
+
+// D-63/D-66's deadline is a real thing that must actually be enforced somewhere,
+// not just displayed on the admin queue — this is that enforcement.
+RecurringJob.AddOrUpdate<IMakeUpCreditService>(
+    "makeup-credit-expiry", job => job.ExpireDueAsync(CancellationToken.None), "0 3 * * *");
 
 app.Run();
 

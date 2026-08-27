@@ -148,6 +148,23 @@ public class EntitlementLedgerEntry
             LedgerReason.MakeUpGranted, null, null, null, null, performedByUserId, null, expiresOn, createdAtUtc);
     }
 
+    /// <summary>System-issued (§20.5 rule 4's NULL-performer case): a
+    /// MakeUpGranted credit's admin-set deadline (D-63) elapsed unused. Links
+    /// back to the original grant via ReversesEntryId — the same field
+    /// Correction uses — so a sweep can tell an already-expired grant from one
+    /// still pending without a separate "resolved" flag anywhere.</summary>
+    public static EntitlementLedgerEntry ForMakeUpExpired(long studentId, long courseId, int levelId,
+        int minutes, long originalGrantEntryId, Instant createdAtUtc)
+    {
+        if (minutes <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(minutes));
+        }
+
+        return new EntitlementLedgerEntry(studentId, null, courseId, levelId, -minutes,
+            LedgerReason.MakeUpExpired, null, null, null, originalGrantEntryId, null, null, null, createdAtUtc);
+    }
+
     public static EntitlementLedgerEntry ForExpiry(long studentId, long subscriptionId, long courseId,
         int levelId, int minutes, Instant createdAtUtc)
     {

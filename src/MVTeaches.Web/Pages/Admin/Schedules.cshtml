@@ -149,6 +149,62 @@
     </div>
 </div>
 
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Cancel a session</h5>
+        <p class="text-muted small">D-20: give a replacement session and every not-yet-joined enrollment transfers to it with no ledger movement — the substitute session's own Join is the one deduction (D-55). Leave it blank for a plain cancellation. A student who already pressed Join before the problem occurred is never touched automatically — see the "waiting for makeup" queue on <a asp-page="/Admin/MakeUpCredits">/Admin/MakeUpCredits</a> for that case.</p>
+        <form method="post" asp-page-handler="Cancel" class="row g-2">
+            <div class="col-md-3">
+                <label class="form-label" asp-for="Cancel.SessionId">Session</label>
+                <select asp-for="Cancel.SessionId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var s in Model.UpcomingSessions)
+                    {
+                        <option value="@s.Id">#@s.Id @s.CourseName/@s.LevelCode — @s.TeacherName (@s.StartsAtUtc)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="Cancel.Reason">Reason</label>
+                <input asp-for="Cancel.Reason" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" asp-for="Cancel.ReplacementSessionId">Replacement session (optional)</label>
+                <select asp-for="Cancel.ReplacementSessionId" class="form-select">
+                    <option value="">-- none --</option>
+                    @foreach (var s in Model.UpcomingSessions)
+                    {
+                        <option value="@s.Id">#@s.Id @s.CourseName/@s.LevelCode — @s.TeacherName (@s.StartsAtUtc)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-danger">Cancel session</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h2>Upcoming sessions (next 14 days)</h2>
+<div class="table-responsive mb-4">
+    <table class="table table-sm table-striped">
+        <thead><tr><th>#</th><th>Teacher</th><th>Course/Level</th><th>Starts (UTC)</th><th>Seats</th><th>Status</th></tr></thead>
+        <tbody>
+            @foreach (var s in Model.UpcomingSessions)
+            {
+                <tr>
+                    <td>@s.Id</td>
+                    <td>@s.TeacherName</td>
+                    <td>@s.CourseName / @s.LevelCode</td>
+                    <td>@s.StartsAtUtc</td>
+                    <td>@s.SeatsTaken / @s.Capacity</td>
+                    <td>@s.Status</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
 <h2>Schedules</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">

@@ -33,21 +33,31 @@ public class SchedulesModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly IRecurringScheduleService _schedules;
     private readonly IEnrollmentService _enrollments;
+    private readonly ISessionCancellationService _cancellations;
+    private readonly IClock _clock;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public SchedulesModel(MvTeachesDbContext db, IRecurringScheduleService schedules, IEnrollmentService enrollments,
-        UserManager<ApplicationUser> userManager)
+        ISessionCancellationService cancellations, IClock clock, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _schedules = schedules;
         _enrollments = enrollments;
+        _cancellations = cancellations;
+        _clock = clock;
         _userManager = userManager;
     }
 
     public record ScheduleRow(long Id, string TeacherName, string CourseName, string LevelCode, string AgeGroupCode,
         string Days, string StartLocal, int DurationMinutes, string TimeZoneId, RecurringScheduleStatus Status);
 
+    /// <summary>An upcoming, still-cancellable session — the admin needs to see
+    /// a real session Id to act on it; nothing before this page ever surfaced one.</summary>
+    public record SessionRow(long Id, string TeacherName, string CourseName, string LevelCode,
+        Instant StartsAtUtc, int SeatsTaken, int Capacity, ClassSessionStatus Status);
+
     public IReadOnlyList<ScheduleRow> Schedules { get; set; } = Array.Empty<ScheduleRow>();
+    public IReadOnlyList<SessionRow> UpcomingSessions { get; set; } = Array.Empty<SessionRow>();
     public IReadOnlyList<Country> Countries { get; set; } = Array.Empty<Country>();
     public IReadOnlyList<Course> Courses { get; set; } = Array.Empty<Course>();
     public IReadOnlyList<Level> Levels { get; set; } = Array.Empty<Level>();
@@ -62,6 +72,9 @@ public class SchedulesModel : PageModel
     [BindProperty]
     public EnrollInput Enroll { get; set; } = new();
 
+    [BindProperty]
+    public CancelInput Cancel { get; set; } = new();
+
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
@@ -69,6 +82,13 @@ public class SchedulesModel : PageModel
     {
         [Required] public long RecurringScheduleId { get; set; }
         [Required] public long StudentId { get; set; }
+    }
+
+    public class CancelInput
+    {
+        [Required] public long SessionId { get; set; }
+        [Required] public string Reason { get; set; } = string.Empty;
+        public long? ReplacementSessionId { get; set; }
     }
 
     public class CreateScheduleInput
@@ -140,6 +160,48 @@ public class SchedulesModel : PageModel
         return Page();
     }
 
+    public async Task<IActionResult> OnPostCancelAsync()
+    {
+        ModelState.Clear();
+        if (!TryValidateModel(Cancel, nameof(Cancel)))
+        {
+            await LoadAsync();
+            return Page();
+        }
+
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var result = await _cancellations.CancelAsync(Cancel.SessionId, Cancel.Reason, actingUserId,
+            Cancel.ReplacementSessionId, HttpContext.RequestAborted);
+
+        switch (result.Outcome)
+        {
+            case CancelSessionOutcome.Cancelled:
+                StatusMessage = Cancel.ReplacementSessionId is null
+                    ? $"Session cancelled. {result.EnrollmentsMovedOrCancelled} enrollment(s) cancelled; " +
+                      $"{result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed} already-joined student(s) left untouched " +
+                      "(use Grant Makeup Credit on /Admin/MakeUpCredits if appropriate)."
+                    : $"Session cancelled and replaced. {result.EnrollmentsMovedOrCancelled} student(s) moved to the replacement; " +
+                      $"{result.EnrollmentsThatCouldNotBeMovedToReplacement} could not fit and need manual attention; " +
+                      $"{result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed} already-joined student(s) left untouched.";
+                break;
+            case CancelSessionOutcome.SessionNotFound:
+                ErrorMessage = "Session not found.";
+                break;
+            case CancelSessionOutcome.NotCancellable:
+                ErrorMessage = "This session is already cancelled, completed, or marked not delivered.";
+                break;
+            case CancelSessionOutcome.ReplacementSessionNotFound:
+                ErrorMessage = "The replacement session id was not found.";
+                break;
+            case CancelSessionOutcome.ReplacementSessionIsTheSameSession:
+                ErrorMessage = "The replacement session must be a different session.";
+                break;
+        }
+
+        await LoadAsync();
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostPauseAsync(long scheduleId)
     {
         await _schedules.PauseAsync(scheduleId, HttpContext.RequestAborted);
@@ -176,5 +238,15 @@ public class SchedulesModel : PageModel
             courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
             ageGroupCodes.GetValueOrDefault(s.AgeGroupId, "?"), string.Join(",", s.DaysOfWeek),
             s.StartLocal.ToString("HH:mm", null), s.DurationMinutes, s.TimeZoneId, s.Status)).ToList();
+
+        var now = _clock.GetCurrentInstant();
+        var horizon = now.Plus(Duration.FromDays(14));
+        var sessions = await _db.ClassSessions
+            .Where(s => s.Status == ClassSessionStatus.Scheduled && s.StartsAtUtc >= now && s.StartsAtUtc <= horizon)
+            .OrderBy(s => s.StartsAtUtc)
+            .ToListAsync();
+        UpcomingSessions = sessions.Select(s => new SessionRow(s.Id, teacherNames.GetValueOrDefault(s.TeacherId, $"#{s.TeacherId}"),
+            courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
+            s.StartsAtUtc, s.SeatsTaken, s.Capacity, s.Status)).ToList();
     }
 }
