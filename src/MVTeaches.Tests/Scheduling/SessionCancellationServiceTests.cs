@@ -14,8 +14,9 @@ namespace MVTeaches.Tests.Scheduling;
 
 /// <summary>
 /// D-20 ("no double makeup" — a direct replacement transfers the enrollment
-/// with no ledger movement; a plain cancellation is left for IMakeUpCreditService,
-/// D-19) exercised against a real PostgreSQL database. ClassSession.Cancel/
+/// with no ledger movement; a plain cancellation is left for
+/// IEnrollmentService.ApproveReplacementLessonAsync, D-19) exercised against a
+/// real PostgreSQL database. ClassSession.Cancel/
 /// CancelAndReplace have existed at the domain layer since an earlier pass but
 /// were never wired to anything before this.
 /// </summary>
@@ -179,7 +180,7 @@ public class SessionCancellationServiceTests
 
         await using var verifyDb = _fixture.CreateContext();
         var enrollment = await verifyDb.SessionEnrollments.SingleAsync(e => e.SessionId == session.Id && e.StudentId == studentId);
-        Assert.Equal(EnrollmentState.Active, enrollment.State); // untouched — admin decides separately (IMakeUpCreditService)
+        Assert.Equal(EnrollmentState.Active, enrollment.State); // untouched — admin decides separately (IEnrollmentService.ApproveReplacementLessonAsync)
     }
 
     [Fact]

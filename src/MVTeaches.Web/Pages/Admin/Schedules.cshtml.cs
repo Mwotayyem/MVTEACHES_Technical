@@ -179,7 +179,7 @@ public class SchedulesModel : PageModel
                 StatusMessage = Cancel.ReplacementSessionId is null
                     ? $"Session cancelled. {result.EnrollmentsMovedOrCancelled} enrollment(s) cancelled; " +
                       $"{result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed} already-joined student(s) left untouched " +
-                      "(use Grant Makeup Credit on /Admin/MakeUpCredits if appropriate)."
+                      "(approve a specific replacement lesson for them on /Admin/RescheduleSessions if appropriate)."
                     : $"Session cancelled and replaced. {result.EnrollmentsMovedOrCancelled} student(s) moved to the replacement; " +
                       $"{result.EnrollmentsThatCouldNotBeMovedToReplacement} could not fit and need manual attention; " +
                       $"{result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed} already-joined student(s) left untouched.";

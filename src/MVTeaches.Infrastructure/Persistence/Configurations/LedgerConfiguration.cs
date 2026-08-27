@@ -34,7 +34,14 @@ public class EntitlementLedgerEntryConfiguration : IEntityTypeConfiguration<Enti
         b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
 
         b.HasIndex(x => new { x.StudentId, x.CreatedAtUtc }).HasDatabaseName("ix_ent_student");
-        b.HasIndex(x => x.SubscriptionId).HasDatabaseName("ix_ent_sub");
+        // Named directly in the HasIndex call (not via a chained HasDatabaseName)
+        // — EF Core only recognizes this as a SECOND, distinct index on the same
+        // SubscriptionId property when the name is passed here; otherwise it
+        // silently merges into whichever other HasIndex call configured the
+        // same property first, which is exactly what happened the first time
+        // ux_ent_purchase below was added (it renamed this index instead of
+        // creating a new one).
+        b.HasIndex(x => x.SubscriptionId, "ix_ent_sub");
 
         // ⭐⭐ THE invariant: the SAME session can never consume the SAME
         // student's balance twice — a partial unique index scoped to the
@@ -43,5 +50,19 @@ public class EntitlementLedgerEntryConfiguration : IEntityTypeConfiguration<Enti
             .IsUnique()
             .HasDatabaseName("ux_ent_consumption")
             .HasFilter("\"reason\" = 'Consumption'");
+
+        // Release-readiness audit finding: the SAME subscription can never be
+        // credited by more than one Purchase entry — mirrors ux_ent_consumption's
+        // role on the spend side. Without this, two payments on the same
+        // subscription confirmed concurrently (e.g. two admins, or a genuine
+        // overpayment/duplicate manual entry) could each independently observe
+        // "no Purchase entry posted yet" and both post one, double-crediting the
+        // subscription's minutes — PaymentService.SettleSubscriptionIfFullyPaidAsync's
+        // own pre-check is a plain SELECT with no ambient serializable
+        // transaction, so it needs this real backstop the same way the Join race
+        // (D-83) needed ux_ent_consumption.
+        b.HasIndex(x => x.SubscriptionId, "ux_ent_purchase")
+            .IsUnique()
+            .HasFilter("\"reason\" = 'Purchase'");
     }
 }

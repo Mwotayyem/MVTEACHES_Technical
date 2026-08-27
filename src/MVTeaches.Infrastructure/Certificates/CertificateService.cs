@@ -6,12 +6,15 @@ using MVTeaches.Domain.Delivery;
 using MVTeaches.Domain.Settings;
 using MVTeaches.Infrastructure.Persistence;
 using NodaTime;
+using Npgsql;
 
 namespace MVTeaches.Infrastructure.Certificates;
 
 /// <summary>See ICertificateService's remarks — §27.1/§27.2/D-51/CONF-03/Q-27.</summary>
 public class CertificateService : ICertificateService
 {
+    private const string PostgresUniqueViolationSqlState = "23505";
+
     private readonly MvTeachesDbContext _db;
     private readonly ISettingsProvider _settings;
     private readonly IClock _clock;
@@ -128,9 +131,24 @@ public class CertificateService : ICertificateService
             eligibility.MinutesCompleted, _clock.GetCurrentInstant(), issuedByUserId);
 
         _db.Certificates.Add(certificate);
-        await _db.SaveChangesAsync(cancellationToken);
 
-        return new IssueCertificateResult(IssueCertificateOutcome.Issued, certificate.Id, certificateNumber);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+            return new IssueCertificateResult(IssueCertificateOutcome.Issued, certificate.Id, certificateNumber);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresUniqueViolationSqlState })
+        {
+            // Release-readiness audit finding: the alreadyIssued pre-check above
+            // is a plain SELECT with no ambient transaction — the real backstop
+            // is UNIQUE(student_id, level_id, course_id), and until now a
+            // concurrent double-click on "Issue" (or two admins acting on the
+            // same eligible student at once) surfaced as an unhandled 500 here
+            // instead of the friendly AlreadyIssued outcome this method already
+            // returns for the sequential case.
+            _db.ChangeTracker.Clear();
+            return new IssueCertificateResult(IssueCertificateOutcome.AlreadyIssued);
+        }
     }
 
     public async Task RevokeAsync(long certificateId, CancellationToken cancellationToken)

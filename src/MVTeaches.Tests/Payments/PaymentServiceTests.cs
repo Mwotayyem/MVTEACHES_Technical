@@ -144,6 +144,60 @@ public class PaymentServiceTests
             l => l.SubscriptionId == subscriptionId && l.Reason == LedgerReason.Purchase));
     }
 
+    /// <summary>Release-readiness audit finding: unlike ux_ent_consumption
+    /// (D-83), there was no database-level backstop against TWO different,
+    /// legitimately-distinct Payment rows for the SAME subscription both
+    /// crossing the "fully paid" threshold concurrently — e.g. two admins
+    /// confirming two separate manual payments for the same subscription at
+    /// the same moment. Both would independently observe "no Purchase entry
+    /// posted yet" and both attempt to post one, double-crediting the
+    /// subscription's minutes. Proves exactly one Purchase entry survives and
+    /// BOTH payments still end up Confirmed (the second confirmation is real
+    /// money too — it just doesn't get to post a second, redundant ledger
+    /// entry, the same rule already applied to a THIRD sequential overpayment
+    /// today).</summary>
+    [Fact]
+    public async Task Two_concurrent_payment_confirmations_on_the_same_subscription_post_the_ledger_exactly_once()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var seedDb = _fixture.CreateContext();
+        var (studentId, subscriptionId, price) = await SeedBlockedSubscriptionAsync(seedDb);
+
+        // Two independent, fully-priced payments on the same subscription —
+        // an overpayment/duplicate-entry scenario, not a double-submit of the
+        // same payment row (that path is already covered by
+        // A_payment_cannot_be_confirmed_twice).
+        // ⚠️ Each Payment needs its OWN Money instance (see
+        // Duplicate_reference_codes_are_impossible_at_the_database_level's
+        // remarks on this owned-type gotcha) — sharing `price` here throws.
+        var recorded1 = await new PaymentService(seedDb, new FakeClock(now)).RecordManualPaymentAsync(
+            new RecordPaymentRequest(studentId, subscriptionId, null, new Money(price.Amount, price.Currency), PaymentMethod.BankTransfer, null), CancellationToken.None);
+        var recorded2 = await new PaymentService(seedDb, new FakeClock(now)).RecordManualPaymentAsync(
+            new RecordPaymentRequest(studentId, subscriptionId, null, new Money(price.Amount, price.Currency), PaymentMethod.BankTransfer, null), CancellationToken.None);
+
+        // Separate DbContexts (like Two_concurrent_join_requests_still_produce_exactly_one_consumption)
+        // so this is a genuine concurrent database race, not two sequential
+        // calls sharing one context.
+        var service1 = new PaymentService(_fixture.CreateContext(), new FakeClock(now));
+        var service2 = new PaymentService(_fixture.CreateContext(), new FakeClock(now));
+
+        var task1 = service1.ConfirmAsync(recorded1.PaymentId, NextId(), CancellationToken.None);
+        var task2 = service2.ConfirmAsync(recorded2.PaymentId, NextId(), CancellationToken.None);
+        var results = await Task.WhenAll(task1, task2);
+
+        // Both payments represent real money received — neither should be left
+        // stuck Pending or Rejected just because it lost the ledger race.
+        Assert.All(results, r => Assert.Equal(ConfirmPaymentOutcome.Confirmed, r.Outcome));
+
+        await using var verify = _fixture.CreateContext();
+        Assert.Equal(1, verify.EntitlementLedgerEntries.Count(
+            l => l.SubscriptionId == subscriptionId && l.Reason == LedgerReason.Purchase));
+        Assert.Equal(2, verify.Payments.Count(p => p.SubscriptionId == subscriptionId && p.Status == PaymentStatus.Confirmed));
+
+        var student = verify.Students.Single(s => s.Id == studentId);
+        Assert.Equal(StudentStatus.Active, student.Status);
+    }
+
     [Fact]
     public async Task Duplicate_reference_codes_are_impossible_at_the_database_level()
     {

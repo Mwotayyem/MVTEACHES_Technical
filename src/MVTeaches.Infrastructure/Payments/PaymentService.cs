@@ -72,8 +72,36 @@ public class PaymentService : IPaymentService
 
         await SettleSubscriptionIfFullyPaidAsync(payment, confirmedByUserId, now, cancellationToken);
 
-        await _db.SaveChangesAsync(cancellationToken);
-        return new ConfirmPaymentResult(ConfirmPaymentOutcome.Confirmed);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+            return new ConfirmPaymentResult(ConfirmPaymentOutcome.Confirmed);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresUniqueViolationSqlState })
+        {
+            // Release-readiness audit finding: lost a genuine race against a
+            // DIFFERENT payment on the SAME subscription that also crossed the
+            // "fully paid" threshold concurrently and already posted the one
+            // allowed Purchase entry (ux_ent_purchase) — this whole SaveChanges
+            // batch (this payment's own Confirm() update included) rolled back
+            // together. The money this payment represents is still real,
+            // though, and the subscription is already activated by the winner,
+            // so there is nothing left to settle — just mark this payment
+            // Confirmed on its own, exactly like every OTHER payment that
+            // arrives after a subscription is already fully paid (the
+            // alreadyPosted check above already handles that sequentially;
+            // this is the same outcome reached via a race instead).
+            _db.ChangeTracker.Clear();
+            var reloaded = await _db.Payments.FirstAsync(p => p.Id == paymentId, cancellationToken);
+            if (reloaded.Status == PaymentStatus.Confirmed)
+            {
+                return new ConfirmPaymentResult(ConfirmPaymentOutcome.AlreadyConfirmed);
+            }
+
+            reloaded.Confirm(confirmedByUserId, now);
+            await _db.SaveChangesAsync(cancellationToken);
+            return new ConfirmPaymentResult(ConfirmPaymentOutcome.Confirmed);
+        }
     }
 
     public async Task RejectAsync(long paymentId, string reason, long rejectedByUserId, CancellationToken cancellationToken)

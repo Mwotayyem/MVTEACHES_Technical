@@ -270,6 +270,39 @@ public class CertificateServiceTests
         Assert.Equal(1, verifyDb.Certificates.Count(c => c.StudentId == fx.StudentId && c.LevelId == fx.LevelId && c.CourseId == fx.CourseId));
     }
 
+    /// <summary>Release-readiness audit finding: IssueAsync's alreadyIssued
+    /// check is a plain SELECT with no ambient transaction — the real backstop
+    /// is UNIQUE(student_id, level_id, course_id). Before the fix, the loser
+    /// of a genuine race (two concurrent "Issue" clicks on the same eligible
+    /// student) crashed with an unhandled DbUpdateException instead of the
+    /// same friendly AlreadyIssued outcome the sequential case already
+    /// returns.</summary>
+    [Fact]
+    public async Task Two_concurrent_issue_attempts_still_produce_exactly_one_certificate()
+    {
+        await using var seedDb = _fixture.CreateContext();
+        await SeedCertificateHoursSettingAsync(seedDb, hours: 1);
+        var fx = await SeedStudentAndTeacherAsync(seedDb);
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await AddAttendedAndVerifiedSessionAsync(seedDb, fx, 60, now);
+
+        // Separate DbContexts — a genuine concurrent database race, not two
+        // sequential calls sharing one context (same pattern as
+        // Two_concurrent_join_requests_still_produce_exactly_one_consumption).
+        var service1 = CreateCertificateService(_fixture.CreateContext(), new FakeClock(now));
+        var service2 = CreateCertificateService(_fixture.CreateContext(), new FakeClock(now));
+
+        var task1 = service1.IssueAsync(fx.StudentId, fx.LevelId, fx.CourseId, fx.AdminUserId, CancellationToken.None);
+        var task2 = service2.IssueAsync(fx.StudentId, fx.LevelId, fx.CourseId, fx.AdminUserId, CancellationToken.None);
+        var results = await Task.WhenAll(task1, task2);
+
+        Assert.Contains(results, r => r.Outcome == IssueCertificateOutcome.Issued);
+        Assert.Contains(results, r => r.Outcome == IssueCertificateOutcome.AlreadyIssued);
+
+        await using var verifyDb = _fixture.CreateContext();
+        Assert.Equal(1, verifyDb.Certificates.Count(c => c.StudentId == fx.StudentId && c.LevelId == fx.LevelId && c.CourseId == fx.CourseId));
+    }
+
     [Fact]
     public async Task An_issued_certificate_is_never_re_evaluated_after_the_threshold_changes()
     {

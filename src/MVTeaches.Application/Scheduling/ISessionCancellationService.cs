@@ -25,8 +25,9 @@ public enum CancelSessionOutcome
 /// D-83-final and is never touched here — per the Technical Study (§17.4/line
 /// 1018), a session going wrong AFTER a student already joined it is the one
 /// case that requires the admin's own case-by-case judgment (a separate,
-/// explicit makeup-credit grant — see IMakeUpCreditService), never an automatic
-/// side effect of cancelling the session.
+/// explicit replacement-lesson approval — see IEnrollmentService.
+/// ApproveReplacementLessonAsync), never an automatic side effect of cancelling
+/// the session.
 ///
 /// EnrollmentsThatCouldNotBeMovedToReplacement: a replacement was given, but
 /// re-enrolling that specific student into it failed (most commonly: the
@@ -42,7 +43,8 @@ public record CancelSessionResult(
 /// <summary>
 /// Technical Study D-20 ("no double makeup" — a cancellation either moves the
 /// enrollment to a direct replacement with no ledger movement, or leaves a
-/// plain cancellation for IMakeUpCreditService to address separately, D-19).
+/// plain cancellation for IEnrollmentService.ApproveReplacementLessonAsync to
+/// address separately, D-19).
 /// This is the first place anywhere in the codebase that can actually put a
 /// ClassSession into Cancelled state — ClassSession.Cancel/CancelAndReplace
 /// have existed since an earlier pass but were never wired to anything.

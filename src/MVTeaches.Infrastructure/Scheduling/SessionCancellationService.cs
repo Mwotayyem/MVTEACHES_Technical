@@ -63,7 +63,8 @@ public class SessionCancellationService : ISessionCancellationService
             if (consumedStudentIds.Contains(enrollment.StudentId))
             {
                 // §17.4/line 1018: already consumed via Join — D-83-final, never
-                // touched automatically. The admin decides separately (IMakeUpCreditService).
+                // touched automatically. The admin decides separately
+                // (IEnrollmentService.ApproveReplacementLessonAsync, on /Admin/RescheduleSessions).
                 leftUntouched++;
                 continue;
             }

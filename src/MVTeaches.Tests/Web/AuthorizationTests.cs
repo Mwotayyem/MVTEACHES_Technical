@@ -64,6 +64,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         }
 
         await EnsureUserAsync(userManager, AdminEmail, RoleNames.Admin);
+        await EnsureUserAsync(userManager, SystemAdminEmail, RoleNames.SystemAdmin);
         await EnsureUserAsync(userManager, TeacherEmail, RoleNames.Teacher);
         await EnsureUserAsync(userManager, GuardianEmail, RoleNames.Guardian);
         await EnsureUserAsync(userManager, StudentEmail, RoleNames.Student);
@@ -73,6 +74,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
 
     private const string Password = "CorrectHorse123!";
     private const string AdminEmail = "authtest-admin@test.mvteaches.local";
+    private const string SystemAdminEmail = "authtest-systemadmin@test.mvteaches.local";
     private const string TeacherEmail = "authtest-teacher@test.mvteaches.local";
     private const string OtherTeacherEmail = "authtest-teacher2@test.mvteaches.local";
     private const string GuardianEmail = "authtest-guardian@test.mvteaches.local";
@@ -551,6 +553,48 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         // no SessionDelivery row created by the attacker at all.
         var delivery = await db.SessionDeliveries.FirstOrDefaultAsync(d => d.SessionId == otherTeachersSession.Id);
         Assert.Null(delivery);
+    }
+
+    /// <summary>Release-readiness audit finding: AdminOnlyDashboardAuthorizationFilter
+    /// originally checked only the literal "Admin" role — a SystemAdmin-only
+    /// account (RoleNames.cs's own doc comment: "elevated over Admin") could
+    /// not reach /hangfire at all, unlike every other admin surface in this
+    /// app. No test exercised this filter before, which is exactly how the
+    /// gap went unnoticed.</summary>
+    [Fact]
+    public async Task Unauthenticated_request_to_the_hangfire_dashboard_is_rejected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/hangfire");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_teacher_is_rejected_from_the_hangfire_dashboard()
+    {
+        var client = await CreateAuthenticatedClientAsync(TeacherEmail);
+        var response = await client.GetAsync("/hangfire");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_admin_can_reach_the_hangfire_dashboard()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/hangfire");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_systemadmin_can_reach_the_hangfire_dashboard()
+    {
+        var client = await CreateAuthenticatedClientAsync(SystemAdminEmail);
+        var response = await client.GetAsync("/hangfire");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     /// <summary>Hosts the real app. The Development environment suppresses the

@@ -1,4 +1,81 @@
-# Implementation Status — as of 2026-08-27 (updated)
+# Implementation Status — as of 2026-08-28 (updated)
+
+## Release-readiness audit (2026-08-28)
+
+With the agreed MVP feature set complete (all four personas, all named
+business areas), a full audit was run across authorization/IDOR, financial
+integrity, concurrency, validation, migrations-from-clean-database,
+background jobs, production configuration, secret handling, logging, error
+handling, navigation/broken links, and misleading UI actions. Five real
+defects were found and fixed, each with a new regression test, run against
+real PostgreSQL:
+
+1. **Dead links to a deleted page (misleading UI).** `/Admin/Schedules`'
+   session-cancellation help text and its own post-cancel status message
+   both still pointed admins to `/Admin/MakeUpCredits` — deleted in the
+   2026-08-27 reschedule/compensation redesign (see that entry above). Both
+   now point to the real page, `/Admin/RescheduleSessions`. Several stale
+   doc comments referencing the deleted `IMakeUpCreditService` (in
+   `ISessionCancellationService`, `SessionCancellationService`, and their
+   tests) were also corrected to reference the real replacement,
+   `IEnrollmentService.ApproveReplacementLessonAsync`, so a future reader
+   is not sent looking for a type that no longer exists.
+2. **SystemAdmin locked out of the Hangfire dashboard.**
+   `AdminOnlyDashboardAuthorizationFilter` checked only the literal
+   `"Admin"` role — a hardcoded string matching none of this codebase's own
+   `RoleNames` constants, and critically excluding `SystemAdmin`, the role
+   `RoleNames.cs` itself documents as "elevated over Admin" for exactly
+   this kind of operational control. A SystemAdmin-only account could not
+   reach `/hangfire` at all (job history, manual trigger of the nightly
+   schedule-generation job), unlike every other admin surface in the app,
+   which authorizes Admin and SystemAdmin together. Fixed to check both
+   roles via the real constants. No test had ever exercised this filter —
+   4 new tests added (unauthenticated, wrong role, Admin, SystemAdmin).
+3. **Financial integrity: a real double-credit race on payment
+   confirmation.** Unlike `ux_ent_consumption` (D-83's own backstop on the
+   spend side), there was no database-level constraint preventing two
+   *different*, legitimately-distinct `Payment` rows on the SAME
+   subscription from both being confirmed concurrently and both posting a
+   `Purchase` ledger entry — `PaymentService.SettleSubscriptionIfFullyPaidAsync`'s
+   "already posted?" check is a plain SELECT with no ambient serializable
+   transaction. Reproduced live against real PostgreSQL before fixing:
+   two payments confirmed via `Task.WhenAll` on separate DbContexts
+   produced 2 Purchase entries instead of 1, i.e. the subscription's
+   minutes were double-credited. Fixed with a new partial unique index,
+   `ux_ent_purchase` on `entitlement_ledger(subscription_id)` filtered to
+   `reason = 'Purchase'` (migration `AddPurchaseLedgerUniqueIndex`), and a
+   retry-safe catch in `PaymentService.ConfirmAsync`: the losing
+   confirmation's own payment is still marked Confirmed (it is real money
+   received) but does not re-attempt the now-redundant ledger insert —
+   the same outcome the sequential-overpayment case already produced,
+   reached safely under a real race. New regression test proves exactly 1
+   Purchase entry and both payments Confirmed.
+4. **Concurrency: an unhandled 500 on a certificate-issuance race.**
+   `CertificateService.IssueAsync`'s "already issued?" pre-check is also a
+   plain SELECT; the real backstop is
+   `UNIQUE(student_id, level_id, course_id)` on `certificates`, but unlike
+   every other race-guarded write in this codebase (Join, Enroll, payment
+   confirm), the resulting `DbUpdateException` on a concurrent double-issue
+   was never caught — it would have surfaced as an unhandled 500 instead
+   of the friendly `AlreadyIssued` outcome the sequential case already
+   returns. Fixed with the same catch-and-retry pattern used everywhere
+   else. New regression test (two concurrent `IssueAsync` calls on
+   separate DbContexts) proves exactly one certificate survives and the
+   loser gets `AlreadyIssued`, not a crash.
+5. Confirmed clean: migrations apply from a genuinely empty PostgreSQL 16
+   database (`TestDatabaseFixture` drops and recreates the test database
+   and runs `MigrateAsync()` at the start of every full test run — this
+   was exercised, not assumed, by every one of the 3 consecutive full-suite
+   runs below), every `_Layout.cshtml` navigation link resolves to a real
+   page, every `[BindProperty]` complex input on every page calls
+   `TryValidateModel` before proceeding, no secrets are committed anywhere
+   in the repository (config files only ever contain empty
+   placeholders/env-var instructions), and no logging statement anywhere
+   emits a password, token, or other secret (only ids and non-sensitive
+   status text).
+
+**156/156 automated tests passing**, 3 consecutive clean runs against real
+PostgreSQL 16, after this audit's fixes.
 
 This is the detailed backing for the chat-delivered final engineering
 report. Update this file, don't let it drift from what's actually true.
