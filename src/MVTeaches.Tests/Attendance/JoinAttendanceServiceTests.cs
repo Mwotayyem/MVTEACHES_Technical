@@ -296,6 +296,51 @@ public class JoinAttendanceServiceTests
         Assert.Equal(JoinOutcome.SessionNotYetJoinable, result.Outcome);
     }
 
+    /// <summary>
+    /// Financial-integrity check: the attendance insert and the ledger consumption
+    /// insert happen in ONE SaveChangesAsync call (one implicit database
+    /// transaction — EF Core's default), so a unique-constraint failure on either
+    /// write rolls back BOTH, never leaving a debit with no matching attendance or
+    /// an attendance with no matching debit. This test forces the failure on the
+    /// LEDGER side specifically (not the already-covered attendance-side race in
+    /// Two_concurrent_join_requests_still_produce_exactly_one_consumption) by
+    /// pre-existing a Consumption entry for this exact (session, student) with no
+    /// matching attendance row — an artificial precondition, used only to trigger
+    /// ux_ent_consumption without also triggering ux_attendance_session_student, so
+    /// the attendance insert this call attempts would, on its own, have succeeded.
+    /// If the two writes were ever committed independently instead of atomically,
+    /// this would leave exactly that: a real attendance row with no new debit
+    /// behind it. It must not.
+    /// </summary>
+    [Fact]
+    public async Task A_ledger_side_conflict_rolls_back_the_attendance_insert_too_no_orphan_debit()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        // Plenty of headroom so the balance check still passes after the phantom draw below.
+        var (sessionId, studentId, studentUserId, minutes) =
+            await SeedJoinableSessionAsync(now, balanceMinutesOverride: 10_000);
+
+        await using (var seedDb = _fixture.CreateContext())
+        {
+            var subscription = await seedDb.Subscriptions.SingleAsync(s => s.StudentId == studentId);
+            seedDb.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForConsumption(
+                studentId, subscription.Id, subscription.CourseId, subscription.LevelId,
+                minutes, sessionId, studentUserId, now));
+            await seedDb.SaveChangesAsync();
+        }
+
+        var result = await CreateService(now).JoinAsync(new JoinAttendanceRequest(sessionId, studentId, studentUserId), CancellationToken.None);
+
+        // Idempotent contract holds even for a ledger-side collision: reported as
+        // present, never surfaced as an error.
+        Assert.True(result.IsPresent);
+
+        await using var verifyDb = _fixture.CreateContext();
+        Assert.Equal(0, verifyDb.AttendanceRecords.Count(a => a.SessionId == sessionId && a.StudentId == studentId));
+        Assert.Equal(1, verifyDb.EntitlementLedgerEntries.Count(
+            l => l.SessionId == sessionId && l.StudentId == studentId && l.Reason == LedgerReason.Consumption));
+    }
+
     [Fact]
     public async Task Join_without_sufficient_balance_is_rejected_before_writing_anything()
     {
