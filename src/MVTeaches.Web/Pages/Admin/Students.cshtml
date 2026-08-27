@@ -1,0 +1,202 @@
+@page
+@model MVTeaches.Web.Pages.Admin.StudentsModel
+@using MVTeaches.Domain.People
+@{
+    ViewData["Title"] = "Students";
+}
+
+<h1>Students &amp; guardians</h1>
+<p class="text-muted">
+    Real self-registration is phone + WhatsApp OTP (§7), which is not yet configured — see the deployment status doc.
+    Until then, an admin enters what staff already collect over the phone.
+</p>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Register a guardian</h5>
+                <p class="text-muted small">Guardians always have an email/password login (§7.1).</p>
+                <form method="post" asp-page-handler="RegisterGuardian">
+                    <div asp-validation-summary="None" class="text-danger"></div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="NewGuardian.FullName">Full name</label>
+                        <input asp-for="NewGuardian.FullName" class="form-control" />
+                        <span asp-validation-for="NewGuardian.FullName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="NewGuardian.Email">Email</label>
+                        <input asp-for="NewGuardian.Email" class="form-control" />
+                        <span asp-validation-for="NewGuardian.Email" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="NewGuardian.Password">Temporary password</label>
+                        <input asp-for="NewGuardian.Password" type="password" class="form-control" />
+                        <span asp-validation-for="NewGuardian.Password" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register guardian</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Register a student</h5>
+                <p class="text-muted small">A child with no independent login (D-02/D-03): leave the login fields blank.</p>
+                <form method="post" asp-page-handler="RegisterStudent">
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="NewStudent.FullName">Full name</label>
+                        <input asp-for="NewStudent.FullName" class="form-control" />
+                        <span asp-validation-for="NewStudent.FullName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="NewStudent.CountryId">Country</label>
+                        <select asp-for="NewStudent.CountryId" class="form-select">
+                            <option value="">-- select --</option>
+                            @foreach (var country in Model.Countries)
+                            {
+                                <option value="@country.Id">@country.NameEn (@country.CurrencyCode)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="NewStudent.CountryId" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="NewStudent.DateOfBirth">Date of birth</label>
+                        <input asp-for="NewStudent.DateOfBirth" type="date" class="form-control" />
+                        <span asp-validation-for="NewStudent.DateOfBirth" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="NewStudent.LoginEmail">Login email (optional)</label>
+                        <input asp-for="NewStudent.LoginEmail" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="NewStudent.LoginPassword">Login password (optional)</label>
+                        <input asp-for="NewStudent.LoginPassword" type="password" class="form-control" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register student</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Link a guardian to a student</h5>
+                <form method="post" asp-page-handler="LinkGuardian">
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Link.StudentId">Student id</label>
+                        <input asp-for="Link.StudentId" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Link.GuardianId">Guardian</label>
+                        <select asp-for="Link.GuardianId" class="form-select">
+                            <option value="">-- select --</option>
+                            @foreach (var guardian in Model.Guardians)
+                            {
+                                <option value="@guardian.Id">@guardian.FullName (#@guardian.Id)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Link.Relationship">Relationship</label>
+                        <select asp-for="Link.Relationship" class="form-select">
+                            @foreach (var value in Enum.GetValues<GuardianRelationship>())
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input asp-for="Link.IsPrimary" class="form-check-input" />
+                        <label class="form-check-label" asp-for="Link.IsPrimary">Primary guardian</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Link</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Assign a level (admin override)</h5>
+                <p class="text-muted small">No placement-interview flow exists yet — every assignment here is an explicit, reasoned override (§10.3).</p>
+                <form method="post" asp-page-handler="AssignLevel">
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="LevelAssignment.StudentId">Student id</label>
+                        <input asp-for="LevelAssignment.StudentId" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="LevelAssignment.LevelId">Level</label>
+                        <select asp-for="LevelAssignment.LevelId" class="form-select">
+                            <option value="">-- select --</option>
+                            @foreach (var level in Model.Levels)
+                            {
+                                <option value="@level.Id">@level.Code — @level.NameEn</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="LevelAssignment.Reason">Reason</label>
+                        <input asp-for="LevelAssignment.Reason" class="form-control" />
+                        <span asp-validation-for="LevelAssignment.Reason" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Assign level</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2>Students</h2>
+<div class="table-responsive">
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Country</th>
+                <th>Status</th>
+                <th>Level</th>
+                <th>Guardians</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var student in Model.Students)
+            {
+                <tr>
+                    <td>@student.Id</td>
+                    <td>@student.FullName</td>
+                    <td>@student.CountryCode</td>
+                    <td>@student.Status</td>
+                    <td>@(student.CurrentLevelCode ?? "—")</td>
+                    <td>@string.Join(", ", student.GuardianNames)</td>
+                    <td>
+                        @if (student.Status == StudentStatus.PendingVerification)
+                        {
+                            <form method="post" asp-page-handler="Verify" class="d-inline">
+                                <input type="hidden" name="studentId" value="@student.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Mark verified</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

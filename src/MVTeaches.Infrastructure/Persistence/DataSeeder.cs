@@ -26,6 +26,9 @@ public static class DataSeeder
         await SeedRolesAsync(roleManager);
         await SeedAgeGroupsAsync(db, cancellationToken);
         await SeedSettingsAsync(db, cancellationToken);
+        await SeedCountriesAsync(db, cancellationToken);
+        await SeedLevelsAsync(db, cancellationToken);
+        await SeedCoursesAsync(db, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -116,5 +119,61 @@ public static class DataSeeder
                 db.Settings.Add(new Setting(key, defaultValue));
             }
         }
+    }
+
+    /// <summary>§24.1 (D-06/D-07/D-08/D-09, extended by D-53) — Jordan (JOD) and
+    /// Palestine (ILS) are the two named markets, plus one mandatory "rest of
+    /// world" USD row (IsDefaultIntl) that catches every other phone country
+    /// code instead of requiring a row per country. The admin can promote any
+    /// country to its own row later (§24.1's note) — this seed only guarantees
+    /// the three the study names as day-one requirements.</summary>
+    private static async Task SeedCountriesAsync(MvTeachesDbContext db, CancellationToken ct)
+    {
+        if (await db.Countries.AnyAsync(ct))
+        {
+            return;
+        }
+
+        db.Countries.AddRange(
+            new Country(1, "JO", "الأردن", "Jordan", "JOD", "+962", "Asia/Amman"),
+            new Country(2, "PS", "فلسطين", "Palestine", "ILS", "+970", "Asia/Hebron"),
+            // §24.1: no single calling code identifies "the rest of the world" —
+            // this row is matched by NOT being JO/PS, never by phone_country_code.
+            // "ZZ" is an ISO-3166-1 user-assigned ("unspecified") code — deliberately
+            // not a real country's code, since this row represents no single country.
+            new Country(3, "ZZ", "بقية العالم", "Rest of world", "USD", "", "Etc/UTC", isDefaultIntl: true));
+    }
+
+    /// <summary>§11 (D-30's predecessor table) — the six CEFR levels, data not an
+    /// enum so the admin can rename/reorder them without a code change. Deliberately
+    /// no per-level hour requirement here (D-65 moved that to a single global
+    /// setting — see the removed `required_minutes` column note on Level.cs).</summary>
+    private static async Task SeedLevelsAsync(MvTeachesDbContext db, CancellationToken ct)
+    {
+        if (await db.Levels.AnyAsync(ct))
+        {
+            return;
+        }
+
+        db.Levels.AddRange(
+            new Level(1, "A1", "مبتدئ", "Beginner", 1),
+            new Level(2, "A2", "مبتدئ متقدم", "Elementary", 2),
+            new Level(3, "B1", "متوسط", "Intermediate", 3),
+            new Level(4, "B2", "فوق المتوسط", "Upper-intermediate", 4),
+            new Level(5, "C1", "متقدم", "Advanced", 5),
+            new Level(6, "C2", "محترف", "Proficient", 6));
+    }
+
+    /// <summary>D-41: exactly one course in MVP — "دورة واحدة بستة مستويات"
+    /// (one course, six levels). No IELTS/TOEFL/Corporate. `Courses` stays a
+    /// real entity (not hardcoded) purely so a future course costs nothing to add.</summary>
+    private static async Task SeedCoursesAsync(MvTeachesDbContext db, CancellationToken ct)
+    {
+        if (await db.Courses.AnyAsync(ct))
+        {
+            return;
+        }
+
+        db.Courses.Add(new Course("GENERAL-ENGLISH", "تقوية إنجليزي عام", "General English"));
     }
 }

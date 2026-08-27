@@ -7,6 +7,7 @@ using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Certificates;
 using MVTeaches.Application.Payments;
 using MVTeaches.Application.Payroll;
+using MVTeaches.Application.People;
 using MVTeaches.Application.Reports;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Application.Settings;
@@ -21,6 +22,7 @@ using MVTeaches.Infrastructure.Integrations.Zoom;
 using MVTeaches.Infrastructure.Notifications;
 using MVTeaches.Infrastructure.Payments;
 using MVTeaches.Infrastructure.Payroll;
+using MVTeaches.Infrastructure.People;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Infrastructure.Reports;
 using MVTeaches.Infrastructure.Scheduling;
@@ -72,6 +74,7 @@ builder.Services.AddScoped<IPayrollRateResolver, PayrollRateResolver>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<IPayrollService, PayrollService>();
 builder.Services.AddScoped<IFinancialReportService, FinancialReportService>();
+builder.Services.AddScoped<IStudentAdmissionService, StudentAdmissionService>();
 
 // ---------------------------------------------------------------------
 // Integration boundaries — §5-8 of the master engineering prompt.
@@ -154,3 +157,8 @@ RecurringJob.AddOrUpdate<IScheduleGenerationService>(
     "schedule-generation", job => job.GenerateAsync(CancellationToken.None), "0 2 * * *");
 
 app.Run();
+
+// Exposes the top-level-statements Program for WebApplicationFactory<Program>
+// (the authorization/IDOR integration tests) — a standard, required pattern
+// for testing minimal-hosting-model ASP.NET Core apps; adds no behavior.
+public partial class Program { }

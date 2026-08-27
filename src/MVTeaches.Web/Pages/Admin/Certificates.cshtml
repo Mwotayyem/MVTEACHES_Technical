@@ -1,0 +1,83 @@
+@page
+@model MVTeaches.Web.Pages.Admin.CertificatesModel
+@{
+    ViewData["Title"] = "Certificates";
+}
+
+<h1>Certificates</h1>
+<p class="text-muted">§27 (D-30/D-51/CONF-03/Q-27): progress is always live, grouped by (student, level, course) — never by subscription. Reaching the hour threshold alone never issues a certificate; issuance is always this explicit action.</p>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<h2>Progress</h2>
+<div class="table-responsive mb-4">
+    <table class="table table-sm table-striped">
+        <thead><tr><th>Student</th><th>Level</th><th>Course</th><th>Minutes</th><th>Required</th><th>Eligible</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var p in Model.Progress)
+            {
+                <tr>
+                    <td>@p.StudentName</td>
+                    <td>@p.LevelCode</td>
+                    <td>@p.CourseName</td>
+                    <td>@p.MinutesCompleted</td>
+                    <td>@p.RequiredMinutes</td>
+                    <td>@(p.IsEligible ? "✅" : "—")</td>
+                    <td>
+                        @if (p.AlreadyIssued)
+                        {
+                            <span class="text-muted">Already issued</span>
+                        }
+                        else if (p.IsEligible)
+                        {
+                            <form method="post" asp-page-handler="Issue">
+                                <input type="hidden" name="studentId" value="@p.StudentId" />
+                                <input type="hidden" name="levelId" value="@p.LevelId" />
+                                <input type="hidden" name="courseId" value="@p.CourseId" />
+                                <button type="submit" class="btn btn-sm btn-success">Issue</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (Model.Progress.Count == 0)
+            {
+                <tr><td colspan="7" class="text-muted">No progress recorded yet.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2>Issued certificates</h2>
+<div class="table-responsive">
+    <table class="table table-sm table-striped">
+        <thead><tr><th>Number</th><th>Student</th><th>Level</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var c in Model.Certificates)
+            {
+                <tr>
+                    <td>@c.CertificateNumber</td>
+                    <td>@c.StudentName</td>
+                    <td>@c.LevelCode</td>
+                    <td>@c.Status</td>
+                    <td>
+                        @if (c.Status == MVTeaches.Domain.Certificates.CertificateStatus.Issued)
+                        {
+                            <form method="post" asp-page-handler="Revoke">
+                                <input type="hidden" name="certificateId" value="@c.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

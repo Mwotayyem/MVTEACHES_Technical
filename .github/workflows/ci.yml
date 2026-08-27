@@ -1,0 +1,53 @@
+name: CI
+
+# Builds and runs the full test suite against a REAL PostgreSQL 16 service
+# container — not SQLite/InMemory — because several of the invariants under
+# test (the teacher-overlap EXCLUDE constraint, partial unique indexes, the
+# append-only ledger trigger) can only be honestly exercised against real
+# PostgreSQL. This mirrors TestDatabaseFixture's own local-dev setup
+# (see src/MVTeaches.Tests/TestDatabaseFixture.cs and docs/deployment).
+
+on:
+  push:
+    branches: [Mwotayyem-patch-1]
+  pull_request:
+    branches: [Mwotayyem-patch-1]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mvteaches_dev
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U mvteaches_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore
+        working-directory: src
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+        working-directory: src
+
+      - name: Run tests (real PostgreSQL 16, no mocks)
+        run: dotnet test --no-build --configuration Release --logger "console;verbosity=normal"
+        working-directory: src
