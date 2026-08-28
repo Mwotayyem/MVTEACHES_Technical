@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
+using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
@@ -32,16 +33,19 @@ public class MySessionsModel : PageModel
     private readonly IJoinAttendanceService _join;
     private readonly IStudentBookingService _booking;
     private readonly ICompensationRequestService _compensation;
+    private readonly IMeetingProvisioningService _meetings;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IClock _clock;
 
     public MySessionsModel(MvTeachesDbContext db, IJoinAttendanceService join, IStudentBookingService booking,
-        ICompensationRequestService compensation, UserManager<ApplicationUser> userManager, IClock clock)
+        ICompensationRequestService compensation, IMeetingProvisioningService meetings,
+        UserManager<ApplicationUser> userManager, IClock clock)
     {
         _db = db;
         _join = join;
         _booking = booking;
         _compensation = compensation;
+        _meetings = meetings;
         _userManager = userManager;
         _clock = clock;
     }
@@ -89,6 +93,10 @@ public class MySessionsModel : PageModel
             return Page();
         }
 
+        // Attendance/consumption is decided here and ONLY here (D-83) — the
+        // video provider is never a source of truth for either, and the
+        // redirect below cannot produce a second debit because JoinAsync is
+        // idempotent per (session, student).
         var result = await _join.JoinAsync(new JoinAttendanceRequest(sessionId, student.Id, actingUserId), HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome switch
@@ -106,6 +114,32 @@ public class MySessionsModel : PageModel
             JoinOutcome.AlreadyFinalizedAsNoShow => "This session already ended and was recorded as a no-show — use \"Request replacement\" below instead.",
             _ => null,
         };
+
+        if (result.IsPresent)
+        {
+            // Owner clarification (2026-08-29): "Students receive only
+            // participant access through the existing authorized MVTeaches
+            // Join workflow" — the participant link is fetched here, after
+            // every authorization/enrollment/timing/entitlement check above
+            // has already passed, and is redirected to rather than rendered
+            // into any page, list, or HTML source.
+            var provision = await _meetings.GetOrProvisionReadyMeetingAsync(sessionId, HttpContext.RequestAborted);
+            if (provision.Outcome == ProvisionMeetingOutcome.Ready && provision.JoinUrl is not null)
+            {
+                return Redirect(provision.JoinUrl);
+            }
+
+            // Attendance still stands (correctly) — only the meeting link is
+            // unavailable, which is never a reason to undo a recorded Join.
+            ErrorMessage = provision.Outcome switch
+            {
+                ProvisionMeetingOutcome.StillProvisioning => "Your meeting link is still being prepared — press Join again in a moment. Your attendance is already recorded.",
+                ProvisionMeetingOutcome.SessionNotProvisionable => "This session is no longer running. Your attendance is already recorded — please contact the centre.",
+                ProvisionMeetingOutcome.NoProviderConnection or ProvisionMeetingOutcome.ProviderDisconnected =>
+                    "Your teacher's video account isn't connected — please contact the centre. Your attendance is already recorded.",
+                _ => "The meeting link isn't available right now — please contact the centre. Your attendance is already recorded.",
+            };
+        }
 
         await LoadAsync();
         return Page();

@@ -29,9 +29,14 @@ placeholder sections. ASP.NET Core reads environment variables with `__`
 | Setting | Environment variable | Required? | Notes |
 |---|---|---|---|
 | Database connection | `ConnectionStrings__MvTeaches` | **Yes — app refuses to start without it** | `Host=...;Port=5432;Database=mvteaches;Username=...;Password=...` |
-| Zoom Account ID | `Zoom__AccountId` | No (until Zoom S2S app exists) | App runs fine without it — every Zoom call fails loudly with a clear "not configured" error instead of pretending to work |
-| Zoom Client ID | `Zoom__ClientId` | No | — |
+| **Data Protection keys path** | `DataProtectionKeysPath` | **Yes in production** | ⭐ See §2.1 below. Encrypts teachers' Zoom/Google OAuth tokens at rest. Must point at a **persistent volume outside the database and outside the deployed binaries** — otherwise every redeploy makes every stored token undecryptable and every teacher must reconnect |
+| Zoom Client ID | `Zoom__ClientId` | No (until a Zoom OAuth app exists) | ⭐ A **user-authorized** Zoom OAuth app (Zoom "General App" with OAuth), NOT Server-to-Server. There is deliberately **no** `Zoom__AccountId` any more — each teacher authorizes their own Zoom account |
 | Zoom Client Secret | `Zoom__ClientSecret` | No | — |
+| Zoom redirect URI | `Zoom__RedirectUri` | Required if Zoom is used | Must exactly match a redirect URI registered on the Zoom app, e.g. `https://yourdomain/oauth/zoom/callback` |
+| Zoom webhook secret token | `Zoom__WebhookSecretToken` | Only if Zoom webhooks are enabled | The app's *Secret Token* from Feature → Event Subscriptions. Without it `/webhooks/zoom` returns 404 and trusts nothing |
+| Google Meet Client ID | `GoogleMeet__ClientId` | No (until a Google Cloud OAuth client exists) | ⭐ A Google Cloud project with the **Google Meet REST API** enabled and an OAuth consent screen for external users. Each teacher authorizes their own — a **free** Google account is sufficient |
+| Google Meet Client Secret | `GoogleMeet__ClientSecret` | No | — |
+| Google Meet redirect URI | `GoogleMeet__RedirectUri` | Required if Google Meet is used | e.g. `https://yourdomain/oauth/google/callback` |
 | WhatsApp Phone Number ID | `WhatsApp__PhoneNumberId` | No (until Meta verification completes) | Same "fails loudly" behavior |
 | WhatsApp Access Token | `WhatsApp__AccessToken` | No | — |
 | SMTP Host | `Smtp__Host` | Recommended | D-57's OTP backup channel — this one is a REAL, working implementation once configured |
@@ -39,9 +44,41 @@ placeholder sections. ASP.NET Core reads environment variables with `__`
 | Bootstrap admin email | `Bootstrap__AdminEmail` | **Yes, for the very first run only** | Creates exactly one Admin account, and only while the Admin role has zero members — see below |
 | Bootstrap admin password | `Bootstrap__AdminPassword` | Same | Must satisfy the app's own password policy (10+ characters) |
 
-**Important:** leaving Zoom/WhatsApp unset is safe — the app starts and
-runs normally. Those features simply report "not configured" instead of
-doing something. This is intentional (see STATUS.md).
+**Important:** leaving Zoom/Google Meet/WhatsApp unset is safe — the app
+starts and runs normally. Those features simply report "not configured"
+instead of doing something. This is intentional (see STATUS.md). Note the
+practical consequence for video: with **neither** provider configured, no
+teacher can connect an account, so every teacher shows as **"Not ready for
+online sessions"** and no schedule can be created. Configure at least one
+before going live.
+
+---
+
+### 2.1 Data Protection keys — the one setting that silently corrupts data if wrong
+
+Teachers' Zoom/Google OAuth access and refresh tokens are stored encrypted
+with ASP.NET Core Data Protection. The key ring is persisted to
+`DataProtectionKeysPath`. If that path is **not** on a persistent volume:
+
+- the app still starts, and connecting still appears to work;
+- but after the next restart or redeploy the keys are gone, every stored
+  token becomes permanently undecryptable, and **every teacher has to
+  reconnect their account** before any meeting can be created again.
+
+Nothing warns you at the moment it happens. Set it explicitly:
+
+```bash
+sudo mkdir -p /var/lib/mvteaches/dataprotection-keys
+sudo chown mvteaches:mvteaches /var/lib/mvteaches/dataprotection-keys
+sudo chmod 700 /var/lib/mvteaches/dataprotection-keys
+# then, in the service environment:
+DataProtectionKeysPath=/var/lib/mvteaches/dataprotection-keys
+```
+
+Back this directory up together with the database, and restore the two
+together — a database restored without its matching key ring has
+unreadable tokens. If you run in a container, mount it as a named volume,
+never a path inside the image.
 
 ---
 
@@ -216,3 +253,137 @@ liveness probe at this endpoint once a VPS exists.
 transactions against the new schema** without restoring from a backup
 taken before that migration ran — rolling the schema back does not undo
 data written under the new shape.
+
+---
+
+## 12. Video meeting providers (Zoom / Google Meet) — owner clarification 2026-08-29
+
+The centre buys **no** video-meeting licences. Each teacher connects their
+**own** account and MVTeaches creates meetings inside it. **No paid
+subscription is required of any teacher — a normal free Google account is
+sufficient.** A teacher with neither a usable Zoom connection nor a Google
+account is shown as **"Not ready for online sessions"** and cannot be
+assigned any (enforced server-side, not just hidden in the UI).
+
+Also note §2.1 above: without a persistent `DataProtectionKeysPath`, every
+teacher's stored tokens become undecryptable on the next redeploy.
+
+### 12.1 Zoom — a USER-authorized OAuth app (NOT Server-to-Server)
+
+The earlier Server-to-Server design is dead. Do **not** create an S2S app
+and do **not** look for a centre `AccountId`.
+
+1. At `marketplace.zoom.us` → *Develop* → *Build App*, create a **General
+   App** configured for **OAuth** (user-managed), not Server-to-Server.
+2. Add the production redirect URI **exactly**:
+   `https://<your-domain>/oauth/zoom/callback`
+3. Add **only** these scopes — do not request account-admin or
+   master-account scopes; requesting them will also make Marketplace review
+   harder without giving MVTeaches anything it uses:
+   - `user:read:user`
+   - `meeting:write:meeting`
+   - `meeting:read:meeting`
+4. (Optional but recommended) *Feature* → *Event Subscriptions*: point the
+   webhook at `https://<your-domain>/webhooks/zoom`, subscribe to
+   `meeting.deleted` and `meeting.ended`, and copy the **Secret Token**
+   into `Zoom__WebhookSecretToken`. Zoom will call the endpoint once to
+   validate it; the app answers that challenge automatically. Without the
+   secret configured, the endpoint returns **404** and trusts nothing.
+5. Copy Client ID / Client Secret into `Zoom__ClientId` / `Zoom__ClientSecret`.
+6. **Marketplace distribution:** an app in Development mode can only be
+   authorized by users on the developer's own Zoom account. For independent
+   external teachers to connect their own accounts, the app must be
+   published/distributed accordingly — **confirm Zoom's current requirement
+   for your case before launch**; this is an external gate MVTeaches cannot
+   satisfy from code.
+
+### 12.2 Google Meet — a teacher-authorized OAuth client
+
+1. Create a Google Cloud project.
+2. Enable the **Google Meet REST API** for it.
+3. Configure the **OAuth consent screen** with User Type **External**.
+4. Create an **OAuth 2.0 Client ID** of type *Web application*, with the
+   authorized redirect URI **exactly**:
+   `https://<your-domain>/oauth/google/callback`
+5. Request **only** these scopes:
+   - `openid`
+   - `email`
+   - `https://www.googleapis.com/auth/meetings.space.created`
+     (creates and reads only the spaces this app itself created — not
+     `meetings.space.readonly`, which would grant more than is needed)
+6. Copy Client ID / Client Secret into `GoogleMeet__ClientId` /
+   `GoogleMeet__ClientSecret`, and the redirect URI into
+   `GoogleMeet__RedirectUri`.
+7. **App verification:** Google restricts unverified external apps
+   (consent warnings and user caps). For teachers outside your own
+   organization to connect, the app will need to go through Google's
+   verification/publication process — **confirm Google's current
+   requirement before launch**; another external gate.
+
+### 12.3 What the limits actually mean operationally
+
+| Teacher's account | What MVTeaches allows |
+|---|---|
+| Zoom **Licensed** (paid) | Full-length sessions, whatever the session's configured duration |
+| Zoom **Basic** (free) | Sessions of **40 minutes or less only**. A longer session is refused at creation with a message offering the legitimate options (connect Google Meet · upgrade their own Zoom · shorten the session). The limit is **never** worked around by chaining consecutive meetings |
+| **Free Google account** | One-to-one (session capacity = 1): up to **24 hours**. Group (capacity > 1): up to **60 minutes**, and exactly 60 is allowed **with a warning** that Google may end it at the boundary |
+
+Capability is judged from the session's **configured seat capacity**, not
+its current booking count — a session that *may* admit a second student is
+treated as a group session even while only one student has booked.
+
+Google paid status is **never assumed**. Google exposes no reliable way for
+a third-party app to prove a consumer account is paid, so the free limits
+always apply. A teacher on Google Workspace who needs longer group sessions
+should connect Zoom instead, or the session should be shortened.
+
+---
+
+## 13. Launch checklist — what is still required from the owner
+
+Everything below is **external** to this repository. The code for all of it
+is written and tested; none of it can be verified without these.
+
+### 13.1 Zoom (external)
+
+- [ ] A real Zoom OAuth app (General App, user-managed OAuth) → `Zoom__ClientId`, `Zoom__ClientSecret`
+- [ ] Production redirect URI registered on that app → `Zoom__RedirectUri`
+- [ ] Webhook endpoint configured + its Secret Token → `Zoom__WebhookSecretToken` (optional; skip and the endpoint stays 404)
+- [ ] Whatever Marketplace activation / distribution / review Zoom currently requires for **independent external teachers** to authorize the app
+- [ ] At least one real **paid/Licensed** Zoom teacher account
+- [ ] At least one real **Basic (free)** Zoom account, to verify the 40-minute rejection against a real account rather than a test double
+
+### 13.2 Google (external)
+
+- [ ] A Google Cloud project
+- [ ] Google Meet REST API enabled on it
+- [ ] OAuth consent screen configured (External)
+- [ ] OAuth Client ID + Secret → `GoogleMeet__ClientId`, `GoogleMeet__ClientSecret`
+- [ ] Production redirect URI registered → `GoogleMeet__RedirectUri`
+- [ ] Google app verification/publication, as required for external teacher accounts
+- [ ] At least one real **free** Google account
+- [ ] Event-subscription configuration, only if Google events are later adopted (nothing in MVTeaches depends on them today)
+
+### 13.3 Shared production requirement
+
+- [ ] `DataProtectionKeysPath` pointing at a **persistent volume outside the database** (see §2.1) — and included in the backup/restore procedure alongside the database dump
+
+### 13.4 Live end-to-end verification (run once the above exist)
+
+Until every line here has actually been run against real accounts, **live
+Zoom/Google Meet integration must not be described as verified**:
+
+- [ ] Paid Zoom teacher hosts a **full-length** session end to end
+- [ ] Basic Zoom teacher is **refused** a session longer than 40 minutes, with the options message shown
+- [ ] Free Google **one-to-one** meeting (session capacity 1) runs
+- [ ] Free Google **group** meeting of no more than 60 minutes runs
+- [ ] Two different teachers, on **independent** accounts, host **simultaneous** sessions
+- [ ] A student's Join is authorized correctly (enrolled → in; not enrolled → out) and consumes exactly once
+- [ ] Proof that **no student ever receives host privileges** — a student's Join lands on the participant URL only, never a Zoom `start_url`
+
+### 13.5 Explicitly unchanged by this work
+
+- MEPS / payment-provider integration was **not touched**. `D-88` stands: no
+  replacement gateway has been selected, and alternatives are still being
+  evaluated by the owner.
+- WhatsApp remains blocked on Meta Business verification, exactly as before.

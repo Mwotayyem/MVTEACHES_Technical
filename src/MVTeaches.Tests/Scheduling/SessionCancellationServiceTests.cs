@@ -88,7 +88,19 @@ public class SessionCancellationServiceTests
     }
 
     private SessionCancellationService CreateService(MvTeachesDbContext db, Instant now) =>
-        new(db, new EnrollmentService(db, new FakeClock(now)));
+        new(db, new EnrollmentService(db, new FakeClock(now)),
+            // Owner clarification (2026-08-29): cancellation now also cancels
+            // the session's external Zoom/Google meeting. That path is covered
+            // in its own right by MeetingProvisioningServiceTests; here it is a
+            // no-op so these tests keep asserting only the enrollment/ledger
+            // behaviour they exist for.
+            new MVTeaches.Infrastructure.Integrations.MeetingProvisioningService(
+                db, Array.Empty<MVTeaches.Application.Integrations.IVideoMeetingProviderClient>(),
+                new MVTeaches.Infrastructure.Integrations.Security.TokenRefreshCoordinator(
+                    db, new MVTeaches.Tests.Integrations.FakeTokenProtector(), new FakeClock(now),
+                    Microsoft.Extensions.Logging.Abstractions.NullLogger<MVTeaches.Infrastructure.Integrations.Security.TokenRefreshCoordinator>.Instance),
+                new FakeClock(now),
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<MVTeaches.Infrastructure.Integrations.MeetingProvisioningService>.Instance));
 
     [Fact]
     public async Task Cancelling_with_no_replacement_cancels_unconsumed_enrollments()

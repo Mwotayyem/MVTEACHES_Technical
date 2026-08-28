@@ -55,6 +55,13 @@ public class TeachersModel : PageModel
 
     public IReadOnlyList<RateRow> Rates { get; set; } = Array.Empty<RateRow>();
 
+    /// <summary>Owner clarification (2026-08-29): teacher ids with NO usable
+    /// Zoom/Google Meet connection — "Not ready for online sessions", and
+    /// blocked from being assigned any (RecurringScheduleService and
+    /// IMeetingProvisioningService.ReassignTeacherAsync each enforce that
+    /// server-side; this set only makes it visible to the admin here).</summary>
+    public IReadOnlySet<long> TeachersNotReadyForOnlineSessions { get; set; } = new HashSet<long>();
+
     [BindProperty]
     public RegisterTeacherInput NewTeacher { get; set; } = new();
 
@@ -168,6 +175,13 @@ public class TeachersModel : PageModel
     private async Task LoadAsync()
     {
         Teachers = await _db.Teachers.OrderByDescending(t => t.Id).ToListAsync();
+
+        var readyTeacherIds = (await _db.TeacherMeetingConnections
+            .Where(c => c.Status == MVTeaches.Domain.Integrations.ProviderConnectionStatus.Connected)
+            .Select(c => c.TeacherId)
+            .Distinct()
+            .ToListAsync()).ToHashSet();
+        TeachersNotReadyForOnlineSessions = Teachers.Select(t => t.Id).Where(id => !readyTeacherIds.Contains(id)).ToHashSet();
         TimeZoneIds = DateTimeZoneProviders.Tzdb.Ids.OrderBy(id => id, StringComparer.Ordinal).ToList();
         Courses = await _db.Courses.Where(c => c.IsActive).OrderBy(c => c.NameEn).ToListAsync();
         Levels = await _db.Levels.Where(l => l.IsActive).OrderBy(l => l.SortOrder).ToListAsync();

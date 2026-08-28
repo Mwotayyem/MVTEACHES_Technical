@@ -1,0 +1,134 @@
+@page
+@model MVTeaches.Web.Pages.Teacher.ConnectionsModel
+@using MVTeaches.Domain.Integrations
+@{
+    ViewData["Title"] = "Video meeting connections";
+}
+
+<h1>Video meeting connections</h1>
+
+@if (Model.NoTeacherProfileLinked)
+{
+    <div class="alert alert-warning">Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you.</div>
+}
+else
+{
+    @if (Model.StatusMessage is not null)
+    {
+        <div class="alert alert-success">@Model.StatusMessage</div>
+    }
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <p class="text-muted">
+        MVTeaches creates and manages every meeting through your own connected account — you never copy or paste a meeting link.
+        The centre does not buy, provide, or reimburse video-meeting licences. <strong>You do not need any paid subscription:</strong>
+        a normal free Google account is enough.
+    </p>
+
+    @if (Model.NotReadyForOnlineSessions)
+    {
+        <div class="alert alert-danger">
+            <h5 class="alert-heading">Not ready for online sessions</h5>
+            <p>
+                You have no connected video account, so you cannot be assigned online sessions yet.
+                Connect one below — a <strong>free Google account is sufficient</strong>, no payment of any kind is required.
+            </p>
+            <hr />
+            <p class="mb-1"><strong>If you don't have a Google account yet:</strong></p>
+            <ol class="mb-0">
+                <li>Go to <span class="fw-semibold">accounts.google.com/signup</span> and create a free account.</li>
+                <li>Come back to this page and press <strong>Connect Google Meet</strong>.</li>
+                <li>Sign in with that account and approve the access MVTeaches asks for.</li>
+            </ol>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr><th>Provider</th><th>Status</th><th>Account</th><th>Capability</th><th>Default for new sessions</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var provider in new[] { VideoProviderType.Zoom, VideoProviderType.GoogleMeet })
+                {
+                    var connection = Model.Connections.FirstOrDefault(c => c.Provider == provider);
+                    <tr>
+                        <td class="fw-semibold">@MVTeaches.Web.Pages.Teacher.ConnectionsModel.Describe(provider)</td>
+                        <td>
+                            @if (connection is null)
+                            {
+                                <span class="text-muted">Not connected</span>
+                            }
+                            else if (connection.Status == ProviderConnectionStatus.Connected)
+                            {
+                                <span class="text-success">Connected</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger">@connection.Status</span>
+                            }
+                        </td>
+                        <td>@(connection?.ExternalAccountEmail ?? "—")</td>
+                        <td>
+                            @if (connection is null)
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                            else if (provider == VideoProviderType.Zoom)
+                            {
+                                @if (connection.CapabilityTier == MeetingCapabilityTier.Full)
+                                {
+                                    <span class="text-success">Licensed — full-length sessions</span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning">Basic (free) — meetings limited to @(connection.CapabilityMinutesLimit ?? 40) minutes, including one-to-one</span>
+                                }
+                            }
+                            else
+                            {
+                                <span>Free Google limits assumed: one-to-one up to 24 hours, 3+ participants up to 60 minutes</span>
+                            }
+                        </td>
+                        <td>
+                            @if (connection?.IsDefault == true)
+                            {
+                                <span class="badge bg-primary">Default</span>
+                            }
+                            else if (connection?.Status == ProviderConnectionStatus.Connected)
+                            {
+                                <form method="post" asp-page-handler="SetDefault">
+                                    <input type="hidden" name="provider" value="@provider" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Make default</button>
+                                </form>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <form method="post" asp-page-handler="Connect" class="d-inline">
+                                <input type="hidden" name="provider" value="@provider" />
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    @(connection is null ? "Connect" : "Reconnect") @MVTeaches.Web.Pages.Teacher.ConnectionsModel.Describe(provider)
+                                </button>
+                            </form>
+                            @if (connection is not null && connection.Status == ProviderConnectionStatus.Connected)
+                            {
+                                <form method="post" asp-page-handler="Disconnect" class="d-inline">
+                                    <input type="hidden" name="provider" value="@provider" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-muted small">
+        Changing your default provider affects only sessions whose meeting hasn't been created yet — an existing session keeps
+        the meeting it already has, under the account that created it.
+    </p>
+}

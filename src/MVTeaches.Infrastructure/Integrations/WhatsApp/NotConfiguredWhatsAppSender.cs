@@ -1,12 +1,14 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Domain.Notifications;
 
 namespace MVTeaches.Infrastructure.Integrations.WhatsApp;
 
 /// <summary>
-/// PREPARED, NOT IMPLEMENTED — see NotConfiguredZoomMeetingProvider's remarks
-/// for why the real Meta Cloud API client is not written yet: no verified
+/// PREPARED, NOT IMPLEMENTED. (The Zoom stub this used to point at is gone —
+/// the 2026-08-29 owner clarification replaced it with real, written Zoom and
+/// Google Meet clients; WhatsApp is now the only provider still stubbed.)
+/// The real Meta Cloud API client is not written yet: no verified
 /// WhatsApp Business account exists (README: "بانتظار رد Meta"), and Meta's
 /// exact template/messaging API shape must be read from Meta's current
 /// documentation once that account exists, not guessed now (D-88's sibling

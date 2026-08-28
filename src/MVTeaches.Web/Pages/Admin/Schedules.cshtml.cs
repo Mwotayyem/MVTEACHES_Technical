@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Catalog;
+using MVTeaches.Domain.Integrations;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
@@ -34,16 +36,19 @@ public class SchedulesModel : PageModel
     private readonly IRecurringScheduleService _schedules;
     private readonly IEnrollmentService _enrollments;
     private readonly ISessionCancellationService _cancellations;
+    private readonly IMeetingProvisioningService _meetings;
     private readonly IClock _clock;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public SchedulesModel(MvTeachesDbContext db, IRecurringScheduleService schedules, IEnrollmentService enrollments,
-        ISessionCancellationService cancellations, IClock clock, UserManager<ApplicationUser> userManager)
+        ISessionCancellationService cancellations, IMeetingProvisioningService meetings, IClock clock,
+        UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _schedules = schedules;
         _enrollments = enrollments;
         _cancellations = cancellations;
+        _meetings = meetings;
         _clock = clock;
         _userManager = userManager;
     }
@@ -75,8 +80,22 @@ public class SchedulesModel : PageModel
     [BindProperty]
     public CancelInput Cancel { get; set; } = new();
 
+    [BindProperty]
+    public ReassignInput Reassign { get; set; } = new();
+
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
+
+    /// <summary>Owner clarification (2026-08-29): teachers with no connected
+    /// Zoom/Google Meet account cannot be assigned online sessions — shown
+    /// here so the admin doesn't pick one and get a bare rejection.</summary>
+    public IReadOnlySet<long> TeachersNotReadyForOnlineSessions { get; set; } = new HashSet<long>();
+
+    public class ReassignInput
+    {
+        [Required] public long SessionId { get; set; }
+        [Required] public long NewTeacherId { get; set; }
+    }
 
     public class EnrollInput
     {
@@ -202,6 +221,50 @@ public class SchedulesModel : PageModel
         return Page();
     }
 
+    /// <summary>
+    /// Owner clarification (2026-08-29): "If the assigned teacher changes
+    /// before an unstarted session, do not reuse the former teacher's
+    /// meeting." IMeetingProvisioningService owns the whole sequence —
+    /// cancel the old meeting under its own owning connection, reprovision
+    /// lazily under the new teacher, audit, and notify enrolled students —
+    /// so this handler only validates input and reports the outcome.
+    /// </summary>
+    public async Task<IActionResult> OnPostReassignAsync()
+    {
+        ModelState.Clear();
+        if (!TryValidateModel(Reassign, nameof(Reassign)))
+        {
+            await LoadAsync();
+            return Page();
+        }
+
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var result = await _meetings.ReassignTeacherAsync(Reassign.SessionId, Reassign.NewTeacherId, actingUserId,
+            HttpContext.RequestAborted);
+
+        if (result.Outcome == TeacherReassignmentOutcome.Reassigned)
+        {
+            StatusMessage = "Teacher reassigned. The previous meeting was cancelled (or flagged for admin attention if its " +
+                            "account was already revoked); a fresh meeting is created under the new teacher when the session " +
+                            "is next started or joined. Enrolled students have been notified.";
+        }
+        else
+        {
+            ErrorMessage = result.Outcome switch
+            {
+                TeacherReassignmentOutcome.SessionNotFound => "Session not found.",
+                TeacherReassignmentOutcome.SessionNotReassignable => result.Detail ?? "That session can no longer be reassigned.",
+                TeacherReassignmentOutcome.NewTeacherOverlaps => result.Detail ?? "The new teacher already has a session at that time.",
+                TeacherReassignmentOutcome.NewTeacherNotReadyForOnlineSessions => result.Detail
+                    ?? "That teacher has no connected Zoom or Google Meet account.",
+                _ => "Could not reassign the teacher.",
+            };
+        }
+
+        await LoadAsync();
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostPauseAsync(long scheduleId)
     {
         await _schedules.PauseAsync(scheduleId, HttpContext.RequestAborted);
@@ -226,6 +289,14 @@ public class SchedulesModel : PageModel
         AgeGroups = await _db.AgeGroups.OrderBy(a => a.MinAge).ToListAsync();
         Teachers = await _db.Teachers.Where(t => t.IsActive).OrderBy(t => t.FullName).ToListAsync();
         TimeZoneIds = DateTimeZoneProviders.Tzdb.Ids.OrderBy(id => id, StringComparer.Ordinal).ToList();
+
+        var readyTeacherIds = (await _db.TeacherMeetingConnections
+            .Where(c => c.Status == ProviderConnectionStatus.Connected)
+            .Select(c => c.TeacherId)
+            .Distinct()
+            .ToListAsync()).ToHashSet();
+        TeachersNotReadyForOnlineSessions = Teachers.Select(t => t.Id).Where(id => !readyTeacherIds.Contains(id)).ToHashSet();
+
         Students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
 
         var teacherNames = Teachers.ToDictionary(t => t.Id, t => t.FullName);

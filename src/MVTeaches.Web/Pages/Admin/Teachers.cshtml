@@ -153,7 +153,7 @@
 <h2>Teachers</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>Name</th><th>Time zone</th><th>Active</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Time zone</th><th>Active</th><th>Online sessions</th><th></th></tr></thead>
         <tbody>
             @foreach (var t in Model.Teachers)
             {
@@ -162,6 +162,16 @@
                     <td>@t.FullName</td>
                     <td>@t.TimeZoneId</td>
                     <td>@(t.IsActive ? "Yes" : "No")</td>
+                    <td>
+                        @if (Model.TeachersNotReadyForOnlineSessions.Contains(t.Id))
+                        {
+                            <span class="text-danger" title="No connected Zoom or Google Meet account — this teacher cannot be assigned online sessions. A free Google account is sufficient.">Not ready</span>
+                        }
+                        else
+                        {
+                            <span class="text-success">Ready</span>
+                        }
+                    </td>
                     <td>
                         @if (t.IsActive)
                         {

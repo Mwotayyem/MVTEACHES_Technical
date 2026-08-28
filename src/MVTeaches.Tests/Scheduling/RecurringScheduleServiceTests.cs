@@ -62,7 +62,39 @@ public class RecurringScheduleServiceTests
         db.Teachers.Add(teacher);
         await db.SaveChangesAsync();
 
+        // Owner clarification (2026-08-29): a teacher with no connected
+        // Zoom/Google Meet account is "not ready for online sessions" and
+        // cannot be assigned any — so every schedule-creating test now needs
+        // a real connection row. Its own rejection case is asserted by
+        // Creating_a_schedule_for_a_teacher_with_no_video_connection_is_refused.
+        db.TeacherMeetingConnections.Add(new MVTeaches.Domain.Integrations.TeacherMeetingConnection(
+            teacher.Id, MVTeaches.Domain.Integrations.VideoProviderType.GoogleMeet, "acct-" + teacher.Id,
+            "t@example.test", "enc::access", "enc::refresh", null, SystemClock.Instance.GetCurrentInstant()));
+        await db.SaveChangesAsync();
+
         return (countryId, courseId, levelId, ageGroupId, teacher.Id);
+    }
+
+    [Fact]
+    public async Task Creating_a_schedule_for_a_teacher_with_no_video_connection_is_refused()
+    {
+        await using var db = _fixture.CreateContext();
+        var (countryId, courseId, levelId, ageGroupId, _) = await SeedCatalogAndTeacherAsync(db);
+
+        var unconnectedUserId = await CreateUserAsync(db);
+        var unconnected = new Teacher(unconnectedUserId, "Unconnected Teacher", "Asia/Amman");
+        db.Teachers.Add(unconnected);
+        await db.SaveChangesAsync();
+
+        var service = new RecurringScheduleService(db);
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(
+            countryId, courseId, levelId, ageGroupId, unconnected.Id,
+            new[] { IsoDayOfWeek.Monday }, new LocalTime(17, 0), 60, "Asia/Amman",
+            new LocalDate(2026, 9, 1), 4, unconnectedUserId, CancellationToken.None));
+
+        Assert.Contains("not ready for online sessions", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(await db.RecurringSchedules.AnyAsync(s => s.TeacherId == unconnected.Id));
     }
 
     [Fact]

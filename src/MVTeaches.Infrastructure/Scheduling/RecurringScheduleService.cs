@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Scheduling;
+using MVTeaches.Domain.Integrations;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Persistence;
 using NodaTime;
@@ -18,6 +19,19 @@ public class RecurringScheduleService : IRecurringScheduleService
         int durationMinutes, string timeZoneId, LocalDate startsOn, int capacity, long createdByUserId,
         CancellationToken cancellationToken)
     {
+        // Owner clarification (2026-08-29): every MVTeaches session is an
+        // online session — a teacher with no usable Zoom/Google Meet
+        // connection must never be assigned one. A free Google account is
+        // enough; this only blocks a teacher with NEITHER provider connected.
+        var teacherReady = await _db.TeacherMeetingConnections.AnyAsync(
+            c => c.TeacherId == teacherId && c.Status == ProviderConnectionStatus.Connected, cancellationToken);
+        if (!teacherReady)
+        {
+            throw new ArgumentException(
+                "This teacher is not ready for online sessions — connect a Zoom or Google Meet account first " +
+                "(Teacher portal → Connections; a free Google account is sufficient).", nameof(teacherId));
+        }
+
         var schedule = new RecurringSchedule(countryId, courseId, levelId, ageGroupId, teacherId, daysOfWeek,
             startLocal, durationMinutes, timeZoneId, startsOn, capacity, createdByUserId);
         _db.RecurringSchedules.Add(schedule);

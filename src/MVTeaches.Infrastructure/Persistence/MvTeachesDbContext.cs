@@ -8,6 +8,7 @@ using MVTeaches.Domain.Certificates;
 using MVTeaches.Domain.Delivery;
 using MVTeaches.Domain.Files;
 using MVTeaches.Domain.Homework;
+using MVTeaches.Domain.Integrations;
 using MVTeaches.Domain.Ledger;
 using MVTeaches.Domain.Migration;
 using MVTeaches.Domain.Notifications;
@@ -97,6 +98,11 @@ public class MvTeachesDbContext : IdentityDbContext<ApplicationUser, Application
     // Migration
     public DbSet<MigrationBatch> MigrationBatches => Set<MigrationBatch>();
     public DbSet<MigrationRecord> MigrationRecords => Set<MigrationRecord>();
+
+    // Video meetings (owner clarification 2026-08-29): provider-neutral Zoom/Google Meet
+    public DbSet<TeacherMeetingConnection> TeacherMeetingConnections => Set<TeacherMeetingConnection>();
+    public DbSet<ProvisionedMeeting> ProvisionedMeetings => Set<ProvisionedMeeting>();
+    public DbSet<OAuthAuthorizationState> OAuthAuthorizationStates => Set<OAuthAuthorizationState>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

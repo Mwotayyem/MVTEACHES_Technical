@@ -1,5 +1,6 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
@@ -18,7 +19,10 @@ using MVTeaches.Infrastructure.Certificates;
 using MVTeaches.Infrastructure.Hangfire;
 using MVTeaches.Infrastructure.Health;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Infrastructure.Integrations;
 using MVTeaches.Infrastructure.Integrations.Email;
+using MVTeaches.Infrastructure.Integrations.GoogleMeet;
+using MVTeaches.Infrastructure.Integrations.Security;
 using MVTeaches.Infrastructure.Integrations.WhatsApp;
 using MVTeaches.Infrastructure.Integrations.Zoom;
 using MVTeaches.Infrastructure.Ledger;
@@ -94,16 +98,43 @@ builder.Services.AddScoped<ISessionFinalizationService, SessionFinalizationServi
 // Integration boundaries — §5-8 of the master engineering prompt.
 // Each is registered as "not configured" until real credentials exist;
 // swapping in a real, verified implementation is a one-line change here,
-// not a redesign, once D-88/Meta/Zoom credentials are available.
+// not a redesign, once D-88/Meta credentials are available. Zoom/Google
+// Meet are the exception below: the real OAuth+REST clients ARE written
+// (owner clarification 2026-08-29) — only live verification against real
+// teacher accounts is still outstanding, not the code itself.
 // ---------------------------------------------------------------------
 builder.Services.Configure<ZoomOptions>(builder.Configuration.GetSection(ZoomOptions.SectionName));
+builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
 builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection(WhatsAppOptions.SectionName));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.Configure<BootstrapAdminOptions>(builder.Configuration.GetSection(BootstrapAdminOptions.SectionName));
 
-builder.Services.AddScoped<IZoomMeetingProvider, NotConfiguredZoomMeetingProvider>();
 builder.Services.AddScoped<INotificationSender, NotConfiguredWhatsAppSender>();
 builder.Services.AddScoped<INotificationSender, SmtpEmailSender>(); // real — see SmtpEmailSender's remarks
+
+// ---------------------------------------------------------------------
+// Video meetings (owner clarification 2026-08-29) — provider-neutral
+// Zoom/Google Meet, each teacher authorizing their OWN account. Access/
+// refresh tokens are encrypted via ASP.NET Core Data Protection; the key
+// ring is persisted OUTSIDE the application database (a dedicated folder,
+// overridable via the DataProtectionKeysPath setting) so tokens stay
+// decryptable across restarts/deployments — see /docs/deployment for the
+// production path (a persistent volume, never the container filesystem).
+// ---------------------------------------------------------------------
+var dataProtectionKeysPath = builder.Configuration["DataProtectionKeysPath"];
+var dataProtectionBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("MVTeaches");
+dataProtectionBuilder.PersistKeysToFileSystem(
+    new DirectoryInfo(string.IsNullOrWhiteSpace(dataProtectionKeysPath)
+        ? Path.Combine(AppContext.BaseDirectory, "dataprotection-keys")
+        : dataProtectionKeysPath));
+
+builder.Services.AddHttpClient<IVideoMeetingProviderClient, ZoomVideoMeetingProviderClient>();
+builder.Services.AddHttpClient<IVideoMeetingProviderClient, GoogleMeetProviderClient>();
+builder.Services.AddSingleton<ITokenProtector, DataProtectionTokenProtector>();
+builder.Services.AddScoped<TokenRefreshCoordinator>();
+builder.Services.AddScoped<ITeacherMeetingConnectionService, TeacherMeetingConnectionService>();
+builder.Services.AddScoped<IMeetingProvisioningService, MeetingProvisioningService>();
 
 // ---------------------------------------------------------------------
 // Hangfire — §25: execution mechanism only, PostgreSQL storage (§30.3: no
@@ -142,6 +173,16 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 app.MapHealthChecks("/health");
+
+// Zoom webhook — unauthenticated by design (Zoom cannot present an MVTeaches
+// login) but every accepted event is signature+timestamp-verified inside
+// the handler itself before anything is trusted (see ZoomWebhookHandler).
+// Returns 404 outright when Zoom isn't configured, never a fake 200.
+// (Written as an explicit lambda rather than a method group: the ASP.NET
+// Core route-handler analyzer crashes on the method-group form here.)
+app.MapPost("/webhooks/zoom", async (HttpContext ctx, MvTeachesDbContext db,
+        Microsoft.Extensions.Options.IOptions<ZoomOptions> zoom, IClock clock, ILoggerFactory loggerFactory) =>
+    await ZoomWebhookHandler.HandleAsync(ctx, db, zoom, clock, loggerFactory));
 
 // Idempotent reference-data seeding (roles, age groups, settings defaults)
 // only — NOT schema migrations. Migrations are a deliberate, separate

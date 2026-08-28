@@ -1,0 +1,7 @@
+@page "/oauth/{providerKey}/callback"
+@model MVTeaches.Web.Pages.OAuth.CallbackModel
+@{
+    Layout = null;
+}
+@* Every path through OnGetAsync redirects — nothing is ever rendered here,
+   least of all the authorization code or state. *@

@@ -120,6 +120,23 @@ public class ClassSession
         CancelledByUserId = cancelledByUserId;
     }
 
+    /// <summary>Owner clarification (2026-08-29, video-meetings): a future,
+    /// still-Scheduled session's teacher may change before it starts. The
+    /// no_teacher_overlap EXCLUDE constraint still applies to the new
+    /// teacher exactly as it would for any other session of theirs — a
+    /// genuine overlap surfaces as a database constraint violation, not a
+    /// check duplicated here. Meeting-ownership cleanup/reprovisioning is
+    /// IMeetingProvisioningService's job, not this entity's.</summary>
+    public void ReassignTeacher(long newTeacherId)
+    {
+        if (Status != ClassSessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException($"Cannot reassign the teacher on a session that is already {Status}.");
+        }
+
+        TeacherId = newTeacherId;
+    }
+
     public void MarkNotDelivered()
     {
         EnsureCancellable();

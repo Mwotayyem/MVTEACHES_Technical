@@ -64,13 +64,24 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="NewSchedule.TeacherId">Teacher</label>
+                @* Owner clarification (2026-08-29): a teacher with no connected
+                   Zoom/Google Meet account is not assignable to online sessions.
+                   RecurringScheduleService rejects it server-side regardless —
+                   this list is only the friendly path. *@
                 <select asp-for="NewSchedule.TeacherId" class="form-select">
                     <option value="">-- select --</option>
-                    @foreach (var t in Model.Teachers)
+                    @foreach (var t in Model.Teachers.Where(t => !Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)))
                     {
                         <option value="@t.Id">@t.FullName</option>
                     }
                 </select>
+                @if (Model.TeachersNotReadyForOnlineSessions.Count > 0)
+                {
+                    <div class="form-text text-danger">
+                        Hidden — not ready for online sessions (no connected video account; a free Google account is enough):
+                        @string.Join(", ", Model.Teachers.Where(t => Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)).Select(t => t.FullName))
+                    </div>
+                }
             </div>
             <div class="col-md-8">
                 <label class="form-label">Days of week</label>
@@ -182,6 +193,51 @@
                 <button type="submit" class="btn btn-danger">Cancel session</button>
             </div>
         </form>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Reassign a session's teacher</h5>
+        <p class="text-muted small">
+            Only a future session that hasn't started yet. The former teacher's meeting is cancelled under their own
+            connected account (or flagged for admin attention if that account was already revoked) — it is never reused
+            for the new teacher — and a fresh meeting is created under the new teacher's own account the next time the
+            session is started or joined. Enrolled students are notified. A teacher with no connected Zoom or Google Meet
+            account cannot be selected here; a free Google account is sufficient for them to become available.
+        </p>
+        <form method="post" asp-page-handler="Reassign" class="row g-2">
+            <div class="col-md-5">
+                <label class="form-label" asp-for="Reassign.SessionId">Session</label>
+                <select asp-for="Reassign.SessionId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var s in Model.UpcomingSessions)
+                    {
+                        <option value="@s.Id">#@s.Id @s.CourseName/@s.LevelCode — @s.TeacherName (@s.StartsAtUtc)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label" asp-for="Reassign.NewTeacherId">New teacher</label>
+                <select asp-for="Reassign.NewTeacherId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var t in Model.Teachers.Where(t => !Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)))
+                    {
+                        <option value="@t.Id">@t.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-warning">Reassign</button>
+            </div>
+        </form>
+        @if (Model.TeachersNotReadyForOnlineSessions.Count > 0)
+        {
+            <p class="text-danger small mt-2 mb-0">
+                Not selectable (no connected video account):
+                @string.Join(", ", Model.Teachers.Where(t => Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)).Select(t => t.FullName))
+            </p>
+        }
     </div>
 </div>
 

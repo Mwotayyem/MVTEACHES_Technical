@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Persistence;
@@ -10,11 +11,13 @@ public class SessionCancellationService : ISessionCancellationService
 {
     private readonly MvTeachesDbContext _db;
     private readonly IEnrollmentService _enrollments;
+    private readonly IMeetingProvisioningService _meetings;
 
-    public SessionCancellationService(MvTeachesDbContext db, IEnrollmentService enrollments)
+    public SessionCancellationService(MvTeachesDbContext db, IEnrollmentService enrollments, IMeetingProvisioningService meetings)
     {
         _db = db;
         _enrollments = enrollments;
+        _meetings = meetings;
     }
 
     public async Task<CancelSessionResult> CancelAsync(long sessionId, string reason, long cancelledByUserId,
@@ -102,6 +105,13 @@ public class SessionCancellationService : ISessionCancellationService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        // Owner clarification (2026-08-29): "A centre-cancelled or
+        // administratively rescheduled session must not consume the
+        // student's hours" — already true above (attendance/entitlement are
+        // untouched here) — and its external meeting (if any) must stop
+        // being usable too, best-effort, never blocking the cancellation itself.
+        await _meetings.CancelForSessionAsync(sessionId, reason, cancellationToken);
 
         return new CancelSessionResult(CancelSessionOutcome.Cancelled, movedOrCancelled, leftUntouched, couldNotMove);
     }

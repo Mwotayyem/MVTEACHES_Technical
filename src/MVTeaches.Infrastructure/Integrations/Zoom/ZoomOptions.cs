@@ -1,21 +1,29 @@
 namespace MVTeaches.Infrastructure.Integrations.Zoom;
 
 /// <summary>
-/// Technical Study §28.3/§28.4/§1.9 of the Video & Child Data study: each
-/// teacher has their own Zoom account and pays their own subscription — the
-/// institute does not carry the licence cost. What THIS options class
-/// captures is only the Server-to-Server OAuth app the platform itself needs
-/// to automate meeting creation on a teacher's behalf (creating the meeting
-/// shell, retrieving a join URL) — never a hosted-conferencing UI.
+/// Owner clarification (2026-08-29), superseding the earlier Server-to-Server
+/// OAuth design entirely: MVTeaches is a user-authorized Zoom OAuth app (a
+/// Zoom "General App" configured for OAuth, or the current Marketplace
+/// equivalent that lets independent external teachers authorize it). There
+/// is no centre-level AccountId here on purpose — every meeting is created
+/// under the AUTHORIZING TEACHER'S own Zoom account, never a shared one.
 /// </summary>
 public class ZoomOptions
 {
     public const string SectionName = "Zoom";
 
-    public string? AccountId { get; set; }
     public string? ClientId { get; set; }
     public string? ClientSecret { get; set; }
 
+    /// <summary>Must exactly match one of the OAuth app's registered redirect
+    /// URIs in the Zoom Marketplace/App configuration.</summary>
+    public string? RedirectUri { get; set; }
+
+    /// <summary>The Webhook "Secret Token" from the app's Feature &gt; Event
+    /// Subscriptions page — used to validate x-zm-signature, never sent
+    /// anywhere, never logged.</summary>
+    public string? WebhookSecretToken { get; set; }
+
     public bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(AccountId) && !string.IsNullOrWhiteSpace(ClientId) && !string.IsNullOrWhiteSpace(ClientSecret);
+        !string.IsNullOrWhiteSpace(ClientId) && !string.IsNullOrWhiteSpace(ClientSecret) && !string.IsNullOrWhiteSpace(RedirectUri);
 }

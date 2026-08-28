@@ -1,4 +1,44 @@
-# Implementation Status — as of 2026-08-28 (updated)
+﻿# Implementation Status — as of 2026-08-29 (updated)
+
+## ⭐⭐ Owner clarification (2026-08-29) — provider-neutral video meetings (Zoom **and** Google Meet)
+
+**This section supersedes every earlier statement in this repository that
+MVTeaches uses a single centre Zoom account, Server-to-Server OAuth, or a
+centre-level `Zoom__AccountId`.** Those interpretations are dead; where they
+survive in the historical study documents they are now marked superseded
+there too. The current rule is:
+
+> The centre will not purchase, provide, reimburse, assign, or manage
+> video-meeting licences for teachers. Each teacher connects their **own**
+> Zoom or Google account via user-authorized OAuth, and MVTeaches creates
+> and manages meetings through that account. Teachers never copy or paste a
+> meeting link. **A teacher needs no paid subscription of any kind — a
+> normal free Google account is sufficient.** A teacher with neither a
+> usable Zoom connection nor a Google account is marked *Not ready for
+> online sessions* and cannot be assigned any.
+
+### What was built
+
+| Area | What exists now |
+|---|---|
+| Provider abstraction | `VideoProviderType` (`Zoom`, `GoogleMeet` — exactly these two; "do not add more meeting providers"), `IVideoMeetingProviderClient` resolved by provider, never by a type check. Nothing is coupled to Zoom any more; `IZoomMeetingProvider` and its centre-account options class were **deleted**, not deprecated. |
+| Persistence | `teacher_meeting_connections` (ownership, provider, external account, encrypted tokens, capability + when verified, status, default flag), `provisioned_meetings` (per-session external meeting, its owning connection, operational status, supersession chain), `oauth_authorization_states` (short-lived, single-use, teacher-bound state + PKCE verifier). |
+| Real provider clients | `ZoomVideoMeetingProviderClient` (user-authorized OAuth: `/oauth/authorize`, `/oauth/token`, `/oauth/revoke`, `GET /users/me`, `POST /users/me/meetings`, `GET/DELETE /meetings/{id}`; scopes `user:read:user meeting:write:meeting meeting:read:meeting` — no admin/master scope) and `GoogleMeetProviderClient` (Google OAuth + Meet REST v2 `POST /v2/spaces`, `POST /v2/{space}:endActiveConference`; scopes `openid email` + `meetings.space.created` only). Both written against each provider's currently-published documentation, both fetched and re-read during this task rather than recalled. |
+| Capability enforcement | Zoom Basic (`type: 1`) → `Restricted`, 40 minutes, per Zoom's own published limit; Zoom Licensed (`type: 2/3`) → `Full`. Google → **always** `Restricted`, because Google exposes no reliable way for a third-party app to prove a consumer account is paid; the free limits (24h one-to-one, 60min for a session whose **seat capacity** allows 3+) are then applied from the session's real capacity, never its current booking count. An exact-60-minute free Google group session is allowed **with a warning**. A Basic Zoom host is never worked around by chaining consecutive meetings. |
+| Concurrency | `ux_provisioned_meeting_active_session` (at most one active meeting per session) plus a claim/reclaim conditional UPDATE — retries and truly concurrent requests produce at most one external meeting. Refresh-token rotation is a conditional UPDATE keyed on the exact token read, so a loser never overwrites a newer token. **No centre-wide or provider-wide lock exists** — independent teachers host simultaneously. |
+| Token security | Access/refresh tokens encrypted via ASP.NET Core Data Protection (`DataProtectionTokenProtector`, dedicated purpose string); key ring persisted **outside the database** (`DataProtectionKeysPath`). Zoom's `start_url` is fetched fresh per Start press and redirected to — never persisted, rendered, or logged. Participant links are never listed in schedules or page source; they are only ever a redirect after a full authorization/enrollment/timing/entitlement check. |
+| Teacher readiness gate | `RecurringScheduleService.CreateAsync` and `ReassignTeacherAsync` both refuse a teacher with no connected account, server-side. The Admin Teachers list and the Teacher portal both show **Ready / Not ready**, and the teacher's own page shows step-by-step instructions for creating a **free** Google account. |
+| Reassignment | `/Admin/Schedules` → "Reassign a session's teacher". Cancels the old meeting under **its own** connection, or flags it `Orphaned` for admin action if that connection was revoked; never links the new teacher to it; audits; notifies enrolled students via the existing `SessionCancelledOrMoved` outbox. |
+| Webhooks | `/webhooks/zoom` — HMAC-SHA256 signature + timestamp freshness verified before anything is trusted; answers Zoom's `endpoint.url_validation` challenge; an accepted event must still match its meeting's own owning connection or it is ignored. Advisory only — it can never touch attendance, entitlement, or billing (D-83 unchanged). |
+
+### What is **not** claimed
+
+Live Zoom or Google Meet integration is **not** verified. No Zoom OAuth app,
+no Google Cloud project, and no real teacher accounts exist yet. The clients
+are written and the surrounding logic is fully tested; the provider round
+trip itself is the outstanding external blocker (see the launch checklist).
+
+---
 
 ## Release-readiness audit (2026-08-28)
 
@@ -142,7 +182,7 @@ else" further down this file.
 | Scheduling concurrency | Teacher double-booking physically rejected by a PostgreSQL EXCLUDE constraint; enrollment duplication rejected; ledger append-only enforced by a database trigger even against raw SQL. 5 tests. |
 | Payments (D-11/D-14/D-38) | `PaymentService` — manual channel record/confirm/reject, full-payment-only ledger posting, payment-block lifted in the same transaction, idempotent against double-confirm and provider-webhook-replay. 4 tests. |
 | Settings (D-65) | `ISettingsProvider` reading the `settings` table live; loud failure on a missing/malformed key instead of a silent default. |
-| Integration boundaries | `IZoomMeetingProvider`, `INotificationSender` interfaces. Zoom and WhatsApp: honest "not configured" implementations (no fabricated API behavior). Email: a real, working SMTP sender. |
+| Integration boundaries | `INotificationSender` interface; WhatsApp: an honest "not configured" implementation (no fabricated API behavior); Email: a real, working SMTP sender. **Video is no longer in this row** — the 2026-08-29 owner clarification replaced the Zoom boundary-only stub with real, written Zoom **and** Google Meet OAuth/REST clients (`IVideoMeetingProviderClient`); see the top section. |
 | Notification dispatch | `NotificationDispatchJob` — idempotent outbox scan, bounded batch, attempt-counted failures — registered as a Hangfire recurring job. |
 | Web host | Program.cs wires EF Core+Npgsql+NodaTime, ASP.NET Core Identity (long keys), Hangfire+PostgreSQL storage, all Application services, an admin-only-protected Hangfire dashboard. **Actually run** against the real database: schema installs, background server starts, HTTP requests are served, the recurring job fires, `/hangfire` correctly 401s when unauthenticated. |
 | RBAC seed | Five roles (Admin, SystemAdmin, Teacher, Guardian, Student) seeded idempotently at startup, confirmed present in the database. |
@@ -215,7 +255,7 @@ Both are committed with full explanations — see the git log.
 | Guardian/Student sign-in (phone + OTP) | Documented as the real flow (§7) but depends on the WhatsApp integration (not configured) for OTP delivery — genuinely blocked, not merely unbuilt. Only email/password accounts can sign in today (now including admin-registered guardians/students — see the admission service above — but real phone+OTP self-service sign-in is still blocked). |
 | Migration import pipeline | **Deliberately not started — the study's own §43/final-open-items list marks this "مؤجَّل بقرار المالك، لا عجلة" (owner-deferred, no rush) pending a real ~10-row sample of the actual source file (§25.6).** Building the column-mapping/parsing logic now would mean inventing a source schema with no connection to reality. The domain model (`MigrationBatch`, `MigrationRecord`, both reversible-by-batch-id per §25.5) is ready to receive it once the sample arrives. Status unchanged this session — still owner-deferred, not dropped. |
 | Homework file upload/signed-URL chain | `FileRecord`/`Homework`/`HomeworkSubmission` entities exist; no object-storage integration (Cloudflare R2, S3-compatible per the infra study), no signed-URL generation, no virus scanning. Unlike Zoom/WhatsApp, R2's API is public S3-compatible documentation, so this is a real candidate for a genuine (not stubbed) implementation next — just not done yet, and it is not on the owner's own stated MVP list, so it stays flagged as an open scope question rather than built. Status unchanged this session — still deferred, not dropped. |
-| Zoom real integration | Boundary only — see the "honest stub" note above. Requires reading Zoom's current API docs against a live account, which this engagement had neither. |
+| Zoom / Google Meet **live verification** | ⭐ Superseded 2026-08-29: the clients are no longer stubs — both are written against each provider's currently-published documentation and the whole surrounding surface (OAuth state, token encryption/rotation, capability enforcement, provisioning concurrency, reassignment, webhooks) is tested against real PostgreSQL. What remains blocked is purely **external**: a real Zoom OAuth app (with Marketplace distribution allowing independent external teachers), a real Google Cloud project with the Meet REST API enabled and its consent screen verified for external users, and real teacher accounts (one paid Zoom, one Basic Zoom, one free Google) to run the round trip against. Until those exist, no live integration is claimed. |
 | WhatsApp real integration | Same — requires Meta Business verification, which is externally pending (README). |
 | MEPS integration | Correctly NOT started — `D-88`: `Waiting for MEPS`. The payment architecture's provider boundary is ready to receive it. |
 | Deployment to a real VPS/Cloudflare | Not done — no VPS exists yet for this project. The deployment guide describes the standard, correct steps; none of them have been executed against MVTEACHES's actual infrastructure. |

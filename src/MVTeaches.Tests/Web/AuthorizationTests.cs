@@ -598,6 +598,82 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    // ---- Video-meeting connections (owner clarification 2026-08-29) ----
+
+    [Fact]
+    public async Task Unauthenticated_request_to_the_teacher_connections_page_is_redirected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/Teacher/Connections");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Authenticated_admin_cannot_reach_a_teachers_connections_page()
+    {
+        // Admins never see or manage a teacher's provider credentials — the
+        // connection belongs to the teacher's own account, and nothing in
+        // this app should hand an admin a route to it.
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/Teacher/Connections");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_student_cannot_reach_the_teacher_connections_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(StudentEmail);
+        var response = await client.GetAsync("/Teacher/Connections");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_teacher_can_reach_their_own_connections_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(TeacherEmail);
+        var response = await client.GetAsync("/Teacher/Connections");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task An_unauthenticated_oauth_callback_cannot_complete_a_connection()
+    {
+        // The callback is teacher-authenticated on purpose: it is the
+        // "initiating browser session" half of the OAuth state binding.
+        var client = CreateClient();
+        var response = await client.GetAsync("/oauth/zoom/callback?code=stolen&state=stolen");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task A_non_teacher_cannot_complete_an_oauth_callback()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/oauth/google/callback?code=stolen&state=stolen");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_zoom_webhook_rejects_an_unsigned_request()
+    {
+        // Zoom is unconfigured in the test host, so the endpoint must not
+        // exist as far as any caller is concerned — and must certainly never
+        // return a success that implies the payload was trusted.
+        var client = CreateClient();
+        var response = await client.PostAsync("/webhooks/zoom",
+            new StringContent("{\"event\":\"meeting.deleted\"}", System.Text.Encoding.UTF8, "application/json"));
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
     /// <summary>Hosts the real app. The Development environment suppresses the
     /// UseExceptionHandler/UseHsts branch (Program.cs's `if (!IsDevelopment())`)
     /// that would otherwise obscure a real error behind a generic error page
