@@ -85,10 +85,14 @@ public class EntitlementLedgerEntry
         CreatedAtUtc = createdAtUtc;
     }
 
-    /// <summary>The one and only debit path (D-83): a Join press, immediate and
-    /// unconditional, decoupled from teacher delivery verification.</summary>
+    /// <summary>The one and only debit path (D-83): a Join press, OR — per the
+    /// owner's self-service-booking correction — the automatic no-show
+    /// finalization of a session nobody joined (SessionFinalizationService).
+    /// <paramref name="performedByUserId"/> is null for the automatic
+    /// no-show case, matching this class's own "NULL = the system itself"
+    /// convention.</summary>
     public static EntitlementLedgerEntry ForConsumption(long studentId, long subscriptionId, long courseId,
-        int levelId, int minutes, long sessionId, long performedByUserId, Instant createdAtUtc)
+        int levelId, int minutes, long sessionId, long? performedByUserId, Instant createdAtUtc)
     {
         if (minutes <= 0)
         {

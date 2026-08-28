@@ -171,6 +171,12 @@ public class EnrollmentService : IEnrollmentService
             return new ApproveReplacementResult(ApproveReplacementOutcome.ReplacementSessionIsTheSameSession);
         }
 
+        var originalSession = await _db.ClassSessions.FirstOrDefaultAsync(s => s.Id == originalSessionId, cancellationToken);
+        if (originalSession is null)
+        {
+            return new ApproveReplacementResult(ApproveReplacementOutcome.OriginalSessionNotFound);
+        }
+
         var wasConsumed = await _db.AttendanceRecords.AnyAsync(
             a => a.SessionId == originalSessionId && a.StudentId == studentId, cancellationToken);
         if (!wasConsumed)
@@ -182,6 +188,20 @@ public class EnrollmentService : IEnrollmentService
         if (replacementSession is null)
         {
             return new ApproveReplacementResult(ApproveReplacementOutcome.ReplacementSessionNotFound);
+        }
+
+        // Owner correction (2026-08-28): a replacement must be the same level
+        // and a session that hasn't happened yet — load-bearing now that this
+        // method is reachable from a student's own compensation request, not
+        // only a trusted admin picking freely.
+        if (replacementSession.LevelId != originalSession.LevelId)
+        {
+            return new ApproveReplacementResult(ApproveReplacementOutcome.ReplacementSessionLevelMismatch);
+        }
+
+        if (replacementSession.StartsAtUtc <= _clock.GetCurrentInstant())
+        {
+            return new ApproveReplacementResult(ApproveReplacementOutcome.ReplacementSessionNotInFuture);
         }
 
         var alreadyEnrolledInReplacement = await _db.SessionEnrollments.AnyAsync(

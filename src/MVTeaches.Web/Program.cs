@@ -86,6 +86,9 @@ builder.Services.AddScoped<ITeacherRateService, TeacherRateService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IEntitlementBalanceQuery, EntitlementBalanceQuery>();
 builder.Services.AddScoped<ISessionCancellationService, SessionCancellationService>();
+builder.Services.AddScoped<IStudentBookingService, StudentBookingService>();
+builder.Services.AddScoped<ICompensationRequestService, CompensationRequestService>();
+builder.Services.AddScoped<ISessionFinalizationService, SessionFinalizationService>();
 
 // ---------------------------------------------------------------------
 // Integration boundaries — §5-8 of the master engineering prompt.
@@ -166,6 +169,12 @@ RecurringJob.AddOrUpdate<NotificationDispatchJob>(
 // second code path to keep in sync with the scheduled one.
 RecurringJob.AddOrUpdate<IScheduleGenerationService>(
     "schedule-generation", job => job.GenerateAsync(CancellationToken.None), "0 2 * * *");
+
+// Owner correction (self-service booking, 2026-08-28): a no-show must
+// resolve promptly after the session ends, not the next morning — every 5
+// minutes, not nightly.
+RecurringJob.AddOrUpdate<ISessionFinalizationService>(
+    "session-finalization", job => job.FinalizeEndedSessionsAsync(CancellationToken.None), "*/5 * * * *");
 
 app.Run();
 

@@ -20,24 +20,50 @@ else
     {
         <div class="alert alert-danger">@Model.ErrorMessage</div>
     }
+    @if (Model.NoLevelAssigned)
+    {
+        <div class="alert alert-warning">You don't have a level assigned yet — ask an admin. You'll be able to browse and book sessions once you do.</div>
+    }
 
-    <div class="table-responsive">
+    <h2 class="h4">My enrolled sessions</h2>
+    <div class="table-responsive mb-4">
         <table class="table table-sm table-striped">
-            <thead><tr><th>Starts</th><th>Course/Level</th><th>Status</th><th>Present?</th><th></th></tr></thead>
+            <thead><tr><th>Starts</th><th>Course/Level</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
             <tbody>
-                @foreach (var s in Model.UpcomingSessions)
+                @foreach (var s in Model.MySessions)
                 {
                     <tr>
                         <td>@s.StartsAtUtc (@s.ScheduleTimeZone)</td>
                         <td>@s.CourseName / @s.LevelCode</td>
                         <td>@s.SessionStatus</td>
-                        <td>@(s.AlreadyPresent ? "Yes" : "No")</td>
+                        <td>
+                            @switch (s.Attendance)
+                            {
+                                case MVTeaches.Web.Pages.Student.MySessionsModel.AttendanceState.Present:
+                                    <span class="text-success">Present</span>
+                                    break;
+                                case MVTeaches.Web.Pages.Student.MySessionsModel.AttendanceState.NoShow:
+                                    <span class="text-danger">No-show</span>
+                                    break;
+                                default:
+                                    <span class="text-muted">—</span>
+                                    break;
+                            }
+                        </td>
                         <td>
                             @if (s.CanJoin)
                             {
-                                <form method="post" asp-page-handler="Join">
+                                <form method="post" asp-page-handler="Join" class="d-inline">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
                                     <button type="submit" class="btn btn-sm btn-primary">Join</button>
+                                </form>
+                            }
+                            @if (s.CanRequestReplacement)
+                            {
+                                <form method="post" asp-page-handler="RequestReplacement" class="d-inline">
+                                    <input type="hidden" name="sessionId" value="@s.SessionId" />
+                                    <input type="text" name="CompensationReason" class="form-control form-control-sm d-inline w-auto" placeholder="Reason (optional)" style="max-width:180px" />
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Request replacement</button>
                                 </form>
                             }
                         </td>
@@ -45,9 +71,74 @@ else
                 }
             </tbody>
         </table>
-        @if (Model.UpcomingSessions.Count == 0)
+        @if (Model.MySessions.Count == 0)
         {
-            <p class="text-muted">No sessions in the next 7 days.</p>
+            <p class="text-muted">No enrolled sessions in this window.</p>
+        }
+    </div>
+
+    @if (!Model.NoLevelAssigned)
+    {
+        <h2 class="h4">Available sessions for your level</h2>
+        <div class="table-responsive mb-4">
+            <table class="table table-sm table-striped">
+                <thead><tr><th>Starts</th><th>Course/Level</th><th>Seats</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model.AvailableSessions)
+                    {
+                        <tr>
+                            <td>@s.StartsAtUtc (@s.ScheduleTimeZone)</td>
+                            <td>@s.CourseName / @s.LevelCode</td>
+                            <td>@s.SeatsRemaining / @s.Capacity</td>
+                            <td>
+                                <form method="post" asp-page-handler="Book">
+                                    <input type="hidden" name="sessionId" value="@s.SessionId" />
+                                    <button type="submit" class="btn btn-sm btn-success">Book</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (Model.AvailableSessions.Count == 0)
+            {
+                <p class="text-muted">No available sessions for your level in the next 30 days.</p>
+            }
+        </div>
+    }
+
+    <h2 class="h4">My replacement requests</h2>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Missed session</th><th>Reason</th><th>Status</th><th>Replacement</th></tr></thead>
+            <tbody>
+                @foreach (var r in Model.MyCompensationRequests)
+                {
+                    <tr>
+                        <td>@r.OriginalSessionStartsAtUtc</td>
+                        <td>@(r.Reason ?? "—")</td>
+                        <td>@r.Status</td>
+                        <td>
+                            @if (r.Status == MVTeaches.Domain.Scheduling.CompensationRequestStatus.Approved && r.ReplacementStartsAtUtc is not null)
+                            {
+                                @r.ReplacementStartsAtUtc
+                            }
+                            else if (r.Status == MVTeaches.Domain.Scheduling.CompensationRequestStatus.Rejected)
+                            {
+                                @("Rejected" + (r.RejectionReason is not null ? $" — {r.RejectionReason}" : ""))
+                            }
+                            else
+                            {
+                                <span class="text-muted">Pending review</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (Model.MyCompensationRequests.Count == 0)
+        {
+            <p class="text-muted">No replacement requests yet.</p>
         }
     </div>
 }

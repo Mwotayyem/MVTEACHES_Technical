@@ -147,6 +147,42 @@ public class TeacherTimeOffConfiguration : IEntityTypeConfiguration<TeacherTimeO
     }
 }
 
+/// <summary>Owner correction (student self-service booking, 2026-08-28): the
+/// partial unique index is the actual backstop against duplicate requests
+/// and duplicate approvals — at most one row per (OriginalSessionId,
+/// StudentId) may be Pending or Approved at any time. A Rejected request
+/// does not block a later, fresh one (the student may have a better reason,
+/// or the admin changes their mind), so Rejected rows are excluded from the
+/// filter.</summary>
+public class CompensationRequestConfiguration : IEntityTypeConfiguration<CompensationRequest>
+{
+    public void Configure(EntityTypeBuilder<CompensationRequest> b)
+    {
+        b.ToTable("compensation_requests");
+        b.HasKey(x => x.Id);
+
+        b.Property(x => x.StudentId).HasColumnName("student_id");
+        b.Property(x => x.OriginalSessionId).HasColumnName("original_session_id");
+        b.Property(x => x.Reason).HasColumnName("reason");
+        b.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.RequestedAtUtc).HasColumnName("requested_at_utc");
+        b.Property(x => x.ReplacementSessionId).HasColumnName("replacement_session_id");
+        b.Property(x => x.RejectionReason).HasColumnName("rejection_reason");
+        b.Property(x => x.ResolvedByUserId).HasColumnName("resolved_by");
+        b.Property(x => x.ResolvedAtUtc).HasColumnName("resolved_at_utc");
+
+        b.HasIndex(x => new { x.Status, x.RequestedAtUtc }).HasDatabaseName("ix_compensation_requests_pending");
+
+        // ⭐ THE invariant: prevents a duplicate request AND a duplicate
+        // approval for the same missed session under real concurrency — not
+        // an application-level check alone.
+        b.HasIndex(x => new { x.OriginalSessionId, x.StudentId })
+            .IsUnique()
+            .HasDatabaseName("ux_compensation_request_open")
+            .HasFilter("\"status\" IN ('Pending', 'Approved')");
+    }
+}
+
 /// <summary>§15.3 — a skipped occurrence is recorded here, never silently dropped.</summary>
 public class ScheduleGenerationExceptionConfiguration : IEntityTypeConfiguration<ScheduleGenerationException>
 {

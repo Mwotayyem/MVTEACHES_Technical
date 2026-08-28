@@ -70,12 +70,15 @@ public class JoinAttendanceService : IJoinAttendanceService
             return new JoinAttendanceResult(JoinOutcome.Unauthorized, "Student has no active enrollment in this session.");
         }
 
-        // Fast path: someone already pressed Join for this exact (session, student).
-        var alreadyPresent = await _db.AttendanceRecords.AnyAsync(
-            a => a.SessionId == request.SessionId && a.StudentId == request.StudentId, cancellationToken);
-        if (alreadyPresent)
+        // Fast path: this (session, student) is already resolved — either a
+        // real prior Join, or (owner correction, 2026-08-28)
+        // SessionFinalizationService already finalized it as a no-show after
+        // the session ended. Both are terminal; the difference is which
+        // outcome the caller reports back.
+        var existingOutcome = await LookupExistingOutcomeAsync(request.SessionId, request.StudentId, cancellationToken);
+        if (existingOutcome is not null)
         {
-            return new JoinAttendanceResult(JoinOutcome.AlreadyRecorded);
+            return new JoinAttendanceResult(existingOutcome.Value);
         }
 
         // Owner clarification (supersedes the earlier standalone-credit design):
@@ -89,7 +92,7 @@ public class JoinAttendanceService : IJoinAttendanceService
         // exactly once" — there is no separate spendable credit to track.
         if (enrollment.CompensatesForSessionId is not null)
         {
-            _db.AttendanceRecords.Add(new AttendanceRecord(request.SessionId, request.StudentId, request.ActingUserId, now));
+            _db.AttendanceRecords.Add(new AttendanceRecord(request.SessionId, request.StudentId, request.ActingUserId, now, isPresent: true));
             try
             {
                 await _db.SaveChangesAsync(cancellationToken);
@@ -98,7 +101,8 @@ public class JoinAttendanceService : IJoinAttendanceService
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
                 _db.ChangeTracker.Clear();
-                return new JoinAttendanceResult(JoinOutcome.AlreadyRecorded);
+                var outcome = await LookupExistingOutcomeAsync(request.SessionId, request.StudentId, cancellationToken);
+                return new JoinAttendanceResult(outcome ?? JoinOutcome.AlreadyRecorded);
             }
         }
 
@@ -114,12 +118,14 @@ public class JoinAttendanceService : IJoinAttendanceService
             // Re-check immediately before reporting InsufficientBalance: if attendance
             // now exists, this request lost the race, not the balance check (D-83:
             // the loser must be reported as present/idempotent, never as an error).
-            var wonByAConcurrentRequest = await _db.AttendanceRecords.AnyAsync(
-                a => a.SessionId == request.SessionId && a.StudentId == request.StudentId, cancellationToken);
-            return new JoinAttendanceResult(wonByAConcurrentRequest ? JoinOutcome.AlreadyRecorded : JoinOutcome.InsufficientBalance);
+            // It could also mean SessionFinalizationService raced in and finalized
+            // this as a no-show first — LookupExistingOutcomeAsync reports whichever
+            // actually happened, never assumes it was a Join.
+            var raceOutcome = await LookupExistingOutcomeAsync(request.SessionId, request.StudentId, cancellationToken);
+            return new JoinAttendanceResult(raceOutcome ?? JoinOutcome.InsufficientBalance);
         }
 
-        var attendance = new AttendanceRecord(request.SessionId, request.StudentId, request.ActingUserId, now);
+        var attendance = new AttendanceRecord(request.SessionId, request.StudentId, request.ActingUserId, now, isPresent: true);
         var consumption = EntitlementLedgerEntry.ForConsumption(
             request.StudentId, subscription.Id, session.CourseId, session.LevelId,
             session.DurationMinutes, request.SessionId, request.ActingUserId, now);
@@ -135,10 +141,34 @@ public class JoinAttendanceService : IJoinAttendanceService
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
             // Lost a genuine concurrent race against another request for the same
-            // (session, student) — this is success, not failure (D-83: idempotent).
+            // (session, student) — this is success, not failure (D-83: idempotent),
+            // UNLESS the winner was actually SessionFinalizationService marking
+            // this a no-show (the session ended mid-request) — LookupExistingOutcomeAsync
+            // reports whichever the winner actually recorded.
             _db.ChangeTracker.Clear();
-            return new JoinAttendanceResult(JoinOutcome.AlreadyRecorded);
+            var outcome = await LookupExistingOutcomeAsync(request.SessionId, request.StudentId, cancellationToken);
+            return new JoinAttendanceResult(outcome ?? JoinOutcome.AlreadyRecorded);
         }
+    }
+
+    /// <summary>Reads the actual outcome of an already-resolved (session,
+    /// student) pair — null if it isn't resolved yet. Centralizes the
+    /// "AlreadyRecorded vs AlreadyFinalizedAsNoShow" distinction so every
+    /// caller (the fast-path check and every race-recovery catch block)
+    /// reports the SAME real outcome instead of assuming it was a Join.</summary>
+    private async Task<JoinOutcome?> LookupExistingOutcomeAsync(long sessionId, long studentId, CancellationToken ct)
+    {
+        var isPresent = await _db.AttendanceRecords
+            .Where(a => a.SessionId == sessionId && a.StudentId == studentId)
+            .Select(a => (bool?)a.IsPresent)
+            .FirstOrDefaultAsync(ct);
+
+        return isPresent switch
+        {
+            null => null,
+            true => JoinOutcome.AlreadyRecorded,
+            false => JoinOutcome.AlreadyFinalizedAsNoShow,
+        };
     }
 
     /// <summary>D-83's guardian rule: the acting account must be the student's

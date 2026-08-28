@@ -28,6 +28,15 @@ public enum JoinOutcome
     /// subscription for this student/course/level carries enough remaining
     /// balance to cover the session's full duration in one draw.</summary>
     InsufficientBalance,
+
+    /// <summary>Owner correction (self-service booking, 2026-08-28): the
+    /// session already ended and SessionFinalizationService finalized this
+    /// (session, student) as a no-show — a late Join press after that point
+    /// must NOT report success (that would misleadingly imply the student is
+    /// marked present when the recorded outcome is actually absence). The
+    /// student's real next step is requesting a replacement lesson, not
+    /// pressing Join again.</summary>
+    AlreadyFinalizedAsNoShow,
 }
 
 public record JoinAttendanceRequest(long SessionId, long StudentId, long ActingUserId);

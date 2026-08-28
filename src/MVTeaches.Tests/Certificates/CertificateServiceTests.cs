@@ -119,7 +119,7 @@ public class CertificateServiceTests
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
-        db.AttendanceRecords.Add(new AttendanceRecord(session.Id, fx.StudentId, fx.TeacherUserId, now));
+        db.AttendanceRecords.Add(new AttendanceRecord(session.Id, fx.StudentId, fx.TeacherUserId, now, isPresent: true));
         await db.SaveChangesAsync();
 
         var payroll = CreatePayrollService(db, new FakeClock(now));

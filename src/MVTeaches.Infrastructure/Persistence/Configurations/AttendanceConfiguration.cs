@@ -20,8 +20,15 @@ public class AttendanceRecordConfiguration : IEntityTypeConfiguration<Attendance
 
         b.Property(x => x.SessionId).HasColumnName("session_id");
         b.Property(x => x.StudentId).HasColumnName("student_id");
+        // Nullable — owner correction (2026-08-28): NULL means the system
+        // itself finalized this row as a no-show (SessionFinalizationService),
+        // not a real Join press by anyone.
         b.Property(x => x.MarkedByUserId).HasColumnName("marked_by");
         b.Property(x => x.MarkedAtUtc).HasColumnName("marked_at_utc");
+        // true = a real Join; false = system-finalized no-show. See
+        // AttendanceRecord's own remarks for why this superseded the original
+        // "Absent is derived, never written" rule.
+        b.Property(x => x.IsPresent).HasColumnName("is_present");
         b.Property(x => x.Note).HasColumnName("note");
 
         // ⭐⭐ THE invariant: the first Join wins, every later one is rejected by

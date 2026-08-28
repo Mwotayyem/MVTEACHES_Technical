@@ -53,6 +53,12 @@ public enum ApproveReplacementOutcome
     /// nothing to compensate; use RescheduleUnattendedEnrollmentAsync instead.</summary>
     OriginalNotYetConsumed,
 
+    /// <summary>Owner correction (2026-08-28): the original session id itself
+    /// doesn't exist — added once this method became reachable from a
+    /// student-submitted request instead of only a trusted admin's direct
+    /// choice of an id they already saw on screen.</summary>
+    OriginalSessionNotFound,
+
     ReplacementSessionNotFound,
     ReplacementSessionIsTheSameSession,
     ReplacementSessionFull,
@@ -63,6 +69,17 @@ public enum ApproveReplacementOutcome
     AlreadyEnrolledInReplacementSession,
 
     NoApplicableAgeGroup,
+
+    /// <summary>Owner correction (student self-service booking, 2026-08-28):
+    /// a replacement lesson must be the SAME level as the original session —
+    /// added when this method started being reachable from a student's own
+    /// compensation request, not only a trusted admin's direct choice.</summary>
+    ReplacementSessionLevelMismatch,
+
+    /// <summary>Owner correction (2026-08-28): the replacement must be a
+    /// session that hasn't happened yet — an admin cannot "approve" a
+    /// replacement into the past.</summary>
+    ReplacementSessionNotInFuture,
 }
 
 public record ApproveReplacementResult(ApproveReplacementOutcome Outcome);

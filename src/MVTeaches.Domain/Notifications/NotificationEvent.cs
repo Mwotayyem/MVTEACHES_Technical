@@ -31,6 +31,14 @@ public enum NotificationEvent
     StudentWithoutLevelAdminDigest,
     PaymentPendingApprovalAdminAlert,
     AnnouncementPosted,
+
+    /// <summary>Owner-approved 2026-08-28 addition (student self-service
+    /// booking + compensation-request correction): fired ONLY after an admin
+    /// successfully confirms a specific replacement session for a student's
+    /// compensation request — never at request-submission time, never
+    /// speculatively. Distinct from SessionCancelledOrMoved, which is about
+    /// the ORIGINAL session changing, not a replacement being granted.</summary>
+    ReplacementLessonApproved,
 }
 
 public enum NotificationChannel

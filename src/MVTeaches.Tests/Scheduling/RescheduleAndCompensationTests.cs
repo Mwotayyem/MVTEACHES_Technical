@@ -61,7 +61,7 @@ public class RescheduleAndCompensationTests
     }
 
     private record Scenario(long OriginalSessionId, long ReplacementSessionId, long StudentId, long StudentUserId,
-        int AgeGroupId, int DurationMinutes);
+        int AgeGroupId, int DurationMinutes, Instant ReplacementStartsAtUtc);
 
     // One Country for the whole class (not one per test/scenario): the 2-letter
     // code space (676 combinations) is shared with every other test class in the
@@ -106,14 +106,17 @@ public class RescheduleAndCompensationTests
         db.Students.Add(student);
         await db.SaveChangesAsync();
 
-        // Both already started (so both are immediately Join-able — D-83 has no
-        // upper bound on a late Join) and non-overlapping for the same teacher
-        // (no_teacher_overlap is a real EXCLUDE constraint, with a 10-minute gap
-        // between them so touching-interval edge cases can't matter either).
+        // The original already started (immediately Join-able — D-83 has no
+        // upper bound on a late Join). The replacement is in the FUTURE
+        // relative to `now` — owner correction (2026-08-28): ApproveReplacementLessonAsync
+        // now rejects a replacement that isn't a future session, since this
+        // method is reachable from a student's own compensation request, not
+        // only a trusted admin. Different calendar day than the original, so
+        // no_teacher_overlap (a real EXCLUDE constraint) is trivially satisfied.
         var original = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
             now.Minus(Duration.FromMinutes(130)), now.Minus(Duration.FromMinutes(70)), "Asia/Amman", "10:00", SessionType.Group, 4, now);
         var replacement = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            now.Minus(Duration.FromMinutes(60)), now, "Asia/Amman", "12:00", SessionType.Group, 4, now);
+            now.Plus(Duration.FromDays(1)), now.Plus(Duration.FromDays(1)).Plus(Duration.FromMinutes(60)), "Asia/Amman", "12:00", SessionType.Group, 4, now);
         db.ClassSessions.AddRange(original, replacement);
         await db.SaveChangesAsync();
 
@@ -137,7 +140,8 @@ public class RescheduleAndCompensationTests
             await db.SaveChangesAsync();
         }
 
-        return new Scenario(original.Id, replacement.Id, student.Id, studentUserId, ageGroupId, original.DurationMinutes);
+        return new Scenario(original.Id, replacement.Id, student.Id, studentUserId, ageGroupId, original.DurationMinutes,
+            replacement.StartsAtUtc);
     }
 
     private IEnrollmentService CreateEnrollmentService(MvTeachesDbContext db, Instant now) => new EnrollmentService(db, new FakeClock(now));
@@ -171,7 +175,7 @@ public class RescheduleAndCompensationTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         var s = await SeedScenarioAsync(db, now);
-        db.AttendanceRecords.Add(new AttendanceRecord(s.OriginalSessionId, s.StudentId, s.StudentUserId, now));
+        db.AttendanceRecords.Add(new AttendanceRecord(s.OriginalSessionId, s.StudentId, s.StudentUserId, now, isPresent: true));
         await db.SaveChangesAsync();
 
         var result = await CreateEnrollmentService(db, now).RescheduleUnattendedEnrollmentAsync(
@@ -228,7 +232,10 @@ public class RescheduleAndCompensationTests
             s.OriginalSessionId, s.ReplacementSessionId, s.StudentId, NextId(), CancellationToken.None);
         Assert.Equal(ApproveReplacementOutcome.Approved, approve.Outcome);
 
-        var joinReplacement = await CreateJoinService(db, now).JoinAsync(
+        // The replacement is a future session at approval time (now) — simulate
+        // time passing to when it actually starts before joining it.
+        var atReplacementTime = s.ReplacementStartsAtUtc;
+        var joinReplacement = await CreateJoinService(db, atReplacementTime).JoinAsync(
             new JoinAttendanceRequest(s.ReplacementSessionId, s.StudentId, s.StudentUserId), CancellationToken.None);
         Assert.Equal(JoinOutcome.Recorded, joinReplacement.Outcome);
 
@@ -253,8 +260,9 @@ public class RescheduleAndCompensationTests
         await CreateJoinService(db, now).JoinAsync(new JoinAttendanceRequest(s.OriginalSessionId, s.StudentId, s.StudentUserId), CancellationToken.None);
         await CreateEnrollmentService(db, now).ApproveReplacementLessonAsync(s.OriginalSessionId, s.ReplacementSessionId, s.StudentId, NextId(), CancellationToken.None);
 
-        var first = await CreateJoinService(db, now).JoinAsync(new JoinAttendanceRequest(s.ReplacementSessionId, s.StudentId, s.StudentUserId), CancellationToken.None);
-        var second = await CreateJoinService(db, now).JoinAsync(new JoinAttendanceRequest(s.ReplacementSessionId, s.StudentId, s.StudentUserId), CancellationToken.None);
+        var atReplacementTime = s.ReplacementStartsAtUtc;
+        var first = await CreateJoinService(db, atReplacementTime).JoinAsync(new JoinAttendanceRequest(s.ReplacementSessionId, s.StudentId, s.StudentUserId), CancellationToken.None);
+        var second = await CreateJoinService(db, atReplacementTime).JoinAsync(new JoinAttendanceRequest(s.ReplacementSessionId, s.StudentId, s.StudentUserId), CancellationToken.None);
 
         Assert.Equal(JoinOutcome.Recorded, first.Outcome);
         Assert.Equal(JoinOutcome.AlreadyRecorded, second.Outcome);

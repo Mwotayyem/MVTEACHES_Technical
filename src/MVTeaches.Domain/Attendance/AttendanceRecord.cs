@@ -3,32 +3,36 @@ using NodaTime;
 namespace MVTeaches.Domain.Attendance;
 
 /// <summary>
-/// Technical Study §16.2 — the D-83 anchor. This is the ENTIRE attendance model:
+/// Technical Study §16.2 — the D-83 anchor, EXTENDED by the owner's
+/// self-service-booking correction (superseding the original "Absent is
+/// derived, never written" rule below): a session that ends with an enrolled
+/// student never having pressed Join is now explicitly finalized as a
+/// no-show, in this SAME table, by <c>SessionFinalizationService</c> — not
+/// left as an unwritten, derived-at-read-time absence.
 ///
-///   - Only ever one status: Present. There is no Absent row, no Excused, no
-///     Late, no NotMarked. A student with no matching row for a session that
-///     has started is Absent — a value derived at read time, never written
-///     (mirrors the derived-balance philosophy of the entitlement ledger,
-///     D-36). See IAttendanceQueryService for the read-side derivation.
-///   - <see cref="MarkedByUserId"/> is whoever pressed Join: the student's own
-///     account, OR the guardian's account pressing on behalf of a child with
-///     no independent login (D-02/D-03). It is NEVER the teacher — attendance
-///     is self-service, not teacher-recorded.
+///   - <see cref="IsPresent"/> is the only outcome this class ever
+///     distinguishes: true = the student (or their guardian) actually
+///     pressed Join; false = the session ended and nobody ever did, so the
+///     system finalized it. There is still no Excused/Late/NotMarked — only
+///     these two, and every row always has exactly one of them.
+///   - <see cref="MarkedByUserId"/> is whoever pressed Join for a Present
+///     row: the student's own account, OR the guardian's account pressing on
+///     behalf of a child with no independent login (D-02/D-03) — NEVER the
+///     teacher. For a NoShow row it is NULL: nobody "marked" it, the system
+///     finalized it once the session ended (mirrors EntitlementLedgerEntry's
+///     own "NULL = the system itself" convention).
 ///   - The (SessionId, StudentId) pair is unique at the database level
-///     (a filtered/plain unique index in Infrastructure). That constraint,
-///     not application code, is what makes a second Join a guaranteed no-op
-///     even under concurrent requests.
-///   - This entity carries NO duration/leave time. D-59/D-83 are explicit:
-///     the system does not measure how long a student stayed and does not
-///     read Zoom join/leave telemtry for any financial purpose. Whether the
-///     student left after five minutes or stayed the whole session, the
-///     record — and the consumption it triggers — is identical.
+///     (ux_attendance_session_student). That single constraint is what makes
+///     BOTH a second Join AND a Join racing the no-show finalizer resolve to
+///     exactly one row, deterministically — whichever insert wins the race,
+///     the loser's own write fails with 23505 and is caught, never retried
+///     into a second row.
+///   - This entity still carries NO duration/leave time. D-59/D-83 remain
+///     explicit: the system does not measure how long a student stayed and
+///     does not read Zoom join/leave telemetry for any financial purpose.
 ///
-/// Do not add a Status enum with more than one member. Do not add a duration
-/// field. Do not add an approval/verification field. Any of those would
-/// reintroduce exactly the "Provisional Attendance / Approval Workflow /
-/// Time Tracking" architecture the owner explicitly rejected when D-83 was
-/// adopted.
+/// Do not add a third status. Do not add a duration field. Do not add an
+/// approval/verification field.
 /// </summary>
 public class AttendanceRecord
 {
@@ -37,19 +41,27 @@ public class AttendanceRecord
     public long SessionId { get; private set; }
     public long StudentId { get; private set; }
 
-    public long MarkedByUserId { get; private set; }
+    /// <summary>Whoever pressed Join for a Present row; NULL for a
+    /// system-finalized NoShow row.</summary>
+    public long? MarkedByUserId { get; private set; }
     public Instant MarkedAtUtc { get; private set; }
+
+    /// <summary>true = a real Join press. false = the session ended and the
+    /// student never joined; SessionFinalizationService wrote this row.</summary>
+    public bool IsPresent { get; private set; }
 
     public string? Note { get; private set; }
 
     private AttendanceRecord() { }
 
-    public AttendanceRecord(long sessionId, long studentId, long markedByUserId, Instant markedAtUtc, string? note = null)
+    public AttendanceRecord(long sessionId, long studentId, long? markedByUserId, Instant markedAtUtc,
+        bool isPresent, string? note = null)
     {
         SessionId = sessionId;
         StudentId = studentId;
         MarkedByUserId = markedByUserId;
         MarkedAtUtc = markedAtUtc;
+        IsPresent = isPresent;
         Note = note;
     }
 }

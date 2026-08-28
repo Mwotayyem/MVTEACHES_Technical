@@ -168,7 +168,7 @@ public class SessionCancellationServiceTests
         var studentId = await SeedStudentAsync(db, countryId);
         db.SessionEnrollments.Add(new SessionEnrollment(session.Id, studentId, ageGroupId, studentId, now));
         // Simulate the student already having pressed Join before the problem surfaced.
-        db.AttendanceRecords.Add(new AttendanceRecord(session.Id, studentId, studentId, now));
+        db.AttendanceRecords.Add(new AttendanceRecord(session.Id, studentId, studentId, now, isPresent: true));
         await db.SaveChangesAsync();
 
         var result = await CreateService(db, now).CancelAsync(session.Id, "teacher's connection failed mid-session",

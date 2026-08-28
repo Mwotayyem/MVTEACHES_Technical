@@ -142,6 +142,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         new object[] { "/Admin/Schedules" },
         new object[] { "/Admin/Subscriptions" },
         new object[] { "/Admin/RescheduleSessions" },
+        new object[] { "/Admin/CompensationRequests" },
         new object[] { "/Admin/Payments" },
         new object[] { "/Admin/Payroll" },
         new object[] { "/Admin/Certificates" },

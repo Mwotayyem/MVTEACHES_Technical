@@ -133,11 +133,14 @@ public class RescheduleSessionsModel : PageModel
             ErrorMessage = result.Outcome switch
             {
                 ApproveReplacementOutcome.OriginalNotYetConsumed => "That session was never attended (no Join recorded) — use \"Reschedule an unattended lesson\" above instead.",
+                ApproveReplacementOutcome.OriginalSessionNotFound => "Original session not found.",
                 ApproveReplacementOutcome.ReplacementSessionNotFound => "Replacement session not found.",
                 ApproveReplacementOutcome.ReplacementSessionIsTheSameSession => "The replacement must be a different session.",
                 ApproveReplacementOutcome.ReplacementSessionFull => "The replacement session is full.",
                 ApproveReplacementOutcome.AlreadyEnrolledInReplacementSession => "The student already has an active enrollment on that replacement session.",
                 ApproveReplacementOutcome.NoApplicableAgeGroup => "No age group covers this student's current age.",
+                ApproveReplacementOutcome.ReplacementSessionLevelMismatch => "The replacement session is a different level than the original.",
+                ApproveReplacementOutcome.ReplacementSessionNotInFuture => "The replacement must be a session that hasn't started yet.",
                 _ => "Could not approve the replacement.",
             };
         }
