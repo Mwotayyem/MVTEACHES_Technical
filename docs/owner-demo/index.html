@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MVTeaches - محاكي توضيحي للمالك</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #667085;
+      --line: #d9e2ec;
+      --panel: #ffffff;
+      --soft: #f6f8fb;
+      --brand: #146c94;
+      --brand-2: #1b998b;
+      --accent: #f4b942;
+      --danger: #c2413b;
+      --success: #237a57;
+      --warn: #a15c07;
+      --shadow: 0 14px 34px rgba(23, 32, 42, .10);
+      --radius: 8px;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Tahoma, Arial, sans-serif;
+      background:
+        linear-gradient(180deg, rgba(20,108,148,.08), rgba(27,153,139,.04) 34%, #f7f9fc 100%),
+        #f7f9fc;
+      color: var(--ink);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    button {
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      padding: .55rem .85rem;
+      cursor: pointer;
+      background: var(--brand);
+      color: #fff;
+      font-weight: 700;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(20, 108, 148, .18); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid rgba(244,185,66,.45);
+      outline-offset: 2px;
+    }
+    button:disabled { cursor: not-allowed; opacity: .56; transform: none; box-shadow: none; }
+    .btn-secondary { background: #fff; color: var(--brand); border-color: #b9ccda; }
+    .btn-soft { background: #eef7f6; color: #11695f; border-color: #bfe1dd; }
+    .btn-danger { background: var(--danger); }
+    .btn-warning { background: var(--accent); color: #2d2610; }
+    .btn-ghost { background: transparent; color: var(--brand); border-color: transparent; }
+    .btn-small { min-height: 34px; padding: .35rem .55rem; font-size: .88rem; }
+
+    .demo-ribbon {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #0f3d56;
+      color: #fff;
+      padding: .7rem 1rem;
+      text-align: center;
+      font-weight: 800;
+      box-shadow: 0 8px 20px rgba(15, 61, 86, .18);
+    }
+
+    .app-shell { min-height: 100vh; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem clamp(1rem, 3vw, 2rem);
+      background: rgba(255,255,255,.86);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color: #fff;
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    .brand h1, .brand p { margin: 0; }
+    .brand h1 { font-size: 1.05rem; }
+    .brand p { color: var(--muted); font-size: .86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .top-actions { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 1.1rem;
+      padding: 1.1rem clamp(1rem, 3vw, 2rem) 2rem;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .sidebar, .panel, .hero, .tour, .modal-card {
+      background: rgba(255,255,255,.95);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar { padding: .85rem; align-self: start; position: sticky; top: 72px; }
+    .nav-title { margin: .35rem .3rem .75rem; color: var(--muted); font-size: .9rem; }
+    .nav-list { display: grid; gap: .35rem; }
+    .nav-button {
+      width: 100%;
+      text-align: right;
+      color: var(--ink);
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      font-weight: 700;
+    }
+    .nav-button.active, .nav-button:hover { background: #edf6fa; color: var(--brand); transform: none; box-shadow: none; }
+
+    .content { min-width: 0; display: grid; gap: 1rem; }
+
+    .hero {
+      padding: clamp(1rem, 3vw, 1.5rem);
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(260px, .7fr);
+      gap: 1rem;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .hero h2, .panel h2, .panel h3, .modal-card h3 { margin: 0 0 .45rem; line-height: 1.35; }
+    .hero p, .panel p { margin: .25rem 0; color: var(--muted); }
+
+    .hero-art {
+      min-height: 170px;
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 78% 20%, rgba(244,185,66,.8), transparent 25%),
+        linear-gradient(135deg, #146c94, #1b998b);
+      color: #fff;
+      padding: 1rem;
+      display: grid;
+      align-content: end;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-art::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(255,255,255,.42);
+      border-radius: 10px;
+    }
+    .hero-art strong { position: relative; font-size: 1.55rem; }
+    .hero-art span { position: relative; opacity: .9; }
+
+    .grid { display: grid; gap: 1rem; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .panel { padding: 1rem; min-width: 0; }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: .8rem;
+    }
+    .panel-actions { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+
+    .metric {
+      padding: .9rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      display: grid;
+      gap: .2rem;
+    }
+    .metric b { font-size: 1.45rem; color: var(--brand); }
+    .metric span { color: var(--muted); font-size: .9rem; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: .12rem .55rem;
+      border-radius: 999px;
+      font-size: .82rem;
+      font-weight: 800;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .badge.ok { color: var(--success); background: #eaf7f0; border-color: #bfe5cf; }
+    .badge.warn { color: var(--warn); background: #fff5df; border-color: #f3d393; }
+    .badge.bad { color: var(--danger); background: #fff0ee; border-color: #efc1bd; }
+    .badge.info { color: var(--brand); background: #edf6fa; border-color: #bfdae8; }
+    .badge.neutral { color: #475467; background: #f3f4f6; border-color: #d7dbe0; }
+
+    .table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { padding: .7rem .75rem; border-bottom: 1px solid var(--line); text-align: right; vertical-align: middle; }
+    th { color: #344054; background: #f1f6f8; font-size: .9rem; }
+    tr:last-child td { border-bottom: 0; }
+
+    .mobile-list { display: none; gap: .7rem; }
+    .item-card { border: 1px solid var(--line); border-radius: var(--radius); padding: .85rem; background: #fff; display: grid; gap: .45rem; }
+    .item-card .row { display: flex; justify-content: space-between; gap: .75rem; align-items: center; }
+    .item-card small { color: var(--muted); }
+
+    .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; align-items: end; }
+    label { display: grid; gap: .25rem; font-weight: 800; color: #344054; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #c9d6e2;
+      border-radius: var(--radius);
+      min-height: 42px;
+      padding: .5rem .65rem;
+      background: #fff;
+      color: var(--ink);
+    }
+    textarea { min-height: 92px; resize: vertical; }
+
+    .login {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: clamp(1rem, 3vw, 2rem);
+      display: grid;
+      gap: 1rem;
+    }
+    .role-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem;
+      background: #fff;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: .65rem;
+      text-align: right;
+    }
+    .role-card h3 { margin: 0; }
+    .credentials {
+      background: #f7fafc;
+      border: 1px dashed #bfd2df;
+      border-radius: var(--radius);
+      padding: .65rem;
+      color: #344054;
+      direction: ltr;
+      text-align: left;
+      font-size: .86rem;
+      overflow-wrap: anywhere;
+    }
+
+    .notice {
+      border: 1px solid #bfe1dd;
+      background: #eef9f7;
+      color: #125d55;
+      border-radius: var(--radius);
+      padding: .85rem;
+      font-weight: 700;
+    }
+    .notice.warn { border-color: #f3d393; background: #fff8e8; color: #764300; }
+    .notice.bad { border-color: #efc1bd; background: #fff3f1; color: #8a2e29; }
+
+    .progress {
+      height: 12px;
+      background: #e7edf3;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-2), var(--brand)); }
+
+    .tour {
+      border-color: #f0cf82;
+      background: #fffaf0;
+      padding: .9rem;
+    }
+    .tour strong { color: #6c4507; }
+    .tour-controls { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .7rem; }
+
+    .toast-area {
+      position: fixed;
+      z-index: 80;
+      left: 1rem;
+      bottom: 1rem;
+      display: grid;
+      gap: .5rem;
+      width: min(420px, calc(100vw - 2rem));
+    }
+    .toast {
+      border-radius: var(--radius);
+      background: #102f43;
+      color: #fff;
+      box-shadow: var(--shadow);
+      padding: .75rem .9rem;
+      animation: rise .2s ease;
+    }
+    @keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    dialog {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      width: min(620px, calc(100vw - 2rem));
+    }
+    dialog::backdrop { background: rgba(15, 32, 42, .48); }
+    .modal-card { padding: 1rem; }
+    .modal-actions { display: flex; justify-content: flex-start; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+
+    .empty {
+      border: 1px dashed #c9d6e2;
+      border-radius: var(--radius);
+      padding: 1rem;
+      color: var(--muted);
+      background: #fbfdff;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .nav-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hero { grid-template-columns: 1fr; }
+      .grid-4, .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      .topbar { align-items: stretch; flex-direction: column; }
+      .top-actions { justify-content: stretch; }
+      .top-actions button { flex: 1 1 auto; }
+      .nav-list, .grid-2, .grid-3, .grid-4, .form-row { grid-template-columns: 1fr; }
+      .panel-head { flex-direction: column; }
+      .panel-actions { justify-content: stretch; width: 100%; }
+      .panel-actions button { flex: 1 1 auto; }
+      .table-wrap { display: none; }
+      .mobile-list { display: grid; }
+      .hero-art { min-height: 130px; }
+      .demo-ribbon { font-size: .9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-ribbon">نسخة توضيحية — جميع البيانات والعمليات وهمية</div>
+  <div id="app" class="app-shell" aria-live="polite"></div>
+  <div id="toasts" class="toast-area" aria-live="assertive"></div>
+  <dialog id="demoDialog"></dialog>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const STORAGE_KEY = 'mvteaches-owner-demo-v1';
+      let storageAvailable = true;
+      let memoryState = null;
+      let state = loadState();
+
+      const roles = {
+        admin: 'System Admin / Admin',
+        teacher: 'Teacher',
+        student: 'Student',
+        guardian: 'Guardian'
+      };
+
+      const nav = {
+        admin: [
+          ['overview', 'لوحة التحكم'],
+          ['people', 'الطلاب والأهالي'],
+          ['sessions', 'الحصص والحجوزات'],
+          ['compensation', 'طلبات التعويض'],
+          ['teachers', 'المعلمون والفيديو'],
+          ['finance', 'المدفوعات والتقارير'],
+          ['payroll', 'رواتب المعلمين'],
+          ['jobs', 'الوظائف والتكاملات']
+        ],
+        teacher: [
+          ['teacherHome', 'حصصي'],
+          ['teacherVideo', 'مزود الفيديو'],
+          ['teacherPayroll', 'سجل الراتب'],
+          ['teacherIsolation', 'عزل البيانات']
+        ],
+        student: [
+          ['studentHome', 'ملخصي'],
+          ['studentBook', 'حجز حصة'],
+          ['studentSessions', 'حصصي والحضور'],
+          ['studentComp', 'التعويضات'],
+          ['studentCertificate', 'الشهادة والتنبيهات']
+        ],
+        guardian: [
+          ['guardianHome', 'الأبناء'],
+          ['guardianActivity', 'النشاط والحضور'],
+          ['guardianFinance', 'الباقات والتنبيهات']
+        ]
+      };
+
+      const tourSteps = [
+        ['admin', 'overview', 'الأدمن يراجع حالة النظام والمقاييس الأساسية.', null],
+        ['student', 'studentBook', 'الطالب يحجز حصة B1 بنفسه من الحصص المطابقة لمستواه.', () => bookSession('S-101', true)],
+        ['student', 'studentSessions', 'الطالب يضغط Join فتُسجل الحضور وتُستهلك ساعة واحدة فقط.', () => { makeJoinable('S-101'); joinSession('S-101', true); }],
+        ['admin', 'jobs', 'تشغيل إغلاق الحصص المنتهية يسجل الغياب المحجوز سابقًا ويستهلك ساعة.', () => finalizeNoShows(true)],
+        ['student', 'studentComp', 'الطالب يرى الغياب ويقدم طلب تعويض مرتبطًا بالحصة الفائتة.', () => requestCompensation('S-099', true)],
+        ['admin', 'compensation', 'الأدمن يوافق ويختار حصة B1 مستقبلية محددة كبديل.', () => approveFirstPending(true)],
+        ['student', 'studentSessions', 'الطالب ينضم للحصة البديلة مجانًا مرة واحدة دون إعادة الرصيد.', () => joinReplacementForTour()],
+        ['teacher', 'teacherPayroll', 'المعلم يرى حصصه وسجل الراتب الخاص به فقط.', null],
+        ['guardian', 'guardianActivity', 'ولي الأمر يراجع نشاط الابنة دون القدرة على دخول الاجتماع أو التصرف بدلًا عنها.', null]
+      ];
+
+      function buildSeed() {
+        const now = Date.now();
+        const iso = minutes => new Date(now + minutes * 60000).toISOString();
+        return {
+          version: 1,
+          currentUserId: null,
+          activeSection: 'overview',
+          tour: { active: false, index: 0 },
+          meetingLog: [],
+          users: [
+            { id: 'u-admin', role: 'admin', name: 'مها العلي', email: 'admin.demo@mvteaches.local', password: 'OwnerDemo!2026' },
+            { id: 'u-teacher', role: 'teacher', name: 'نور الحسن', email: 'teacher.demo@mvteaches.local', password: 'TeacherDemo!2026', teacherId: 'T-1' },
+            { id: 'u-student', role: 'student', name: 'ليان أحمد الخطيب', email: 'student.demo@mvteaches.local', password: 'StudentDemo!2026', studentId: 'ST-1' },
+            { id: 'u-guardian', role: 'guardian', name: 'سارة الخطيب', email: 'guardian.demo@mvteaches.local', password: 'GuardianDemo!2026', guardianId: 'G-1' }
+          ],
+          guardians: [
+            { id: 'G-1', name: 'سارة الخطيب', children: ['ST-1'] }
+          ],
+          students: [
+            { id: 'ST-1', name: 'ليان أحمد الخطيب', guardianId: 'G-1', level: 'B1', course: 'اللغة الإنجليزية', certificateRequiredHours: 30 }
+          ],
+          teachers: [
+            { id: 'T-1', name: 'نور الحسن', provider: 'Zoom مدفوع', providerKind: 'paidZoom', ready: true, defaultProvider: 'Zoom', capability: 'حصص كاملة المدة', currency: 'JOD' },
+            { id: 'T-2', name: 'رامي ناصر', provider: 'Zoom Basic', providerKind: 'zoomBasic', ready: true, defaultProvider: 'Zoom', capability: 'حد أقصى 40 دقيقة', currency: 'JOD' },
+            { id: 'T-3', name: 'هالة مراد', provider: 'Google Meet مجاني', providerKind: 'googleFree', ready: true, defaultProvider: 'Google Meet', capability: '1:1 حتى 24 ساعة، جماعي حتى 60 دقيقة', currency: 'JOD' },
+            { id: 'T-4', name: 'سامر قنديل', provider: 'غير متصل', providerKind: 'none', ready: false, defaultProvider: null, capability: 'غير جاهز للحصص الأونلاين', currency: 'JOD' }
+          ],
+          sessions: [
+            { id: 'S-099', title: 'حصة محجوزة سابقًا لم يتم حضورها', level: 'B1', teacherId: 'T-1', start: iso(-95), duration: 60, capacity: 4, status: 'scheduled', meetingStatus: 'not_created', kind: 'group' },
+            { id: 'S-101', title: 'B1 محادثة عملية', level: 'B1', teacherId: 'T-1', start: iso(15), duration: 60, capacity: 4, status: 'scheduled', meetingStatus: 'not_created', kind: 'group' },
+            { id: 'S-102', title: 'B1 مراجعة فردية', level: 'B1', teacherId: 'T-3', start: iso(120), duration: 60, capacity: 1, status: 'scheduled', meetingStatus: 'not_created', kind: 'oneToOne' },
+            { id: 'S-103', title: 'B1 بديل مناسب للتعويض', level: 'B1', teacherId: 'T-3', start: iso(1440), duration: 60, capacity: 4, status: 'scheduled', meetingStatus: 'not_created', kind: 'group' },
+            { id: 'S-104', title: 'B1 حصة طويلة على Zoom Basic', level: 'B1', teacherId: 'T-2', start: iso(1560), duration: 60, capacity: 4, status: 'scheduled', meetingStatus: 'not_created', kind: 'group' },
+            { id: 'S-105', title: 'A2 خارج مستوى الطالب', level: 'A2', teacherId: 'T-1', start: iso(180), duration: 60, capacity: 4, status: 'scheduled', meetingStatus: 'not_created', kind: 'group' },
+            { id: 'S-106', title: 'B1 مكتملة السعة', level: 'B1', teacherId: 'T-1', start: iso(240), duration: 60, capacity: 1, status: 'scheduled', meetingStatus: 'not_created', kind: 'oneToOne' }
+          ],
+          bookings: [
+            { id: 'B-099', studentId: 'ST-1', sessionId: 'S-099', status: 'active', replacementFor: null, bookedBy: 'student', createdAt: iso(-1600) },
+            { id: 'B-FULL', studentId: 'ST-OTHER', sessionId: 'S-106', status: 'active', replacementFor: null, bookedBy: 'student', createdAt: iso(-40) }
+          ],
+          attendance: [],
+          compensationRequests: [],
+          packages: [
+            { id: 'PKG-1', studentId: 'ST-1', label: 'باقة 10 ساعات - B1', purchasedHours: 10, createdAt: iso(-2200), status: 'active', paymentId: 'PAY-1' }
+          ],
+          ledger: [
+            { id: 'L-1', studentId: 'ST-1', type: 'purchase', packageId: 'PKG-1', hours: 10, sessionId: null, note: 'شراء باقة 10 ساعات', at: iso(-2200) }
+          ],
+          payments: [
+            { id: 'PAY-1', studentId: 'ST-1', amount: 90, currency: 'JOD', method: 'تحويل بنكي / CliQ محاكى', provider: 'مزود الدفع قيد الاختيار', status: 'confirmed', at: iso(-2200) }
+          ],
+          payroll: [
+            { id: 'PR-1', teacherId: 'T-1', sessionId: 'S-001', amount: 7.5, currency: 'JOD', status: 'مدفوع', note: 'سطر سابق وهمي مدفوع' },
+            { id: 'PR-2', teacherId: 'T-3', sessionId: 'S-010', amount: 6.0, currency: 'JOD', status: 'بانتظار الاعتماد', note: 'سطر سابق وهمي قيد المراجعة' }
+          ],
+          notifications: [
+            { id: 'N-1', userId: 'u-student', text: 'تم تأكيد باقة 10 ساعات. هذه رسالة توضيحية محلية.', channel: 'داخل المحاكي', status: 'shown', at: iso(-2195) },
+            { id: 'N-2', userId: 'u-guardian', text: 'تم ربط ليان بحساب ولي الأمر. هذه رسالة توضيحية محلية.', channel: 'داخل المحاكي', status: 'shown', at: iso(-2190) }
+          ]
+        };
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) return JSON.parse(raw);
+        } catch {
+          storageAvailable = false;
+        }
+        return buildSeed();
+      }
+
+      function saveState() {
+        memoryState = state;
+        try {
+          if (storageAvailable) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch {
+          storageAvailable = false;
+        }
+      }
+
+      function resetDemo() {
+        state = buildSeed();
+        try { localStorage.removeItem(STORAGE_KEY); } catch { storageAvailable = false; }
+        saveState();
+        toast('تمت إعادة ضبط البيانات التجريبية إلى البداية.');
+        render();
+      }
+
+      function currentUser() {
+        return state.users.find(u => u.id === state.currentUserId) || null;
+      }
+
+      function setUser(userId) {
+        const user = state.users.find(u => u.id === userId);
+        state.currentUserId = userId;
+        state.activeSection = nav[user.role][0][0];
+        saveState();
+        render();
+      }
+
+      function setSection(section) {
+        state.activeSection = section;
+        saveState();
+        render();
+      }
+
+      function h(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+      }
+
+      function fmtDate(iso) {
+        return new Intl.DateTimeFormat('ar-JO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
+      }
+
+      function fmtMoney(amount, currency = 'JOD') {
+        return new Intl.NumberFormat('ar-JO', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
+      }
+
+      function durationHours(session) {
+        return session.duration / 60;
+      }
+
+      function teacher(id) { return state.teachers.find(t => t.id === id); }
+      function student(id = 'ST-1') { return state.students.find(s => s.id === id); }
+      function sessionById(id) { return state.sessions.find(s => s.id === id); }
+      function userByRole(role) { return state.users.find(u => u.role === role); }
+
+      function activeBookings(sessionId) {
+        return state.bookings.filter(b => b.sessionId === sessionId && b.status === 'active');
+      }
+
+      function seatsTaken(sessionId) {
+        return activeBookings(sessionId).length;
+      }
+
+      function studentBookings(studentId = 'ST-1') {
+        return state.bookings.filter(b => b.studentId === studentId && b.status === 'active');
+      }
+
+      function attendanceFor(sessionId, studentId = 'ST-1') {
+        return state.attendance.find(a => a.sessionId === sessionId && a.studentId === studentId);
+      }
+
+      function ledgerBalance(studentId = 'ST-1') {
+        return state.ledger.filter(l => l.studentId === studentId).reduce((sum, l) => sum + l.hours, 0);
+      }
+
+      function consumedHours(studentId = 'ST-1') {
+        return -state.ledger.filter(l => l.studentId === studentId && l.type === 'consumption').reduce((sum, l) => sum + l.hours, 0);
+      }
+
+      function committedFutureHours(studentId = 'ST-1') {
+        const now = Date.now();
+        return studentBookings(studentId).reduce((sum, b) => {
+          const s = sessionById(b.sessionId);
+          if (!s || b.replacementFor || attendanceFor(s.id, studentId)) return sum;
+          if (new Date(s.start).getTime() > now) return sum + durationHours(s);
+          return sum;
+        }, 0);
+      }
+
+      function packageAvailableForBooking(studentId = 'ST-1') {
+        return Math.max(0, ledgerBalance(studentId) - committedFutureHours(studentId));
+      }
+
+      function canProviderHost(s) {
+        const t = teacher(s.teacherId);
+        if (!t || !t.ready) return { ok: false, message: 'المعلم غير جاهز للحصص الأونلاين.' };
+        if (t.providerKind === 'zoomBasic' && s.duration > 40) {
+          return { ok: false, message: 'Zoom Basic محدود بـ 40 دقيقة. لا يوجد التفاف باجتماعات متتالية.' };
+        }
+        if (t.providerKind === 'googleFree' && s.capacity > 1 && s.duration > 60) {
+          return { ok: false, message: 'Google Meet المجاني للحصص الجماعية حتى 60 دقيقة.' };
+        }
+        return { ok: true, message: 'جاهز' };
+      }
+
+      function provisionMeeting(s, mode) {
+        const provider = canProviderHost(s);
+        if (!provider.ok) return provider;
+        s.meetingStatus = 'ready';
+        state.meetingLog.unshift({
+          id: 'ML-' + Date.now(),
+          sessionId: s.id,
+          mode,
+          text: mode === 'teacher' ? 'محاكاة بدء حصة من حساب المعلم المتصل' : 'محاكاة وصول مشارك بعد Join مصرح',
+          at: new Date().toISOString()
+        });
+        return { ok: true, message: 'تم إنشاء/تجهيز الاجتماع محليًا كمحاكاة.' };
+      }
+
+      function bookSession(sessionId, quiet = false) {
+        const st = student();
+        const s = sessionById(sessionId);
+        if (!s) return toast('الحصة غير موجودة.');
+        if (s.level !== st.level) return toast('لا يمكن حجز حصة من مستوى مختلف.');
+        if (new Date(s.start).getTime() <= Date.now()) return toast('لا يمكن حجز حصة بدأت أو انتهت.');
+        if (seatsTaken(s.id) >= s.capacity) return toast('لا توجد مقاعد متاحة.');
+        if (studentBookings(st.id).some(b => b.sessionId === s.id)) return toast('هذه الحصة محجوزة مسبقًا.');
+        if (packageAvailableForBooking(st.id) < durationHours(s)) return toast('الحجز يتجاوز الساعات المتاحة بعد احتساب الحجوزات المستقبلية.');
+        state.bookings.push({ id: 'B-' + Date.now(), studentId: st.id, sessionId: s.id, status: 'active', replacementFor: null, bookedBy: 'student', createdAt: new Date().toISOString() });
+        saveState();
+        if (!quiet) toast('تم حجز الحصة. ظهرت فورًا في بوابة الطالب وولي الأمر والمعلم.');
+        render();
+      }
+
+      function cancelBooking(sessionId) {
+        const b = studentBookings().find(x => x.sessionId === sessionId);
+        const s = sessionById(sessionId);
+        if (!b || !s) return toast('لا يوجد حجز فعال لهذه الحصة.');
+        if (new Date(s.start).getTime() <= Date.now()) return toast('لا يمكن إلغاء حصة بدأت أو انتهت في هذا المحاكي.');
+        b.status = 'cancelled';
+        b.cancelledAt = new Date().toISOString();
+        saveState();
+        toast('تم إلغاء الحجز المستقبلي دون خصم.');
+        render();
+      }
+
+      function joinSession(sessionId, quiet = false) {
+        const st = student();
+        const s = sessionById(sessionId);
+        const b = studentBookings(st.id).find(x => x.sessionId === sessionId);
+        if (!s || !b) return toast('لا يمكن الدخول: الطالب غير مسجل في هذه الحصة.');
+        const existing = attendanceFor(sessionId, st.id);
+        if (existing?.present) {
+          if (!quiet) toast('Join مكرر: الحضور مسجل سابقًا ولا يوجد خصم ثان.');
+          openMeetingModal('Join مكرر', 'تم إثبات idempotency: لا خصم إضافي ولا رابط مضيف.');
+          return;
+        }
+        if (existing && !existing.present) return toast('هذه الحصة أغلقت كغياب. استخدم طلب التعويض.');
+        const now = Date.now();
+        const start = new Date(s.start).getTime();
+        const end = start + s.duration * 60000;
+        if (now < start) return toast('لم يحن وقت Join بعد. يمكن استخدام زر محاكاة وصول الموعد للحصة البديلة.');
+        if (now > end) return toast('انتهت نافذة الحضور. شغّل إغلاق الحصص المنتهية لتسجيل الغياب.');
+
+        state.attendance.push({ id: 'A-' + Date.now(), studentId: st.id, sessionId: s.id, present: true, replacementFor: b.replacementFor, at: new Date().toISOString() });
+        if (!b.replacementFor) {
+          state.ledger.push({ id: 'L-' + Date.now(), studentId: st.id, type: 'consumption', packageId: 'PKG-1', hours: -durationHours(s), sessionId: s.id, note: 'حضور Join - خصم ساعة واحدة', at: new Date().toISOString() });
+        }
+        addPayrollForSession(s, b.replacementFor ? 'حصة بديلة مجانية للطالب' : 'حضور طالب');
+        const provision = provisionMeeting(s, 'student');
+        saveState();
+        if (!quiet) toast(b.replacementFor ? 'تم دخول الحصة البديلة مجانًا دون خصم جديد.' : 'تم تسجيل الحضور واستهلاك ساعة واحدة.');
+        openMeetingModal('محاكاة Join للطالب', provision.ok
+          ? 'تم منح الطالب وصول مشارك فقط بعد فحوص الهوية والحجز والتوقيت والرصيد. لا يتم عرض رابط حقيقي.'
+          : 'تم تسجيل الحضور محليًا، لكن تجهيز الاجتماع فشل في المحاكاة: ' + provision.message);
+        render();
+      }
+
+      function makeJoinable(sessionId) {
+        const s = sessionById(sessionId);
+        if (!s) return;
+        const now = Date.now();
+        s.start = new Date(now - 5 * 60000).toISOString();
+        saveState();
+        toast('تمت محاكاة وصول موعد الحصة. يمكن الضغط على Join الآن.');
+        render();
+      }
+
+      function finalizeNoShows(quiet = false) {
+        let count = 0;
+        const now = Date.now();
+        for (const b of state.bookings.filter(x => x.status === 'active')) {
+          const s = sessionById(b.sessionId);
+          if (!s || attendanceFor(s.id, b.studentId)) continue;
+          const end = new Date(s.start).getTime() + s.duration * 60000;
+          if (end <= now) {
+            state.attendance.push({ id: 'A-' + Date.now() + '-' + count, studentId: b.studentId, sessionId: s.id, present: false, replacementFor: b.replacementFor, at: new Date().toISOString() });
+            if (!b.replacementFor) {
+              state.ledger.push({ id: 'L-' + Date.now() + '-' + count, studentId: b.studentId, type: 'consumption', packageId: 'PKG-1', hours: -durationHours(s), sessionId: s.id, note: 'غياب No-show محجوز ذاتيًا - خصم ساعة', at: new Date().toISOString() });
+            }
+            s.status = 'completed';
+            state.notifications.unshift({ id: 'N-' + Date.now(), userId: 'u-student', text: 'تم تسجيل غياب عن حصة محجوزة ذاتيًا. يمكن تقديم طلب تعويض.', channel: 'داخل المحاكي', status: 'shown', at: new Date().toISOString() });
+            count++;
+          }
+        }
+        saveState();
+        if (!quiet) toast(count ? `تم إغلاق ${count} حصة منتهية وتسجيل الغياب.` : 'لا توجد حصص منتهية تحتاج إغلاقًا.');
+        render();
+      }
+
+      function requestCompensation(sessionId, quiet = false) {
+        const st = student();
+        const att = attendanceFor(sessionId, st.id);
+        if (!att || att.present) return toast('لا يمكن طلب التعويض إلا عن غياب مسجل.');
+        if (state.compensationRequests.some(r => r.studentId === st.id && r.originalSessionId === sessionId && r.status !== 'rejected')) {
+          return toast('يوجد طلب مفتوح أو موافق عليه لهذه الحصة.');
+        }
+        state.compensationRequests.push({
+          id: 'CR-' + Date.now(),
+          studentId: st.id,
+          originalSessionId: sessionId,
+          reason: document.querySelector('[data-comp-reason]')?.value || 'سبب توضيحي اختياري داخل المحاكي',
+          status: 'pending',
+          replacementSessionId: null,
+          requestedAt: new Date().toISOString()
+        });
+        saveState();
+        if (!quiet) toast('تم تقديم طلب التعويض. ظهر فورًا في قائمة الأدمن.');
+        render();
+      }
+
+      function approveRequest(requestId, sessionId) {
+        const req = state.compensationRequests.find(r => r.id === requestId);
+        const repl = sessionById(sessionId);
+        const st = student(req?.studentId);
+        if (!req || !repl || !st) return toast('الطلب أو الحصة البديلة غير موجودين.');
+        if (req.status !== 'pending') return toast('هذا الطلب ليس بانتظار المراجعة.');
+        if (repl.level !== st.level) return toast('الحصة البديلة يجب أن تكون من نفس المستوى.');
+        if (new Date(repl.start).getTime() <= Date.now()) return toast('الحصة البديلة يجب أن تكون مستقبلية عند الموافقة.');
+        if (seatsTaken(repl.id) >= repl.capacity) return toast('الحصة البديلة ممتلئة.');
+        req.status = 'approved';
+        req.replacementSessionId = repl.id;
+        req.resolvedAt = new Date().toISOString();
+        state.bookings.push({ id: 'B-R-' + Date.now(), studentId: st.id, sessionId: repl.id, status: 'active', replacementFor: req.originalSessionId, bookedBy: 'admin', createdAt: new Date().toISOString() });
+        state.notifications.unshift({ id: 'N-' + Date.now(), userId: 'u-student', text: 'تمت الموافقة على حصة بديلة محددة. إشعار واتساب كان سيُضاف للطابور فقط بعد الموافقة - محاكاة ولم يُرسل شيء.', channel: 'WhatsApp محاكى', status: 'queued-simulated', at: new Date().toISOString() });
+        state.notifications.unshift({ id: 'N-G-' + Date.now(), userId: 'u-guardian', text: 'تمت الموافقة على حصة بديلة لليان. إشعار محاكى فقط.', channel: 'WhatsApp محاكى', status: 'queued-simulated', at: new Date().toISOString() });
+        saveState();
+        toast('تمت الموافقة وربط التعويض بحصة محددة. لا توجد محفظة رصيد.');
+        render();
+      }
+
+      function approveFirstPending(quiet = false) {
+        const req = state.compensationRequests.find(r => r.status === 'pending');
+        if (!req) return toast('لا يوجد طلب تعويض بانتظار الموافقة.');
+        approveRequest(req.id, 'S-103');
+        if (quiet) return;
+      }
+
+      function rejectRequest(requestId) {
+        const req = state.compensationRequests.find(r => r.id === requestId);
+        if (!req || req.status !== 'pending') return toast('لا يوجد طلب بانتظار الرفض.');
+        req.status = 'rejected';
+        req.rejectionReason = 'قرار توضيحي من الأدمن داخل المحاكي';
+        req.resolvedAt = new Date().toISOString();
+        saveState();
+        toast('تم رفض الطلب محليًا. لا يتم إنشاء إشعار واتساب عند الرفض.');
+        render();
+      }
+
+      function joinReplacementForTour() {
+        const req = state.compensationRequests.find(r => r.status === 'approved' && r.replacementSessionId);
+        if (!req) return toast('لا توجد حصة بديلة موافق عليها بعد.');
+        makeJoinable(req.replacementSessionId);
+        joinSession(req.replacementSessionId, true);
+      }
+
+      function addPackage() {
+        const id = 'PKG-' + (state.packages.length + 1);
+        const payId = 'PAY-' + (state.payments.length + 1);
+        state.packages.push({ id, studentId: 'ST-1', label: 'باقة جديدة 10 ساعات - B1', purchasedHours: 10, createdAt: new Date().toISOString(), status: 'active', paymentId: payId });
+        state.payments.push({ id: payId, studentId: 'ST-1', amount: 90, currency: 'JOD', method: 'تأكيد دفع محاكى', provider: 'مزود الدفع قيد الاختيار', status: 'confirmed', at: new Date().toISOString() });
+        state.ledger.push({ id: 'L-' + Date.now(), studentId: 'ST-1', type: 'purchase', packageId: id, hours: 10, sessionId: null, note: 'شراء باقة جديدة - دورة حجز جديدة وليست تسجيلًا دائمًا', at: new Date().toISOString() });
+        saveState();
+        toast('تمت إضافة باقة جديدة مستقلة من 10 ساعات. لا يوجد تسجيل دائم في جدول متكرر.');
+        render();
+      }
+
+      function addPayrollForSession(s, note) {
+        if (state.payroll.some(p => p.sessionId === s.id)) return;
+        state.payroll.push({ id: 'PR-' + Date.now(), teacherId: s.teacherId, sessionId: s.id, amount: durationHours(s) * 7.5, currency: 'JOD', status: 'بانتظار الاعتماد', note });
+      }
+
+      function simulateTeacherConnect(teacherId, providerKind) {
+        const t = teacher(teacherId);
+        if (!t) return;
+        const map = {
+          paidZoom: ['Zoom مدفوع', 'Zoom', 'حصص كاملة المدة'],
+          zoomBasic: ['Zoom Basic', 'Zoom', 'حد أقصى 40 دقيقة'],
+          googleFree: ['Google Meet مجاني', 'Google Meet', '1:1 حتى 24 ساعة، جماعي حتى 60 دقيقة']
+        };
+        const chosen = map[providerKind];
+        t.providerKind = providerKind;
+        t.provider = chosen[0];
+        t.defaultProvider = chosen[1];
+        t.capability = chosen[2];
+        t.ready = true;
+        saveState();
+        toast('تم تحديث اتصال الفيديو محليًا كمحاكاة فقط.');
+        render();
+      }
+
+      function startTeacherSession(sessionId) {
+        const u = currentUser();
+        const s = sessionById(sessionId);
+        if (!u?.teacherId || !s || s.teacherId !== u.teacherId) return toast('المعلم يرى حصصه فقط.');
+        const provision = provisionMeeting(s, 'teacher');
+        saveState();
+        if (!provision.ok) return toast(provision.message);
+        openMeetingModal('بدء الحصة - محاكاة', 'المعلم يحصل على إجراء Start session محلي فقط. لا يوجد رابط Zoom/Google حقيقي ولا start_url أو token.');
+        render();
+      }
+
+      function toast(message) {
+        const area = document.getElementById('toasts');
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = message;
+        area.appendChild(el);
+        setTimeout(() => el.remove(), 4200);
+      }
+
+      function openMeetingModal(title, text) {
+        const dlg = document.getElementById('demoDialog');
+        dlg.innerHTML = `
+          <div class="modal-card">
+            <h3>${h(title)}</h3>
+            <p>${h(text)}</p>
+            <div class="notice warn">محاكاة فقط: لا يتم فتح Zoom أو Google Meet ولا يتم عرض أسرار أو روابط حقيقية.</div>
+            <div class="modal-actions"><button type="button" data-close-dialog>إغلاق</button></div>
+          </div>`;
+        dlg.querySelector('[data-close-dialog]').addEventListener('click', () => dlg.close());
+        dlg.showModal();
+      }
+
+      function startTour() {
+        state.tour = { active: true, index: 0 };
+        state.currentUserId = userByRole('admin').id;
+        state.activeSection = 'overview';
+        saveState();
+        render();
+      }
+
+      function tourNext(runAction = false) {
+        const step = tourSteps[state.tour.index];
+        if (runAction && step[3]) step[3]();
+        state.tour.index = Math.min(tourSteps.length - 1, state.tour.index + 1);
+        const next = tourSteps[state.tour.index];
+        const user = userByRole(next[0]);
+        state.currentUserId = user.id;
+        state.activeSection = next[1];
+        saveState();
+        render();
+      }
+
+      function exitTour() {
+        state.tour.active = false;
+        saveState();
+        render();
+      }
+
+      function render() {
+        const app = document.getElementById('app');
+        const user = currentUser();
+        app.innerHTML = user ? renderShell(user) : renderLogin();
+        bindActions();
+      }
+
+      function renderLogin() {
+        return `
+          <main class="login">
+            <section class="hero">
+              <div>
+                <span class="badge info">محاكي مالك مستقل يعمل عبر file://</span>
+                <h2>استكشاف MVP مكتمل ببيانات عربية وهمية ومتزامنة بين الأدوار</h2>
+                <p>هذا الملف ليس واجهة إنتاجية ولا يستخدم قاعدة بيانات أو شبكة أو تكاملات خارجية. المصادقة هنا توضيحية فقط وليست حماية حقيقية.</p>
+                <div class="panel-actions" style="margin-top:1rem">
+                  <button type="button" data-start-tour>بدء الجولة التعريفية</button>
+                  <button type="button" class="btn-secondary" data-reset>إعادة ضبط البيانات التجريبية</button>
+                </div>
+              </div>
+              <div class="hero-art" aria-hidden="true"><strong>MVTeaches</strong><span>Owner MVP Simulator</span></div>
+            </section>
+            <section class="grid grid-4">
+              ${state.users.map(u => `
+                <article class="role-card">
+                  <span class="badge ${u.role === 'admin' ? 'info' : u.role === 'teacher' ? 'ok' : u.role === 'student' ? 'warn' : 'neutral'}">${h(roles[u.role])}</span>
+                  <h3>${h(u.name)}</h3>
+                  <p>${personaHint(u.role)}</p>
+                  <div class="credentials"><strong>Email:</strong> ${h(u.email)}<br><strong>Password:</strong> ${h(u.password)}</div>
+                  <button type="button" data-login="${h(u.id)}">الدخول كـ ${h(roleArabic(u.role))}</button>
+                </article>
+              `).join('')}
+            </section>
+            <div class="notice">كل الأسماء والعلاقات والمدفوعات والاجتماعات والرواتب داخل هذا الملف وهمية ومحلية.</div>
+          </main>`;
+      }
+
+      function renderShell(user) {
+        const items = nav[user.role];
+        return `
+          <header class="topbar">
+            <div class="brand">
+              <div class="logo">MV</div>
+              <div>
+                <h1>MVTeaches - ${h(roleArabic(user.role))}</h1>
+                <p>${h(user.name)} · مصادقة محاكاة · ${storageAvailable ? 'حفظ محلي مفعل' : 'حفظ مؤقت بالذاكرة'}</p>
+              </div>
+            </div>
+            <div class="top-actions">
+              <button type="button" class="btn-soft" data-start-tour>جولة تعريفية</button>
+              <button type="button" class="btn-secondary" data-switch>تبديل المستخدم</button>
+              <button type="button" class="btn-warning" data-reset>إعادة ضبط البيانات التجريبية</button>
+            </div>
+          </header>
+          <div class="layout">
+            <aside class="sidebar">
+              <div class="nav-title">التنقل</div>
+              <nav class="nav-list" aria-label="تنقل ${h(roleArabic(user.role))}">
+                ${items.map(([key, label]) => `<button type="button" class="nav-button ${state.activeSection === key ? 'active' : ''}" data-section="${h(key)}"><span>${h(label)}</span><span aria-hidden="true">›</span></button>`).join('')}
+              </nav>
+            </aside>
+            <main class="content">
+              ${state.tour.active ? renderTour() : ''}
+              ${renderSection(user)}
+            </main>
+          </div>`;
+      }
+
+      function renderTour() {
+        const [role, section, text, action] = tourSteps[state.tour.index];
+        return `<section class="tour">
+          <strong>الجولة التعريفية ${state.tour.index + 1} / ${tourSteps.length}</strong>
+          <p>${h(text)}</p>
+          <div class="tour-controls">
+            ${action ? '<button type="button" data-tour-action>تنفيذ هذه الخطوة</button>' : ''}
+            <button type="button" class="btn-secondary" data-tour-next>التالي</button>
+            <button type="button" class="btn-ghost" data-exit-tour>الخروج والاستكشاف بحرية</button>
+          </div>
+        </section>`;
+      }
+
+      function renderSection(user) {
+        if (user.role === 'admin') return renderAdmin();
+        if (user.role === 'teacher') return renderTeacher();
+        if (user.role === 'student') return renderStudent();
+        return renderGuardian();
+      }
+
+      function renderAdmin() {
+        switch (state.activeSection) {
+          case 'people': return renderAdminPeople();
+          case 'sessions': return renderAdminSessions();
+          case 'compensation': return renderAdminCompensation();
+          case 'teachers': return renderAdminTeachers();
+          case 'finance': return renderAdminFinance();
+          case 'payroll': return renderAdminPayroll();
+          case 'jobs': return renderAdminJobs();
+          default: return renderAdminOverview();
+        }
+      }
+
+      function renderAdminOverview() {
+        const pending = state.compensationRequests.filter(r => r.status === 'pending').length;
+        return `
+          <section class="hero">
+            <div>
+              <span class="badge info">لوحة مالك توضيحية</span>
+              <h2>قصة MVP المتكاملة: حجز ذاتي، حضور، غياب، تعويض، فيديو، رواتب وتقارير</h2>
+              <p>كل إجراء هنا يحدّث الحالة المشتركة فورًا بين الطالب وولي الأمر والمعلم والأدمن.</p>
+            </div>
+            <div class="hero-art"><strong>${remainingText()}</strong><span>رصيد ليان الحالي</span></div>
+          </section>
+          <section class="grid grid-4">
+            ${metric('طلاب', state.students.length, 'علاقات ولي أمر واضحة')}
+            ${metric('حصص B1 متاحة', availableSessions().length, 'مفلترة حسب المستوى والسعة')}
+            ${metric('طلبات تعويض معلقة', pending, 'تحتاج قرار أدمن')}
+            ${metric('إيراد مؤكد', fmtMoney(state.payments.reduce((s,p) => s + (p.status === 'confirmed' ? p.amount : 0), 0)), 'مزود الدفع قيد الاختيار')}
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>قرارات المالك الممثلة</h2><p>مختصر تنفيذي لما يثبته المحاكي.</p></div></div>
+            <div class="grid grid-3">
+              ${decision('الحجز الذاتي', 'الطالب يحجز فقط حصص B1 المستقبلية التي تسمح بها السعة والباقة.')}
+              ${decision('Join يخصم مرة', 'الحضور يستهلك ساعة واحدة فقط، والضغط المتكرر لا يكرر الخصم.')}
+              ${decision('No-show يستهلك', 'الحصة التي اختارها الطالب ثم غاب عنها تُغلق كغياب وتستهلك ساعة.')}
+              ${decision('تعويض بلا محفظة', 'التعويض يربط حصة بديلة محددة ولا يعيد الرصيد الأصلي.')}
+              ${decision('فيديو محايد المزود', 'كل معلم يستخدم حسابه، ولا يوجد رابط يدوي أو رخصة مركزية.')}
+              ${decision('تكاملات غير حية', 'WhatsApp والدفع وZoom/Google الحي كلها موسومة كمحاكاة أو قيد التحقق.')}
+            </div>
+          </section>`;
+      }
+
+      function renderAdminPeople() {
+        const st = student();
+        const g = state.guardians.find(x => x.id === st.guardianId);
+        return panel('الطلاب والأهالي والمستويات', 'العلاقات متسقة بين كل الأدوار.', `
+          <div class="grid grid-2">
+            ${infoCard('الطالبة', `${st.name}<br>المستوى الحالي: <strong>${st.level}</strong><br>ولي الأمر: ${g.name}`)}
+            ${infoCard('الباقة', `المشتريات: ${totalPurchased()} ساعة<br>المستهلك: ${consumedHours()} ساعة<br>المتبقي: <strong>${ledgerBalance()} ساعة</strong>`)}
+          </div>
+          ${renderLedgerTable()}
+        `);
+      }
+
+      function renderAdminSessions() {
+        return panel('الحصص والحجوزات والسعة', 'الحجز والغياب والحضور تظهر هنا وتنعكس في بوابات الطالب وولي الأمر والمعلم.', `
+          <div class="panel-actions">
+            <button type="button" data-finalize>تشغيل إغلاق الحصص المنتهية - محاكاة</button>
+          </div>
+          ${sessionsTable(state.sessions)}
+        `);
+      }
+
+      function renderAdminCompensation() {
+        const rows = state.compensationRequests;
+        return panel('قائمة طلبات التعويض', 'الموافقة تختار حصة B1 مستقبلية محددة. لا توجد محفظة رصيد أو تحويل حر.', rows.length ? `
+          <div class="table-wrap"><table><thead><tr><th>الطلب</th><th>الطالب</th><th>الحصة الأصلية</th><th>السبب</th><th>الحالة</th><th>حصة بديلة</th><th>إجراء</th></tr></thead><tbody>
+          ${rows.map(r => {
+            const st = student(r.studentId), original = sessionById(r.originalSessionId);
+            return `<tr>
+              <td>${h(r.id)}</td><td>${h(st.name)}</td><td>${h(original.title)}<br><small>${fmtDate(original.start)}</small></td>
+              <td>${h(r.reason)}</td><td>${statusBadge(r.status)}</td>
+              <td>${r.replacementSessionId ? h(sessionById(r.replacementSessionId).title) : '<span class="badge neutral">لم تحدد</span>'}</td>
+              <td>${r.status === 'pending' ? replacementSelect(r) : '<span class="badge neutral">مغلق</span>'}</td>
+            </tr>`;
+          }).join('')}
+          </tbody></table></div>
+          <div class="mobile-list">${rows.map(r => itemCard(r.id, `${statusBadge(r.status)}<br>${replacementSelect(r)}`)).join('')}</div>
+        ` : `<div class="empty">لا توجد طلبات تعويض حاليًا. شغّل إغلاق الغياب ثم قدّم طلبًا من بوابة الطالب.</div>`);
+      }
+
+      function renderAdminTeachers() {
+        return panel('المعلمون وجاهزية مزود الفيديو', 'المركز لا يشتري ولا يدير رخص المعلمين. كل اتصال هنا محاكاة محلية.', `
+          <div class="grid grid-2">
+            ${state.teachers.map(t => `<article class="item-card">
+              <div class="row"><strong>${h(t.name)}</strong>${t.ready ? '<span class="badge ok">جاهز</span>' : '<span class="badge bad">غير جاهز للحصص الأونلاين</span>'}</div>
+              <small>${h(t.provider)} · ${h(t.capability)}</small>
+              <div class="panel-actions">
+                <button type="button" class="btn-small btn-soft" data-connect-provider="${t.id}:googleFree">ربط Google مجاني - محاكاة</button>
+                <button type="button" class="btn-small btn-secondary" data-connect-provider="${t.id}:zoomBasic">Zoom Basic</button>
+                <button type="button" class="btn-small btn-secondary" data-connect-provider="${t.id}:paidZoom">Zoom مدفوع</button>
+              </div>
+            </article>`).join('')}
+          </div>
+          <div class="notice warn">لا يوجد إدخال يدوي لرابط Zoom/Google. المنصة كانت ستنشئ الاجتماع عبر OAuth داخل حساب المعلم.</div>
+        `);
+      }
+
+      function renderAdminFinance() {
+        return panel('المدفوعات والتقرير المالي الأساسي', 'الدفع هنا محاكاة فقط. مزود الدفع قيد الاختيار ولا يوجد MEPS/Tap/PayPal حي.', `
+          <div class="grid grid-3">
+            ${metric('إيراد مؤكد', fmtMoney(state.payments.filter(p => p.status === 'confirmed').reduce((s,p) => s + p.amount, 0)), 'لا جمع عبر عملات متعددة في الإنتاج')}
+            ${metric('ساعات مشتراة', totalPurchased(), 'من باقات مستقلة')}
+            ${metric('ساعات متبقية', ledgerBalance(), 'بعد الحضور والغياب')}
+          </div>
+          <div class="panel-actions"><button type="button" data-add-package>شراء باقة تجريبية جديدة 10 ساعات</button></div>
+          ${paymentsTable()}
+        `);
+      }
+
+      function renderAdminPayroll() {
+        return panel('رواتب المعلمين وسجل الدفع', 'الأجر المعروض توضيحي ويعزل كل معلم عن غيره.', payrollTable(state.payroll));
+      }
+
+      function renderAdminJobs() {
+        return panel('الوظائف الخلفية وجاهزية التكاملات', 'كل التكاملات الخارجية موسومة بصدق: لا شيء يرسل أو يتصل بالشبكة.', `
+          <div class="grid grid-2">
+            ${job('session-finalization', 'كل 5 دقائق في الإنتاج', 'متاح في المحاكي عبر زر إغلاق الحصص المنتهية')}
+            ${job('schedule-generation', 'ليليًا في الإنتاج', 'الحصص الوهمية مولدة مسبقًا هنا')}
+            ${job('WhatsApp', 'محجوب على Meta verification', 'إشعار التعويض يُضاف كطابور محاكى فقط')}
+            ${job('Zoom/Google live', 'ينتظر تطبيقات OAuth وحسابات حقيقية', 'الكود موجود، التحقق الحي خارجي')}
+            ${job('Payment provider', 'مزود الدفع قيد الاختيار', 'لا MEPS ولا غيره مختار أو حي')}
+            ${job('Data Protection', 'مفاتيح خارج قاعدة البيانات في الإنتاج', 'مذكور كتوضيح ولا توجد أسرار هنا')}
+          </div>
+          <div class="panel-actions"><button type="button" data-finalize>تشغيل إغلاق الحصص المنتهية - محاكاة</button></div>
+        `);
+      }
+
+      function renderTeacher() {
+        const u = currentUser();
+        const t = teacher(u.teacherId);
+        const ownSessions = state.sessions.filter(s => s.teacherId === t.id);
+        switch (state.activeSection) {
+          case 'teacherVideo': return panel('مزود الفيديو للمعلم', 'اتصال محلي توضيحي فقط.', `
+            ${infoCard(t.name, `${t.ready ? '<span class="badge ok">جاهز</span>' : '<span class="badge bad">غير جاهز للحصص الأونلاين</span>'}<br>${h(t.provider)}<br>${h(t.capability)}`)}
+            <div class="panel-actions">
+              <button type="button" data-connect-provider="${t.id}:googleFree">ربط Google Meet مجاني - محاكاة</button>
+              <button type="button" class="btn-secondary" data-connect-provider="${t.id}:paidZoom">اختيار Zoom مدفوع - محاكاة</button>
+            </div>
+            <div class="notice warn">لا كلمة مرور Zoom/Google، لا token، ولا رابط host حقيقي يظهر في هذا الملف.</div>`);
+          case 'teacherPayroll': return panel('سجل راتبي', 'المعلم يرى سطوره فقط.', payrollTable(state.payroll.filter(p => p.teacherId === t.id)));
+          case 'teacherIsolation': return panel('عزل بيانات المعلم', 'هذه الشاشة تثبت أن المعلم لا يرى إلا حصصه وطلابه وسجل راتبه.', `
+            ${metric('حصصي فقط', ownSessions.length, 'لا تظهر حصص المعلمين الآخرين')}
+            ${metric('طلاب في حصصي', rosterForTeacher(t.id).length, 'من الحجوزات الفعالة فقط')}
+            ${metric('سطور راتبي', state.payroll.filter(p => p.teacherId === t.id).length, 'لا يوجد teacherId قابل للإدخال')}
+          `);
+          default: return panel('حصصي القادمة والمكتملة', 'زر بدء الحصة محاكاة ولا يفتح أي خدمة خارجية.', sessionsTable(ownSessions, 'teacher'));
+        }
+      }
+
+      function renderStudent() {
+        switch (state.activeSection) {
+          case 'studentBook': return renderStudentBook();
+          case 'studentSessions': return renderStudentSessions();
+          case 'studentComp': return renderStudentComp();
+          case 'studentCertificate': return renderStudentCertificate();
+          default: return renderStudentHome();
+        }
+      }
+
+      function renderStudentHome() {
+        const st = student();
+        return `
+          <section class="hero">
+            <div>
+              <span class="badge ok">طالب B1</span>
+              <h2>${h(st.name)}</h2>
+              <p>يرى الطالب حصص مستواه فقط، ويحجز بنفسه ضمن السعة والرصيد.</p>
+            </div>
+            <div class="hero-art"><strong>${remainingText()}</strong><span>الساعات المتبقية</span></div>
+          </section>
+          <section class="grid grid-4">
+            ${metric('المستوى', st.level, 'حالي')}
+            ${metric('المشتراة', totalPurchased(), 'ساعة')}
+            ${metric('المستهلكة', consumedHours(), 'ساعة')}
+            ${metric('المحجوزة مستقبلًا', committedFutureHours(), 'ساعة محجوزة')}
+          </section>`;
+      }
+
+      function renderStudentBook() {
+        const rows = availableSessions();
+        return panel('حجز حصة ذاتيًا', 'تظهر فقط حصص B1 المستقبلية ذات المقاعد المتاحة والتي لا تتجاوز رصيد الباقة.', `
+          ${rows.length ? sessionsTable(rows, 'book') : '<div class="empty">لا توجد حصص قابلة للحجز الآن.</div>'}
+          <div class="notice">المتاح للحجز بعد احتساب الحجوزات المستقبلية: ${packageAvailableForBooking()} ساعة.</div>
+        `);
+      }
+
+      function renderStudentSessions() {
+        const rows = studentBookings().map(b => sessionById(b.sessionId)).filter(Boolean);
+        return panel('حصصي والحضور', 'Join يسجل الحضور ويستهلك مرة واحدة. الحصة البديلة المرتبطة لا تستهلك ثانية.', `
+          ${sessionsTable(rows, 'student')}
+          <div class="panel-actions">
+            <button type="button" data-finalize>محاكاة إغلاق الغياب للحصص المنتهية</button>
+          </div>
+        `);
+      }
+
+      function renderStudentComp() {
+        const noShows = state.attendance.filter(a => a.studentId === 'ST-1' && !a.present);
+        return panel('طلبات التعويض', 'التعويض يطلب عن No-show محدد، والموافقة تربطه بحصة بديلة واحدة.', `
+          ${noShows.length ? noShows.map(a => {
+            const s = sessionById(a.sessionId);
+            const existing = state.compensationRequests.find(r => r.originalSessionId === s.id && r.status !== 'rejected');
+            return `<article class="item-card">
+              <div class="row"><strong>${h(s.title)}</strong><span class="badge bad">غياب مستهلك</span></div>
+              <small>${fmtDate(s.start)} · الخصم الأصلي بقي كما هو.</small>
+              ${existing ? `<p>حالة الطلب: ${statusBadge(existing.status)} ${existing.replacementSessionId ? '· البديل: ' + h(sessionById(existing.replacementSessionId).title) : ''}</p>` : `
+                <label>سبب اختياري<textarea data-comp-reason placeholder="مثال: ظرف طارئ"></textarea></label>
+                <button type="button" data-request-comp="${h(s.id)}">تقديم طلب تعويض</button>`}
+            </article>`;
+          }).join('') : '<div class="empty">لا يوجد غياب مسجل بعد. شغّل إغلاق الحصص المنتهية لتجربة السيناريو.</div>'}
+        `);
+      }
+
+      function renderStudentCertificate() {
+        const progress = Math.min(100, Math.round((consumedHours() / student().certificateRequiredHours) * 100));
+        const notes = state.notifications.filter(n => n.userId === 'u-student');
+        return panel('الشهادة والتنبيهات', 'الشهادة مجانية عند اكتمال ساعات المستوى. التنبيهات محاكاة محلية فقط.', `
+          <div class="metric"><span>تقدم B1</span><b>${consumedHours()} / ${student().certificateRequiredHours} ساعة</b><div class="progress"><span style="width:${progress}%"></span></div></div>
+          <h3>مركز التنبيهات</h3>
+          ${notes.map(n => `<article class="item-card"><div class="row"><strong>${h(n.channel)}</strong><span class="badge info">${h(n.status)}</span></div><small>${fmtDate(n.at)}</small><p>${h(n.text)}</p></article>`).join('') || '<div class="empty">لا توجد تنبيهات.</div>'}
+        `);
+      }
+
+      function renderGuardian() {
+        const st = student();
+        if (state.activeSection === 'guardianActivity') {
+          return panel('نشاط الابنة والحضور', 'ولي الأمر يراقب فقط ولا يستطيع Join أو التصرف كطالب.', `
+            ${sessionsTable(studentBookings().map(b => sessionById(b.sessionId)).filter(Boolean), 'guardian')}
+            <div class="notice warn">لا يظهر زر Join هنا. دخول الاجتماع محصور بحساب الطالب عبر مسار مصرح.</div>
+          `);
+        }
+        if (state.activeSection === 'guardianFinance') {
+          const notes = state.notifications.filter(n => n.userId === 'u-guardian');
+          return panel('الباقات والتنبيهات', 'ملخص مالي وتعليمي للابنة.', `
+            <div class="grid grid-3">${metric('مشتراة', totalPurchased(), 'ساعة')}${metric('مستهلكة', consumedHours(), 'ساعة')}${metric('متبقية', ledgerBalance(), 'ساعة')}</div>
+            ${paymentsTable()}
+            <h3>تنبيهات ولي الأمر</h3>
+            ${notes.map(n => `<article class="item-card"><strong>${h(n.channel)}</strong><small>${fmtDate(n.at)}</small><p>${h(n.text)}</p></article>`).join('')}
+          `);
+        }
+        return panel('الأبناء المرتبطون', 'العلاقة نفسها تظهر في كل الشاشات.', `
+          <article class="item-card">
+            <div class="row"><strong>${h(st.name)}</strong><span class="badge ok">المستوى ${h(st.level)}</span></div>
+            <small>الباقة الحالية: ${remainingText()} متبقية · تقدم الشهادة: ${consumedHours()} / ${st.certificateRequiredHours} ساعة</small>
+          </article>
+        `);
+      }
+
+      function availableSessions() {
+        const st = student();
+        const booked = new Set(studentBookings(st.id).map(b => b.sessionId));
+        return state.sessions.filter(s =>
+          s.level === st.level &&
+          s.status === 'scheduled' &&
+          new Date(s.start).getTime() > Date.now() &&
+          seatsTaken(s.id) < s.capacity &&
+          !booked.has(s.id)
+        );
+      }
+
+      function sessionsTable(rows, mode = 'admin') {
+        const htmlRows = rows.map(s => {
+          const t = teacher(s.teacherId);
+          const att = attendanceFor(s.id);
+          const booking = studentBookings().find(b => b.sessionId === s.id);
+          return `<tr>
+            <td><strong>${h(s.id)}</strong><br>${h(s.title)}</td>
+            <td>${h(s.level)}</td>
+            <td>${h(t.name)}<br><small>${h(t.provider)}</small></td>
+            <td>${fmtDate(s.start)}<br><small>${s.duration} دقيقة</small></td>
+            <td>${seatsTaken(s.id)} / ${s.capacity}</td>
+            <td>${sessionStatus(s, att, booking)}</td>
+            <td>${sessionActions(s, mode, booking, att)}</td>
+          </tr>`;
+        }).join('');
+        const mobile = rows.map(s => {
+          const att = attendanceFor(s.id);
+          const booking = studentBookings().find(b => b.sessionId === s.id);
+          return itemCard(`${s.id} · ${s.title}`, `${fmtDate(s.start)}<br>${sessionStatus(s, att, booking)}<div class="panel-actions">${sessionActions(s, mode, booking, att)}</div>`);
+        }).join('');
+        return `<div class="table-wrap"><table><thead><tr><th>الحصة</th><th>المستوى</th><th>المعلم</th><th>الوقت</th><th>السعة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>${htmlRows || '<tr><td colspan="7">لا توجد بيانات.</td></tr>'}</tbody></table></div><div class="mobile-list">${mobile || '<div class="empty">لا توجد بيانات.</div>'}</div>`;
+      }
+
+      function sessionActions(s, mode, booking, att) {
+        const actions = [];
+        if (mode === 'book') actions.push(`<button type="button" class="btn-small" data-book="${h(s.id)}">حجز</button>`);
+        if (mode === 'student') {
+          if (booking && new Date(s.start).getTime() > Date.now() && !att) actions.push(`<button type="button" class="btn-small btn-secondary" data-cancel-booking="${h(s.id)}">إلغاء الحجز</button>`);
+          if (booking && new Date(s.start).getTime() > Date.now()) actions.push(`<button type="button" class="btn-small btn-soft" data-make-joinable="${h(s.id)}">محاكاة وصول الموعد</button>`);
+          actions.push(`<button type="button" class="btn-small" data-join="${h(s.id)}">Join - محاكاة</button>`);
+        }
+        if (mode === 'teacher') actions.push(`<button type="button" class="btn-small" data-start-session="${h(s.id)}">بدء الحصة - محاكاة</button>`);
+        if (mode === 'guardian') actions.push('<span class="badge neutral">عرض فقط</span>');
+        if (mode === 'admin') actions.push('<span class="badge neutral">إدارة من التبويبات</span>');
+        return actions.join(' ');
+      }
+
+      function sessionStatus(s, att, booking) {
+        const provider = canProviderHost(s);
+        const parts = [];
+        parts.push(s.status === 'completed' ? '<span class="badge neutral">مكتملة</span>' : '<span class="badge info">مجدولة</span>');
+        if (booking?.replacementFor) parts.push('<span class="badge ok">بديلة مرتبطة</span>');
+        if (att?.present) parts.push('<span class="badge ok">حضور</span>');
+        if (att && !att.present) parts.push('<span class="badge bad">No-show مستهلك</span>');
+        if (!provider.ok) parts.push(`<span class="badge bad">${h(provider.message)}</span>`);
+        if (s.meetingStatus === 'ready') parts.push('<span class="badge ok">اجتماع محاكى جاهز</span>');
+        return parts.join(' ');
+      }
+
+      function replacementSelect(req) {
+        const st = student(req.studentId);
+        const options = state.sessions.filter(s => s.level === st.level && new Date(s.start).getTime() > Date.now() && seatsTaken(s.id) < s.capacity)
+          .map(s => `<option value="${h(s.id)}">${h(s.id)} - ${h(s.title)} - ${fmtDate(s.start)}</option>`).join('');
+        return `<label class="sr-only" for="repl-${h(req.id)}">الحصة البديلة</label><select id="repl-${h(req.id)}" data-replacement-select="${h(req.id)}">${options}</select>
+          <button type="button" class="btn-small" data-approve="${h(req.id)}">موافقة</button>
+          <button type="button" class="btn-small btn-danger" data-reject="${h(req.id)}">رفض</button>`;
+      }
+
+      function renderLedgerTable() {
+        return `<h3>دفتر الساعات</h3><div class="table-wrap"><table><thead><tr><th>الوقت</th><th>النوع</th><th>الساعات</th><th>الحصة</th><th>ملاحظة</th></tr></thead><tbody>
+          ${state.ledger.filter(l => l.studentId === 'ST-1').map(l => `<tr><td>${fmtDate(l.at)}</td><td>${h(l.type)}</td><td>${l.hours}</td><td>${h(l.sessionId || '—')}</td><td>${h(l.note)}</td></tr>`).join('')}
+        </tbody></table></div>`;
+      }
+
+      function paymentsTable() {
+        return `<div class="table-wrap"><table><thead><tr><th>رقم</th><th>الطالب</th><th>المبلغ</th><th>الطريقة</th><th>المزود</th><th>الحالة</th></tr></thead><tbody>
+          ${state.payments.map(p => `<tr><td>${h(p.id)}</td><td>${h(student(p.studentId).name)}</td><td>${fmtMoney(p.amount, p.currency)}</td><td>${h(p.method)}</td><td><span class="badge warn">${h(p.provider)}</span></td><td>${statusBadge(p.status)}</td></tr>`).join('')}
+        </tbody></table></div>`;
+      }
+
+      function payrollTable(rows) {
+        return rows.length ? `<div class="table-wrap"><table><thead><tr><th>السطر</th><th>المعلم</th><th>الحصة</th><th>المبلغ</th><th>الحالة</th><th>ملاحظة</th></tr></thead><tbody>
+          ${rows.map(p => `<tr><td>${h(p.id)}</td><td>${h(teacher(p.teacherId).name)}</td><td>${h(p.sessionId)}</td><td>${fmtMoney(p.amount, p.currency)}</td><td>${statusBadge(p.status)}</td><td>${h(p.note)}</td></tr>`).join('')}
+        </tbody></table></div>` : '<div class="empty">لا توجد سطور راتب لهذا العرض.</div>';
+      }
+
+      function statusBadge(status) {
+        const s = String(status);
+        const cls = s.includes('approved') || s.includes('confirmed') || s.includes('مدفوع') ? 'ok' :
+          s.includes('pending') || s.includes('بانتظار') || s.includes('queued') ? 'warn' :
+          s.includes('rejected') ? 'bad' : 'neutral';
+        const ar = { pending: 'بانتظار المراجعة', approved: 'موافق عليه', rejected: 'مرفوض', confirmed: 'مؤكد' }[s] || s;
+        return `<span class="badge ${cls}">${h(ar)}</span>`;
+      }
+
+      function metric(label, value, sub) {
+        return `<article class="metric"><span>${h(label)}</span><b>${value}</b><span>${h(sub)}</span></article>`;
+      }
+
+      function decision(title, text) {
+        return `<article class="item-card"><strong>${h(title)}</strong><small>${h(text)}</small></article>`;
+      }
+
+      function infoCard(title, body) {
+        return `<article class="item-card"><strong>${h(title)}</strong><p>${body}</p></article>`;
+      }
+
+      function job(name, cadence, status) {
+        return `<article class="item-card"><div class="row"><strong>${h(name)}</strong><span class="badge info">محاكاة</span></div><small>${h(cadence)}</small><p>${h(status)}</p></article>`;
+      }
+
+      function itemCard(title, body) {
+        return `<article class="item-card"><strong>${h(title)}</strong><div>${body}</div></article>`;
+      }
+
+      function panel(title, subtitle, body) {
+        return `<section class="panel"><div class="panel-head"><div><h2>${h(title)}</h2><p>${h(subtitle)}</p></div></div>${body}</section>`;
+      }
+
+      function totalPurchased() {
+        return state.ledger.filter(l => l.studentId === 'ST-1' && l.type === 'purchase').reduce((s,l) => s + l.hours, 0);
+      }
+
+      function remainingText() {
+        return `${ledgerBalance()} ساعة`;
+      }
+
+      function rosterForTeacher(teacherId) {
+        const ids = new Set(state.sessions.filter(s => s.teacherId === teacherId).flatMap(s => activeBookings(s.id).map(b => b.studentId)));
+        return [...ids].filter(id => id !== 'ST-OTHER');
+      }
+
+      function roleArabic(role) {
+        return { admin: 'الأدمن', teacher: 'المعلم', student: 'الطالب', guardian: 'ولي الأمر' }[role] || role;
+      }
+
+      function personaHint(role) {
+        return {
+          admin: 'إدارة كاملة للسيناريو، الموافقات، التقارير، والتكاملات.',
+          teacher: 'حصص المعلم، بدء الحصة، الجاهزية، وسجل الراتب.',
+          student: 'حجز ذاتي، Join، غياب، طلب تعويض، وشهادة.',
+          guardian: 'متابعة الابنة والباقات والحضور دون صلاحية Join.'
+        }[role];
+      }
+
+      function bindActions() {
+        document.querySelectorAll('[data-login]').forEach(b => b.addEventListener('click', () => setUser(b.dataset.login)));
+        document.querySelectorAll('[data-section]').forEach(b => b.addEventListener('click', () => setSection(b.dataset.section)));
+        document.querySelectorAll('[data-switch]').forEach(b => b.addEventListener('click', () => { state.currentUserId = null; saveState(); render(); }));
+        document.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', resetDemo));
+        document.querySelectorAll('[data-start-tour]').forEach(b => b.addEventListener('click', startTour));
+        document.querySelectorAll('[data-tour-next]').forEach(b => b.addEventListener('click', () => tourNext(false)));
+        document.querySelectorAll('[data-tour-action]').forEach(b => b.addEventListener('click', () => tourNext(true)));
+        document.querySelectorAll('[data-exit-tour]').forEach(b => b.addEventListener('click', exitTour));
+        document.querySelectorAll('[data-book]').forEach(b => b.addEventListener('click', () => bookSession(b.dataset.book)));
+        document.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => joinSession(b.dataset.join)));
+        document.querySelectorAll('[data-cancel-booking]').forEach(b => b.addEventListener('click', () => cancelBooking(b.dataset.cancelBooking)));
+        document.querySelectorAll('[data-finalize]').forEach(b => b.addEventListener('click', () => finalizeNoShows()));
+        document.querySelectorAll('[data-request-comp]').forEach(b => b.addEventListener('click', () => requestCompensation(b.dataset.requestComp)));
+        document.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', () => {
+          const select = document.querySelector(`[data-replacement-select="${CSS.escape(b.dataset.approve)}"]`);
+          approveRequest(b.dataset.approve, select.value);
+        }));
+        document.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', () => rejectRequest(b.dataset.reject)));
+        document.querySelectorAll('[data-add-package]').forEach(b => b.addEventListener('click', addPackage));
+        document.querySelectorAll('[data-connect-provider]').forEach(b => b.addEventListener('click', () => {
+          const [teacherId, kind] = b.dataset.connectProvider.split(':');
+          simulateTeacherConnect(teacherId, kind);
+        }));
+        document.querySelectorAll('[data-start-session]').forEach(b => b.addEventListener('click', () => startTeacherSession(b.dataset.startSession)));
+        document.querySelectorAll('[data-make-joinable]').forEach(b => b.addEventListener('click', () => makeJoinable(b.dataset.makeJoinable)));
+      }
+
+      if (memoryState && !state) state = memoryState;
+      render();
+    })();
+  </script>
+</body>
+</html>
