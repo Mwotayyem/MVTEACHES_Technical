@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.People;
+using MVTeaches.Domain.Audit;
 using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Persistence;
 using NodaTime;
@@ -33,7 +34,10 @@ public class TeacherLevelAuthorizationService : ITeacherLevelAuthorizationServic
             return TeacherLevelGrantOutcome.LevelNotFound;
         }
 
-        _db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacherId, levelId, grantedByUserId, _clock.GetCurrentInstant()));
+        var now = _clock.GetCurrentInstant();
+        _db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacherId, levelId, grantedByUserId, now));
+        _db.AuditLogEntries.Add(new AuditLogEntry("Teacher", teacherId.ToString(), "LevelGranted",
+            grantedByUserId, null, beforeJson: null, afterJson: $"{{\"levelId\":{levelId}}}", now));
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
@@ -43,13 +47,15 @@ public class TeacherLevelAuthorizationService : ITeacherLevelAuthorizationServic
         {
             // ux_teacher_level is the real guard against a duplicate grant
             // under concurrency; this makes the operation idempotent rather
-            // than surfacing a constraint violation to the admin.
+            // than surfacing a constraint violation to the admin. The audit
+            // entry for a grant that never actually happened is discarded
+            // along with the rest of this batch by ChangeTracker.Clear().
             _db.ChangeTracker.Clear();
             return TeacherLevelGrantOutcome.AlreadyGranted;
         }
     }
 
-    public async Task<TeacherLevelRevokeOutcome> RevokeAsync(long teacherId, int levelId, CancellationToken cancellationToken)
+    public async Task<TeacherLevelRevokeOutcome> RevokeAsync(long teacherId, int levelId, long revokedByUserId, CancellationToken cancellationToken)
     {
         if (!await _db.Teachers.AnyAsync(t => t.Id == teacherId, cancellationToken))
         {
@@ -64,6 +70,8 @@ public class TeacherLevelAuthorizationService : ITeacherLevelAuthorizationServic
         }
 
         _db.TeacherLevelAssignments.Remove(assignment);
+        _db.AuditLogEntries.Add(new AuditLogEntry("Teacher", teacherId.ToString(), "LevelRevoked",
+            revokedByUserId, null, beforeJson: $"{{\"levelId\":{levelId}}}", afterJson: null, _clock.GetCurrentInstant()));
         await _db.SaveChangesAsync(cancellationToken);
         return TeacherLevelRevokeOutcome.Revoked;
     }

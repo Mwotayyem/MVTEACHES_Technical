@@ -136,10 +136,34 @@ public class TeacherLevelAuthorizationServiceTests
         var service = CreateService(db);
 
         await service.GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
-        var outcome = await service.RevokeAsync(scene.TeacherId, scene.LevelA, CancellationToken.None);
+        var outcome = await service.RevokeAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
 
         Assert.Equal(TeacherLevelRevokeOutcome.Revoked, outcome);
         Assert.False(await service.IsAuthorizedForLevelAsync(scene.TeacherId, scene.LevelA, CancellationToken.None));
+    }
+
+    /// <summary>Owner decision 2026-08-30 rule 6: "audit-log changes."</summary>
+    [Fact]
+    public async Task Granting_and_revoking_a_level_are_both_audit_logged()
+    {
+        await using var db = _fixture.CreateContext();
+        var scene = await SeedAsync(db);
+        var service = CreateService(db);
+
+        await service.GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        await service.RevokeAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+
+        await using var verify = _fixture.CreateContext();
+        var entries = await verify.AuditLogEntries
+            .Where(a => a.EntityType == "Teacher" && a.EntityId == scene.TeacherId.ToString())
+            .OrderBy(a => a.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, entries.Count);
+        Assert.Equal("LevelGranted", entries[0].Action);
+        Assert.Equal("LevelRevoked", entries[1].Action);
+        Assert.Equal(scene.AdminUserId, entries[0].PerformedByUserId);
+        Assert.Equal(scene.AdminUserId, entries[1].PerformedByUserId);
     }
 
     [Fact]
@@ -149,7 +173,7 @@ public class TeacherLevelAuthorizationServiceTests
         var scene = await SeedAsync(db);
 
         Assert.Equal(TeacherLevelRevokeOutcome.NotGranted,
-            await CreateService(db).RevokeAsync(scene.TeacherId, scene.LevelB, CancellationToken.None));
+            await CreateService(db).RevokeAsync(scene.TeacherId, scene.LevelB, scene.AdminUserId, CancellationToken.None));
     }
 
     [Fact]

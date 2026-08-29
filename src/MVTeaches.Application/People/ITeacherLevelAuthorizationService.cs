@@ -36,7 +36,7 @@ public interface ITeacherLevelAuthorizationService
 {
     Task<TeacherLevelGrantOutcome> GrantAsync(long teacherId, int levelId, long grantedByUserId, CancellationToken cancellationToken);
 
-    Task<TeacherLevelRevokeOutcome> RevokeAsync(long teacherId, int levelId, CancellationToken cancellationToken);
+    Task<TeacherLevelRevokeOutcome> RevokeAsync(long teacherId, int levelId, long revokedByUserId, CancellationToken cancellationToken);
 
     /// <summary>The authorization check itself. False when no grant exists —
     /// absence is denial, there is no implicit default.</summary>

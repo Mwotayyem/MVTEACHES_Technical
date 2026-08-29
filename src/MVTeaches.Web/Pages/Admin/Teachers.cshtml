@@ -150,10 +150,42 @@
     </table>
 </div>
 
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Grant a teacher an authorized level</h5>
+        <p class="text-muted small">Owner decision 2026-08-30 rule 6/rule 5 — a teacher may publish sessions only for levels explicitly granted here. Granting an already-granted level is refused, not silently accepted twice.</p>
+        <form method="post" asp-page-handler="GrantLevel" class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label" asp-for="LevelGrant.TeacherId">Teacher</label>
+                <select asp-for="LevelGrant.TeacherId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var t in Model.Teachers)
+                    {
+                        <option value="@t.Id">@t.FullName (#@t.Id)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="LevelGrant.LevelId">Level</label>
+                <select asp-for="LevelGrant.LevelId" class="form-select">
+                    <option value="">-- select --</option>
+                    @foreach (var l in Model.Levels)
+                    {
+                        <option value="@l.Id">@l.Code</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Grant level</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <h2>Teachers</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>Name</th><th>Time zone</th><th>Active</th><th>Online sessions</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Time zone</th><th>Active</th><th>Online sessions</th><th>Authorized levels</th><th></th></tr></thead>
         <tbody>
             @foreach (var t in Model.Teachers)
             {
@@ -170,6 +202,23 @@
                         else
                         {
                             <span class="text-success">Ready</span>
+                        }
+                    </td>
+                    <td>
+                        @if (Model.LevelsByTeacher.TryGetValue(t.Id, out var levels) && levels.Count > 0)
+                        {
+                            foreach (var l in levels)
+                            {
+                                <form method="post" asp-page-handler="RevokeLevel" class="d-inline-block me-1 mb-1">
+                                    <input type="hidden" name="teacherId" value="@t.Id" />
+                                    <input type="hidden" name="levelId" value="@l.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Revoke this level">@l.Code &times;</button>
+                                </form>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">none</span>
                         }
                     </td>
                     <td>

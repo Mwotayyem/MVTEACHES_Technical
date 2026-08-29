@@ -27,14 +27,16 @@ public class TeachersModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly ITeacherAdmissionService _teachers;
     private readonly ITeacherRateService _rates;
+    private readonly ITeacherLevelAuthorizationService _levelAuthorization;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public TeachersModel(MvTeachesDbContext db, ITeacherAdmissionService teachers, ITeacherRateService rates,
-        UserManager<ApplicationUser> userManager)
+        ITeacherLevelAuthorizationService levelAuthorization, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _teachers = teachers;
         _rates = rates;
+        _levelAuthorization = levelAuthorization;
         _userManager = userManager;
     }
 
@@ -62,14 +64,29 @@ public class TeachersModel : PageModel
     /// server-side; this set only makes it visible to the admin here).</summary>
     public IReadOnlySet<long> TeachersNotReadyForOnlineSessions { get; set; } = new HashSet<long>();
 
+    /// <summary>Owner decision 2026-08-30 rule 6: every level currently
+    /// granted to each teacher, for the "view teachers and assigned levels"
+    /// half of this screen.</summary>
+    public IReadOnlyDictionary<long, IReadOnlyList<Level>> LevelsByTeacher { get; set; } =
+        new Dictionary<long, IReadOnlyList<Level>>();
+
     [BindProperty]
     public RegisterTeacherInput NewTeacher { get; set; } = new();
 
     [BindProperty]
     public CreateRateInput NewRate { get; set; } = new();
 
+    [BindProperty]
+    public LevelGrantInput LevelGrant { get; set; } = new();
+
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
+
+    public class LevelGrantInput
+    {
+        [Required] public long TeacherId { get; set; }
+        [Required] public int LevelId { get; set; }
+    }
 
     public class RegisterTeacherInput
     {
@@ -156,6 +173,60 @@ public class TeachersModel : PageModel
         return Page();
     }
 
+    /// <summary>Owner decision 2026-08-30 rule 6: "add allowed levels,
+    /// prevent duplicates" — TeacherId/LevelId are bound to a dedicated input
+    /// DTO, never a domain entity (no over-posting surface), and duplicate
+    /// prevention is enforced server-side by
+    /// ITeacherLevelAuthorizationService itself (ux_teacher_level), not
+    /// merely by hiding an already-granted level in this form.</summary>
+    public async Task<IActionResult> OnPostGrantLevelAsync()
+    {
+        ModelState.Clear();
+        if (!TryValidateModel(LevelGrant, nameof(LevelGrant)))
+        {
+            await LoadAsync();
+            return Page();
+        }
+
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var outcome = await _levelAuthorization.GrantAsync(LevelGrant.TeacherId, LevelGrant.LevelId, actingUserId, HttpContext.RequestAborted);
+        ErrorMessage = outcome switch
+        {
+            TeacherLevelGrantOutcome.Granted => null,
+            TeacherLevelGrantOutcome.AlreadyGranted => "This teacher is already authorized for this level.",
+            TeacherLevelGrantOutcome.TeacherNotFound => "Teacher not found.",
+            TeacherLevelGrantOutcome.LevelNotFound => "Level not found.",
+            _ => "Could not grant this level.",
+        };
+        if (outcome == TeacherLevelGrantOutcome.Granted)
+        {
+            StatusMessage = "Level granted.";
+        }
+
+        await LoadAsync();
+        return Page();
+    }
+
+    /// <summary>Revocation deliberately does not touch sessions the teacher
+    /// already published for this level — see
+    /// ITeacherLevelAuthorizationService's own remarks on why.</summary>
+    public async Task<IActionResult> OnPostRevokeLevelAsync(long teacherId, int levelId)
+    {
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var outcome = await _levelAuthorization.RevokeAsync(teacherId, levelId, actingUserId, HttpContext.RequestAborted);
+        StatusMessage = outcome == TeacherLevelRevokeOutcome.Revoked ? "Level revoked." : null;
+        ErrorMessage = outcome switch
+        {
+            TeacherLevelRevokeOutcome.Revoked => null,
+            TeacherLevelRevokeOutcome.NotGranted => "This teacher was not authorized for this level.",
+            TeacherLevelRevokeOutcome.TeacherNotFound => "Teacher not found.",
+            _ => "Could not revoke this level.",
+        };
+
+        await LoadAsync();
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostDeactivateAsync(long teacherId)
     {
         await _teachers.DeactivateAsync(teacherId, HttpContext.RequestAborted);
@@ -198,5 +269,19 @@ public class TeachersModel : PageModel
             r.LevelId.HasValue ? levelCodes.GetValueOrDefault(r.LevelId.Value) : null,
             r.AgeGroupId.HasValue ? ageGroupCodes.GetValueOrDefault(r.AgeGroupId.Value) : null,
             r.Rate.Amount, r.Rate.Currency, r.Unit, r.EffectiveFrom, r.EffectiveTo)).ToList();
+
+        // Deliberately looks up against EVERY level, not just Levels (active
+        // ones only, used for the "grant" dropdown) — a level assigned in the
+        // past must still display even if it was later deactivated.
+        var levelById = await _db.Levels.ToDictionaryAsync(l => l.Id);
+        var assignments = await _db.TeacherLevelAssignments.ToListAsync();
+        LevelsByTeacher = assignments
+            .GroupBy(a => a.TeacherId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<Level>)g
+                .Select(a => levelById.GetValueOrDefault(a.LevelId))
+                .Where(l => l is not null)
+                .Select(l => l!)
+                .OrderBy(l => l.SortOrder)
+                .ToList());
     }
 }
