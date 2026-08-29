@@ -598,6 +598,92 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    // ---- Teacher slot publishing (owner decision 2026-08-30 rule 7) ----
+
+    [Fact]
+    public async Task Unauthenticated_request_to_the_publish_slots_page_is_redirected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/Teacher/PublishSlots");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Authenticated_admin_is_turned_away_from_the_publish_slots_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/Teacher/PublishSlots");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_guardian_is_turned_away_from_the_publish_slots_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(GuardianEmail);
+        var response = await client.GetAsync("/Teacher/PublishSlots");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_teacher_is_shown_the_publish_slots_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(TeacherEmail);
+        var response = await client.GetAsync("/Teacher/PublishSlots");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    /// <summary>End-to-end through the real page, not just the service:
+    /// only levels TeacherLevelAssignment actually grants this teacher show
+    /// up in the "Level" dropdown at all — an authorized level the teacher
+    /// does NOT hold must never even be offered as a choice.</summary>
+    [Fact]
+    public async Task The_publish_slots_page_only_offers_levels_the_teacher_is_actually_authorized_for()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var teacherUser = await userManager.FindByEmailAsync(TeacherEmail);
+        var teacher = await EnsureLinkedTeacherAsync(db, teacherUser!.Id, "Slot Publisher");
+
+        // A range clear of both this class's own 90_000_00x literals AND every
+        // NextId()-walked test class sharing this database (the highest base
+        // any of them currently starts from is 96_000_000) — an id collision
+        // here would silently leave this test's own Level row unwritten
+        // (the "if not exists" seed below would find someone ELSE'S level
+        // already occupying that id and skip creating this one), exactly the
+        // class of bug this session already root-caused once for country
+        // codes.
+        var grantedLevelId = 97_000_010;
+        var ungrantedLevelId = 97_000_011;
+        if (!await db.Levels.AnyAsync(l => l.Id == grantedLevelId))
+        {
+            db.Levels.Add(new Level(grantedLevelId, "PUBSLOT-GRANTED", "مستوى", "Level", grantedLevelId));
+        }
+        if (!await db.Levels.AnyAsync(l => l.Id == ungrantedLevelId))
+        {
+            db.Levels.Add(new Level(ungrantedLevelId, "PUBSLOT-UNGRANTED", "مستوى", "Level", ungrantedLevelId));
+        }
+        await db.SaveChangesAsync();
+
+        if (!await db.TeacherLevelAssignments.AnyAsync(a => a.TeacherId == teacher.Id && a.LevelId == grantedLevelId))
+        {
+            db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacher.Id, grantedLevelId, teacherUser.Id, SystemClock.Instance.GetCurrentInstant()));
+            await db.SaveChangesAsync();
+        }
+
+        var client = await CreateAuthenticatedClientAsync(TeacherEmail);
+        var body = await client.GetStringAsync("/Teacher/PublishSlots");
+
+        Assert.Contains("PUBSLOT-GRANTED", body);
+        Assert.DoesNotContain("PUBSLOT-UNGRANTED", body);
+    }
+
     // ---- Video-meeting connections (owner clarification 2026-08-29) ----
 
     [Fact]
