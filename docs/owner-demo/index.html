@@ -237,6 +237,60 @@
     .item-card .row { display: flex; justify-content: space-between; gap: .75rem; align-items: center; }
     .item-card small { color: var(--muted); }
 
+    .portal-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: .65rem;
+      margin-top: 1rem;
+    }
+    .portal-page {
+      border: 1px solid #cfe0ea;
+      border-radius: var(--radius);
+      background: #fbfdff;
+      padding: .75rem;
+      display: grid;
+      gap: .25rem;
+      min-height: 96px;
+    }
+    .portal-page code {
+      direction: ltr;
+      text-align: left;
+      color: #24536a;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+    .portal-page span { color: var(--muted); font-size: .88rem; }
+
+    .timeline { display: grid; gap: .65rem; }
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 130px minmax(0, 1fr) auto;
+      gap: .75rem;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: .7rem;
+    }
+    .timeline-row time { color: var(--muted); font-size: .88rem; }
+
+    .answer-grid { display: grid; gap: .55rem; }
+    .answer-option {
+      width: 100%;
+      text-align: right;
+      background: #fff;
+      color: var(--ink);
+      border-color: #c9d6e2;
+      box-shadow: none;
+      justify-content: flex-start;
+    }
+    .answer-option.selected, .answer-option:hover {
+      background: #edf6fa;
+      color: var(--brand);
+      transform: none;
+      box-shadow: none;
+    }
+
     .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; align-items: end; }
     label { display: grid; gap: .25rem; font-weight: 800; color: #344054; }
     input, select, textarea {
@@ -362,6 +416,7 @@
       .nav-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .hero { grid-template-columns: 1fr; }
       .grid-4, .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .portal-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @media (max-width: 680px) {
@@ -376,6 +431,8 @@
       .mobile-list { display: grid; }
       .hero-art { min-height: 130px; }
       .demo-ribbon { font-size: .9rem; }
+      .portal-strip, .timeline-row { grid-template-columns: 1fr; }
+      .timeline-row { align-items: start; }
     }
   </style>
 </head>
@@ -389,7 +446,7 @@
     (() => {
       'use strict';
 
-      const STORAGE_KEY = 'mvteaches-owner-demo-v1';
+      const STORAGE_KEY = 'mvteaches-owner-demo-v2';
       let storageAvailable = true;
       let memoryState = null;
       let state = loadState();
@@ -419,11 +476,14 @@
           ['teacherIsolation', 'عزل البيانات']
         ],
         student: [
-          ['studentHome', 'ملخصي'],
-          ['studentBook', 'حجز حصة'],
-          ['studentSessions', 'حصصي والحضور'],
-          ['studentComp', 'التعويضات'],
-          ['studentCertificate', 'الشهادة والتنبيهات']
+          ['studentDashboard', 'portal_dashboard.html'],
+          ['studentClasses', 'portal_classes.html'],
+          ['studentAttendance', 'portal_attendance.html'],
+          ['studentApology', 'portal_apology.html'],
+          ['studentFinance', 'portal_finance.html'],
+          ['studentProfile', 'portal_profile.html'],
+          ['studentProgress', 'portal_progress.html'],
+          ['studentTest', 'portal_test.html']
         ],
         guardian: [
           ['guardianHome', 'الأبناء'],
@@ -434,12 +494,12 @@
 
       const tourSteps = [
         ['admin', 'overview', 'الأدمن يراجع حالة النظام والمقاييس الأساسية.', null],
-        ['student', 'studentBook', 'الطالب يحجز حصة B1 بنفسه من الحصص المطابقة لمستواه.', () => bookSession('S-101', true)],
-        ['student', 'studentSessions', 'الطالب يضغط Join فتُسجل الحضور وتُستهلك ساعة واحدة فقط.', () => { makeJoinable('S-101'); joinSession('S-101', true); }],
+        ['student', 'studentClasses', 'الطالب يحجز حصة B1 بنفسه من الحصص المطابقة لمستواه.', () => bookSession('S-101', true)],
+        ['student', 'studentAttendance', 'الطالب يضغط Join فتُسجل الحضور وتُستهلك ساعة واحدة فقط.', () => { makeJoinable('S-101'); joinSession('S-101', true); }],
         ['admin', 'jobs', 'تشغيل إغلاق الحصص المنتهية يسجل الغياب المحجوز سابقًا ويستهلك ساعة.', () => finalizeNoShows(true)],
-        ['student', 'studentComp', 'الطالب يرى الغياب ويقدم طلب تعويض مرتبطًا بالحصة الفائتة.', () => requestCompensation('S-099', true)],
+        ['student', 'studentApology', 'الطالب يرى الغياب ويقدم طلب تعويض مرتبطًا بالحصة الفائتة.', () => requestCompensation('S-099', true)],
         ['admin', 'compensation', 'الأدمن يوافق ويختار حصة B1 مستقبلية محددة كبديل.', () => approveFirstPending(true)],
-        ['student', 'studentSessions', 'الطالب ينضم للحصة البديلة مجانًا مرة واحدة دون إعادة الرصيد.', () => joinReplacementForTour()],
+        ['student', 'studentAttendance', 'الطالب ينضم للحصة البديلة مجانًا مرة واحدة دون إعادة الرصيد.', () => joinReplacementForTour()],
         ['teacher', 'teacherPayroll', 'المعلم يرى حصصه وسجل الراتب الخاص به فقط.', null],
         ['guardian', 'guardianActivity', 'ولي الأمر يراجع نشاط الابنة دون القدرة على دخول الاجتماع أو التصرف بدلًا عنها.', null]
       ];
@@ -463,7 +523,22 @@
             { id: 'G-1', name: 'سارة الخطيب', children: ['ST-1'] }
           ],
           students: [
-            { id: 'ST-1', name: 'ليان أحمد الخطيب', guardianId: 'G-1', level: 'B1', course: 'اللغة الإنجليزية', certificateRequiredHours: 30 }
+            {
+              id: 'ST-1',
+              name: 'ليان أحمد الخطيب',
+              guardianId: 'G-1',
+              level: 'B1',
+              course: 'اللغة الإنجليزية',
+              age: 14,
+              city: 'عمّان',
+              phone: '+962 7X XXX XXXX',
+              timezone: 'Asia/Amman',
+              certificateRequiredHours: 30,
+              placementScore: 78,
+              recommendedLevel: 'B1',
+              placementDate: iso(-2600),
+              goals: ['محادثة بثقة', 'تحسين الاستماع', 'الاستعداد لاختبار المدرسة']
+            }
           ],
           teachers: [
             { id: 'T-1', name: 'نور الحسن', provider: 'Zoom مدفوع', providerKind: 'paidZoom', ready: true, defaultProvider: 'Zoom', capability: 'حصص كاملة المدة', currency: 'JOD' },
@@ -502,7 +577,31 @@
           notifications: [
             { id: 'N-1', userId: 'u-student', text: 'تم تأكيد باقة 10 ساعات. هذه رسالة توضيحية محلية.', channel: 'داخل المحاكي', status: 'shown', at: iso(-2195) },
             { id: 'N-2', userId: 'u-guardian', text: 'تم ربط ليان بحساب ولي الأمر. هذه رسالة توضيحية محلية.', channel: 'داخل المحاكي', status: 'shown', at: iso(-2190) }
-          ]
+          ],
+          placementTest: {
+            submitted: false,
+            answers: {},
+            questions: [
+              {
+                id: 'Q1',
+                prompt: 'Choose the correct sentence.',
+                choices: ['She go to school every day.', 'She goes to school every day.', 'She going to school every day.'],
+                correct: 1
+              },
+              {
+                id: 'Q2',
+                prompt: 'What is the best response to: How long have you studied English?',
+                choices: ['Since three years.', 'For three years.', 'At three years.'],
+                correct: 1
+              },
+              {
+                id: 'Q3',
+                prompt: 'Select the closest meaning of confident.',
+                choices: ['Sure of yourself', 'Very tired', 'Late for class'],
+                correct: 0
+              }
+            ]
+          }
         };
       }
 
@@ -839,6 +938,37 @@
         render();
       }
 
+      function answerPlacementQuestion(raw) {
+        const [questionId, index] = raw.split(':');
+        state.placementTest.answers[questionId] = Number(index);
+        state.placementTest.submitted = false;
+        saveState();
+        render();
+      }
+
+      function submitPlacementTest() {
+        const test = state.placementTest;
+        if (Object.keys(test.answers).length < test.questions.length) {
+          return toast('أكمل كل أسئلة الاختبار أولاً.');
+        }
+        test.submitted = true;
+        const score = placementScore();
+        const st = student();
+        st.placementScore = score;
+        st.recommendedLevel = score >= 70 ? 'B1' : 'A2';
+        state.notifications.unshift({
+          id: 'N-T-' + Date.now(),
+          userId: 'u-student',
+          text: `تم تسليم اختبار المستوى محليًا. النتيجة ${score}% والمستوى المقترح ${st.recommendedLevel}.`,
+          channel: 'اختبار المستوى',
+          status: 'shown',
+          at: new Date().toISOString()
+        });
+        saveState();
+        toast('تم تسليم اختبار المستوى وتحديث صفحة التقدم.');
+        render();
+      }
+
       function toast(message) {
         const area = document.getElementById('toasts');
         const el = document.createElement('div');
@@ -1015,6 +1145,7 @@
               ${decision('فيديو محايد المزود', 'كل معلم يستخدم حسابه، ولا يوجد رابط يدوي أو رخصة مركزية.')}
               ${decision('تكاملات غير حية', 'WhatsApp والدفع وZoom/Google الحي كلها موسومة كمحاكاة أو قيد التحقق.')}
             </div>
+            ${portalMap()}
           </section>`;
       }
 
@@ -1128,10 +1259,24 @@
 
       function renderStudent() {
         switch (state.activeSection) {
-          case 'studentBook': return renderStudentBook();
-          case 'studentSessions': return renderStudentSessions();
-          case 'studentComp': return renderStudentComp();
-          case 'studentCertificate': return renderStudentCertificate();
+          case 'studentBook':
+          case 'studentClasses':
+            return renderStudentClasses();
+          case 'studentSessions':
+          case 'studentAttendance':
+            return renderStudentAttendance();
+          case 'studentComp':
+          case 'studentApology':
+            return renderStudentApology();
+          case 'studentFinance':
+            return renderStudentFinance();
+          case 'studentProfile':
+            return renderStudentProfile();
+          case 'studentCertificate':
+          case 'studentProgress':
+            return renderStudentProgress();
+          case 'studentTest':
+            return renderStudentTest();
           default: return renderStudentHome();
         }
       }
@@ -1141,9 +1286,9 @@
         return `
           <section class="hero">
             <div>
-              <span class="badge ok">طالب B1</span>
+              <span class="badge ok">portal_dashboard.html</span>
               <h2>${h(st.name)}</h2>
-              <p>يرى الطالب حصص مستواه فقط، ويحجز بنفسه ضمن السعة والرصيد.</p>
+              <p>واجهة الطالب الرئيسية تعرض المستوى، الرصيد، الحصص القريبة، والتنبيهات المهمة في شاشة واحدة.</p>
             </div>
             <div class="hero-art"><strong>${remainingText()}</strong><span>الساعات المتبقية</span></div>
           </section>
@@ -1152,30 +1297,53 @@
             ${metric('المشتراة', totalPurchased(), 'ساعة')}
             ${metric('المستهلكة', consumedHours(), 'ساعة')}
             ${metric('المحجوزة مستقبلًا', committedFutureHours(), 'ساعة محجوزة')}
+          </section>
+          <section class="grid grid-2">
+            ${panel('أقرب حصة', 'ملخص سريع من portal_classes.html و portal_attendance.html.', nextStudentSessionCard())}
+            ${panel('إشعاراتي', 'آخر الرسائل المحلية الوهمية.', notificationList('u-student', 3))}
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>خريطة صفحات بوابة الطالب</h2><p>كل هذه الصفحات موجودة كتجربة داخل الملف الواحد.</p></div></div>
+            ${portalMap('student')}
           </section>`;
       }
 
-      function renderStudentBook() {
+      function renderStudentClasses() {
         const rows = availableSessions();
-        return panel('حجز حصة ذاتيًا', 'تظهر فقط حصص B1 المستقبلية ذات المقاعد المتاحة والتي لا تتجاوز رصيد الباقة.', `
+        return panel('portal_classes.html - الحصص والحجز', 'تظهر فقط حصص مستوى الطالب المستقبلية ذات المقاعد المتاحة والتي لا تتجاوز رصيد الباقة.', `
+          <div class="grid grid-3">
+            ${metric('متاحة للحجز', rows.length, 'بعد فلترة المستوى والسعة')}
+            ${metric('رصيد قابل للحجز', packageAvailableForBooking(), 'ساعة بعد الحجوزات')}
+            ${metric('حجوزاتي الفعالة', studentBookings().length, 'تشمل البدائل الموافق عليها')}
+          </div>
+          <h3>حصص يمكن للطالب حجزها</h3>
           ${rows.length ? sessionsTable(rows, 'book') : '<div class="empty">لا توجد حصص قابلة للحجز الآن.</div>'}
-          <div class="notice">المتاح للحجز بعد احتساب الحجوزات المستقبلية: ${packageAvailableForBooking()} ساعة.</div>
+          <h3>جدولي الحالي</h3>
+          ${sessionsTable(studentBookings().map(b => sessionById(b.sessionId)).filter(Boolean), 'student')}
+          <div class="notice">الطالب لا يرى حصص A2 ولا الحصص المكتملة السعة ولا الحصص التي لا يغطيها الرصيد.</div>
         `);
       }
 
-      function renderStudentSessions() {
+      function renderStudentAttendance() {
         const rows = studentBookings().map(b => sessionById(b.sessionId)).filter(Boolean);
-        return panel('حصصي والحضور', 'Join يسجل الحضور ويستهلك مرة واحدة. الحصة البديلة المرتبطة لا تستهلك ثانية.', `
+        return panel('portal_attendance.html - الحضور والدخول', 'Join يسجل الحضور ويستهلك مرة واحدة. الحصة البديلة المرتبطة لا تستهلك ثانية.', `
+          <div class="grid grid-3">
+            ${metric('حضور مسجل', state.attendance.filter(a => a.studentId === 'ST-1' && a.present).length, 'حصة')}
+            ${metric('غياب No-show', state.attendance.filter(a => a.studentId === 'ST-1' && !a.present).length, 'حصة مستهلكة')}
+            ${metric('اجتماعات جاهزة', rows.filter(s => s.meetingStatus === 'ready').length, 'محاكاة فيديو')}
+          </div>
           ${sessionsTable(rows, 'student')}
           <div class="panel-actions">
             <button type="button" data-finalize>محاكاة إغلاق الغياب للحصص المنتهية</button>
           </div>
+          <h3>سجل الحضور الزمني</h3>
+          ${attendanceTimeline()}
         `);
       }
 
-      function renderStudentComp() {
+      function renderStudentApology() {
         const noShows = state.attendance.filter(a => a.studentId === 'ST-1' && !a.present);
-        return panel('طلبات التعويض', 'التعويض يطلب عن No-show محدد، والموافقة تربطه بحصة بديلة واحدة.', `
+        return panel('portal_apology.html - الاعتذار والتعويض', 'التعويض يطلب عن No-show محدد، والموافقة تربطه بحصة بديلة واحدة ولا تعيد الرصيد كمحفظة.', `
           ${noShows.length ? noShows.map(a => {
             const s = sessionById(a.sessionId);
             const existing = state.compensationRequests.find(r => r.originalSessionId === s.id && r.status !== 'rejected');
@@ -1187,16 +1355,93 @@
                 <button type="button" data-request-comp="${h(s.id)}">تقديم طلب تعويض</button>`}
             </article>`;
           }).join('') : '<div class="empty">لا يوجد غياب مسجل بعد. شغّل إغلاق الحصص المنتهية لتجربة السيناريو.</div>'}
+          <h3>كل طلباتي</h3>
+          ${compensationSummary('ST-1')}
         `);
       }
 
-      function renderStudentCertificate() {
+      function renderStudentFinance() {
+        return panel('portal_finance.html - الباقات والمدفوعات', 'الطالب وولي الأمر يشاهدان الباقات والمدفوعات كبيانات توضيحية محلية فقط.', `
+          <div class="grid grid-4">
+            ${metric('باقات نشطة', state.packages.filter(p => p.studentId === 'ST-1' && p.status === 'active').length, 'باقة')}
+            ${metric('مشتراة', totalPurchased(), 'ساعة')}
+            ${metric('مستهلكة', consumedHours(), 'ساعة')}
+            ${metric('متبقية', ledgerBalance(), 'ساعة')}
+          </div>
+          <div class="panel-actions"><button type="button" data-add-package>شراء باقة تجريبية جديدة 10 ساعات</button></div>
+          <h3>سجل المدفوعات</h3>
+          ${paymentsTable()}
+          ${renderLedgerTable()}
+          <div class="notice warn">لا توجد عملية دفع حقيقية ولا اتصال مع MEPS أو Tap أو PayPal. كل شيء محاكاة داخلية.</div>
+        `);
+      }
+
+      function renderStudentProfile() {
+        const st = student();
+        const g = state.guardians.find(x => x.id === st.guardianId);
+        return panel('portal_profile.html - الملف الشخصي', 'يعرض بيانات الحساب والعلاقة مع ولي الأمر والإعدادات التي سيحتاجها العميل في التطبيق الحقيقي.', `
+          <div class="grid grid-2">
+            ${infoCard('بيانات الطالب', `
+              الاسم: <strong>${h(st.name)}</strong><br>
+              العمر: ${h(st.age)}<br>
+              المدينة: ${h(st.city)}<br>
+              الهاتف: ${h(st.phone)}<br>
+              المنطقة الزمنية: ${h(st.timezone)}
+            `)}
+            ${infoCard('العلاقة العائلية', `
+              ولي الأمر: <strong>${h(g.name)}</strong><br>
+              حساب ولي الأمر: guardian.demo@mvteaches.local<br>
+              الصلاحيات: عرض ومتابعة فقط، بدون Join
+            `)}
+          </div>
+          <div class="grid grid-3">
+            ${st.goals.map(goal => decision(goal, 'هدف تعليمي ظاهر للمعلم والإدارة في المحاكي.')).join('')}
+          </div>
+          <div class="notice">هذه شاشة عرض فقط في المحاكي. أي تعديل إنتاجي لاحقًا سيكون خلف مصادقة حقيقية وتدقيق صلاحيات.</div>
+        `);
+      }
+
+      function renderStudentProgress() {
         const progress = Math.min(100, Math.round((consumedHours() / student().certificateRequiredHours) * 100));
         const notes = state.notifications.filter(n => n.userId === 'u-student');
-        return panel('الشهادة والتنبيهات', 'الشهادة مجانية عند اكتمال ساعات المستوى. التنبيهات محاكاة محلية فقط.', `
+        return panel('portal_progress.html - التقدم والشهادة', 'الشهادة مجانية عند اكتمال ساعات المستوى. التنبيهات محاكاة محلية فقط.', `
           <div class="metric"><span>تقدم B1</span><b>${consumedHours()} / ${student().certificateRequiredHours} ساعة</b><div class="progress"><span style="width:${progress}%"></span></div></div>
+          <div class="grid grid-3">
+            ${metric('نتيجة تحديد المستوى', student().placementScore + '%', 'موصى بالمستوى ' + student().recommendedLevel)}
+            ${metric('ساعات مطلوبة للشهادة', student().certificateRequiredHours, 'ساعة')}
+            ${metric('ساعات متبقية للشهادة', Math.max(0, student().certificateRequiredHours - consumedHours()), 'ساعة')}
+          </div>
+          <h3>مسار المستوى</h3>
+          <div class="timeline">
+            ${progressStep('تحديد المستوى', 'اكتمل', student().placementDate, 'ok')}
+            ${progressStep('حضور حصص B1', `${consumedHours()} ساعة مكتملة`, new Date().toISOString(), consumedHours() ? 'info' : 'neutral')}
+            ${progressStep('إصدار الشهادة', progress >= 100 ? 'جاهزة' : 'بانتظار اكتمال الساعات', new Date().toISOString(), progress >= 100 ? 'ok' : 'warn')}
+          </div>
           <h3>مركز التنبيهات</h3>
           ${notes.map(n => `<article class="item-card"><div class="row"><strong>${h(n.channel)}</strong><span class="badge info">${h(n.status)}</span></div><small>${fmtDate(n.at)}</small><p>${h(n.text)}</p></article>`).join('') || '<div class="empty">لا توجد تنبيهات.</div>'}
+        `);
+      }
+
+      function renderStudentTest() {
+        const test = state.placementTest;
+        const answered = Object.keys(test.answers).length;
+        const score = placementScore();
+        return panel('portal_test.html - اختبار المستوى', 'اختبار توضيحي محلي يوضح تجربة تحديد المستوى دون إرسال إجابات أو تخزين بيانات خارج المتصفح.', `
+          <div class="grid grid-3">
+            ${metric('أسئلة', test.questions.length, 'قصيرة')}
+            ${metric('إجابات محفوظة محليًا', answered, 'داخل localStorage')}
+            ${metric('النتيجة الحالية', score + '%', test.submitted ? 'تم التسليم' : 'مسودة')}
+          </div>
+          <div class="answer-grid">
+            ${test.questions.map(q => `<article class="item-card">
+              <strong>${h(q.id)}. ${h(q.prompt)}</strong>
+              ${q.choices.map((choice, index) => `<button type="button" class="answer-option ${test.answers[q.id] === index ? 'selected' : ''}" data-test-answer="${h(q.id)}:${index}">${h(choice)}</button>`).join('')}
+            </article>`).join('')}
+          </div>
+          <div class="panel-actions">
+            <button type="button" data-submit-test>تسليم الاختبار - محاكاة</button>
+          </div>
+          <div class="notice ${test.submitted ? '' : 'warn'}">${test.submitted ? `تم التسليم محليًا. المستوى المقترح: ${score >= 70 ? 'B1' : 'A2'}.` : 'اختر إجابات ثم سلّم الاختبار لتظهر النتيجة في صفحة التقدم.'}</div>
         `);
       }
 
@@ -1223,6 +1468,68 @@
             <small>الباقة الحالية: ${remainingText()} متبقية · تقدم الشهادة: ${consumedHours()} / ${st.certificateRequiredHours} ساعة</small>
           </article>
         `);
+      }
+
+      function portalMap(scope = 'all') {
+        const pages = [
+          ['index.html', 'الدخول واختيار الدور والجولة التعريفية', 'all'],
+          ['portal_dashboard.html', 'ملخص سريع للرصيد والحصص والتنبيهات', 'student'],
+          ['portal_classes.html', 'الحصص المتاحة والحجوزات الحالية', 'student'],
+          ['portal_attendance.html', 'Join، الحضور، الغياب، وسجل الجلسات', 'student'],
+          ['portal_apology.html', 'الاعتذار وطلبات التعويض المرتبطة بحصة', 'student'],
+          ['portal_finance.html', 'الباقات والمدفوعات ودفتر الساعات', 'student'],
+          ['portal_profile.html', 'بيانات الطالب وولي الأمر والأهداف', 'student'],
+          ['portal_progress.html', 'التقدم والشهادة وتنبيهات المسار', 'student'],
+          ['portal_test.html', 'اختبار تحديد مستوى محلي توضيحي', 'student']
+        ].filter(p => scope === 'all' || p[2] === 'all' || p[2] === scope);
+        return `<div class="portal-strip">${pages.map(([file, desc]) => `<article class="portal-page"><code>${h(file)}</code><span>${h(desc)}</span></article>`).join('')}</div>`;
+      }
+
+      function nextStudentSessionCard() {
+        const now = Date.now();
+        const next = studentBookings().map(b => sessionById(b.sessionId)).filter(Boolean)
+          .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+          .find(s => new Date(s.start).getTime() + s.duration * 60000 > now);
+        if (!next) return '<div class="empty">لا توجد حصة قادمة بعد. احجز من صفحة الحصص.</div>';
+        return itemCard(next.title, `${fmtDate(next.start)}<br>${sessionStatus(next, attendanceFor(next.id), studentBookings().find(b => b.sessionId === next.id))}`);
+      }
+
+      function notificationList(userId, limit = 99) {
+        const rows = state.notifications.filter(n => n.userId === userId).slice(0, limit);
+        return rows.map(n => `<article class="item-card"><div class="row"><strong>${h(n.channel)}</strong><span class="badge info">${h(n.status)}</span></div><small>${fmtDate(n.at)}</small><p>${h(n.text)}</p></article>`).join('') || '<div class="empty">لا توجد تنبيهات.</div>';
+      }
+
+      function attendanceTimeline() {
+        const rows = state.attendance.filter(a => a.studentId === 'ST-1');
+        if (!rows.length) return '<div class="empty">لا يوجد حضور أو غياب مسجل بعد.</div>';
+        return `<div class="timeline">${rows.map(a => {
+          const s = sessionById(a.sessionId);
+          return `<div class="timeline-row">
+            <time>${fmtDate(a.at)}</time>
+            <div><strong>${h(s?.title || a.sessionId)}</strong><br><small>${a.replacementFor ? 'حصة بديلة مرتبطة' : 'حصة أصلية'}</small></div>
+            ${a.present ? '<span class="badge ok">حضور</span>' : '<span class="badge bad">غياب</span>'}
+          </div>`;
+        }).join('')}</div>`;
+      }
+
+      function compensationSummary(studentId) {
+        const rows = state.compensationRequests.filter(r => r.studentId === studentId);
+        if (!rows.length) return '<div class="empty">لا توجد طلبات تعويض بعد.</div>';
+        return rows.map(r => {
+          const original = sessionById(r.originalSessionId);
+          const replacement = r.replacementSessionId ? sessionById(r.replacementSessionId) : null;
+          return itemCard(r.id, `${statusBadge(r.status)}<br>الأصلية: ${h(original?.title || r.originalSessionId)}<br>${replacement ? 'البديلة: ' + h(replacement.title) : 'لم تحدد حصة بديلة بعد.'}`);
+        }).join('');
+      }
+
+      function progressStep(title, status, at, badge) {
+        return `<div class="timeline-row"><time>${fmtDate(at)}</time><div><strong>${h(title)}</strong><br><small>${h(status)}</small></div><span class="badge ${h(badge)}">${h(status)}</span></div>`;
+      }
+
+      function placementScore() {
+        const test = state.placementTest;
+        const correct = test.questions.filter(q => test.answers[q.id] === q.correct).length;
+        return Math.round((correct / test.questions.length) * 100);
       }
 
       function availableSessions() {
@@ -1398,6 +1705,8 @@
         }));
         document.querySelectorAll('[data-start-session]').forEach(b => b.addEventListener('click', () => startTeacherSession(b.dataset.startSession)));
         document.querySelectorAll('[data-make-joinable]').forEach(b => b.addEventListener('click', () => makeJoinable(b.dataset.makeJoinable)));
+        document.querySelectorAll('[data-test-answer]').forEach(b => b.addEventListener('click', () => answerPlacementQuestion(b.dataset.testAnswer)));
+        document.querySelectorAll('[data-submit-test]').forEach(b => b.addEventListener('click', submitPlacementTest));
       }
 
       if (memoryState && !state) state = memoryState;
