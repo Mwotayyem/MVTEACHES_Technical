@@ -432,29 +432,87 @@ var PROVIDER_META = {
   none:{label:"غير متصل", cap:"—"}
 };
 
+// Every step's `text` is a function of the ACTUAL current data (never a hand-typed date or
+// weekday) so it can never drift from what the screen really shows. `setup` runs only when the
+// viewer is currently ON that step, and only ever opens the door for the viewer's own click —
+// it never performs the click itself. `complete` fully realizes the step's outcome and is
+// replayed (in order, for every step before the target) whenever the tour lands on a later step,
+// so skipping ahead with "التالي" or jumping back with "السابق" never leaves the story stuck
+// half-finished or references a booking that silently vanished. See applyTourStep().
 var TOUR_STEPS = [
   {title:"الإدارة تستعرض النظام", role:"admin", tab:"overview",
    text:"نبدأ من لوحة الإدارة: عدد الطلاب، الباقات الفعّالة، الحصص القادمة، وطلبات التعويض المعلّقة — كل الأرقام محسوبة من نفس البيانات التي سنشاهدها في بقية الجولة."},
+
   {title:"الطالبة سارة تحجز حصة B1", role:"student", tab:"available",
-   text:"اضغطي «حجز» بجانب حصة الأحد 2 سبتمبر مع أ. عمر الشريف. الحجز يحترم المستوى والسعة والساعات المتبقية في الباقة."},
+   complete:function(){ ensureBooking("SES-201"); },
+   text:function(){
+     var s = getSession("SES-201");
+     var when = fmtDateTime(s.startISO)+" مع "+teacherName(s.teacherId);
+     var already = state.bookings.some(function(b){ return b.studentId===STUDENT_ID && b.sessionId==="SES-201" && b.status!=="Cancelled"; });
+     return already
+       ? "✅ الحجز موجود بالفعل لحصة "+when+" — يمكنك الانتقال للخطوة التالية."
+       : "اضغطي «حجز» بجانب حصة "+when+" من تبويب «الحصص المتاحة». الحجز يحترم المستوى والسعة والساعات المتبقية في الباقة.";
+   }},
+
   {title:"الانضمام وخصم ساعة واحدة", role:"student", tab:"upcoming",
-   prepare:function(){ ensureBooking("SES-201"); clockAdvanceTo(addMinutes(getSession("SES-201").startISO, 2)); },
-   text:"اضغطي «انضمام» على حصة 2 سبتمبر. تُخصم ساعة واحدة بالضبط من الباقة — وإن ضغطتِ الزر مرة أخرى فلن تُخصم أي ساعة إضافية."},
+   setup:function(){ ensureBooking("SES-201"); clockAdvanceTo(addMinutes(getSession("SES-201").startISO, 2)); },
+   complete:function(){ this.setup(); var b=studentBookingForSession(STUDENT_ID,"SES-201"); if(b) forceJoin(b.id); },
+   text:function(){
+     var s = getSession("SES-201");
+     var when = fmtDateTime(s.startISO);
+     var b = studentBookingForSession(STUDENT_ID, "SES-201");
+     if(b && b.status==="Attended") return "✅ تم الانضمام إلى حصة "+when+" وخُصمت ساعة واحدة بالضبط من الباقة. جرّبي الضغط على «انضمام» مرة أخرى لترَي أنها لن تُخصم ثانيةً.";
+     if(b && b.status==="NoShow") return "انتهت حصة "+when+" قبل تسجيل الحضور، فاحتُسبت غيابًا وخُصمت ساعتها بدل ذلك.";
+     return "اضغطي «انضمام» على حصة "+when+". تُخصم ساعة واحدة بالضبط من الباقة — وإن ضغطتِ الزر مرة أخرى فلن تُخصم أي ساعة إضافية.";
+   }},
+
   {title:"غياب عن حصة محجوزة", role:"student", tab:"history",
-   prepare:function(){ ensureBooking("SES-202"); clockAdvanceTo(addMinutes(getSession("SES-202").startISO, getSession("SES-202").durationMinutes+1)); },
-   text:"حصة 4 سبتمبر انتهت دون انضمام سارة، فسُجّلت تلقائيًا «غياب» وخُصمت ساعتها — الغياب عن حصة محجوزة يُحتسب مثل الحضور تمامًا."},
+   setup:function(){ ensureBooking("SES-202"); clockAdvanceTo(addMinutes(getSession("SES-202").startISO, getSession("SES-202").durationMinutes+1)); },
+   complete:function(){ this.setup(); },
+   text:function(){
+     var s = getSession("SES-202");
+     return "انتهت حصة "+fmtDateTime(s.startISO)+" دون انضمام سارة، فسُجّلت تلقائيًا «غياب» وخُصمت ساعتها — الغياب عن حصة محجوزة يُحتسب مثل الحضور تمامًا.";
+   }},
+
   {title:"تقديم طلب تعويض", role:"student", tab:"history",
-   text:"اضغطي «تقديم طلب تعويض» بجانب الحصة الفائتة، ثم أرسلي الطلب (يمكن إضافة سبب اختياري)."},
+   complete:function(){ ensureCompensationRequest(); },
+   text:function(){
+     var missed = state.bookings.find(function(b){ return b.studentId===STUDENT_ID && b.sessionId==="SES-202"; });
+     var req = missed && missed.compensationRequestId ? getCompReq(missed.compensationRequestId) : null;
+     if(req) return "✅ تم إرسال طلب التعويض بالفعل — حالته الآن: "+(req.status==="Pending"?"قيد المراجعة":(req.status==="Approved"?"تمت الموافقة عليه":"مرفوض"))+".";
+     return "اضغطي «تقديم طلب تعويض» بجانب الحصة الفائتة، ثم أرسلي الطلب (يمكن إضافة سبب اختياري).";
+   }},
+
   {title:"الإدارة توافق وتحدد حصة بديلة", role:"admin", tab:"compensation",
-   prepare:function(){ ensureCompensationRequest(); },
-   text:"اضغطي «موافقة» على طلب سارة، ثم اختاري حصة B1 مستقبلية متاحة (مثل 9 سبتمبر) كحصة بديلة، وأكدي الاختيار."},
+   complete:function(){ ensureCompensationApproved(); },
+   text:function(){
+     var req = state.compensationRequests.find(function(r){ return r.studentId===STUDENT_ID; });
+     if(req && req.status==="Approved"){
+       var rs = getSession(req.replacementSessionId);
+       return "✅ تمت الموافقة بالفعل، والحصة البديلة المحدَّدة: "+fmtDateTime(rs.startISO)+" مع "+teacherName(rs.teacherId)+".";
+     }
+     return "اضغطي «موافقة» على طلب سارة، ثم اختاري حصة B1 مستقبلية متاحة كحصة بديلة، وأكدي الاختيار.";
+   }},
+
   {title:"الانضمام للحصة البديلة دون خصم إضافي", role:"student", tab:"upcoming",
-   prepare:function(){ ensureCompensationApproved(); var r=findApprovedReq(); if(r){ clockAdvanceTo(addMinutes(getSession(r.replacementSessionId).startISO,2)); } },
-   text:"اضغطي «انضمام» على الحصة المُعلَّمة «تعويض». لاحظي أن الساعات المتبقية في الباقة لم تتغيّر — الحصة التعويضية لا تُخصم من الرصيد."},
+   setup:function(){ var r=findApprovedReq(); if(r){ clockAdvanceTo(addMinutes(getSession(r.replacementSessionId).startISO,2)); } },
+   complete:function(){ this.setup(); var r=findApprovedReq(); if(r) forceJoin(r.replacementBookingId); },
+   text:function(){
+     var req = findApprovedReq();
+     if(!req) return "بانتظار موافقة الإدارة على طلب التعويض في الخطوة السابقة.";
+     var rs = getSession(req.replacementSessionId);
+     var when = fmtDateTime(rs.startISO);
+     var b = getBooking(req.replacementBookingId);
+     if(b && b.status==="Attended") return "✅ تم الانضمام إلى الحصة التعويضية ("+when+") ولم تتغيّر الساعات المتبقية في الباقة.";
+     return "اضغطي «انضمام» على الحصة المُعلَّمة «تعويض» ("+when+"). لاحظي أن الساعات المتبقية في الباقة لن تتغيّر — الحصة التعويضية لا تُخصم من الرصيد.";
+   }},
+
   {title:"المعلم يراجع الحصة وسجل الأجور", role:"teacher", tab:"payroll",
    text:"من حساب أ. عمر الشريف: سجل الأجور يعكس تلقائيًا كل حصة مكتملة قام بتدريسها، بعملتها الصحيحة."},
+
   {title:"ولي الأمر يراجع نشاط ابنته", role:"guardian", tab:"overview",
-   prepare:function(){ state.ui.guardianChildId = "S1"; },
+   setup:function(){ state.ui.guardianChildId = "S1"; },
+   complete:function(){ this.setup(); },
    text:"من حساب م. نائل المصري: يمكن متابعة تقدّم سارة وسجل حضورها وحالة التعويض، دون أي إمكانية للحجز أو الانضمام نيابة عنها."}
 ];
 
@@ -567,6 +625,18 @@ function studentName(id){ var s=getStudent(id); return s?s.name:id; }
 function sessionEndISO(s){ return addMinutes(s.startISO, s.durationMinutes); }
 function now(){ return parseLocal(state.clock); }
 function isFutureSession(s){ return parseLocal(s.startISO) > now(); }
+// "Over" means the session's end time has passed. This is deliberately NOT the negation of
+// isFutureSession(): a session that has started but not yet ended is neither "future" (for
+// booking purposes, correctly) nor "over" (for join/start/roster purposes) -- it is live right
+// now, and a teacher or student mid-session must still see the Start/Join button. Confusing
+// these two checks was the exact cause of a real reported bug (a booked, not-yet-joined session
+// vanishing from "my upcoming sessions" the moment it started).
+function isSessionOver(s){ return now() >= parseLocal(sessionEndISO(s)); }
+function sessionPhase(s){
+  if(parseLocal(s.startISO) > now()) return "upcoming";
+  if(!isSessionOver(s)) return "live";
+  return "over";
+}
 function occupiedCount(sessionId){
   var n=0;
   for(var i=0;i<state.bookings.length;i++){
@@ -673,6 +743,26 @@ function ensureBooking(sessionId){
   state.bookings.push(b);
   return b;
 }
+/// Pure state mutation for "attend this booking" — shared by actions.joinSession (real click,
+/// with toast/modal feedback) and the guided tour's forceComplete step-replay (silent, no
+/// toast/modal, used only when the tour is fast-forwarded past a step the viewer didn't click
+/// through manually). Callers are responsible for validating the join window first.
+function forceJoin(bookingId){
+  var b = getBooking(bookingId);
+  if(!b || b.status !== "Booked") return;
+  var s = getSession(b.sessionId);
+  b.status = "Attended";
+  b.attendedAtISO = state.clock;
+  var student = getStudent(b.studentId);
+  student.totalAttendedHours += 1;
+  if(b.packageId){
+    var pkg = getPackage(b.packageId);
+    if(pkg) pkg.remainingHours = Math.max(0, pkg.remainingHours-1);
+  }
+  pushNotification({audience:"student", studentId:b.studentId, kind:"attended",
+    text:"تم تسجيل حضورك في حصة "+levelName(s.levelId)+" بتاريخ "+fmtDateTime(s.startISO)+"."+(b.isReplacement?" (حصة تعويضية — دون أي خصم إضافي)":"")});
+  pushAudit((b.isReplacement?"انضمام إلى حصة تعويضية: ":"انضمام: ")+studentName(b.studentId)+" — "+s.id);
+}
 function ensureCompensationRequest(){
   settleNoShows();
   var missed = state.bookings.find(function(b){ return b.studentId===STUDENT_ID && b.sessionId==="SES-202" && b.status==="NoShow"; });
@@ -768,8 +858,17 @@ var actions = {
   },
 
   startTour:function(){
+    // Starting the tour always begins from a clean copy of the seed data. Without this, any
+    // earlier free-exploration clicks (or a previous run of the tour itself) could leave a
+    // booking already made, a clock already advanced past a step's session, or an hour already
+    // deducted — making the tour's own step text describe something that already happened
+    // differently, or reference a session no longer visible in the list it just navigated to.
+    try{ window.localStorage.removeItem(STORAGE_KEY); }catch(e){}
+    state = buildSeed();
     runtime.tour = {active:true, step:0};
     applyTourStep(0);
+    persist();
+    setToast("بدأت الجولة التعريفية من بيانات نظيفة.", "info");
     render();
   },
   tourNext:function(){
@@ -849,17 +948,7 @@ var actions = {
     }
     if(now() < windowStart){ setToast("لم يفتح باب الانضمام بعد — يُفتح قبل موعد الحصة بعشر دقائق.", "warn"); render(); return; }
     if(now() >= end){ settleNoShows(); persist(); setToast("انتهت هذه الحصة.", "warn"); render(); return; }
-    b.status = "Attended";
-    b.attendedAtISO = state.clock;
-    var student = getStudent(b.studentId);
-    student.totalAttendedHours += 1;
-    if(b.packageId){
-      var pkg = getPackage(b.packageId);
-      if(pkg) pkg.remainingHours = Math.max(0, pkg.remainingHours-1);
-    }
-    pushNotification({audience:"student", studentId:b.studentId, kind:"attended",
-      text:"تم تسجيل حضورك في حصة "+levelName(s.levelId)+" بتاريخ "+fmtDateTime(s.startISO)+"."+(b.isReplacement?" (حصة تعويضية — دون أي خصم إضافي)":"")});
-    pushAudit((b.isReplacement?"انضمام إلى حصة تعويضية: ":"انضمام: ")+studentName(b.studentId)+" — "+s.id);
+    forceJoin(bookingId);
     setToast(b.isReplacement ? "تم تسجيل الحضور للحصة التعويضية — لم تتغيّر ساعاتك المتبقية." : "تم تسجيل حضورك، وخُصمت ساعة واحدة من باقتك.", "success");
     setModal(meetingModalPayload(s, false));
     persist(); render();
@@ -1035,9 +1124,17 @@ function meetingModalPayload(session, isRejoin, isHostStart){
 /* ======================================================================
    7. TOUR ENGINE
    ====================================================================== */
+// Replays every step's `complete` up to (but not including) idx — in order, each idempotent —
+// so landing on step idx always reflects the full outcome of every earlier step, regardless of
+// whether the viewer actually clicked through them or jumped straight here with "التالي"/
+// "السابق". Only the CURRENT step gets `setup` (which opens the door for the viewer's own click
+// without performing it), never `complete` — that would rob the step of its own point.
 function applyTourStep(idx){
+  for(var i=0;i<idx;i++){
+    if(TOUR_STEPS[i].complete){ TOUR_STEPS[i].complete(); }
+  }
   var step = TOUR_STEPS[idx];
-  if(step.prepare){ step.prepare(); }
+  if(step.setup){ step.setup(); }
   state.ui.role = step.role;
   state.ui[step.role+"Tab"] = step.tab;
   persist();
@@ -1219,9 +1316,10 @@ function renderShell(){
   var tourHtml = "";
   if(runtime.tour.active){
     var step = TOUR_STEPS[runtime.tour.step];
+    var stepText = typeof step.text === "function" ? step.text() : step.text;
     tourHtml = '<div class="tourbar">'
       + '<span class="tstep">'+(runtime.tour.step+1)+' / '+TOUR_STEPS.length+'</span>'
-      + '<div class="ttext"><strong>'+esc(step.title)+':</strong> '+esc(step.text)+'</div>'
+      + '<div class="ttext"><strong>'+esc(step.title)+':</strong> '+esc(stepText)+'</div>'
       + '<button type="button" class="btn btn-outline btn-sm" data-action="tourPrev" '+(runtime.tour.step===0?'disabled':'')+' style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">السابق</button>'
       + '<button type="button" class="btn btn-accent btn-sm" data-action="tourNext" '+(runtime.tour.step===TOUR_STEPS.length-1?'disabled':'')+'>'+(runtime.tour.step===TOUR_STEPS.length-1?'انتهت الجولة':'التالي')+'</button>'
       + '<button type="button" class="btn btn-ghost btn-sm" data-action="exitTour" style="color:#fff">إنهاء الجولة</button>'
@@ -1286,7 +1384,7 @@ function renderAdmin(tab){
 function renderAdminOverview(){
   var activeStudents = state.students.length;
   var activePkgs = state.packages.filter(function(p){ return p.remainingHours>0; }).length;
-  var upcoming = state.sessions.filter(isFutureSession).length;
+  var upcoming = state.sessions.filter(function(s){ return !isSessionOver(s); }).length;
   var pendingComp = state.compensationRequests.filter(function(r){ return r.status==="Pending"; }).length;
   var stats = [
     {label:"الطلاب المسجّلون", value:activeStudents, hint:state.guardians.length+" ولي أمر"},
@@ -1297,7 +1395,7 @@ function renderAdminOverview(){
   return '<div class="grid grid-4">'+stats.map(renderStatCard).join("")+'</div>'
     + '<div class="card">'
     + '<h2>الحصص القادمة الأقرب</h2><p class="card-sub">أقرب خمس حصص مجدولة، من كل المستويات</p>'
-    + renderSessionsTable(state.sessions.filter(isFutureSession).sort(function(a,b){return parseLocal(a.startISO)-parseLocal(b.startISO);}).slice(0,5), {showLevel:true})
+    + renderSessionsTable(state.sessions.filter(function(s){ return !isSessionOver(s); }).sort(function(a,b){return parseLocal(a.startISO)-parseLocal(b.startISO);}).slice(0,5), {showLevel:true})
     + '</div>'
     + '<div class="card"><h2>آخر الأنشطة</h2>'+renderAuditList(state.auditLog.slice(0,6))+'</div>';
 }
@@ -1604,9 +1702,9 @@ function renderTeacher(tab){
 
 function renderTeacherOverview(t){
   var sess = sessionsForTeacher(t.id);
-  var upcoming = sess.filter(isFutureSession).sort(function(a,b){return parseLocal(a.startISO)-parseLocal(b.startISO);});
+  var upcoming = sess.filter(function(s){ return !isSessionOver(s); }).sort(function(a,b){return parseLocal(a.startISO)-parseLocal(b.startISO);});
   var next = upcoming[0];
-  var completed = sess.filter(function(s){ return !isFutureSession(s); }).length;
+  var completed = sess.filter(isSessionOver).length;
   var ready = isTeacherReady(t.id);
   return (ready? '' : '<div class="warn-box">⚠️ حسابك غير جاهز للحصص الأونلاين حاليًا — الرجاء ربط حساب Zoom أو Google Meet من تبويب «الربط والفيديو».</div>')
     + '<div class="grid grid-3">'
@@ -1623,14 +1721,18 @@ function renderTeacherSessions(t){
   var sess = sessionsForTeacher(t.id).slice().sort(function(a,b){return parseLocal(a.startISO)-parseLocal(b.startISO);});
   var ready = isTeacherReady(t.id);
   var rows = sess.map(function(s){
-    var future = isFutureSession(s);
+    var phase = sessionPhase(s); // "upcoming" | "live" | "over"
+    var notOver = phase !== "over";
     var enrolled = occupiedCount(s.id);
-    var canStart = future && ready;
+    var canStart = notOver && ready;
+    var badge = phase==="live" ? '<span class="badge badge-success">جارية الآن</span>'
+      : phase==="upcoming" ? '<span class="badge badge-info">قادمة</span>'
+      : '<span class="badge badge-neutral">منتهية</span>';
     return '<tr><td>'+esc(levelName(s.levelId))+'</td><td>'+esc(fmtDateTime(s.startISO))+'</td><td>'+s.durationMinutes+' د</td>'
       + '<td>'+enrolled+' / '+s.capacity+'</td>'
-      + '<td>'+(future? '<span class="badge badge-info">قادمة</span>' : '<span class="badge badge-neutral">منتهية</span>')+'</td>'
+      + '<td>'+badge+'</td>'
       + '<td>'+(canStart? '<button type="button" class="btn btn-accent btn-sm" data-action="startTeacherSessionBtn" data-session="'+s.id+'">بدء الحصة</button>'
-          : (future? '<button type="button" class="btn btn-outline btn-sm" disabled title="غير جاهز للحصص الأونلاين">غير جاهز</button>' : '—'))+'</td></tr>';
+          : (notOver? '<button type="button" class="btn btn-outline btn-sm" disabled title="غير جاهز للحصص الأونلاين">غير جاهز</button>' : '—'))+'</td></tr>';
   }).join("");
   return '<div class="card"><h2>حصصي</h2><p class="card-sub">كل الحصص المسندة إليك فقط — لا يمكنك رؤية حصص معلمين آخرين</p>'
     + '<div class="table-wrap"><table><thead><tr><th>المستوى</th><th>الموعد</th><th>المدة</th><th>الطلاب</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
@@ -1753,8 +1855,12 @@ function renderStudentAvailable(s){
 }
 
 function renderStudentUpcoming(s){
+  // Booked/Attended is the correct membership test on its own: settleNoShows() (called at the
+  // top of every render()) already flips anything past its session end to NoShow before this
+  // runs, so a lingering "future start" check here would incorrectly hide a session during the
+  // exact window between its start and its end — precisely when the student needs to see the
+  // Join button most.
   var upcoming = bookingsForStudent(s.id).filter(function(b){ return b.status==="Booked"||b.status==="Attended"; })
-    .filter(function(b){ return isFutureSession(getSession(b.sessionId)) || b.status==="Attended"; })
     .sort(function(a,b){ return parseLocal(getSession(a.sessionId).startISO)-parseLocal(getSession(b.sessionId).startISO); });
   if(upcoming.length===0) return '<div class="empty-state"><span class="icon">🗓️</span>لا توجد حصص قادمة محجوزة حاليًا.</div>';
   var rows = upcoming.map(function(b){
