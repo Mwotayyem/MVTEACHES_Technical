@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MVTeaches.Domain.Catalog;
+using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Delivery;
 using MVTeaches.Domain.Payroll;
 using MVTeaches.Domain.People;
@@ -771,6 +772,99 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
 
         // The real assertion: no attempt was ever created for the stranger's child.
         Assert.False(await db.PlacementAttempts.AnyAsync(a => a.StudentId == strangerChild.Id));
+    }
+
+    // ---- Purchase package (owner decision 2026-08-30 rules 1/4) ----
+
+    [Fact]
+    public async Task Unauthenticated_request_to_the_purchase_package_page_is_redirected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/PurchasePackage");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Authenticated_admin_is_turned_away_from_the_purchase_package_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/PurchasePackage");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_student_is_shown_the_purchase_package_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(StudentEmail);
+        var response = await client.GetAsync("/PurchasePackage");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    /// <summary>Rule 1: "Until a placement result exists, the student must
+    /// not purchase a package — show a clear CTA to take the free test."
+    /// This proves the CTA appears and no plan list is ever offered to a
+    /// student with no assigned level, and — the actual guarantee — that a
+    /// direct POST to Purchase is refused server-side regardless of the UI.</summary>
+    [Fact]
+    public async Task A_student_with_no_placement_result_is_shown_the_test_cta_and_cannot_purchase()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        const string email = "authtest-nolevel-student@test.mvteaches.local";
+        await EnsureUserAsync(userManager, email, RoleNames.Student);
+        var user = await userManager.FindByEmailAsync(email);
+        if (!await db.Students.AnyAsync(s => s.UserId == user!.Id))
+        {
+            db.Students.Add(new Student(90_000_001, "No Level Student", new LocalDate(2013, 1, 1), user!.Id));
+            await db.SaveChangesAsync();
+        }
+
+        // A real, published plan — otherwise PurchaseFromPlanAsync's own
+        // earlier PlanNotFound check would fire first and this test would
+        // never actually reach the StudentHasNoAssignedLevel check it means
+        // to exercise.
+        if (!await db.Courses.AnyAsync(c => c.Code == "NOLEVEL-COURSE"))
+        {
+            db.Courses.Add(new Course("NOLEVEL-COURSE", "دورة", "Course"));
+            await db.SaveChangesAsync();
+        }
+        var courseId = await db.Courses.Where(c => c.Code == "NOLEVEL-COURSE").Select(c => c.Id).FirstAsync();
+        var levelId = 90_000_004;
+        if (!await db.Levels.AnyAsync(l => l.Id == levelId))
+        {
+            db.Levels.Add(new Level(levelId, "NOLEVEL-LVL", "مستوى", "Level", levelId));
+            await db.SaveChangesAsync();
+        }
+        var plan = new PricingPlan(90_000_001, courseId, levelId, null, SessionType.Group, 10, 600,
+            new Money(50m, "JOD"), 90, new LocalDate(2026, 1, 1), 1);
+        db.PricingPlans.Add(plan);
+        await db.SaveChangesAsync();
+
+        var client = await CreateAuthenticatedClientAsync(email);
+        var page = await client.GetStringAsync("/PurchasePackage");
+        Assert.Contains("placement test is required", page);
+
+        // Even a direct, form-tampered POST must be refused — the CTA is a
+        // convenience, PurchaseFromPlanAsync's own check is the real guard.
+        var token = AntiforgeryTokenPattern.Match(page).Groups[1].Value;
+        var student = await db.Students.FirstAsync(s => s.UserId == user!.Id);
+        var form = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["studentId"] = student.Id.ToString(),
+            ["pricingPlanId"] = plan.Id.ToString(),
+        };
+        var response = await client.PostAsync("/PurchasePackage?handler=Purchase", new FormUrlEncodedContent(form));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("placement result is required", body);
+        Assert.False(await db.Subscriptions.AnyAsync(s => s.StudentId == student.Id));
     }
 
     // ---- Video-meeting connections (owner clarification 2026-08-29) ----

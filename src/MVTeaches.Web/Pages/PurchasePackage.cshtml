@@ -1,0 +1,82 @@
+@page
+@model MVTeaches.Web.Pages.PurchasePackageModel
+@{
+    ViewData["Title"] = "Purchase a Package";
+}
+
+<h1>Purchase a package</h1>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@if (Model.NoProfileLinked)
+{
+    <div class="alert alert-warning">Your account has no linked profile yet — ask an admin to create one for you.</div>
+}
+else if (Model.IsGuardian && Model.SelectedStudentId is null)
+{
+    <p class="text-muted">Choose which child to purchase a package for.</p>
+    <ul class="list-group">
+        @foreach (var c in Model.Children)
+        {
+            <li class="list-group-item">
+                <a asp-page="/PurchasePackage" asp-route-studentId="@c.StudentId">@c.FullName</a>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    @if (Model.IsGuardian)
+    {
+        <p class="text-muted">Acting for <strong>@Model.SelectedStudentName</strong> — <a asp-page="/PurchasePackage">choose a different child</a>.</p>
+    }
+
+    @if (Model.NeedsPlacementTest)
+    {
+        <div class="alert alert-info">
+            A free placement test is required before any package can be purchased.
+            <a asp-page="/PlacementTest" asp-route-studentId="@Model.SelectedStudentId" class="alert-link">Take the placement test</a>.
+        </div>
+    }
+    else
+    {
+        <p class="text-muted">Current level: <strong>@Model.CurrentLevelCode</strong>. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions.</p>
+
+        @if (Model.EligiblePlans.Count == 0)
+        {
+            <div class="alert alert-warning">No packages are currently published for this level — please contact the centre.</div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var p in Model.EligiblePlans)
+                {
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">@p.CourseName — @p.LevelCode</h5>
+                                <p class="card-text">
+                                    @p.SessionType · @p.SessionsCount sessions · @p.MinutesTotal minutes<br />
+                                    <strong>@p.Amount.ToString("N3", null) @p.Currency</strong><br />
+                                    Valid @p.ValidityDays days
+                                </p>
+                                <form method="post" asp-page-handler="Purchase">
+                                    <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
+                                    <input type="hidden" name="pricingPlanId" value="@p.Id" />
+                                    <button type="submit" class="btn btn-primary">Request this package</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+}
