@@ -96,6 +96,38 @@ public class PaymentServiceTests
         Assert.Equal(1, ledgerCount);
     }
 
+    /// <summary>
+    /// Owner decision 2026-08-30 rule 1: the routine path is a student paying
+    /// through the gateway with the entitlement activating off the trusted
+    /// server-side confirmation; a hand-keyed payment is the exception and
+    /// "must be permission-protected and audit-logged". The permission half is
+    /// the Admin/SystemAdmin-only page (covered in AuthorizationTests); this is
+    /// the audit half.
+    /// </summary>
+    [Fact]
+    public async Task Recording_and_confirming_a_manual_payment_both_leave_an_audit_trail()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var (studentId, subscriptionId, price) = await SeedBlockedSubscriptionAsync(db);
+        var adminUserId = NextId();
+
+        var service = CreateService(db, now);
+        var recorded = await service.RecordManualPaymentAsync(
+            new RecordPaymentRequest(studentId, subscriptionId, PayerUserId: null, price, PaymentMethod.Cash, ProofFileId: null),
+            CancellationToken.None);
+        await service.ConfirmAsync(recorded.PaymentId, adminUserId, CancellationToken.None);
+
+        await using var verify = _fixture.CreateContext();
+        var entries = verify.AuditLogEntries
+            .Where(a => a.EntityType == "Payment" && a.EntityId == recorded.ReferenceCode)
+            .ToList();
+
+        Assert.Contains(entries, a => a.Action == "ManualPaymentRecorded");
+        var confirmEntry = Assert.Single(entries, a => a.Action == "ManualPaymentConfirmed");
+        Assert.Equal(adminUserId, confirmEntry.PerformedByUserId); // who confirmed the money, by name
+    }
+
     [Fact]
     public async Task A_payment_cannot_be_confirmed_twice()
     {

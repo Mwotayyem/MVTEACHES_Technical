@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Payments;
+using MVTeaches.Domain.Audit;
 using MVTeaches.Domain.Ledger;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.People;
@@ -44,6 +45,19 @@ public class PaymentService : IPaymentService
             request.Method, providerKey: "manual", referenceCode, _clock.GetCurrentInstant(), request.ProofFileId);
 
         _db.Payments.Add(payment);
+
+        // Owner decision 2026-08-30 rule 1: the normal path is the student
+        // paying through the (not yet selected) gateway, with the entitlement
+        // activating automatically off the trusted server-side confirmation.
+        // A payment recorded by hand is therefore the EXCEPTION — cash, bank
+        // transfer, or a correction — and the owner requires it to be
+        // permission-protected (the Admin/SystemAdmin-only page) and audit
+        // logged. This is that audit trail: it records who keyed it in, which
+        // is exactly what a manual money path needs to be reviewable.
+        _db.AuditLogEntries.Add(new AuditLogEntry("Payment", payment.ReferenceCode, "ManualPaymentRecorded",
+            request.PayerUserId, reason: $"Manual {request.Method} payment recorded for student {request.StudentId}.",
+            beforeJson: null, afterJson: null, _clock.GetCurrentInstant()));
+
         await _db.SaveChangesAsync(cancellationToken); // UNIQUE(reference_code) guards collisions (effectively impossible with this generator)
 
         return new RecordPaymentResult(payment.Id, referenceCode);
@@ -69,6 +83,14 @@ public class PaymentService : IPaymentService
 
         var now = _clock.GetCurrentInstant();
         payment.Confirm(confirmedByUserId, now);
+
+        // Owner decision 2026-08-30 rule 1: a human confirming money by hand is
+        // the audited exception path. A gateway confirmation reaches
+        // ProcessProviderConfirmationAsync instead and is attributed to the
+        // provider, not to an admin, so the two are distinguishable in review.
+        _db.AuditLogEntries.Add(new AuditLogEntry("Payment", payment.ReferenceCode, "ManualPaymentConfirmed",
+            confirmedByUserId, reason: $"Admin confirmed {payment.Method} payment of {payment.Amount.Amount} {payment.Amount.Currency}.",
+            beforeJson: null, afterJson: null, now));
 
         await SettleSubscriptionIfFullyPaidAsync(payment, confirmedByUserId, now, cancellationToken);
 

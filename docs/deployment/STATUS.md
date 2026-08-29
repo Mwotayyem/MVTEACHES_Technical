@@ -1,4 +1,33 @@
-﻿# Implementation Status — as of 2026-08-29 (updated)
+﻿# Implementation Status — as of 2026-08-30 (updated)
+
+## ⭐⭐⭐ Owner decision (2026-08-30) — packages, scheduled duration, capacity, who schedules, payroll
+
+**This section supersedes the duration-BLOCKING half of the 2026-08-29
+clarification below (recorded as `D-92`).** Everything else in that section
+still stands. Decisions `D-94`…`D-100` in `MVTEACHES_Owner_Answers_R3.md` are
+the authoritative wording; this table is what actually exists in code.
+
+| Rule | Status | What exists now |
+|---|---|---|
+| **Provider limit warns, never blocks** (`D-96`) | ✅ Implemented | `CheckCapability` no longer vetoes provisioning. A Zoom Basic account may host a 60- or 90-minute session and a free Google account a >60-minute group session; the meeting is created at the session's **real scheduled duration** and the teacher gets a warning. `ProvisionMeetingOutcome.CapabilityBlocked` was **removed**. The only surviving hard block is having no connected account at all (`NoProviderConnection`). New `GetCapabilityWarningAsync` gives the read-only form so the teacher is warned on their session list **before** pressing Start. |
+| **Scheduled duration drives the debit** (`D-95`) | ✅ Already correct, now pinned by tests | The ledger has always been minute-based (`EntitlementLedgerEntry.DeltaMinutes`, D-37), and both the Join path and the no-show finalization already debited `session.DurationMinutes`. No production change was needed. A new Theory asserts a 45/60/90-minute session debits exactly 45/60/90. Double-debit was already impossible via the `ux_ent_consumption` partial unique index. |
+| **Group = 4, Private = 1, server-side** (`D-98`) | ✅ Implemented | New `ClassSession.CapacityFor(SessionType)`. The `ClassSession` constructor **no longer accepts a capacity parameter at all**, so no UI field or request payload can set one. New DB CHECK `ck_session_capacity_matches_type` makes a mismatch physically impossible; its migration normalises pre-existing rows first and aborts with an actionable message rather than truncating an over-subscribed group session. |
+| **Teacher-level authorization** (`D-99`) | ⚠️ Domain + enforcement done, admin UI still missing | New `TeacherLevelAssignment` entity + `ITeacherLevelAuthorizationService` (grant / revoke / check / list), unique index `ux_teacher_level`, and `RecurringScheduleService.CreateAsync` now refuses an unauthorized level. **Not yet built:** the admin screen for managing those grants, and the teacher-facing "create my own available slot" screen. Until those exist the grants must be seeded directly. |
+| **Payroll once per session** (`D-100`) | ✅ Already correct, now guarded | **Audited before changing anything, as instructed — the simulator's one-line-per-student defect does NOT exist in production.** `SessionDelivery`'s PRIMARY KEY *is* the session id, so a per-student line is structurally impossible; `PayrollLine` additionally has `UNIQUE(period_id, session_id)`; `PayableAmount` is already `rate x scheduled minutes / 60`. Three regression tests now pin it: 4 students on one 60-min session at 8 JOD/h → exactly one 8 JOD line; 90 min at 8 JOD/h → 12 JOD; a second meeting segment for the same session adds no payroll item. |
+| **Package catalogue vs entitlement** (`D-94`) | ⚠️ Mostly already existed; audit added | The catalogue already exists as `PricingPlan` (admin-created, `IsActive`, effective dates, sessions/minutes/amount/validity) and needs no per-customer activation. `ProcessProviderConfirmationAsync` was already the provider-agnostic, idempotent, server-side confirmation path a future gateway plugs into. **Added:** audit-log entries for `ManualPaymentRecorded` and `ManualPaymentConfirmed`, and the admin action is relabelled **«تسجيل باقة ودفع يدوي»** with copy stating it is the exception path. Permission-protection already existed (Admin/SystemAdmin only). |
+| **Session type vs booking nature as separate columns** (`D-97`) | ⚠️ Model supports it; owner-demo not yet updated | `ClassSession.SessionType` (Group/Private) and `SessionEnrollment.CompensatesForSessionId` (normal vs replacement) are already independent in the model. The two-column presentation is pending in the owner demo. |
+
+### Not done in this pass — stated plainly
+
+- **The provider "Continue / Restart meeting" flow (`D-96`) is not implemented.** The owner required verifying Zoom's and Google's *current official* behaviour and terms before building it; that verification needs real credentials and has not been done, so nothing was fabricated. The payroll side is already safe (a second meeting segment provably adds no payroll item), but the teacher-facing Continue action and the continuation-segment link do not exist yet.
+- **Admin UI for teacher-level grants, and teacher-created session slots (`D-99`)** — the authorization layer and its server-side enforcement exist and are tested; the two screens do not.
+- **No payment provider has been selected**, so no gateway is implemented or simulated. Automatic entitlement activation on trusted confirmation exists only as the already-present `ProcessProviderConfirmationAsync` boundary.
+- **Cancelled sessions / completed sessions with zero attendance**: the owner explicitly said not to invent a policy that has not been decided. None was invented; this remains an open question.
+
+**Verification for this pass:** full suite **268 passed / 0 failed** against real PostgreSQL 16, and the complete 9-migration chain applies cleanly to a genuinely empty database.
+
+---
+
 
 ## ⭐⭐ Owner clarification (2026-08-29) — provider-neutral video meetings (Zoom **and** Google Meet)
 

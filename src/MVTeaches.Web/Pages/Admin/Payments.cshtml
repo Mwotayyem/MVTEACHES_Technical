@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.PaymentsModel
 @using MVTeaches.Domain.Payments
 @{
@@ -6,7 +6,13 @@
 }
 
 <h1>Payments</h1>
-<p class="text-muted">MVP's only real channel is manual: a student/guardian reports a bank transfer or CliQ payment, an admin confirms it here (D-11/D-39).</p>
+<p class="text-muted">
+    Owner decision 2026-08-30: the <strong>normal</strong> path is the student or guardian buying a published
+    package and paying through the payment gateway, with the entitlement activating automatically once the
+    gateway's trusted server-side confirmation arrives. No payment provider has been selected yet, so that path
+    is not live. Everything on this page is the <strong>exception</strong> path — cash, bank transfer, CliQ, or a
+    correction — which is admin-only and written to the audit log.
+</p>
 
 @if (Model.StatusMessage is not null)
 {
@@ -19,7 +25,8 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">Record a manual payment</h5>
+        <h5 class="card-title">تسجيل باقة ودفع يدوي <span class="text-muted fs-6">(Record a manual package &amp; payment)</span></h5>
+        <p class="text-muted small mb-2">Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package.</p>
         <form method="post" asp-page-handler="Record" class="row g-2 align-items-end">
             <div class="col-auto">
                 <label class="form-label" asp-for="NewPayment.StudentId">Student</label>
