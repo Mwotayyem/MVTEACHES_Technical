@@ -48,6 +48,7 @@ public class NotificationOutboxItemConfiguration : IEntityTypeConfiguration<Noti
         b.Property(x => x.Event).HasColumnName("event").HasConversion<string>().HasMaxLength(50);
         b.Property(x => x.Channel).HasColumnName("channel").HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.RecipientUserId).HasColumnName("recipient_user_id");
+        b.Property(x => x.SessionId).HasColumnName("session_id");
         b.Property(x => x.PayloadJson).HasColumnName("payload_json").HasColumnType("jsonb");
         b.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(20).HasDefaultValue(NotificationOutboxStatus.Pending);
         b.Property(x => x.ScheduledForUtc).HasColumnName("scheduled_for_utc");
@@ -57,5 +58,10 @@ public class NotificationOutboxItemConfiguration : IEntityTypeConfiguration<Noti
 
         // The dispatcher's scan index (§33.4).
         b.HasIndex(x => new { x.Status, x.ScheduledForUtc }).HasFilter("\"status\" = 'Pending'");
+
+        // Owner decision 2026-08-30 rule 9: the idempotency check a periodic
+        // reminder job needs — "has (Event, SessionId, RecipientUserId)
+        // already been queued" — as an actual index, not just a query.
+        b.HasIndex(x => new { x.Event, x.SessionId, x.RecipientUserId }).HasFilter("\"session_id\" IS NOT NULL");
     }
 }

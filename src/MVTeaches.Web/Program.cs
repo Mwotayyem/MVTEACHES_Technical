@@ -155,6 +155,7 @@ builder.Services.AddHangfire(config => config
     .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString)));
 builder.Services.AddHangfireServer();
 builder.Services.AddScoped<NotificationDispatchJob>();
+builder.Services.AddScoped<SessionReminderJob>();
 
 builder.Services.AddRazorPages();
 
@@ -211,6 +212,11 @@ app.MapHangfireDashboard("/hangfire", new DashboardOptions
 
 RecurringJob.AddOrUpdate<NotificationDispatchJob>(
     "notification-dispatch", job => job.RunAsync(CancellationToken.None), "*/1 * * * *");
+
+// Owner decision 2026-08-30 rule 9: "a 5-minute-before reminder (idempotent
+// job)" — every minute so a session's 5-minute window is never missed.
+RecurringJob.AddOrUpdate<SessionReminderJob>(
+    "session-reminder-5min", job => job.SendFiveMinuteRemindersAsync(CancellationToken.None), "*/1 * * * *");
 
 // §15.3: "مهمة Hangfire ليلية + تشغيل يدوي من الأدمن" — the manual trigger is
 // the Hangfire dashboard's own "Trigger now" button on this same recurring
