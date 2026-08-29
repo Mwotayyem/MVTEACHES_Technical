@@ -89,6 +89,7 @@ builder.Services.AddScoped<ITeacherAdmissionService, TeacherAdmissionService>();
 builder.Services.AddScoped<ITeacherLevelAuthorizationService, TeacherLevelAuthorizationService>();
 builder.Services.AddScoped<IPlacementTestAdminService, PlacementTestAdminService>();
 builder.Services.AddScoped<IPlacementAttemptService, PlacementAttemptService>();
+builder.Services.AddScoped<ITeacherSlotPublishingService, TeacherSlotPublishingService>();
 builder.Services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<ITeacherRateService, TeacherRateService>();

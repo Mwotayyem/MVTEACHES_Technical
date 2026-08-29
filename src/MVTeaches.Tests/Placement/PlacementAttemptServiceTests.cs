@@ -102,11 +102,50 @@ public class PlacementAttemptServiceTests
         return (version.TestVersionId, question.Id, correct.Id, wrong.Id, levelA, levelB);
     }
 
+    // One Country for the whole class, not one per student: the 2-letter code
+    // space (676 combinations) is shared with every other test class in the
+    // same run via the same NextId()-derived TwoLetterCode pattern, and a real
+    // cross-class collision has already happened before (see
+    // RescheduleAndCompensationTests' own comment on the same issue).
+    // Minimizing how many this class creates keeps the odds negligible.
+    private static int? _sharedCountryId;
+
+    private static async Task<int> GetOrSeedCountryAsync(MvTeachesDbContext db)
+    {
+        if (_sharedCountryId is { } existing)
+        {
+            return existing;
+        }
+
+        // A shared country per class only reduces the ODDS of a cross-class
+        // collision on the 676-code space; it does not prevent one, since two
+        // unrelated classes' independent NextId() sequences can still land on
+        // the same code % 676 by pure coincidence. Retrying with a fresh id on
+        // an actual collision (as MeetingProvisioningServiceTests already
+        // does) is what makes this genuinely collision-proof rather than
+        // merely unlikely to collide.
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var countryId = (int)NextId();
+            db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            try
+            {
+                await db.SaveChangesAsync();
+                _sharedCountryId = countryId;
+                return countryId;
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new InvalidOperationException("Could not find a free 2-letter country code after 10 attempts.");
+    }
+
     private static async Task<(long StudentId, long StudentUserId)> SeedStudentAsync(MvTeachesDbContext db)
     {
-        var countryId = (int)NextId();
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
-        await db.SaveChangesAsync();
+        var countryId = await GetOrSeedCountryAsync(db);
         var userId = await CreateUserAsync(db, "student");
         var student = new Student(countryId, "Student", new LocalDate(2012, 1, 1), userId);
         db.Students.Add(student);

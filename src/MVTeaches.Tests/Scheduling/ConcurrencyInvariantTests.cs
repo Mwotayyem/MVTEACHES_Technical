@@ -31,6 +31,33 @@ public class ConcurrencyInvariantTests
         return string.Concat((char)('A' + n / 26), (char)('A' + n % 26));
     }
 
+    // The 2-letter code space (676 combinations) is shared with every other
+    // test class in the same run via the same NextId()-derived TwoLetterCode
+    // pattern; a cross-class collision is a real, previously-hit failure
+    // mode (see RescheduleAndCompensationTests' own comment on the same
+    // issue), not flakiness. Retrying with a fresh id on an actual collision
+    // — the same pattern MeetingProvisioningServiceTests already uses — is
+    // what makes this genuinely collision-proof.
+    private static async Task<int> SeedCountryAsync(MvTeachesDbContext db)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var id = (int)NextId();
+            db.Countries.Add(new Country(id, TwoLetterCode(id), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            try
+            {
+                await db.SaveChangesAsync();
+                return id;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new InvalidOperationException("Could not find a free 2-letter country code after 10 attempts.");
+    }
+
     private async Task<long> CreateUserAsync(MvTeachesDbContext db)
     {
         var user = new ApplicationUser
@@ -49,13 +76,12 @@ public class ConcurrencyInvariantTests
     {
         await using var db = _fixture.CreateContext();
 
-        var countryId = (int)NextId();
+        var countryId = await SeedCountryAsync(db);
         var courseId = NextId();
         var levelId = (int)NextId();
         var ageGroupId = (int)NextId();
         var teacherUserId = await CreateUserAsync(db);
 
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
         db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 12, true));
@@ -100,13 +126,12 @@ public class ConcurrencyInvariantTests
     {
         await using var db = _fixture.CreateContext();
 
-        var countryId = (int)NextId();
+        var countryId = await SeedCountryAsync(db);
         var courseId = NextId();
         var levelId = (int)NextId();
         var ageGroupId = (int)NextId();
         var teacherUserId = await CreateUserAsync(db);
 
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
         db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 12, true));
@@ -155,13 +180,12 @@ public class ConcurrencyInvariantTests
     {
         await using var db = _fixture.CreateContext();
 
-        var countryId = (int)NextId();
+        var countryId = await SeedCountryAsync(db);
         var courseId = NextId();
         var levelId = (int)NextId();
         var ageGroupId = (int)NextId();
         var teacherUserId = await CreateUserAsync(db);
 
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
         db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 12, true));
@@ -187,14 +211,13 @@ public class ConcurrencyInvariantTests
     {
         await using var db = _fixture.CreateContext();
 
-        var countryId = (int)NextId();
+        var countryId = await SeedCountryAsync(db);
         var courseId = NextId();
         var levelId = (int)NextId();
         var ageGroupId = (int)NextId();
         var teacherUserId = await CreateUserAsync(db);
         var studentUserId = await CreateUserAsync(db);
 
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
         db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 12, true));
@@ -224,12 +247,11 @@ public class ConcurrencyInvariantTests
     {
         await using var db = _fixture.CreateContext();
 
-        var countryId = (int)NextId();
+        var countryId = await SeedCountryAsync(db);
         var periodId = NextId();
         var teacherId = NextId();
         var sessionId = NextId();
 
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
         var period = new MVTeaches.Domain.Payroll.PayrollPeriod(countryId, new LocalDate(2026, 1, 1), new LocalDate(2026, 1, 31));
         db.PayrollPeriods.Add(period);
         await db.SaveChangesAsync();
