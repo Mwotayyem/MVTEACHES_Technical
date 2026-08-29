@@ -116,16 +116,9 @@
                             }
                         </select>
                     </div>
-                    <div class="col-6">
-                        <label class="form-label" asp-for="Purchase.LevelId">Level (for the subscription)</label>
-                        <select asp-for="Purchase.LevelId" class="form-select">
-                            <option value="">-- select --</option>
-                            @foreach (var l in Model.Levels)
-                            {
-                                <option value="@l.Id">@l.Code</option>
-                            }
-                        </select>
-                    </div>
+                    @* Owner decision 2026-08-30 rule 4: the level is always the plan's own
+                       level, matched server-side against the student's current level — there
+                       is no field here for an admin to pick a different one. *@
                     <div class="col-6">
                         <label class="form-label" asp-for="Purchase.Origin">Origin</label>
                         <select asp-for="Purchase.Origin" class="form-select">
@@ -182,6 +175,13 @@
                             {
                                 <option value="@l.Id">@l.Code</option>
                             }
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label" asp-for="Grant.SessionType">Session type</label>
+                        <select asp-for="Grant.SessionType" class="form-select">
+                            <option value="@SessionType.Group">Group</option>
+                            <option value="@SessionType.Private">Private</option>
                         </select>
                     </div>
                     <div class="col-4">

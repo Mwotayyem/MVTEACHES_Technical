@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Domain.Attendance;
 using MVTeaches.Domain.Catalog;
@@ -58,7 +58,8 @@ public class JoinAttendanceServiceTests
     }
 
     private async Task<(long SessionId, long StudentId, long StudentUserId, int Minutes)> SeedJoinableSessionAsync(
-        Instant now, bool enrolled = true, int? balanceMinutesOverride = null, int durationMinutes = 60)
+        Instant now, bool enrolled = true, int? balanceMinutesOverride = null, int durationMinutes = 60,
+        SessionType sessionType = SessionType.Group, SessionType? subscriptionSessionType = null)
     {
         await using var db = _fixture.CreateContext();
 
@@ -89,13 +90,17 @@ public class JoinAttendanceServiceTests
         // scheduled duration still lies ahead, whatever that duration is.
         var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
             now.Minus(Duration.FromMinutes(5)), now.Plus(Duration.FromMinutes(durationMinutes - 5)), "Asia/Amman", "17:00",
-            SessionType.Group, now.Minus(Duration.FromDays(1)));
+            sessionType, now.Minus(Duration.FromDays(1)));
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
         var minutes = balanceMinutesOverride ?? session.DurationMinutes;
+        // Owner decision 2026-08-30 rule 4: defaults to matching the session's
+        // own type; a caller passing a DIFFERENT subscriptionSessionType builds
+        // the exact mismatch scenario the rule exists to reject.
+        var actualSubscriptionType = subscriptionSessionType ?? sessionType;
 
-        var subscription = new Subscription(student.Id, countryId, courseId, levelId,
+        var subscription = new Subscription(student.Id, countryId, courseId, levelId, actualSubscriptionType,
             new MVTeaches.Domain.Common.Money(100m, "JOD"), null, 10, minutes,
             new LocalDate(2026, 1, 1), 90, SubscriptionOrigin.SelfPurchase, studentUserId, null);
         subscription.Activate();
@@ -103,7 +108,7 @@ public class JoinAttendanceServiceTests
         await db.SaveChangesAsync();
 
         db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForPurchase(
-            student.Id, subscription.Id, courseId, levelId, minutes, paymentId: NextId(), studentUserId, now.Minus(Duration.FromDays(1))));
+            student.Id, subscription.Id, courseId, levelId, actualSubscriptionType, minutes, NextId(), studentUserId, now.Minus(Duration.FromDays(1))));
         await db.SaveChangesAsync();
 
         if (enrolled)
@@ -276,6 +281,28 @@ public class JoinAttendanceServiceTests
         }
     }
 
+    /// <summary>
+    /// Owner decision 2026-08-30 rule 4: "A Group package may book only Group
+    /// sessions. A Private package may book only Private sessions." This is
+    /// the consumption-time half of the guarantee — StudentBookingServiceTests
+    /// covers the booking-time half. Before the fix, FindConsumableSubscriptionAsync
+    /// selected candidates by (student, course, level) alone, so a Group-only
+    /// subscription could be silently drawn on by a Private session's Join.
+    /// </summary>
+    [Fact]
+    public async Task A_group_only_subscription_cannot_be_consumed_by_a_private_sessions_join()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var (sessionId, studentId, studentUserId, _) = await SeedJoinableSessionAsync(
+            now, sessionType: SessionType.Private, subscriptionSessionType: SessionType.Group);
+
+        var result = await CreateService(now).JoinAsync(new JoinAttendanceRequest(sessionId, studentId, studentUserId), CancellationToken.None);
+
+        Assert.Equal(JoinOutcome.InsufficientBalance, result.Outcome);
+        await using var verify = _fixture.CreateContext();
+        Assert.False(await verify.AttendanceRecords.AnyAsync(a => a.SessionId == sessionId && a.StudentId == studentId));
+    }
+
     [Fact]
     public async Task No_join_means_no_attendance_row_and_no_consumption_absence_is_purely_derived()
     {
@@ -357,7 +384,7 @@ public class JoinAttendanceServiceTests
         {
             var subscription = await seedDb.Subscriptions.SingleAsync(s => s.StudentId == studentId);
             seedDb.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForConsumption(
-                studentId, subscription.Id, subscription.CourseId, subscription.LevelId,
+                studentId, subscription.Id, subscription.CourseId, subscription.LevelId, subscription.SessionType,
                 minutes, sessionId, studentUserId, now));
             await seedDb.SaveChangesAsync();
         }

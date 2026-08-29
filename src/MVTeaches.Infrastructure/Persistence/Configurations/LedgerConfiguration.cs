@@ -22,6 +22,7 @@ public class EntitlementLedgerEntryConfiguration : IEntityTypeConfiguration<Enti
         b.Property(x => x.SubscriptionId).HasColumnName("subscription_id");
         b.Property(x => x.CourseId).HasColumnName("course_id");
         b.Property(x => x.LevelId).HasColumnName("level_id");
+        b.Property(x => x.SessionType).HasColumnName("session_type").HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.DeltaMinutes).HasColumnName("delta_minutes");
         b.Property(x => x.Reason).HasColumnName("reason").HasConversion<string>().HasMaxLength(30);
         b.Property(x => x.SessionId).HasColumnName("session_id");

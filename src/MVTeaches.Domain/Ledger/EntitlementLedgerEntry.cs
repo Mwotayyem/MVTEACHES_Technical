@@ -1,3 +1,4 @@
+using MVTeaches.Domain.Catalog;
 using NodaTime;
 
 namespace MVTeaches.Domain.Ledger;
@@ -24,6 +25,14 @@ public class EntitlementLedgerEntry
     public long? SubscriptionId { get; private set; }
     public long CourseId { get; private set; }
     public int LevelId { get; private set; }
+
+    /// <summary>Owner decision 2026-08-30 rule 4: denormalized onto every entry
+    /// exactly like CourseId/LevelId already are, so a Group entitlement can
+    /// never be spent on a Private session or vice versa without a join back
+    /// to Subscription. Set even for entries whose SubscriptionId is null
+    /// (MigrationOpening, an admin adjustment with no linked subscription) —
+    /// the caller must still say explicitly which bucket it affects.</summary>
+    public SessionType SessionType { get; private set; }
 
     /// <summary>The atomic unit is the minute (D-37), never the "session" or "hour" as
     /// an integer — see §20.3 for why a session-count unit breaks the moment two
@@ -56,8 +65,9 @@ public class EntitlementLedgerEntry
     private EntitlementLedgerEntry() { }
 
     private EntitlementLedgerEntry(long studentId, long? subscriptionId, long courseId, int levelId,
-        int deltaMinutes, LedgerReason reason, long? sessionId, long? paymentId, long? migrationRecordId,
-        long? reversesEntryId, long? performedByUserId, string? note, LocalDate? expiresOn, Instant createdAtUtc)
+        SessionType sessionType, int deltaMinutes, LedgerReason reason, long? sessionId, long? paymentId,
+        long? migrationRecordId, long? reversesEntryId, long? performedByUserId, string? note,
+        LocalDate? expiresOn, Instant createdAtUtc)
     {
         if (deltaMinutes == 0)
         {
@@ -73,6 +83,7 @@ public class EntitlementLedgerEntry
         SubscriptionId = subscriptionId;
         CourseId = courseId;
         LevelId = levelId;
+        SessionType = sessionType;
         DeltaMinutes = deltaMinutes;
         Reason = reason;
         SessionId = sessionId;
@@ -92,82 +103,82 @@ public class EntitlementLedgerEntry
     /// no-show case, matching this class's own "NULL = the system itself"
     /// convention.</summary>
     public static EntitlementLedgerEntry ForConsumption(long studentId, long subscriptionId, long courseId,
-        int levelId, int minutes, long sessionId, long? performedByUserId, Instant createdAtUtc)
+        int levelId, SessionType sessionType, int minutes, long sessionId, long? performedByUserId, Instant createdAtUtc)
     {
         if (minutes <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(minutes));
         }
 
-        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, -minutes,
+        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, sessionType, -minutes,
             LedgerReason.Consumption, sessionId, null, null, null, performedByUserId, null, null, createdAtUtc);
     }
 
     public static EntitlementLedgerEntry ForPurchase(long studentId, long subscriptionId, long courseId,
-        int levelId, int minutes, long paymentId, long performedByUserId, Instant createdAtUtc)
+        int levelId, SessionType sessionType, int minutes, long paymentId, long performedByUserId, Instant createdAtUtc)
     {
         if (minutes <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(minutes));
         }
 
-        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, minutes,
+        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, sessionType, minutes,
             LedgerReason.Purchase, null, paymentId, null, null, performedByUserId, null, null, createdAtUtc);
     }
 
     public static EntitlementLedgerEntry ForAdminGrant(long studentId, long subscriptionId, long courseId,
-        int levelId, int minutes, long performedByUserId, string reason, Instant createdAtUtc)
+        int levelId, SessionType sessionType, int minutes, long performedByUserId, string reason, Instant createdAtUtc)
     {
         if (minutes <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(minutes));
         }
 
-        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, minutes,
+        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, sessionType, minutes,
             LedgerReason.AdminGrant, null, null, null, null, performedByUserId, reason, null, createdAtUtc);
     }
 
     public static EntitlementLedgerEntry ForMigrationOpening(long studentId, long courseId, int levelId,
-        int minutes, long migrationRecordId, Instant createdAtUtc)
+        SessionType sessionType, int minutes, long migrationRecordId, Instant createdAtUtc)
     {
         if (minutes <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(minutes));
         }
 
-        return new EntitlementLedgerEntry(studentId, null, courseId, levelId, minutes,
+        return new EntitlementLedgerEntry(studentId, null, courseId, levelId, sessionType, minutes,
             LedgerReason.MigrationOpening, null, null, migrationRecordId, null, null, null, null, createdAtUtc);
     }
 
     /// <summary>D-19/D-20: only ever issued when there is NO direct replacement session.</summary>
     public static EntitlementLedgerEntry ForMakeUpGranted(long studentId, long courseId, int levelId,
-        int minutes, long performedByUserId, LocalDate expiresOn, Instant createdAtUtc)
+        SessionType sessionType, int minutes, long performedByUserId, LocalDate expiresOn, Instant createdAtUtc)
     {
         if (minutes <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(minutes));
         }
 
-        return new EntitlementLedgerEntry(studentId, null, courseId, levelId, minutes,
+        return new EntitlementLedgerEntry(studentId, null, courseId, levelId, sessionType, minutes,
             LedgerReason.MakeUpGranted, null, null, null, null, performedByUserId, null, expiresOn, createdAtUtc);
     }
 
     public static EntitlementLedgerEntry ForExpiry(long studentId, long subscriptionId, long courseId,
-        int levelId, int minutes, Instant createdAtUtc)
+        int levelId, SessionType sessionType, int minutes, Instant createdAtUtc)
     {
         if (minutes <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(minutes));
         }
 
-        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, -minutes,
+        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, sessionType, -minutes,
             LedgerReason.Expiry, null, null, null, null, null, null, null, createdAtUtc);
     }
 
     public static EntitlementLedgerEntry ForAdminAdjustment(long studentId, long? subscriptionId, long courseId,
-        int levelId, int deltaMinutes, long performedByUserId, string note, Instant createdAtUtc)
+        int levelId, SessionType sessionType, int deltaMinutes, long performedByUserId, string note, Instant createdAtUtc)
     {
-        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, deltaMinutes,
+        return new EntitlementLedgerEntry(studentId, subscriptionId, courseId, levelId, sessionType, deltaMinutes,
             LedgerReason.AdminAdjustment, null, null, null, null, performedByUserId, note, null, createdAtUtc);
     }
 
@@ -175,7 +186,7 @@ public class EntitlementLedgerEntry
     public static EntitlementLedgerEntry AsCorrectionOf(EntitlementLedgerEntry original, string note, long performedByUserId, Instant createdAtUtc)
     {
         return new EntitlementLedgerEntry(original.StudentId, original.SubscriptionId, original.CourseId,
-            original.LevelId, -original.DeltaMinutes, LedgerReason.Correction, original.SessionId,
+            original.LevelId, original.SessionType, -original.DeltaMinutes, LedgerReason.Correction, original.SessionId,
             original.PaymentId, original.MigrationRecordId, original.Id, performedByUserId, note, null, createdAtUtc);
     }
 }

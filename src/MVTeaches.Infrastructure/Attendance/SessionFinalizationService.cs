@@ -133,7 +133,7 @@ public class SessionFinalizationService : ISessionFinalizationService
             if (subscription is not null)
             {
                 _db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForConsumption(
-                    enrollment.StudentId, subscription.Id, session.CourseId, session.LevelId,
+                    enrollment.StudentId, subscription.Id, session.CourseId, session.LevelId, subscription.SessionType,
                     session.DurationMinutes, session.Id, performedByUserId: null, now));
             }
             else
@@ -176,10 +176,13 @@ public class SessionFinalizationService : ISessionFinalizationService
     private async Task<Domain.Subscriptions.Subscription?> FindConsumableSubscriptionAsync(
         long studentId, ClassSession session, CancellationToken ct)
     {
+        // Owner decision 2026-08-30 rule 4 — kept identical to
+        // JoinAttendanceService's own copy per this method's own doc comment.
         var candidates = await _db.Subscriptions
             .Where(s => s.StudentId == studentId
                         && s.CourseId == session.CourseId
                         && s.LevelId == session.LevelId
+                        && s.SessionType == session.SessionType
                         && s.Status == Domain.Subscriptions.SubscriptionStatus.Active)
             .OrderBy(s => s.ExpiresOn)
             .ToListAsync(ct);

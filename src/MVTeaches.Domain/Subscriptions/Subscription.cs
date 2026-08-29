@@ -1,3 +1,4 @@
+using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Common;
 using NodaTime;
 
@@ -39,6 +40,13 @@ public class Subscription
     public long CourseId { get; private set; }
     public int LevelId { get; private set; }
 
+    /// <summary>Owner decision 2026-08-30 rule 4: a package — and therefore
+    /// every subscription purchased from one — is for Group sessions or
+    /// Private sessions, never both. A Group entitlement can never be drawn
+    /// on to book or attend a Private session and vice versa; every balance
+    /// query and consumption path is scoped by this alongside Course/Level.</summary>
+    public SessionType SessionType { get; private set; }
+
     /// <summary>Snapshot at purchase time (D-10) — never re-read from the
     /// pricing plan later.</summary>
     public Money Price { get; private set; } = null!;
@@ -71,7 +79,7 @@ public class Subscription
 
     private Subscription() { }
 
-    public Subscription(long studentId, int countryId, long courseId, int levelId, Money price,
+    public Subscription(long studentId, int countryId, long courseId, int levelId, SessionType sessionType, Money price,
         long? pricingPlanId, int sessionsCount, int minutesTotal, LocalDate startsOn, int validityDays,
         SubscriptionOrigin origin, long createdByUserId, string? createdReason)
     {
@@ -88,6 +96,7 @@ public class Subscription
         CountryId = countryId;
         CourseId = courseId;
         LevelId = levelId;
+        SessionType = sessionType;
         Price = price;
         PricingPlanId = pricingPlanId;
         SessionsCount = sessionsCount;

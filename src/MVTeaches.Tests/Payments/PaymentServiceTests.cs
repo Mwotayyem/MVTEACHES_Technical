@@ -1,4 +1,4 @@
-using MVTeaches.Application.Payments;
+﻿using MVTeaches.Application.Payments;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Ledger;
@@ -62,7 +62,7 @@ public class PaymentServiceTests
         await db.SaveChangesAsync();
 
         var price = new Money(50m, "JOD");
-        var subscription = new Subscription(student.Id, countryId, courseId, levelId, price, null,
+        var subscription = new Subscription(student.Id, countryId, courseId, levelId, SessionType.Group, price, null,
             10, 600, new LocalDate(2026, 1, 1), 90, SubscriptionOrigin.SelfPurchase, studentUserId, null);
         db.Subscriptions.Add(subscription);
         await db.SaveChangesAsync();

@@ -99,8 +99,12 @@ public class StudentBookingService : IStudentBookingService
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM students WHERE \"Id\" = {studentId} FOR UPDATE", cancellationToken);
 
+        // Owner decision 2026-08-30 rule 4: a Group package's balance can never
+        // cover a Private session's booking and vice versa — scoped by
+        // SessionType alongside Course/Level, matching FindConsumableSubscriptionAsync.
         var ledgerBalance = await _db.EntitlementLedgerEntries
-            .Where(l => l.StudentId == studentId && l.CourseId == session.CourseId && l.LevelId == session.LevelId)
+            .Where(l => l.StudentId == studentId && l.CourseId == session.CourseId && l.LevelId == session.LevelId
+                        && l.SessionType == session.SessionType)
             .SumAsync(l => (int?)l.DeltaMinutes, cancellationToken) ?? 0;
 
         // "Committed": Active, ordinary (non-replacement) bookings in this
@@ -112,6 +116,7 @@ public class StudentBookingService : IStudentBookingService
             .Where(e => e.StudentId == studentId && e.State == EnrollmentState.Active && e.CompensatesForSessionId == null)
             .Join(_db.ClassSessions, e => e.SessionId, s => s.Id, (e, s) => new { Enrollment = e, Session = s })
             .Where(x => x.Session.CourseId == session.CourseId && x.Session.LevelId == session.LevelId
+                        && x.Session.SessionType == session.SessionType
                         && x.Session.Status == ClassSessionStatus.Scheduled)
             .Where(x => !_db.AttendanceRecords.Any(a => a.SessionId == x.Session.Id && a.StudentId == studentId))
             .SumAsync(x => (int?)x.Session.DurationMinutes, cancellationToken) ?? 0;

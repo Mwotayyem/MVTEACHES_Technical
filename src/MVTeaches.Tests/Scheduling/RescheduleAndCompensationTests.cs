@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Attendance;
@@ -128,7 +128,7 @@ public class RescheduleAndCompensationTests
 
         if (withSubscription)
         {
-            var subscription = new Subscription(student.Id, countryId, courseId, levelId,
+            var subscription = new Subscription(student.Id, countryId, courseId, levelId, SessionType.Group,
                 new MVTeaches.Domain.Common.Money(100m, "JOD"), null, 10, 60,
                 new LocalDate(2026, 1, 1), 90, SubscriptionOrigin.SelfPurchase, studentUserId, null);
             subscription.Activate();
@@ -136,7 +136,7 @@ public class RescheduleAndCompensationTests
             await db.SaveChangesAsync();
 
             db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForPurchase(
-                student.Id, subscription.Id, courseId, levelId, 60, paymentId: NextId(), studentUserId, now.Minus(Duration.FromDays(1))));
+                student.Id, subscription.Id, courseId, levelId, SessionType.Group, 60, NextId(), studentUserId, now.Minus(Duration.FromDays(1))));
             await db.SaveChangesAsync();
         }
 

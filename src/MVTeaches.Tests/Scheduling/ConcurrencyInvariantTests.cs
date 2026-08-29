@@ -254,7 +254,8 @@ public class ConcurrencyInvariantTests
         var now = SystemClock.Instance.GetCurrentInstant();
 
         var entry = MVTeaches.Domain.Ledger.EntitlementLedgerEntry.ForAdminGrant(
-            studentId, subscriptionId: NextId(), courseId, levelId, 60, performedByUserId: NextId(), "test grant", now);
+            studentId, subscriptionId: NextId(), courseId, levelId, MVTeaches.Domain.Catalog.SessionType.Group,
+            60, performedByUserId: NextId(), "test grant", now);
         db.EntitlementLedgerEntries.Add(entry);
         await db.SaveChangesAsync();
 

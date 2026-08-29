@@ -192,7 +192,7 @@ public class PaymentService : IPaymentService
         }
 
         _db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForPurchase(
-            subscription.StudentId, subscription.Id, subscription.CourseId, subscription.LevelId,
+            subscription.StudentId, subscription.Id, subscription.CourseId, subscription.LevelId, subscription.SessionType,
             subscription.MinutesTotal, payment.Id, confirmedByUserId, now));
 
         subscription.Activate();

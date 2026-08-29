@@ -84,7 +84,6 @@ public class SubscriptionsModel : PageModel
     {
         [Required] public long StudentId { get; set; }
         [Required] public long PricingPlanId { get; set; }
-        [Required] public int LevelId { get; set; }
         [Required] public SubscriptionOrigin Origin { get; set; } = SubscriptionOrigin.GuardianPurchase;
     }
 
@@ -94,6 +93,7 @@ public class SubscriptionsModel : PageModel
         [Required] public int CountryId { get; set; }
         [Required] public long CourseId { get; set; }
         [Required] public int LevelId { get; set; }
+        [Required] public SessionType SessionType { get; set; }
         [Required, Range(1, int.MaxValue)] public int SessionsCount { get; set; }
         [Required, Range(1, int.MaxValue)] public int MinutesTotal { get; set; }
         [Required, Range(1, int.MaxValue)] public int ValidityDays { get; set; }
@@ -133,10 +133,26 @@ public class SubscriptionsModel : PageModel
 
         var actingUserId = GetCurrentUserId();
         var result = await _subscriptions.PurchaseFromPlanAsync(Purchase.StudentId, Purchase.PricingPlanId,
-            Purchase.LevelId, Purchase.Origin, actingUserId, HttpContext.RequestAborted);
+            actingUserId, Purchase.Origin, isAdminInitiated: true, HttpContext.RequestAborted);
 
-        StatusMessage = $"Subscription #{result.SubscriptionId} created as Draft ({result.Price}) — " +
-            "record and confirm the matching payment on /Admin/Payments to activate it.";
+        // Owner decision 2026-08-30 rule 4: "Manual payments must use the same
+        // level/session-type restrictions" — surfaced here as a clear refusal
+        // rather than a generic error, since this is an admin working the
+        // exception path by hand and needs to know exactly why it was refused.
+        ErrorMessage = result.Outcome switch
+        {
+            PurchaseFromPlanOutcome.Purchased => null,
+            PurchaseFromPlanOutcome.PlanNotFound => "Pricing plan not found.",
+            PurchaseFromPlanOutcome.PlanNotPublishedForAnyLevel => "This plan has no specific level (or is inactive) and cannot be purchased — every published package must be tied to exactly one level.",
+            PurchaseFromPlanOutcome.StudentHasNoAssignedLevel => "This student has no current assigned level yet — a level must be assigned before any package can be purchased.",
+            PurchaseFromPlanOutcome.LevelMismatch => "This plan's level does not match the student's current assigned level.",
+            _ => "Could not record this purchase.",
+        };
+        if (result.Outcome == PurchaseFromPlanOutcome.Purchased)
+        {
+            StatusMessage = $"Subscription #{result.SubscriptionId} created as Draft ({result.Price}) — " +
+                "record and confirm the matching payment on /Admin/Payments to activate it.";
+        }
         await LoadAsync();
         return Page();
     }
@@ -152,7 +168,7 @@ public class SubscriptionsModel : PageModel
 
         var actingUserId = GetCurrentUserId();
         var result = await _subscriptions.GrantAdminSubscriptionAsync(Grant.StudentId, Grant.CountryId, Grant.CourseId,
-            Grant.LevelId, Grant.SessionsCount, Grant.MinutesTotal, Grant.ValidityDays, actingUserId, Grant.Reason,
+            Grant.LevelId, Grant.SessionType, Grant.SessionsCount, Grant.MinutesTotal, Grant.ValidityDays, actingUserId, Grant.Reason,
             HttpContext.RequestAborted);
 
         StatusMessage = $"Subscription #{result.SubscriptionId} granted and activated immediately (D-13, no payment).";

@@ -122,9 +122,10 @@ public class StudentBookingServiceTests
         return new Fixture(student.Id, studentUserId, levelId, courseId, ageGroupId, countryId, teacher.Id);
     }
 
-    private async Task<long> SeedSubscriptionAsync(MvTeachesDbContext db, Fixture fx, int minutes, Instant now)
+    private async Task<long> SeedSubscriptionAsync(MvTeachesDbContext db, Fixture fx, int minutes, Instant now,
+        SessionType sessionType = SessionType.Group)
     {
-        var subscription = new Subscription(fx.StudentId, fx.CountryId, fx.CourseId, fx.LevelId,
+        var subscription = new Subscription(fx.StudentId, fx.CountryId, fx.CourseId, fx.LevelId, sessionType,
             new Money(100m, "JOD"), null, 10, minutes, new LocalDate(2026, 1, 1), 365,
             SubscriptionOrigin.SelfPurchase, fx.StudentUserId, null);
         subscription.Activate();
@@ -132,7 +133,7 @@ public class StudentBookingServiceTests
         await db.SaveChangesAsync();
 
         db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForPurchase(
-            fx.StudentId, subscription.Id, fx.CourseId, fx.LevelId, minutes, paymentId: NextId(), fx.StudentUserId, now.Minus(Duration.FromDays(1))));
+            fx.StudentId, subscription.Id, fx.CourseId, fx.LevelId, sessionType, minutes, NextId(), fx.StudentUserId, now.Minus(Duration.FromDays(1))));
         await db.SaveChangesAsync();
         return subscription.Id;
     }
@@ -259,6 +260,34 @@ public class StudentBookingServiceTests
         Assert.Equal(1, await verify.SessionEnrollments.CountAsync(e => e.StudentId == fx.StudentId && e.State == EnrollmentState.Active));
     }
 
+    /// <summary>
+    /// Owner decision 2026-08-30 rule 4: "A Group package may book only Group
+    /// sessions. A Private package may book only Private sessions." Before
+    /// this rule, the balance check only looked at (Course, Level), pooling
+    /// Group and Private entitlements together — a student with only a Group
+    /// package could book a Private session and vice versa. Verified against
+    /// both directions.
+    /// </summary>
+    [Fact]
+    public async Task A_group_package_cannot_book_a_private_session_and_a_private_package_cannot_book_a_group_session()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var fx = await SeedStudentWithLevelAsync(db);
+        await SeedSubscriptionAsync(db, fx, 60, now, SessionType.Group); // ONLY a Group package
+        var privateSession = NewSession(fx, fx.LevelId, fx.CourseId, 60, now.Plus(Duration.FromDays(1)), SessionType.Private);
+        var groupSession = NewSession(fx, fx.LevelId, fx.CourseId, 60, now.Plus(Duration.FromDays(2)), SessionType.Group);
+        db.ClassSessions.AddRange(privateSession, groupSession);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, now);
+        var privateAttempt = await service.BookSessionAsync(fx.StudentId, privateSession.Id, fx.StudentUserId, CancellationToken.None);
+        var groupAttempt = await service.BookSessionAsync(fx.StudentId, groupSession.Id, fx.StudentUserId, CancellationToken.None);
+
+        Assert.Equal(BookSessionOutcome.PackageLimitExceeded, privateAttempt.Outcome); // Group balance cannot cover a Private session
+        Assert.Equal(BookSessionOutcome.Booked, groupAttempt.Outcome); // the same balance DOES cover a matching Group session
+    }
+
     /// <summary>The genuine concurrency guarantee: two DIFFERENT sessions,
     /// each individually within the package if booked alone, booked at the
     /// SAME time via Task.WhenAll on separate DbContexts. Without the row
@@ -299,7 +328,11 @@ public class StudentBookingServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var seedDb = _fixture.CreateContext();
         var fx1 = await SeedStudentWithLevelAsync(seedDb);
-        await SeedSubscriptionAsync(seedDb, fx1, 60, now);
+        // The session under test is Private, so the entitlement backing each
+        // booking attempt must be a Private package too (Owner decision
+        // 2026-08-30 rule 4) — otherwise both attempts fail on PackageLimitExceeded
+        // before the seat-capacity race this test actually exercises is reached.
+        await SeedSubscriptionAsync(seedDb, fx1, 60, now, SessionType.Private);
 
         // A second student sharing the SAME course/level as fx1, so both can
         // book the SAME single-seat session.
@@ -311,7 +344,7 @@ public class StudentBookingServiceTests
             LevelAssignmentSource.AdminOverride, null, "test setup", now));
         await seedDb.SaveChangesAsync();
         var fx2 = fx1 with { StudentId = student2.Id, StudentUserId = studentUserId2 };
-        await SeedSubscriptionAsync(seedDb, fx2, 60, now);
+        await SeedSubscriptionAsync(seedDb, fx2, 60, now, SessionType.Private);
 
         var session = NewSession(fx1, fx1.LevelId, fx1.CourseId, 60, now.Plus(Duration.FromDays(1)), SessionType.Private);
         seedDb.ClassSessions.Add(session);

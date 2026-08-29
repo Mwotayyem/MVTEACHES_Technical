@@ -16,6 +16,7 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
         b.Property(x => x.CountryId).HasColumnName("country_id");
         b.Property(x => x.CourseId).HasColumnName("course_id");
         b.Property(x => x.LevelId).HasColumnName("level_id");
+        b.Property(x => x.SessionType).HasColumnName("session_type").HasConversion<string>().HasMaxLength(20);
 
         b.OwnsOne(x => x.Price, m =>
         {

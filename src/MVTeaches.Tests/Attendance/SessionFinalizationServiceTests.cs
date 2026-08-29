@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Common;
@@ -114,7 +114,7 @@ public class SessionFinalizationServiceTests
 
     private async Task<long> SeedSubscriptionAsync(MvTeachesDbContext db, Fixture fx, int minutes, Instant now)
     {
-        var subscription = new Subscription(fx.StudentId, fx.CountryId, fx.CourseId, fx.LevelId,
+        var subscription = new Subscription(fx.StudentId, fx.CountryId, fx.CourseId, fx.LevelId, SessionType.Group,
             new Money(100m, "JOD"), null, 10, minutes, new LocalDate(2026, 1, 1), 365,
             SubscriptionOrigin.SelfPurchase, fx.StudentUserId, null);
         subscription.Activate();
@@ -122,7 +122,7 @@ public class SessionFinalizationServiceTests
         await db.SaveChangesAsync();
 
         db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForPurchase(
-            fx.StudentId, subscription.Id, fx.CourseId, fx.LevelId, minutes, paymentId: NextId(), fx.StudentUserId, now.Minus(Duration.FromDays(2))));
+            fx.StudentId, subscription.Id, fx.CourseId, fx.LevelId, SessionType.Group, minutes, NextId(), fx.StudentUserId, now.Minus(Duration.FromDays(2))));
         await db.SaveChangesAsync();
         return subscription.Id;
     }

@@ -127,7 +127,7 @@ public class JoinAttendanceService : IJoinAttendanceService
 
         var attendance = new AttendanceRecord(request.SessionId, request.StudentId, request.ActingUserId, now, isPresent: true);
         var consumption = EntitlementLedgerEntry.ForConsumption(
-            request.StudentId, subscription.Id, session.CourseId, session.LevelId,
+            request.StudentId, subscription.Id, session.CourseId, session.LevelId, subscription.SessionType,
             session.DurationMinutes, request.SessionId, request.ActingUserId, now);
 
         _db.AttendanceRecords.Add(attendance);
@@ -202,10 +202,15 @@ public class JoinAttendanceService : IJoinAttendanceService
     private async Task<Domain.Subscriptions.Subscription?> FindConsumableSubscriptionAsync(
         long studentId, ClassSession session, CancellationToken ct)
     {
+        // Owner decision 2026-08-30 rule 4: a Group entitlement can never be
+        // drawn on to attend a Private session and vice versa — scoped by
+        // SessionType alongside Course/Level, exactly like StudentBookingService's
+        // own balance check now is.
         var candidates = await _db.Subscriptions
             .Where(s => s.StudentId == studentId
                         && s.CourseId == session.CourseId
                         && s.LevelId == session.LevelId
+                        && s.SessionType == session.SessionType
                         && s.Status == Domain.Subscriptions.SubscriptionStatus.Active)
             .OrderBy(s => s.ExpiresOn)
             .ToListAsync(ct);
