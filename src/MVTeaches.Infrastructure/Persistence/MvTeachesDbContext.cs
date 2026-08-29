@@ -56,6 +56,15 @@ public class MvTeachesDbContext : IdentityDbContext<ApplicationUser, Application
     public DbSet<PlacementInterview> PlacementInterviews => Set<PlacementInterview>();
     public DbSet<StudentLevel> StudentLevels => Set<StudentLevel>();
 
+    // Placement test engine (owner decision 2026-08-30, reversing D-48)
+    public DbSet<PlacementTestVersion> PlacementTestVersions => Set<PlacementTestVersion>();
+    public DbSet<PlacementQuestion> PlacementQuestions => Set<PlacementQuestion>();
+    public DbSet<PlacementAnswerChoice> PlacementAnswerChoices => Set<PlacementAnswerChoice>();
+    public DbSet<PlacementScoreRange> PlacementScoreRanges => Set<PlacementScoreRange>();
+    public DbSet<PlacementAttempt> PlacementAttempts => Set<PlacementAttempt>();
+    public DbSet<PlacementAttemptAnswer> PlacementAttemptAnswers => Set<PlacementAttemptAnswer>();
+    public DbSet<PlacementRetakeRequest> PlacementRetakeRequests => Set<PlacementRetakeRequest>();
+
     // Scheduling
     public DbSet<RecurringSchedule> RecurringSchedules => Set<RecurringSchedule>();
     public DbSet<ClassSession> ClassSessions => Set<ClassSession>();

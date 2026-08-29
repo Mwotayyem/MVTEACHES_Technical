@@ -8,12 +8,27 @@ public enum LevelAssignmentSource
     Promotion,
     AdminOverride,
     Migration,
+
+    /// <summary>Owner decision 2026-08-30, reversing D-48 ("no student-submitted
+    /// placement exam"): a level assigned automatically from a scored
+    /// PlacementAttempt's score range. PlacementInterview (the teacher-judgment
+    /// path D-48 introduced) is left in place, not removed — this is an
+    /// additional source, not a replacement for it.</summary>
+    PlacementTest,
 }
 
 public enum AssignedByRole
 {
     Teacher,
     Admin,
+
+    /// <summary>Owner decision 2026-08-30: a PlacementAttempt's score maps to
+    /// a level automatically, by the scoring engine — no human judgment call
+    /// is in that loop the way there is for a teacher's interview or an
+    /// admin's override. AssignedByUserId still records who triggered the
+    /// submission (the student or their guardian) for traceability; this
+    /// value records that the LEVEL DECISION ITSELF was the system's, not theirs.</summary>
+    System,
 }
 
 /// <summary>
