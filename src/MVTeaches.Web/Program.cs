@@ -116,6 +116,7 @@ builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(Googl
 builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection(WhatsAppOptions.SectionName));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.Configure<BootstrapAdminOptions>(builder.Configuration.GetSection(BootstrapAdminOptions.SectionName));
+builder.Services.Configure<LocalDevelopmentSeedOptions>(builder.Configuration.GetSection(LocalDevelopmentSeedOptions.SectionName));
 
 builder.Services.AddScoped<INotificationSender, NotConfiguredWhatsAppSender>();
 builder.Services.AddScoped<INotificationSender, SmtpEmailSender>(); // real — see SmtpEmailSender's remarks
@@ -202,6 +203,14 @@ app.MapPost("/webhooks/zoom", async (HttpContext ctx, MvTeachesDbContext db,
 using (var scope = app.Services.CreateScope())
 {
     await MVTeaches.Infrastructure.Persistence.DataSeeder.SeedAsync(scope.ServiceProvider);
+
+    // Local-only `F5` bootstrap (auto-migrate + idempotent dummy accounts/
+    // content) — a no-op in every environment except Development, and even
+    // there a no-op unless LocalDevelopmentSeed:Enabled is explicitly set.
+    // See docs/LOCAL-DEVELOPMENT.md and LocalDevelopmentSeeder's own remarks
+    // for the full safety story (why this can never touch a
+    // staging/production database).
+    await MVTeaches.Infrastructure.Persistence.LocalDevelopmentSeeder.SeedAsync(scope.ServiceProvider, app.Environment);
 }
 
 // Admin-only Hangfire dashboard — never exposed unauthenticated (§22 IDOR/auth review).

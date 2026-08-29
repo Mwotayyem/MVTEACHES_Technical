@@ -3,5 +3,5 @@
   <Project Path="MVTeaches.Domain/MVTeaches.Domain.csproj" />
   <Project Path="MVTeaches.Infrastructure/MVTeaches.Infrastructure.csproj" />
   <Project Path="MVTeaches.Tests/MVTeaches.Tests.csproj" />
-  <Project Path="MVTeaches.Web/MVTeaches.Web.csproj" />
+  <Project Path="MVTeaches.Web/MVTeaches.Web.csproj" DefaultStartup="true" />
 </Solution>
