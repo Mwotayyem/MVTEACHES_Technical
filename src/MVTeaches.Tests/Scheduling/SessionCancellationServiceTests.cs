@@ -36,6 +36,36 @@ public class SessionCancellationServiceTests
         return string.Concat((char)('A' + n / 26), (char)('A' + n % 26));
     }
 
+    // The 2-letter code space (676 combinations) is shared with every other
+    // test class in the same run via the same NextId()-derived TwoLetterCode
+    // pattern. This class's own single-attempt version of this helper is
+    // exactly what produced a real, reproduced CI failure on commit 1394e15
+    // (IX_countries_code, confirmed by local reproduction against that exact
+    // commit) — it does not currently collide against the test classes that
+    // exist today, but the underlying hazard is unchanged, so it gets the
+    // same retry-on-collision fix already proven in
+    // MeetingProvisioningServiceTests and applied elsewhere this session,
+    // rather than being left as a latent repeat of the same failure.
+    private static async Task<int> SeedCountryAsync(MvTeachesDbContext db)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var id = (int)NextId();
+            db.Countries.Add(new Country(id, TwoLetterCode(id), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            try
+            {
+                await db.SaveChangesAsync();
+                return id;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new InvalidOperationException("Could not find a free 2-letter country code after 10 attempts.");
+    }
+
     private static async Task<long> CreateUserAsync(MvTeachesDbContext db, string label)
     {
         var user = new Infrastructure.Identity.ApplicationUser
@@ -51,13 +81,12 @@ public class SessionCancellationServiceTests
 
     private async Task<(int CountryId, long CourseId, int LevelId, int AgeGroupId, long TeacherId)> SeedCatalogAsync(MvTeachesDbContext db)
     {
-        var countryId = (int)NextId();
+        var countryId = await SeedCountryAsync(db);
         var courseId = NextId();
         var levelId = (int)NextId();
         var ageGroupId = (int)NextId();
         var teacherUserId = await CreateUserAsync(db, "teacher");
 
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
         db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 17, true));
