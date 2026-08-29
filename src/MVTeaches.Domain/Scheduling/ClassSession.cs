@@ -47,8 +47,9 @@ public class ClassSession
 
     public SessionType SessionType { get; private set; }
 
-    /// <summary>Not a hardcoded 4 — Private/Placement sessions are capacity 1
-    /// (§14.2 note); the DB CHECK enforces the 1..10 band, not this class.</summary>
+    /// <summary>Owner decision 2026-08-30: derived from <see cref="SessionType"/>
+    /// via <see cref="CapacityFor"/>, never supplied by a caller. See that
+    /// method for why.</summary>
     public int Capacity { get; private set; }
 
     public int SeatsTaken { get; private set; }
@@ -66,19 +67,31 @@ public class ClassSession
 
     private ClassSession() { }
 
+    /// <summary>
+    /// Owner decision 2026-08-30: seat count is a property of the session's
+    /// TYPE and is fixed by the centre — a group session seats exactly 4 and a
+    /// private one exactly 1. It is deliberately not a parameter anywhere in
+    /// the stack, so no UI field, request payload, or caller can widen or
+    /// narrow it. Placement interviews are one-to-one like Private.
+    /// </summary>
+    public static int CapacityFor(SessionType sessionType) => sessionType switch
+    {
+        SessionType.Group => 4,
+        SessionType.Private => 1,
+        SessionType.Placement => 1,
+        _ => throw new ArgumentOutOfRangeException(nameof(sessionType), sessionType, "Unknown session type."),
+    };
+
     public ClassSession(int countryId, long? recurringScheduleId, long courseId, int levelId, int ageGroupId,
         long teacherId, Instant startsAtUtc, Instant endsAtUtc, string scheduleTimeZone, string localStartText,
-        SessionType sessionType, int capacity, Instant createdAtUtc)
+        SessionType sessionType, Instant createdAtUtc)
     {
         if (endsAtUtc <= startsAtUtc)
         {
             throw new ArgumentException("A session must end after it starts.");
         }
 
-        if (capacity is < 1 or > 10)
-        {
-            throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be between 1 and 10 (§14.2).");
-        }
+        var capacity = CapacityFor(sessionType);
 
         CountryId = countryId;
         RecurringScheduleId = recurringScheduleId;

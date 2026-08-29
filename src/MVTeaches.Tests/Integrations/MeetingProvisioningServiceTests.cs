@@ -87,7 +87,7 @@ public class MeetingProvisioningServiceTests
     }
 
     private async Task<Scene> SeedAsync(MvTeachesDbContext db, Instant sessionStart, int durationMinutes = 60,
-        int capacity = 4, VideoProviderType provider = VideoProviderType.Zoom,
+        SessionType sessionType = SessionType.Group, VideoProviderType provider = VideoProviderType.Zoom,
         MeetingCapabilityTier tier = MeetingCapabilityTier.Full, int? minutesLimit = null, bool connected = true)
     {
         var countryId = await GetOrSeedCountryAsync(db);
@@ -105,7 +105,7 @@ public class MeetingProvisioningServiceTests
 
         var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
             sessionStart, sessionStart.Plus(Duration.FromMinutes(durationMinutes)), "Asia/Amman", "10:00",
-            SessionType.Group, capacity, sessionStart.Minus(Duration.FromDays(1)));
+            sessionType, sessionStart.Minus(Duration.FromDays(1)));
         db.ClassSessions.Add(session);
 
         var connection = new TeacherMeetingConnection(teacher.Id, provider, "acct-" + NextId(), "t@example.test",
@@ -282,7 +282,7 @@ public class MeetingProvisioningServiceTests
     {
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
-        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 90, capacity: 4,
+        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 90, sessionType: SessionType.Group,
             provider: VideoProviderType.GoogleMeet, tier: MeetingCapabilityTier.Restricted);
         var clients = BothProviders(out _, out var google);
         var service = CreateService(db, now, clients);
@@ -301,7 +301,7 @@ public class MeetingProvisioningServiceTests
     {
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
-        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 60, capacity: 4,
+        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 60, sessionType: SessionType.Group,
             provider: VideoProviderType.GoogleMeet, tier: MeetingCapabilityTier.Restricted);
         var clients = BothProviders(out _, out var google);
         var service = CreateService(db, now, clients);
@@ -321,7 +321,7 @@ public class MeetingProvisioningServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         // capacity == 1 is a TRUE one-to-one (one teacher, one student).
-        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 180, capacity: 1,
+        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 180, sessionType: SessionType.Private,
             provider: VideoProviderType.GoogleMeet, tier: MeetingCapabilityTier.Restricted);
         var clients = BothProviders(out _, out var google);
         var service = CreateService(db, now, clients);
@@ -337,7 +337,7 @@ public class MeetingProvisioningServiceTests
     {
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
-        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 25 * 60, capacity: 1,
+        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 25 * 60, sessionType: SessionType.Private,
             provider: VideoProviderType.GoogleMeet, tier: MeetingCapabilityTier.Restricted);
         var clients = BothProviders(out _, out var google);
         var service = CreateService(db, now, clients);
@@ -356,7 +356,7 @@ public class MeetingProvisioningServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         // Tier deliberately left Unknown — Google exposes no reliable paid check.
-        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 90, capacity: 4,
+        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 90, sessionType: SessionType.Group,
             provider: VideoProviderType.GoogleMeet, tier: MeetingCapabilityTier.Unknown);
         var clients = BothProviders(out _, out var google);
         var service = CreateService(db, now, clients);

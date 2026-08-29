@@ -105,7 +105,7 @@ public class PayrollServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
             now.Minus(Duration.FromDays(1)), now.Minus(Duration.FromDays(1)).Plus(Duration.FromMinutes(durationMinutes)),
-            "Asia/Amman", "17:00", SessionType.Group, 4, now.Minus(Duration.FromDays(2)));
+            "Asia/Amman", "17:00", SessionType.Group, now.Minus(Duration.FromDays(2)));
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 

@@ -114,9 +114,9 @@ public class RescheduleAndCompensationTests
         // only a trusted admin. Different calendar day than the original, so
         // no_teacher_overlap (a real EXCLUDE constraint) is trivially satisfied.
         var original = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            now.Minus(Duration.FromMinutes(130)), now.Minus(Duration.FromMinutes(70)), "Asia/Amman", "10:00", SessionType.Group, 4, now);
+            now.Minus(Duration.FromMinutes(130)), now.Minus(Duration.FromMinutes(70)), "Asia/Amman", "10:00", SessionType.Group, now);
         var replacement = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            now.Plus(Duration.FromDays(1)), now.Plus(Duration.FromDays(1)).Plus(Duration.FromMinutes(60)), "Asia/Amman", "12:00", SessionType.Group, 4, now);
+            now.Plus(Duration.FromDays(1)), now.Plus(Duration.FromDays(1)).Plus(Duration.FromMinutes(60)), "Asia/Amman", "12:00", SessionType.Group, now);
         db.ClassSessions.AddRange(original, replacement);
         await db.SaveChangesAsync();
 

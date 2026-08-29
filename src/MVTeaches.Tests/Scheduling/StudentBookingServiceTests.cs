@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Common;
@@ -137,9 +137,9 @@ public class StudentBookingServiceTests
         return subscription.Id;
     }
 
-    private ClassSession NewSession(Fixture fx, int levelId, long courseId, int durationMinutes, Instant start, int capacity = 4) =>
+    private ClassSession NewSession(Fixture fx, int levelId, long courseId, int durationMinutes, Instant start, SessionType sessionType = SessionType.Group) =>
         new(fx.CountryId, null, courseId, levelId, fx.AgeGroupId, fx.TeacherId, start, start.Plus(Duration.FromMinutes(durationMinutes)),
-            "Asia/Amman", "10:00", SessionType.Group, capacity, start.Minus(Duration.FromDays(1)));
+            "Asia/Amman", "10:00", sessionType, start.Minus(Duration.FromDays(1)));
 
     private IStudentBookingService CreateService(MvTeachesDbContext db, Instant now) => new StudentBookingService(db, new FakeClock(now));
 
@@ -313,7 +313,7 @@ public class StudentBookingServiceTests
         var fx2 = fx1 with { StudentId = student2.Id, StudentUserId = studentUserId2 };
         await SeedSubscriptionAsync(seedDb, fx2, 60, now);
 
-        var session = NewSession(fx1, fx1.LevelId, fx1.CourseId, 60, now.Plus(Duration.FromDays(1)), capacity: 1);
+        var session = NewSession(fx1, fx1.LevelId, fx1.CourseId, 60, now.Plus(Duration.FromDays(1)), SessionType.Private);
         seedDb.ClassSessions.Add(session);
         await seedDb.SaveChangesAsync();
 

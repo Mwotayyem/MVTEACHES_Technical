@@ -115,10 +115,12 @@ public class ScheduleGenerationService : IScheduleGenerationService
             // Recurring schedules generate Group sessions only — a fixed weekly
             // roster is what §15.2 describes; a Private/Placement session is a
             // one-off ClassSession created directly, never via this generator.
+            // Owner decision 2026-08-30: capacity is derived from the session
+            // type inside ClassSession — the schedule's own stored Capacity is
+            // no longer consulted, so a legacy row cannot widen a group session.
             var session = new ClassSession(schedule.CountryId, schedule.Id, schedule.CourseId, schedule.LevelId,
                 schedule.AgeGroupId, schedule.TeacherId, startInstant, endInstant, schedule.TimeZoneId,
-                schedule.StartLocal.ToString("HH:mm", CultureInfo.InvariantCulture), SessionType.Group,
-                schedule.Capacity, now);
+                schedule.StartLocal.ToString("HH:mm", CultureInfo.InvariantCulture), SessionType.Group, now);
             _db.ClassSessions.Add(session);
 
             try

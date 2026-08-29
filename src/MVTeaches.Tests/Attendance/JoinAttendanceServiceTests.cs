@@ -87,7 +87,7 @@ public class JoinAttendanceServiceTests
 
         var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
             now.Minus(Duration.FromMinutes(5)), now.Plus(Duration.FromMinutes(55)), "Asia/Amman", "17:00",
-            SessionType.Group, 4, now.Minus(Duration.FromDays(1)));
+            SessionType.Group, now.Minus(Duration.FromDays(1)));
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -284,7 +284,7 @@ public class JoinAttendanceServiceTests
         await db.SaveChangesAsync();
 
         var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            future, future.Plus(Duration.FromHours(1)), "Asia/Amman", "future", SessionType.Group, 4, now);
+            future, future.Plus(Duration.FromHours(1)), "Asia/Amman", "future", SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 

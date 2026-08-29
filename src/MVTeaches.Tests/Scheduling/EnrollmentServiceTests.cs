@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.People;
@@ -70,10 +70,10 @@ public class EnrollmentServiceTests
     }
 
     private static ClassSession CreateFutureSession(int countryId, long? recurringId, long courseId, int levelId,
-        int ageGroupId, long teacherId, int capacity, Instant now) =>
+        int ageGroupId, long teacherId, SessionType sessionType, Instant now) =>
         new(countryId, recurringId, courseId, levelId, ageGroupId, teacherId,
             now.Plus(Duration.FromDays(1)), now.Plus(Duration.FromDays(1)).Plus(Duration.FromHours(1)),
-            "Asia/Amman", "10:00", SessionType.Group, capacity, now);
+            "Asia/Amman", "10:00", sessionType, now);
 
     [Fact]
     public async Task Enrolling_a_student_creates_a_row_and_increments_the_seat_count()
@@ -83,7 +83,7 @@ public class EnrollmentServiceTests
         var (countryId, courseId, levelId, ageGroupId, teacherId, studentId) =
             await SeedCatalogAsync(db, new LocalDate(2015, 1, 1));
 
-        var session = CreateFutureSession(countryId, null, courseId, levelId, ageGroupId, teacherId, capacity: 4, now);
+        var session = CreateFutureSession(countryId, null, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -106,7 +106,7 @@ public class EnrollmentServiceTests
         var (countryId, courseId, levelId, ageGroupId, teacherId, studentId) =
             await SeedCatalogAsync(db, new LocalDate(2015, 1, 1));
 
-        var session = CreateFutureSession(countryId, null, courseId, levelId, ageGroupId, teacherId, capacity: 4, now);
+        var session = CreateFutureSession(countryId, null, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -130,7 +130,7 @@ public class EnrollmentServiceTests
         var (countryId, courseId, levelId, ageGroupId, teacherId, _) =
             await SeedCatalogAsync(db, new LocalDate(2015, 1, 1));
 
-        var session = CreateFutureSession(countryId, null, courseId, levelId, ageGroupId, teacherId, capacity: 1, now);
+        var session = CreateFutureSession(countryId, null, courseId, levelId, ageGroupId, teacherId, SessionType.Private, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -154,13 +154,13 @@ public class EnrollmentServiceTests
             await SeedCatalogAsync(db, new LocalDate(2015, 1, 1));
 
         var recurringId = NextId(); // stands in for a real RecurringSchedule id — only used as a grouping key here
-        var upcoming1 = CreateFutureSession(countryId, recurringId, courseId, levelId, ageGroupId, teacherId, 4, now);
+        var upcoming1 = CreateFutureSession(countryId, recurringId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
         var upcoming2 = new ClassSession(countryId, recurringId, courseId, levelId, ageGroupId, teacherId,
             now.Plus(Duration.FromDays(8)), now.Plus(Duration.FromDays(8)).Plus(Duration.FromHours(1)),
-            "Asia/Amman", "10:00", SessionType.Group, 4, now);
+            "Asia/Amman", "10:00", SessionType.Group, now);
         var alreadyStarted = new ClassSession(countryId, recurringId, courseId, levelId, ageGroupId, teacherId,
             now.Minus(Duration.FromHours(2)), now.Minus(Duration.FromHours(1)),
-            "Asia/Amman", "10:00", SessionType.Group, 4, now);
+            "Asia/Amman", "10:00", SessionType.Group, now);
         db.ClassSessions.AddRange(upcoming1, upcoming2, alreadyStarted);
         await db.SaveChangesAsync();
 

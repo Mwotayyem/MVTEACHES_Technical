@@ -131,7 +131,7 @@ public class SessionFinalizationServiceTests
         new(fx.CountryId, null, fx.CourseId, fx.LevelId, fx.AgeGroupId, fx.TeacherId,
             now.Minus(Duration.FromMinutes(startedMinutesAgo)),
             now.Minus(Duration.FromMinutes(startedMinutesAgo - durationMinutes)),
-            "Asia/Amman", "10:00", SessionType.Group, 4, now.Minus(Duration.FromDays(1)));
+            "Asia/Amman", "10:00", SessionType.Group, now.Minus(Duration.FromDays(1)));
 
     private ISessionFinalizationService CreateFinalizer(MvTeachesDbContext db, Instant now) =>
         new SessionFinalizationService(db, new FakeClock(now));

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Attendance;
 using MVTeaches.Domain.Catalog;
@@ -73,10 +73,10 @@ public class SessionCancellationServiceTests
     /// sessions at the same time for one teacher, so a replacement session
     /// must be scheduled at a different time, exactly as a real admin would.</summary>
     private static ClassSession NewSession(int countryId, long courseId, int levelId, int ageGroupId, long teacherId,
-        int capacity, Instant now, int daysFromNow = 1) =>
+        SessionType sessionType, Instant now, int daysFromNow = 1) =>
         new(countryId, null, courseId, levelId, ageGroupId, teacherId,
             now.Plus(Duration.FromDays(daysFromNow)), now.Plus(Duration.FromDays(daysFromNow)).Plus(Duration.FromHours(1)),
-            "Asia/Amman", "10:00", SessionType.Group, capacity, now);
+            "Asia/Amman", "10:00", sessionType, now);
 
     private async Task<long> SeedStudentAsync(MvTeachesDbContext db, int countryId)
     {
@@ -108,7 +108,7 @@ public class SessionCancellationServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         var (countryId, courseId, levelId, ageGroupId, teacherId) = await SeedCatalogAsync(db);
-        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 4, now);
+        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -136,8 +136,8 @@ public class SessionCancellationServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         var (countryId, courseId, levelId, ageGroupId, teacherId) = await SeedCatalogAsync(db);
-        var original = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 4, now);
-        var replacement = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 4, now, daysFromNow: 2);
+        var original = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
+        var replacement = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now, daysFromNow: 2);
         db.ClassSessions.AddRange(original, replacement);
         await db.SaveChangesAsync();
 
@@ -173,7 +173,7 @@ public class SessionCancellationServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         var (countryId, courseId, levelId, ageGroupId, teacherId) = await SeedCatalogAsync(db);
-        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 4, now);
+        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -212,7 +212,7 @@ public class SessionCancellationServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         var (countryId, courseId, levelId, ageGroupId, teacherId) = await SeedCatalogAsync(db);
-        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 4, now);
+        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -230,7 +230,7 @@ public class SessionCancellationServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         var (countryId, courseId, levelId, ageGroupId, teacherId) = await SeedCatalogAsync(db);
-        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 4, now);
+        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -245,7 +245,7 @@ public class SessionCancellationServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         var (countryId, courseId, levelId, ageGroupId, teacherId) = await SeedCatalogAsync(db);
-        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 4, now);
+        var session = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -260,8 +260,8 @@ public class SessionCancellationServiceTests
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
         var (countryId, courseId, levelId, ageGroupId, teacherId) = await SeedCatalogAsync(db);
-        var original = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 4, now);
-        var fullReplacement = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, 1, now, daysFromNow: 2);
+        var original = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Group, now);
+        var fullReplacement = NewSession(countryId, courseId, levelId, ageGroupId, teacherId, SessionType.Private, now, daysFromNow: 2);
         db.ClassSessions.AddRange(original, fullReplacement);
         await db.SaveChangesAsync();
 

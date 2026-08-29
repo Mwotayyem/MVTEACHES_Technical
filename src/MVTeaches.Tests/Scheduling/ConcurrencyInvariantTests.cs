@@ -67,19 +67,87 @@ public class ConcurrencyInvariantTests
         var start = now.Plus(Duration.FromHours(1));
 
         var first = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            start, start.Plus(Duration.FromMinutes(60)), "Asia/Amman", "18:00", SessionType.Group, 4, now);
+            start, start.Plus(Duration.FromMinutes(60)), "Asia/Amman", "18:00", SessionType.Group, now);
         db.ClassSessions.Add(first);
         await db.SaveChangesAsync();
 
         // Overlaps the first session by 30 minutes, same teacher.
         var overlapStart = start.Plus(Duration.FromMinutes(30));
         var second = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            overlapStart, overlapStart.Plus(Duration.FromMinutes(60)), "Asia/Amman", "18:30", SessionType.Group, 4, now);
+            overlapStart, overlapStart.Plus(Duration.FromMinutes(60)), "Asia/Amman", "18:30", SessionType.Group, now);
         db.ClassSessions.Add(second);
 
         var ex = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
         Assert.IsType<PostgresException>(ex.InnerException);
         Assert.Equal("23P01", ((PostgresException)ex.InnerException!).SqlState); // exclusion_violation
+    }
+
+    /// <summary>
+    /// Owner decision 2026-08-30: "Group session: exactly 4 seats. Private
+    /// session: exactly 1 seat. Do not accept a manually entered seat count
+    /// from the UI or request payload." ClassSession.CapacityFor is the only
+    /// writer, but the database is what makes a wrong value impossible — the
+    /// same reasoning as no_teacher_overlap being an EXCLUDE constraint. This
+    /// writes raw SQL deliberately, bypassing the domain, to prove the DB
+    /// itself would still reject a mismatched seat count.
+    /// </summary>
+    [Theory]
+    [InlineData("Group", 6)]
+    [InlineData("Group", 1)]
+    [InlineData("Private", 4)]
+    [InlineData("Placement", 2)]
+    public async Task The_database_rejects_a_seat_count_that_does_not_match_the_session_type(string sessionType, int capacity)
+    {
+        await using var db = _fixture.CreateContext();
+
+        var countryId = (int)NextId();
+        var courseId = NextId();
+        var levelId = (int)NextId();
+        var ageGroupId = (int)NextId();
+        var teacherUserId = await CreateUserAsync(db);
+
+        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
+        db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 12, true));
+        var teacher = new Teacher(teacherUserId, "Teacher", "Asia/Amman");
+        db.Teachers.Add(teacher);
+        await db.SaveChangesAsync();
+
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var start = now.Plus(Duration.FromHours(5));
+
+        // Column names here are the real snake_case ones (schedule_tz, not
+        // schedule_time_zone) — verified against the live schema, since a
+        // wrong name would fail as undefined_column and silently stop this
+        // test from ever exercising the constraint it is named after.
+        var ex = await Assert.ThrowsAsync<PostgresException>(() => db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO class_sessions
+                (country_id, course_id, level_id, age_group_id, teacher_id, starts_at_utc, ends_at_utc,
+                 duration_minutes, schedule_tz, local_start_text, session_type, capacity, seats_taken,
+                 status, created_at_utc)
+            VALUES
+                ({countryId}, {courseId}, {levelId}, {ageGroupId}, {teacher.Id},
+                 {start.ToDateTimeUtc()}, {start.Plus(Duration.FromMinutes(60)).ToDateTimeUtc()},
+                 60, 'Asia/Amman', '10:00', {sessionType}, {capacity}, 0, 'Scheduled', {now.ToDateTimeUtc()});"));
+
+        Assert.Equal("23514", ex.SqlState); // check_violation
+        Assert.Contains("ck_session_capacity_matches_type", ex.Message);
+    }
+
+    /// <summary>The domain side of the same rule: capacity is derived, and the
+    /// caller has no way to ask for anything else.</summary>
+    [Fact]
+    public void Capacity_is_derived_from_the_session_type_and_never_supplied()
+    {
+        Assert.Equal(4, ClassSession.CapacityFor(SessionType.Group));
+        Assert.Equal(1, ClassSession.CapacityFor(SessionType.Private));
+        Assert.Equal(1, ClassSession.CapacityFor(SessionType.Placement));
+
+        // There is no constructor overload that accepts a seat count at all.
+        var takesCapacity = typeof(ClassSession).GetConstructors()
+            .Any(c => c.GetParameters().Any(p => p.Name is "capacity" or "seats" or "seatCount"));
+        Assert.False(takesCapacity);
     }
 
     [Fact]
@@ -105,10 +173,10 @@ public class ConcurrencyInvariantTests
         var start = now.Plus(Duration.FromHours(2));
 
         db.ClassSessions.Add(new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            start, start.Plus(Duration.FromMinutes(60)), "Asia/Amman", "19:00", SessionType.Group, 4, now));
+            start, start.Plus(Duration.FromMinutes(60)), "Asia/Amman", "19:00", SessionType.Group, now));
         // Starts exactly when the first one ends — back-to-back, not overlapping.
         db.ClassSessions.Add(new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            start.Plus(Duration.FromMinutes(60)), start.Plus(Duration.FromMinutes(120)), "Asia/Amman", "20:00", SessionType.Group, 4, now));
+            start.Plus(Duration.FromMinutes(60)), start.Plus(Duration.FromMinutes(120)), "Asia/Amman", "20:00", SessionType.Group, now));
 
         await db.SaveChangesAsync(); // must not throw
         Assert.Equal(2, db.ClassSessions.Count(s => s.TeacherId == teacher.Id));
@@ -138,7 +206,7 @@ public class ConcurrencyInvariantTests
 
         var now = SystemClock.Instance.GetCurrentInstant();
         var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            now, now.Plus(Duration.FromMinutes(60)), "Asia/Amman", "17:00", SessionType.Group, 4, now);
+            now, now.Plus(Duration.FromMinutes(60)), "Asia/Amman", "17:00", SessionType.Group, now);
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 

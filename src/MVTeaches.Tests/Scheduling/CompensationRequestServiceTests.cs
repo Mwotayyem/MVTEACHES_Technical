@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Attendance;
@@ -116,9 +116,9 @@ public class CompensationRequestServiceTests
         return new Fixture(student.Id, studentUserId, levelId, courseId, ageGroupId, countryId, teacher.Id);
     }
 
-    private ClassSession NewSession(Fixture fx, Instant start, int durationMinutes = 60, int capacity = 4) =>
+    private ClassSession NewSession(Fixture fx, Instant start, int durationMinutes = 60, SessionType sessionType = SessionType.Group) =>
         new(fx.CountryId, null, fx.CourseId, fx.LevelId, fx.AgeGroupId, fx.TeacherId, start, start.Plus(Duration.FromMinutes(durationMinutes)),
-            "Asia/Amman", "10:00", SessionType.Group, capacity, start.Minus(Duration.FromDays(1)));
+            "Asia/Amman", "10:00", sessionType, start.Minus(Duration.FromDays(1)));
 
     /// <summary>Seeds a session already ended with no Join and no attendance
     /// row yet, then finalizes it via the real SessionFinalizationService —
@@ -283,7 +283,7 @@ public class CompensationRequestServiceTests
         await db.SaveChangesAsync();
         var wrongLevelSession = new ClassSession(fx.CountryId, null, fx.CourseId, otherLevelId, fx.AgeGroupId, fx.TeacherId,
             now.Plus(Duration.FromDays(3)), now.Plus(Duration.FromDays(3)).Plus(Duration.FromMinutes(60)),
-            "Asia/Amman", "10:00", SessionType.Group, 4, now);
+            "Asia/Amman", "10:00", SessionType.Group, now);
         db.ClassSessions.Add(wrongLevelSession);
         await db.SaveChangesAsync();
 

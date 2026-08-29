@@ -378,10 +378,10 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         var now = SystemClock.Instance.GetCurrentInstant();
         var ownSession = new ClassSession(countryId, null, courseId, levelId, ageGroupId, ownTeacher.Id,
             now.Minus(Duration.FromHours(54)), now.Minus(Duration.FromHours(53)), "Asia/Amman", "10:00",
-            SessionType.Group, capacity: 4, createdAtUtc: now);
+            SessionType.Group, createdAtUtc: now);
         var otherSession = new ClassSession(countryId, null, courseId, levelId, ageGroupId, otherTeacher.Id,
             now.Minus(Duration.FromHours(52)), now.Minus(Duration.FromHours(51)), "Asia/Amman", "12:00",
-            SessionType.Group, capacity: 4, createdAtUtc: now);
+            SessionType.Group, createdAtUtc: now);
         db.ClassSessions.AddRange(ownSession, otherSession);
         await db.SaveChangesAsync();
 
@@ -531,7 +531,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         var now = SystemClock.Instance.GetCurrentInstant();
         var otherTeachersSession = new ClassSession(countryId, null, courseId, levelId, ageGroupId, otherTeacher.Id,
             now.Minus(Duration.FromHours(2)), now.Minus(Duration.FromHours(1)), "Asia/Amman", "10:00",
-            SessionType.Group, capacity: 4, createdAtUtc: now);
+            SessionType.Group, createdAtUtc: now);
         db.ClassSessions.Add(otherTeachersSession);
         await db.SaveChangesAsync();
 

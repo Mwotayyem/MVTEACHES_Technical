@@ -115,7 +115,7 @@ public class CertificateServiceTests
         var start = now.Minus(Duration.FromDays(daysAgo));
         var session = new ClassSession(fx.CountryId, null, fx.CourseId, fx.LevelId, 0, fx.TeacherId,
             start, start.Plus(Duration.FromMinutes(durationMinutes)),
-            "Asia/Amman", "17:00", SessionType.Group, 4, now.Minus(Duration.FromDays(daysAgo + 1)));
+            "Asia/Amman", "17:00", SessionType.Group, now.Minus(Duration.FromDays(daysAgo + 1)));
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
@@ -177,7 +177,7 @@ public class CertificateServiceTests
         // A session with a Verified delivery but NO AttendanceRecord for the student.
         var session = new ClassSession(fx.CountryId, null, fx.CourseId, fx.LevelId, 0, fx.TeacherId,
             now.Minus(Duration.FromDays(1)), now.Minus(Duration.FromDays(1)).Plus(Duration.FromMinutes(60)),
-            "Asia/Amman", "17:00", SessionType.Group, 4, now.Minus(Duration.FromDays(2)));
+            "Asia/Amman", "17:00", SessionType.Group, now.Minus(Duration.FromDays(2)));
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
 
