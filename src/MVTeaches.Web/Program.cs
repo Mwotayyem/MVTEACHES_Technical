@@ -41,6 +41,13 @@ using NodaTime;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddConsole();
+    builder.Logging.AddDebug();
+}
+
 // ---------------------------------------------------------------------
 // Persistence (PostgreSQL 16 + NodaTime — Technical Study §33, §14.4 rule 4)
 // ---------------------------------------------------------------------
