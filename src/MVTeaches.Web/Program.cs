@@ -202,14 +202,19 @@ app.MapPost("/webhooks/zoom", async (HttpContext ctx, MvTeachesDbContext db,
 // side effects of starting the app).
 using (var scope = app.Services.CreateScope())
 {
-    await MVTeaches.Infrastructure.Persistence.DataSeeder.SeedAsync(scope.ServiceProvider);
-
     // Local-only `F5` bootstrap (auto-migrate + idempotent dummy accounts/
     // content) — a no-op in every environment except Development, and even
     // there a no-op unless LocalDevelopmentSeed:Enabled is explicitly set.
     // See docs/LOCAL-DEVELOPMENT.md and LocalDevelopmentSeeder's own remarks
     // for the full safety story (why this can never touch a
-    // staging/production database).
+    // staging/production database). MUST run BEFORE DataSeeder.SeedAsync —
+    // on a genuinely fresh database, DataSeeder's own role-seeding query
+    // fails outright ("relation AspNetRoles does not exist") unless the
+    // schema already exists, which only this migration step creates.
+    await MVTeaches.Infrastructure.Persistence.LocalDevelopmentSeeder.MigrateIfEnabledAsync(scope.ServiceProvider, app.Environment);
+
+    await MVTeaches.Infrastructure.Persistence.DataSeeder.SeedAsync(scope.ServiceProvider);
+
     await MVTeaches.Infrastructure.Persistence.LocalDevelopmentSeeder.SeedAsync(scope.ServiceProvider, app.Environment);
 }
 

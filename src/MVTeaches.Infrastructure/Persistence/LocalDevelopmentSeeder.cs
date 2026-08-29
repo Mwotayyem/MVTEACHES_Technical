@@ -45,7 +45,15 @@ public static class LocalDevelopmentSeeder
     // why these are fixed ids, not looked up by code, in that one place.
     private const int A1LevelId = 1;
 
-    public static async Task SeedAsync(IServiceProvider services, IHostEnvironment env, CancellationToken cancellationToken = default)
+    /// <summary>Every safety gate (Development-only, Enabled, configured,
+    /// exact-database-name match, connectivity) — shared by both
+    /// <see cref="MigrateIfEnabledAsync"/> and <see cref="SeedAsync"/> so
+    /// neither one trusts the other to have already checked. Returns the
+    /// open <see cref="MvTeachesDbContext"/>/logger/options on success, or
+    /// null (having already logged exactly why) when this run should do
+    /// nothing further.</summary>
+    private static async Task<(MvTeachesDbContext Db, ILogger Logger, LocalDevelopmentSeedOptions Options)?> CheckGatesAsync(
+        IServiceProvider services, IHostEnvironment env, CancellationToken cancellationToken)
     {
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("MVTeaches.LocalDevelopmentSeed");
 
@@ -54,13 +62,13 @@ public static class LocalDevelopmentSeeder
             // Never reachable via Program.cs's own outer guard, but this
             // method must never trust a single caller to be the only thing
             // standing between it and a non-Development environment.
-            return;
+            return null;
         }
 
         var options = services.GetRequiredService<IOptions<LocalDevelopmentSeedOptions>>().Value;
         if (!options.Enabled)
         {
-            return; // the ordinary, safe, do-nothing case for every other Development run
+            return null; // the ordinary, safe, do-nothing case for every other Development run
         }
 
         if (!options.IsConfigured)
@@ -68,7 +76,7 @@ public static class LocalDevelopmentSeeder
             logger.LogWarning(
                 "LocalDevelopmentSeed:Enabled is true, but RequiredDatabaseName or SeedPassword is missing. " +
                 "See docs/LOCAL-DEVELOPMENT.md — skipping the local bootstrap entirely.");
-            return;
+            return null;
         }
 
         var db = services.GetRequiredService<MvTeachesDbContext>();
@@ -80,7 +88,7 @@ public static class LocalDevelopmentSeeder
                 "'{Required}'. Refusing to migrate or seed anything against it. Fix ConnectionStrings:MvTeaches " +
                 "or LocalDevelopmentSeed:RequiredDatabaseName in User Secrets.",
                 actualDatabaseName, options.RequiredDatabaseName);
-            return;
+            return null;
         }
 
         bool canConnect;
@@ -102,11 +110,41 @@ public static class LocalDevelopmentSeeder
                 "LocalDevelopmentSeed: could not connect to database '{Database}'. Is PostgreSQL 16 running " +
                 "locally, and does this database exist yet (see docs/LOCAL-DEVELOPMENT.md's pgAdmin step)? " +
                 "Skipping migration and seeding for this run.", actualDatabaseName);
+            return null;
+        }
+
+        return (db, logger, options);
+    }
+
+    /// <summary>Must run BEFORE <see cref="DataSeeder.SeedAsync"/> and
+    /// BEFORE this class's own <see cref="SeedAsync"/> — both of those
+    /// query tables (AspNetRoles, etc.) that only exist once migrations
+    /// have actually been applied. On a genuinely fresh database, calling
+    /// them first fails outright with "relation ... does not exist"; this
+    /// method is what makes the schema exist at all before anything else
+    /// touches it. See Program.cs's ordering.</summary>
+    public static async Task MigrateIfEnabledAsync(IServiceProvider services, IHostEnvironment env, CancellationToken cancellationToken = default)
+    {
+        var gates = await CheckGatesAsync(services, env, cancellationToken);
+        if (gates is null)
+        {
             return;
         }
 
-        logger.LogInformation("LocalDevelopmentSeed: applying pending migrations against '{Database}'.", actualDatabaseName);
+        var (db, logger, _) = gates.Value;
+        logger.LogInformation("LocalDevelopmentSeed: applying pending migrations against '{Database}'.", db.Database.GetDbConnection().Database);
         await db.Database.MigrateAsync(cancellationToken);
+    }
+
+    public static async Task SeedAsync(IServiceProvider services, IHostEnvironment env, CancellationToken cancellationToken = default)
+    {
+        var gates = await CheckGatesAsync(services, env, cancellationToken);
+        if (gates is null)
+        {
+            return;
+        }
+
+        var (db, logger, options) = gates.Value;
 
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var bootstrapAdminOptions = services.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
@@ -115,25 +153,22 @@ public static class LocalDevelopmentSeeder
         var clock = services.GetRequiredService<IClock>();
         var now = clock.GetCurrentInstant();
 
-        // 0. Grant SystemAdmin, in addition to the Admin role DataSeeder's
-        // own SeedBootstrapAdminAsync already granted, to the SAME bootstrap
-        // account — reusing that existing, production-safe mechanism rather
-        // than inventing a second, parallel admin-creation path. A long-lived
-        // admin id from this account is also what every other seeded row
-        // below records as its "created/granted by" actor.
+        // 0. Ensure the configured bootstrap admin exists for this local
+        // database and has the current local password. DataSeeder's
+        // production-safe one-time bootstrap still owns production behavior;
+        // this reconciliation can only run after the local Development gates
+        // above have proven this is the explicitly enabled local database.
         long? adminUserId = null;
         if (bootstrapAdminOptions.IsConfigured)
         {
-            var adminUser = await userManager.FindByEmailAsync(bootstrapAdminOptions.AdminEmail!);
-            if (adminUser is not null)
-            {
-                adminUserId = adminUser.Id;
-                if (!await userManager.IsInRoleAsync(adminUser, RoleNames.SystemAdmin))
-                {
-                    await userManager.AddToRoleAsync(adminUser, RoleNames.SystemAdmin);
-                    logger.LogInformation("LocalDevelopmentSeed: granted SystemAdmin to the bootstrap admin account.");
-                }
-            }
+            var adminUser = await CreateOrReconcileUserAsync(
+                userManager,
+                bootstrapAdminOptions.AdminEmail!,
+                bootstrapAdminOptions.AdminPassword!,
+                new[] { RoleNames.Admin, RoleNames.SystemAdmin },
+                logger,
+                cancellationToken);
+            adminUserId = adminUser.Id;
         }
         if (adminUserId is null)
         {
@@ -191,25 +226,123 @@ public static class LocalDevelopmentSeeder
 
     private const string LocalDomain = "@mvteaches.local";
 
-    private static async Task<long> CreateOrGetUserAsync(UserManager<ApplicationUser> userManager, string email, string password, string role, ILogger logger, CancellationToken ct)
+    private static async Task<ApplicationUser?> FindKnownLocalUserAsync(UserManager<ApplicationUser> userManager, string email, CancellationToken ct)
     {
         var existing = await userManager.FindByEmailAsync(email);
         if (existing is not null)
         {
-            return existing.Id;
+            return existing;
         }
 
-        var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true };
-        var result = await userManager.CreateAsync(user, password);
-        if (!result.Succeeded)
+        var normalizedEmail = userManager.NormalizeEmail(email);
+        return await userManager.Users.SingleOrDefaultAsync(
+            user => user.NormalizedEmail == normalizedEmail || user.Email == email,
+            ct);
+    }
+
+    private static async Task<ApplicationUser> CreateOrReconcileUserAsync(
+        UserManager<ApplicationUser> userManager,
+        string email,
+        string password,
+        IReadOnlyCollection<string> roles,
+        ILogger logger,
+        CancellationToken ct,
+        int? countryId = null)
+    {
+        var existing = await FindKnownLocalUserAsync(userManager, email, ct);
+        if (existing is not null)
         {
-            logger.LogError("LocalDevelopmentSeed: could not create {Email}: {Errors}", email,
-                string.Join("; ", result.Errors.Select(e => e.Description)));
-            throw new InvalidOperationException($"LocalDevelopmentSeed could not create '{email}' — see the log above.");
+            var needsProfileUpdate =
+                existing.UserName != email ||
+                existing.Email != email ||
+                existing.NormalizedUserName != userManager.NormalizeName(email) ||
+                existing.NormalizedEmail != userManager.NormalizeEmail(email) ||
+                existing.EmailConfirmed == false ||
+                existing.CountryId != (countryId ?? existing.CountryId);
+
+            existing.UserName = email;
+            existing.Email = email;
+            existing.EmailConfirmed = true;
+            if (countryId is not null)
+            {
+                existing.CountryId = countryId;
+            }
+
+            if (needsProfileUpdate)
+            {
+                var updateResult = await userManager.UpdateAsync(existing);
+                ThrowIfFailed(updateResult, $"LocalDevelopmentSeed could not update '{email}'", logger, email);
+            }
+
+            if (await userManager.IsLockedOutAsync(existing))
+            {
+                var unlockResult = await userManager.SetLockoutEndDateAsync(existing, null);
+                ThrowIfFailed(unlockResult, $"LocalDevelopmentSeed could not unlock '{email}'", logger, email);
+            }
+
+            if (existing.AccessFailedCount > 0)
+            {
+                var resetFailuresResult = await userManager.ResetAccessFailedCountAsync(existing);
+                ThrowIfFailed(resetFailuresResult, $"LocalDevelopmentSeed could not clear failed-login count for '{email}'", logger, email);
+            }
+
+            foreach (var role in roles)
+            {
+                if (!await userManager.IsInRoleAsync(existing, role))
+                {
+                    var addRoleResult = await userManager.AddToRoleAsync(existing, role);
+                    ThrowIfFailed(addRoleResult, $"LocalDevelopmentSeed could not add '{email}' to '{role}'", logger, email);
+                }
+            }
+
+            if (!await userManager.CheckPasswordAsync(existing, password))
+            {
+                IdentityResult passwordResult;
+                if (await userManager.HasPasswordAsync(existing))
+                {
+                    var resetToken = await userManager.GeneratePasswordResetTokenAsync(existing);
+                    passwordResult = await userManager.ResetPasswordAsync(existing, resetToken, password);
+                }
+                else
+                {
+                    passwordResult = await userManager.AddPasswordAsync(existing, password);
+                }
+                ThrowIfFailed(passwordResult, $"LocalDevelopmentSeed could not reconcile the password for '{email}'", logger, email);
+                logger.LogInformation("LocalDevelopmentSeed: reconciled the configured local password for {Email}.", email);
+            }
+
+            return existing;
         }
 
-        await userManager.AddToRoleAsync(user, role);
+        var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, CountryId = countryId };
+        var result = await userManager.CreateAsync(user, password);
+        ThrowIfFailed(result, $"LocalDevelopmentSeed could not create '{email}'", logger, email);
+
+        foreach (var role in roles)
+        {
+            var addRoleResult = await userManager.AddToRoleAsync(user, role);
+            ThrowIfFailed(addRoleResult, $"LocalDevelopmentSeed could not add '{email}' to '{role}'", logger, email);
+        }
+
+        return user;
+    }
+
+    private static async Task<long> CreateOrGetUserAsync(UserManager<ApplicationUser> userManager, string email, string password, string role, ILogger logger, CancellationToken ct)
+    {
+        var user = await CreateOrReconcileUserAsync(userManager, email, password, new[] { role }, logger, ct);
         return user.Id;
+    }
+
+    private static void ThrowIfFailed(IdentityResult result, string message, ILogger logger, string email)
+    {
+        if (result.Succeeded)
+        {
+            return;
+        }
+
+        logger.LogError("LocalDevelopmentSeed: could not reconcile {Email}: {Errors}", email,
+            string.Join("; ", result.Errors.Select(e => e.Description)));
+        throw new InvalidOperationException(message + " — see the log above.");
     }
 
     private static async Task<long?> SeedTeacherAsync(MvTeachesDbContext db, UserManager<ApplicationUser> userManager,
@@ -228,7 +361,10 @@ public static class LocalDevelopmentSeeder
 
         // Reuses the real, audited grant path — never a raw insert — so this
         // seed exercises exactly the same code a real admin action would.
-        await levelAuthorization.GrantAsync(teacher.Id, A1LevelId, adminUserId ?? userId, ct);
+        if (!await levelAuthorization.IsAuthorizedForLevelAsync(teacher.Id, A1LevelId, ct))
+        {
+            await levelAuthorization.GrantAsync(teacher.Id, A1LevelId, adminUserId ?? userId, ct);
+        }
 
         // Deliberately NOT given a TeacherMeetingConnection — faking Zoom/
         // Google OAuth tokens would weaken the real "not ready for online
@@ -288,22 +424,19 @@ public static class LocalDevelopmentSeeder
         int countryId, string password, ILogger logger, CancellationToken ct)
     {
         var email = "local-student" + LocalDomain;
-        var existingUser = await userManager.FindByEmailAsync(email);
-        if (existingUser is not null)
-        {
-            return; // already seeded on an earlier run — never re-touched
-        }
+        var user = await CreateOrReconcileUserAsync(
+            userManager,
+            email,
+            password,
+            new[] { RoleNames.Student },
+            logger,
+            ct,
+            countryId);
 
-        var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, CountryId = countryId };
-        var result = await userManager.CreateAsync(user, password);
-        if (!result.Succeeded)
+        if (await db.Students.AnyAsync(s => s.UserId == user.Id, ct))
         {
-            logger.LogError("LocalDevelopmentSeed: could not create {Email}: {Errors}", email,
-                string.Join("; ", result.Errors.Select(e => e.Description)));
             return;
         }
-
-        await userManager.AddToRoleAsync(user, RoleNames.Student);
 
         var student = new Student(countryId, "Local Dummy Direct Student", new LocalDate(2010, 5, 20), user.Id);
         student.MarkVerified();

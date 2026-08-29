@@ -23,6 +23,11 @@ namespace MVTeaches.Tests.Persistence;
 [Collection(nameof(DatabaseCollection))]
 public class LocalDevelopmentSeederTests : IClassFixture<LocalDevelopmentSeederTests.EnabledFactory>, IClassFixture<LocalDevelopmentSeederTests.DisabledFactory>, IAsyncLifetime
 {
+    private const string ConfiguredAdminEmail = "local-admin-test@mvteaches.local";
+    private const string ConfiguredAdminPassword = "Local-Dev-Admin-Password-123!";
+    private const string ConfiguredSeedPassword = "Local-Dev-Seed-Password-123!";
+    private const string StalePassword = "Old-Local-Dev-Password-123!";
+
     private readonly TestDatabaseFixture _fixture;
     private readonly EnabledFactory _enabledFactory;
     private readonly DisabledFactory _disabledFactory;
@@ -82,6 +87,27 @@ public class LocalDevelopmentSeederTests : IClassFixture<LocalDevelopmentSeederT
     private static async Task<bool> LocalTeacherExistsAsync(IServiceProvider services) =>
         await services.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync("local-teacher@mvteaches.local") is not null;
 
+    private static async Task<ApplicationUser> RequireUserAsync(UserManager<ApplicationUser> userManager, string email)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        Assert.NotNull(user);
+        return user;
+    }
+
+    private static async Task SetStaleIdentityStateAsync(UserManager<ApplicationUser> userManager, string email)
+    {
+        var user = await RequireUserAsync(userManager, email);
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var passwordResult = await userManager.ResetPasswordAsync(user, token, StalePassword);
+        Assert.True(passwordResult.Succeeded, string.Join("; ", passwordResult.Errors.Select(e => e.Description)));
+
+        user.EmailConfirmed = false;
+        user.AccessFailedCount = 2;
+        user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(10);
+        var updateResult = await userManager.UpdateAsync(user);
+        Assert.True(updateResult.Succeeded, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
+    }
+
     [Fact]
     public async Task Disabled_by_default_seeds_nothing()
     {
@@ -139,7 +165,7 @@ public class LocalDevelopmentSeederTests : IClassFixture<LocalDevelopmentSeederT
     /// account, the second call (a second `F5`) must create no duplicates —
     /// exactly the guarantee the local-development bootstrap requires.</summary>
     [Fact]
-    public async Task Seeding_twice_creates_every_account_exactly_once()
+    public async Task Seeding_twice_creates_every_account_exactly_once_and_passwords_work()
     {
         using var scope = _enabledFactory.Services.CreateScope();
         var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
@@ -150,17 +176,30 @@ public class LocalDevelopmentSeederTests : IClassFixture<LocalDevelopmentSeederT
         var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
+        var adminUser = await userManager.FindByEmailAsync(ConfiguredAdminEmail);
         var teacherUser = await userManager.FindByEmailAsync("local-teacher@mvteaches.local");
         var guardianUser = await userManager.FindByEmailAsync("local-guardian@mvteaches.local");
         var studentUser = await userManager.FindByEmailAsync("local-student@mvteaches.local");
+        Assert.NotNull(adminUser);
         Assert.NotNull(teacherUser);
         Assert.NotNull(guardianUser);
         Assert.NotNull(studentUser);
+
+        Assert.True(await userManager.CheckPasswordAsync(adminUser!, ConfiguredAdminPassword));
+        Assert.True(await userManager.CheckPasswordAsync(teacherUser!, ConfiguredSeedPassword));
+        Assert.True(await userManager.CheckPasswordAsync(guardianUser!, ConfiguredSeedPassword));
+        Assert.True(await userManager.CheckPasswordAsync(studentUser!, ConfiguredSeedPassword));
+        Assert.True(await userManager.IsInRoleAsync(adminUser!, RoleNames.Admin));
+        Assert.True(await userManager.IsInRoleAsync(adminUser!, RoleNames.SystemAdmin));
+        Assert.True(await userManager.IsInRoleAsync(teacherUser!, RoleNames.Teacher));
+        Assert.True(await userManager.IsInRoleAsync(guardianUser!, RoleNames.Guardian));
+        Assert.True(await userManager.IsInRoleAsync(studentUser!, RoleNames.Student));
 
         Assert.Equal(1, await db.Teachers.CountAsync(t => t.UserId == teacherUser!.Id));
         Assert.Equal(1, await db.Guardians.CountAsync(g => g.UserId == guardianUser!.Id));
         var guardian = await db.Guardians.FirstAsync(g => g.UserId == guardianUser!.Id);
         Assert.Equal(2, await db.Guardianships.CountAsync(g => g.GuardianId == guardian.Id)); // exactly two children, not four
+        Assert.Equal(1, await db.TeacherLevelAssignments.CountAsync(a => a.TeacherId == db.Teachers.Where(t => t.UserId == teacherUser!.Id).Select(t => t.Id).First() && a.LevelId == 1));
 
         // The direct-login student is deliberately never assigned a level —
         // the whole point of this account is demonstrating the placement-test CTA.
@@ -170,6 +209,93 @@ public class LocalDevelopmentSeederTests : IClassFixture<LocalDevelopmentSeederT
         Assert.Equal(1, await db.PricingPlans.CountAsync(p => p.LevelId == 1 && p.SessionType == Domain.Catalog.SessionType.Private));
         Assert.Equal(1, await db.PlacementTestVersions.CountAsync(v => v.IsActive));
         Assert.Equal(2, await db.ClassSessions.CountAsync(s => s.TeacherId == db.Teachers.Where(t => t.UserId == teacherUser!.Id).Select(t => t.Id).First()));
+    }
+
+    /// <summary>Local seeded users are idempotent, but idempotent cannot mean
+    /// "forever keep whatever old local password happened to be hashed first."
+    /// This proves the Development-only, exact-database-gated seeder repairs
+    /// only the four documented local login accounts to the currently
+    /// configured secrets, without adding duplicates.</summary>
+    [Fact]
+    public async Task Enabled_seed_reconciles_stale_known_local_account_passwords_and_sign_in_state()
+    {
+        using var scope = _enabledFactory.Services.CreateScope();
+        var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+
+        await LocalDevelopmentSeeder.SeedAsync(scope.ServiceProvider, env);
+
+        var expected = new Dictionary<string, (string Password, string Role)>
+        {
+            [ConfiguredAdminEmail] = (ConfiguredAdminPassword, RoleNames.Admin),
+            ["local-teacher@mvteaches.local"] = (ConfiguredSeedPassword, RoleNames.Teacher),
+            ["local-guardian@mvteaches.local"] = (ConfiguredSeedPassword, RoleNames.Guardian),
+            ["local-student@mvteaches.local"] = (ConfiguredSeedPassword, RoleNames.Student),
+        };
+
+        foreach (var email in expected.Keys)
+        {
+            await SetStaleIdentityStateAsync(userManager, email);
+        }
+
+        await LocalDevelopmentSeeder.SeedAsync(scope.ServiceProvider, env);
+
+        foreach (var (email, expectation) in expected)
+        {
+            var user = await RequireUserAsync(userManager, email);
+            Assert.Equal(email, user.Email);
+            Assert.Equal(email, user.UserName);
+            Assert.Equal(userManager.NormalizeEmail(email), user.NormalizedEmail);
+            Assert.Equal(userManager.NormalizeName(email), user.NormalizedUserName);
+            Assert.True(user.EmailConfirmed);
+            Assert.False(await userManager.IsLockedOutAsync(user));
+            Assert.Equal(0, user.AccessFailedCount);
+            Assert.True(await userManager.CheckPasswordAsync(user, expectation.Password));
+            Assert.True(await userManager.IsInRoleAsync(user, expectation.Role));
+        }
+
+        var adminUser = await RequireUserAsync(userManager, ConfiguredAdminEmail);
+        Assert.True(await userManager.IsInRoleAsync(adminUser, RoleNames.SystemAdmin));
+        foreach (var email in expected.Keys)
+        {
+            var normalized = userManager.NormalizeEmail(email);
+            Assert.Equal(1, await db.Users.CountAsync(u => u.NormalizedEmail == normalized));
+        }
+    }
+
+    /// <summary>The reconciliation is intentionally not a broad "repair every
+    /// local user" feature. Only the documented seeded login accounts are
+    /// eligible.</summary>
+    [Fact]
+    public async Task Enabled_seed_does_not_reconcile_unlisted_user_passwords()
+    {
+        using var scope = _enabledFactory.Services.CreateScope();
+        var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var unlistedEmail = $"unlisted-{Guid.NewGuid():N}@mvteaches.local";
+
+        var unlisted = new ApplicationUser { UserName = unlistedEmail, Email = unlistedEmail, EmailConfirmed = true };
+        var createResult = await userManager.CreateAsync(unlisted, StalePassword);
+        Assert.True(createResult.Succeeded, string.Join("; ", createResult.Errors.Select(e => e.Description)));
+
+        await LocalDevelopmentSeeder.SeedAsync(scope.ServiceProvider, env);
+
+        var unchanged = await RequireUserAsync(userManager, unlistedEmail);
+        Assert.True(await userManager.CheckPasswordAsync(unchanged, StalePassword));
+        Assert.False(await userManager.CheckPasswordAsync(unchanged, ConfiguredSeedPassword));
+    }
+
+    /// <summary>Production must be refused before the seeder resolves any
+    /// database, Identity, or password-reconciliation services.</summary>
+    [Fact]
+    public async Task Production_refuses_before_resolving_seed_services()
+    {
+        var services = new ServiceCollection()
+            .AddLogging()
+            .BuildServiceProvider();
+
+        await LocalDevelopmentSeeder.SeedAsync(services, new FakeHostEnvironment("Production"));
     }
 
     /// <summary>A fake <see cref="IHostEnvironment"/> with an arbitrary
@@ -200,13 +326,13 @@ public class LocalDevelopmentSeederTests : IClassFixture<LocalDevelopmentSeederT
                 {
                     ["LocalDevelopmentSeed:Enabled"] = "true",
                     ["LocalDevelopmentSeed:RequiredDatabaseName"] = RealDatabaseName(connectionString),
-                    ["LocalDevelopmentSeed:SeedPassword"] = "Local-Dev-Password-123!",
+                    ["LocalDevelopmentSeed:SeedPassword"] = ConfiguredSeedPassword,
                     // Exercises the admin-dependent seeds too (pricing plans,
                     // dummy placement test, sample expense) — without this,
                     // BootstrapAdminOptions.IsConfigured is false and
                     // LocalDevelopmentSeeder correctly, silently skips them.
-                    ["Bootstrap:AdminEmail"] = "local-admin-test@mvteaches.local",
-                    ["Bootstrap:AdminPassword"] = "Local-Dev-Password-123!",
+                    ["Bootstrap:AdminEmail"] = ConfiguredAdminEmail,
+                    ["Bootstrap:AdminPassword"] = ConfiguredAdminPassword,
                 });
             });
         }
@@ -216,6 +342,9 @@ public class LocalDevelopmentSeederTests : IClassFixture<LocalDevelopmentSeederT
     /// shipped appsettings.Development.json default a fresh clone starts with.</summary>
     public class DisabledFactory : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.UseEnvironment("Development");
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment("Development");
+        }
     }
 }
