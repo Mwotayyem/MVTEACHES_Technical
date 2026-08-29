@@ -77,19 +77,18 @@ public class MeetingProvisioningService : IMeetingProvisioningService
                 return new ProvisionMeetingResult(ProvisionMeetingOutcome.ProviderDisconnected, Provider: existing.Provider);
             }
 
-            var blockedReason = CheckCapability(connection, session);
-            if (blockedReason is not null)
-            {
-                return new ProvisionMeetingResult(ProvisionMeetingOutcome.CapabilityBlocked, Detail: blockedReason, Provider: existing.Provider);
-            }
+            // Owner decision 2026-08-30: a duration shortfall is a warning to
+            // the teacher, never a refusal to create the meeting.
+            var existingWarning = CheckCapability(connection, session);
 
             if (!await TryClaimAsync(existing.Id, cancellationToken))
             {
-                return new ProvisionMeetingResult(ProvisionMeetingOutcome.StillProvisioning, Provider: existing.Provider);
+                return new ProvisionMeetingResult(ProvisionMeetingOutcome.StillProvisioning, Provider: existing.Provider,
+                    CapabilityWarning: existingWarning);
             }
 
             await _db.Entry(existing).ReloadAsync(cancellationToken);
-            return await CreateExternalMeetingAsync(existing, connection, session, cancellationToken);
+            return await CreateExternalMeetingAsync(existing, connection, session, existingWarning, cancellationToken);
         }
 
         var defaultConnection = await _db.TeacherMeetingConnections.FirstOrDefaultAsync(
@@ -99,11 +98,10 @@ public class MeetingProvisioningService : IMeetingProvisioningService
             return new ProvisionMeetingResult(ProvisionMeetingOutcome.NoProviderConnection);
         }
 
-        var capabilityIssue = CheckCapability(defaultConnection, session);
-        if (capabilityIssue is not null)
-        {
-            return new ProvisionMeetingResult(ProvisionMeetingOutcome.CapabilityBlocked, Detail: capabilityIssue, Provider: defaultConnection.Provider);
-        }
+        // Owner decision 2026-08-30 (supersedes the duration-blocking half of
+        // D-92): the teacher's own plan limit never prevents the meeting from
+        // being created at the session's real scheduled duration.
+        var capabilityWarning = CheckCapability(defaultConnection, session);
 
         var fresh = new ProvisionedMeeting(sessionId, defaultConnection.Id, defaultConnection.Provider, _clock.GetCurrentInstant());
         _db.ProvisionedMeetings.Add(fresh);
@@ -116,10 +114,34 @@ public class MeetingProvisioningService : IMeetingProvisioningService
             // Another concurrent request already created the active row for
             // this session — this is the whole point of ux_provisioned_meeting_active_session.
             _db.ChangeTracker.Clear();
-            return new ProvisionMeetingResult(ProvisionMeetingOutcome.StillProvisioning, Provider: defaultConnection.Provider);
+            return new ProvisionMeetingResult(ProvisionMeetingOutcome.StillProvisioning, Provider: defaultConnection.Provider,
+                CapabilityWarning: capabilityWarning);
         }
 
-        return await CreateExternalMeetingAsync(fresh, defaultConnection, session, cancellationToken);
+        return await CreateExternalMeetingAsync(fresh, defaultConnection, session, capabilityWarning, cancellationToken);
+    }
+
+    public async Task<string?> GetCapabilityWarningAsync(long sessionId, CancellationToken cancellationToken)
+    {
+        var session = await _db.ClassSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+        {
+            return null;
+        }
+
+        // Prefer the connection that already owns this session's meeting, so
+        // the warning describes the account the meeting will actually run on
+        // rather than a default the teacher changed after it was provisioned.
+        var existing = await _db.ProvisionedMeetings
+            .FirstOrDefaultAsync(m => m.SessionId == sessionId && m.IsActive, cancellationToken);
+
+        var connection = existing is not null
+            ? await _db.TeacherMeetingConnections.FirstOrDefaultAsync(c => c.Id == existing.ConnectionId, cancellationToken)
+            : await _db.TeacherMeetingConnections.FirstOrDefaultAsync(
+                c => c.TeacherId == session.TeacherId && c.IsDefault && c.Status == ProviderConnectionStatus.Connected,
+                cancellationToken);
+
+        return connection is null ? null : CheckCapability(connection, session);
     }
 
     public async Task<string?> GetHostStartUrlAsync(long sessionId, long requestingTeacherId, CancellationToken cancellationToken)
@@ -334,26 +356,33 @@ public class MeetingProvisioningService : IMeetingProvisioningService
     /// capacity, not merely its current booking count." Returns a
     /// human-readable blocking message, or null when the session's
     /// configured duration is within the connected account's limit.</summary>
+    /// <summary>
+    /// Owner decision 2026-08-30, superseding the duration-blocking half of D-92.
+    /// Returns a WARNING for the teacher, or null when the connected account
+    /// comfortably covers the session. It is deliberately not a veto: the
+    /// session's scheduled duration is the financial source of truth and is set
+    /// by the centre, so an account limit is an operational fact the teacher
+    /// must manage, never a reason to shorten the lesson, alter the student's
+    /// debit, change the teacher's pay, or silently switch provider. The only
+    /// remaining hard block is having no connected account at all
+    /// (<see cref="ProvisionMeetingOutcome.NoProviderConnection"/>).
+    /// </summary>
     private static string? CheckCapability(TeacherMeetingConnection connection, ClassSession session)
     {
         var isGroupCapable = session.Capacity > 1;
 
         if (connection.Provider == VideoProviderType.Zoom)
         {
-            if (connection.CapabilityTier == MeetingCapabilityTier.Full)
+            if (connection.CapabilityTier == MeetingCapabilityTier.Full
+                || session.DurationMinutes <= ZoomVideoMeetingProviderClient.ZoomBasicMinutesLimit)
             {
                 return null;
             }
 
-            if (session.DurationMinutes <= ZoomVideoMeetingProviderClient.ZoomBasicMinutesLimit)
-            {
-                return null;
-            }
-
-            return $"This teacher's Zoom account is Basic (free), limited to {ZoomVideoMeetingProviderClient.ZoomBasicMinutesLimit} minutes " +
-                   $"(including one-to-one meetings), but this session is configured for {session.DurationMinutes} minutes. " +
-                   "Connect Google Meet, upgrade this Zoom account, or use Zoom only for sessions of " +
-                   $"{ZoomVideoMeetingProviderClient.ZoomBasicMinutesLimit} minutes or less.";
+            return $"Your Zoom account is Basic (free), which Zoom ends after {ZoomVideoMeetingProviderClient.ZoomBasicMinutesLimit} minutes " +
+                   $"(one-to-one meetings included), but this session is scheduled for {session.DurationMinutes} minutes. " +
+                   "The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. " +
+                   "If Zoom ends the meeting early, use \"Continue meeting\" to bring everyone back into the same session.";
         }
 
         // GoogleMeet — never assumed paid (see GoogleMeetProviderClient's own remarks).
@@ -364,10 +393,13 @@ public class MeetingProvisioningService : IMeetingProvisioningService
         }
 
         return isGroupCapable
-            ? $"A free Google account allows group Google Meet sessions (3+ seats) up to {GoogleGroupMinutesLimit} minutes, " +
-              $"but this session is configured for {session.DurationMinutes} minutes."
-            : $"A free Google account allows one-to-one Google Meet sessions up to {GoogleOneToOneMinutesLimit / 60} hours, " +
-              $"but this session is configured for {session.DurationMinutes} minutes.";
+            ? $"A free Google account ends group Google Meet calls after {GoogleGroupMinutesLimit} minutes, " +
+              $"but this session is scheduled for {session.DurationMinutes} minutes. The session, the student's deducted " +
+              "minutes, and your pay all stay at the full scheduled duration. If Google ends the meeting early, use " +
+              "\"Continue meeting\" to bring everyone back into the same session."
+            : $"A free Google account ends one-to-one Google Meet calls after {GoogleOneToOneMinutesLimit / 60} hours, " +
+              $"but this session is scheduled for {session.DurationMinutes} minutes. The session, the student's deducted " +
+              "minutes, and your pay all stay at the full scheduled duration.";
     }
 
     private async Task<bool> TryClaimAsync(long provisionedMeetingId, CancellationToken cancellationToken)
@@ -388,7 +420,8 @@ public class MeetingProvisioningService : IMeetingProvisioningService
     }
 
     private async Task<ProvisionMeetingResult> CreateExternalMeetingAsync(ProvisionedMeeting meeting,
-        TeacherMeetingConnection connection, ClassSession session, CancellationToken cancellationToken)
+        TeacherMeetingConnection connection, ClassSession session, string? capabilityWarning,
+        CancellationToken cancellationToken)
     {
         var client = _clients.First(c => c.Provider == connection.Provider);
         var accessToken = await _tokenRefresh.GetValidAccessTokenAsync(connection, client, cancellationToken);
@@ -397,7 +430,8 @@ public class MeetingProvisioningService : IMeetingProvisioningService
             connection.MarkError("Access token could not be refreshed — the teacher must reconnect.");
             meeting.MarkDisconnected("The connected account's token could not be refreshed.");
             await _db.SaveChangesAsync(cancellationToken);
-            return new ProvisionMeetingResult(ProvisionMeetingOutcome.ProviderDisconnected, Provider: connection.Provider);
+            return new ProvisionMeetingResult(ProvisionMeetingOutcome.ProviderDisconnected, Provider: connection.Provider,
+                CapabilityWarning: capabilityWarning);
         }
 
         var isGroupCapable = session.Capacity > 1;
@@ -411,15 +445,18 @@ public class MeetingProvisioningService : IMeetingProvisioningService
             meeting.MarkReady(handle.ExternalMeetingId, handle.JoinUrl, _clock.GetCurrentInstant());
             await _db.SaveChangesAsync(cancellationToken);
 
-            // Owner clarification: allow but warn for an exact 60-minute free
-            // Google group session — Google may end it right at the boundary.
-            string? warning = connection.Provider == VideoProviderType.GoogleMeet
+            // The exact-boundary case (a free Google group session of exactly
+            // 60 minutes) is a narrower warning than CheckCapability's
+            // over-the-limit one, and the two are mutually exclusive by
+            // construction: CheckCapability only fires above the limit.
+            string? boundaryWarning = connection.Provider == VideoProviderType.GoogleMeet
                 && connection.CapabilityTier != MeetingCapabilityTier.Full
                 && isGroupCapable && session.DurationMinutes == GoogleGroupMinutesLimit
                 ? "Google may end this free-tier group meeting automatically at the 60-minute mark."
                 : null;
 
-            return new ProvisionMeetingResult(ProvisionMeetingOutcome.Ready, handle.JoinUrl, connection.Provider, warning);
+            return new ProvisionMeetingResult(ProvisionMeetingOutcome.Ready, handle.JoinUrl, connection.Provider,
+                CapabilityWarning: capabilityWarning ?? boundaryWarning);
         }
         catch (Exception ex)
         {
@@ -427,7 +464,8 @@ public class MeetingProvisioningService : IMeetingProvisioningService
             meeting.MarkFailed("The video provider rejected the meeting request. Try again shortly, or ask an admin to check the connection.");
             await _db.SaveChangesAsync(cancellationToken);
             return new ProvisionMeetingResult(ProvisionMeetingOutcome.Failed,
-                Detail: "The video provider rejected the meeting request.", Provider: connection.Provider);
+                Detail: "The video provider rejected the meeting request.", Provider: connection.Provider,
+                CapabilityWarning: capabilityWarning);
         }
     }
 

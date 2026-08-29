@@ -12,8 +12,12 @@ public enum ProvisionMeetingOutcome
     /// start a second external meeting.</summary>
     StillProvisioning,
 
+    /// <summary>The teacher has no connected Zoom/Google account at all. This
+    /// remains a genuine hard block per the 2026-08-30 owner decision — an
+    /// unconnected teacher is "not ready for online sessions" and no meeting
+    /// can be created. Contrast <see cref="ProvisionMeetingResult.CapabilityWarning"/>,
+    /// which is only ever informational.</summary>
     NoProviderConnection,
-    CapabilityBlocked,
 
     /// <summary>The connection that owns this session's existing meeting is
     /// no longer usable (disconnected/revoked). Deliberately NOT silently
@@ -30,8 +34,17 @@ public enum ProvisionMeetingOutcome
     SessionNotProvisionable,
 }
 
+/// <param name="CapabilityWarning">Owner decision 2026-08-30 (supersedes the
+/// duration-blocking half of D-92): when the assigned teacher's own account
+/// cannot cover this session's full scheduled duration — a Zoom Basic account
+/// on a 60-minute session, a free Google account on a 90-minute group session —
+/// the meeting is still created at the session's real scheduled duration and
+/// this carries the human-readable warning to show the teacher. It NEVER
+/// shortens the session, never changes the student's debit or the teacher's
+/// pay, and never silently switches provider. Null when the account covers
+/// the session, and never populated for students.</param>
 public record ProvisionMeetingResult(ProvisionMeetingOutcome Outcome, string? JoinUrl = null,
-    VideoProviderType? Provider = null, string? Detail = null);
+    VideoProviderType? Provider = null, string? Detail = null, string? CapabilityWarning = null);
 
 public enum TeacherReassignmentOutcome { Reassigned, SessionNotFound, SessionNotReassignable, NewTeacherOverlaps, NewTeacherNotReadyForOnlineSessions }
 
@@ -59,6 +72,16 @@ public interface IMeetingProvisioningService
     /// must be the session's own assigned teacher (re-checked here, not
     /// trusted from the caller) or this returns null.</summary>
     Task<string?> GetHostStartUrlAsync(long sessionId, long requestingTeacherId, CancellationToken cancellationToken);
+
+    /// <summary>Owner decision 2026-08-30: the read-only, side-effect-free
+    /// form of the capability check, so the teacher can be warned while
+    /// scheduling and again on their session list BEFORE pressing Start —
+    /// not only after a meeting has already been provisioned. Returns null
+    /// when the teacher's default connection covers the session's full
+    /// scheduled duration, or when there is no connection at all (that is a
+    /// separate, harder "not ready" state, not a duration warning). Provisions
+    /// nothing and never contacts the provider.</summary>
+    Task<string?> GetCapabilityWarningAsync(long sessionId, CancellationToken cancellationToken);
 
     /// <summary>A future, unstarted, Scheduled session's teacher changed.
     /// Cancels the old meeting under the OLD teacher's owning connection

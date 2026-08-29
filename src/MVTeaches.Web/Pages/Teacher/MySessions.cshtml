@@ -55,6 +55,14 @@ else
                             {
                                 <span>@s.MeetingProvider — @s.MeetingStatus</span>
                             }
+                            @if (!string.IsNullOrEmpty(s.CapabilityWarning))
+                            {
+                                @* Owner decision 2026-08-30: a warning, never a block — the
+                                   Start button below stays available regardless. *@
+                                <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small" role="alert">
+                                    <strong>⚠ Account limit:</strong> @s.CapabilityWarning
+                                </div>
+                            }
                         </td>
                         <td>@(s.DeliveryState?.ToString() ?? "—")</td>
                         <td>

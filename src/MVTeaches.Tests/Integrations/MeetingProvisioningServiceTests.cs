@@ -190,8 +190,14 @@ public class MeetingProvisioningServiceTests
         return await verify.ProvisionedMeetings.CountAsync(m => m.SessionId == sessionId && m.IsActive);
     }
 
+    /// <summary>
+    /// Owner decision 2026-08-30, superseding the duration-blocking half of
+    /// D-92. A Basic Zoom account no longer prevents a 60-minute session from
+    /// being created; the meeting is provisioned at the session's real
+    /// scheduled duration and the teacher is warned that Zoom will cut it off.
+    /// </summary>
     [Fact]
-    public async Task A_basic_zoom_account_cannot_provision_a_session_longer_than_forty_minutes()
+    public async Task A_basic_zoom_account_may_provision_a_longer_session_but_the_teacher_is_warned()
     {
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
@@ -202,10 +208,37 @@ public class MeetingProvisioningServiceTests
 
         var result = await service.GetOrProvisionReadyMeetingAsync(scene.SessionId, CancellationToken.None);
 
-        Assert.Equal(ProvisionMeetingOutcome.CapabilityBlocked, result.Outcome);
-        Assert.Contains("Google Meet", result.Detail);   // offers the legitimate alternative
-        Assert.Contains("upgrade", result.Detail, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(0, zoom.CreatedCount);              // and never splits it into consecutive meetings
+        Assert.Equal(ProvisionMeetingOutcome.Ready, result.Outcome);
+        Assert.Equal(1, zoom.CreatedCount);                       // created, not refused
+        Assert.NotNull(result.CapabilityWarning);
+        Assert.Contains("40 minutes", result.CapabilityWarning);
+        Assert.Contains("60 minutes", result.CapabilityWarning);  // names the real scheduled duration
+
+        // The session itself is untouched: the plan limit must never shorten it.
+        await using var verify = _fixture.CreateContext();
+        var session = await verify.ClassSessions.FirstAsync(s => s.Id == scene.SessionId);
+        Assert.Equal(60, session.DurationMinutes);
+    }
+
+    /// <summary>The read-only form used to warn the teacher BEFORE they press
+    /// Start must agree with what provisioning reports, and must provision
+    /// nothing of its own.</summary>
+    [Fact]
+    public async Task The_read_only_capability_warning_matches_and_provisions_nothing()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 90,
+            provider: VideoProviderType.Zoom, tier: MeetingCapabilityTier.Restricted, minutesLimit: 40);
+        var clients = BothProviders(out var zoom, out _);
+        var service = CreateService(db, now, clients);
+
+        var warning = await service.GetCapabilityWarningAsync(scene.SessionId, CancellationToken.None);
+
+        Assert.NotNull(warning);
+        Assert.Contains("90 minutes", warning);
+        Assert.Equal(0, zoom.CreatedCount);
+        Assert.Equal(0, await db_ActiveMeetingCountAsync(scene.SessionId));
     }
 
     [Fact]
@@ -240,13 +273,15 @@ public class MeetingProvisioningServiceTests
         Assert.Equal(1, zoom.CreatedCount);
     }
 
+    /// <summary>Owner decision 2026-08-30: warned, not blocked (see the Zoom
+    /// equivalent above). capacity > 1 means the session MAY contain 3+
+    /// participants, so the 60-minute group rule applies regardless of how
+    /// many students have actually booked so far.</summary>
     [Fact]
-    public async Task A_free_google_group_session_over_sixty_minutes_is_blocked()
+    public async Task A_free_google_group_session_over_sixty_minutes_is_created_with_a_warning()
     {
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
-        // capacity > 1 means the session MAY contain 3+ participants, so the
-        // 60-minute group rule applies regardless of current bookings.
         var scene = await SeedAsync(db, now.Plus(Duration.FromHours(1)), durationMinutes: 90, capacity: 4,
             provider: VideoProviderType.GoogleMeet, tier: MeetingCapabilityTier.Restricted);
         var clients = BothProviders(out _, out var google);
@@ -254,9 +289,11 @@ public class MeetingProvisioningServiceTests
 
         var result = await service.GetOrProvisionReadyMeetingAsync(scene.SessionId, CancellationToken.None);
 
-        Assert.Equal(ProvisionMeetingOutcome.CapabilityBlocked, result.Outcome);
-        Assert.Contains("60 minutes", result.Detail);
-        Assert.Equal(0, google.CreatedCount);
+        Assert.Equal(ProvisionMeetingOutcome.Ready, result.Outcome);
+        Assert.Equal(1, google.CreatedCount);
+        Assert.NotNull(result.CapabilityWarning);
+        Assert.Contains("60 minutes", result.CapabilityWarning);
+        Assert.Contains("90 minutes", result.CapabilityWarning);
     }
 
     [Fact]
@@ -273,7 +310,9 @@ public class MeetingProvisioningServiceTests
 
         Assert.Equal(ProvisionMeetingOutcome.Ready, result.Outcome);
         Assert.Equal(1, google.CreatedCount);
-        Assert.Contains("60-minute", result.Detail);
+        // Exactly at the boundary: allowed, and warned about the boundary
+        // specifically rather than about exceeding the limit.
+        Assert.Contains("60-minute", result.CapabilityWarning);
     }
 
     [Fact]
@@ -294,7 +333,7 @@ public class MeetingProvisioningServiceTests
     }
 
     [Fact]
-    public async Task A_google_session_beyond_twenty_four_hours_is_blocked_even_one_to_one()
+    public async Task A_google_session_beyond_twenty_four_hours_is_created_with_a_warning_even_one_to_one()
     {
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
@@ -305,8 +344,10 @@ public class MeetingProvisioningServiceTests
 
         var result = await service.GetOrProvisionReadyMeetingAsync(scene.SessionId, CancellationToken.None);
 
-        Assert.Equal(ProvisionMeetingOutcome.CapabilityBlocked, result.Outcome);
-        Assert.Equal(0, google.CreatedCount);
+        Assert.Equal(ProvisionMeetingOutcome.Ready, result.Outcome);
+        Assert.Equal(1, google.CreatedCount);
+        Assert.NotNull(result.CapabilityWarning);
+        Assert.Contains("24 hours", result.CapabilityWarning);
     }
 
     [Fact]
@@ -322,8 +363,13 @@ public class MeetingProvisioningServiceTests
 
         var result = await service.GetOrProvisionReadyMeetingAsync(scene.SessionId, CancellationToken.None);
 
-        Assert.Equal(ProvisionMeetingOutcome.CapabilityBlocked, result.Outcome);
-        Assert.Equal(0, google.CreatedCount);
+        // "Conservative" now means "warn as if free", not "refuse" — an Unknown
+        // tier must still produce the free-tier warning rather than silently
+        // assuming the account is paid and staying quiet.
+        Assert.Equal(ProvisionMeetingOutcome.Ready, result.Outcome);
+        Assert.Equal(1, google.CreatedCount);
+        Assert.NotNull(result.CapabilityWarning);
+        Assert.Contains("60 minutes", result.CapabilityWarning);
     }
 
     [Fact]

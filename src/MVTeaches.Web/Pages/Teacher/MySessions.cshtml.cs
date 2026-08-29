@@ -43,9 +43,12 @@ public class MySessionsModel : PageModel
         _clock = clock;
     }
 
+    /// <param name="CapabilityWarning">Owner decision 2026-08-30: shown before
+    /// the teacher presses Start, never as a reason to hide the Start button.</param>
     public record SessionRow(long SessionId, Instant StartsAtUtc, string ScheduleTimeZone, int DurationMinutes,
         string CourseName, string LevelCode, ClassSessionStatus Status, DeliveryState? DeliveryState, bool CanDeclare,
-        bool CanStart, MeetingProvisioningStatus? MeetingStatus, VideoProviderType? MeetingProvider);
+        bool CanStart, MeetingProvisioningStatus? MeetingStatus, VideoProviderType? MeetingProvider,
+        string? CapabilityWarning);
 
     public IReadOnlyList<SessionRow> Sessions { get; set; } = Array.Empty<SessionRow>();
 
@@ -100,7 +103,6 @@ public class MySessionsModel : PageModel
             {
                 ProvisionMeetingOutcome.NoProviderConnection =>
                     "You have no connected video account yet — connect Zoom or a free Google account on the Connections page first.",
-                ProvisionMeetingOutcome.CapabilityBlocked => provision.Detail,
                 ProvisionMeetingOutcome.ProviderDisconnected =>
                     "The account this session's meeting belongs to is no longer connected — reconnect it on the Connections page.",
                 ProvisionMeetingOutcome.StillProvisioning =>
@@ -202,7 +204,8 @@ public class MySessionsModel : PageModel
         var courseNames = await _db.Courses.ToDictionaryAsync(c => c.Id, c => c.NameEn);
         var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
 
-        Sessions = sessions.Select(s =>
+        var rows = new List<SessionRow>(sessions.Count);
+        foreach (var s in sessions)
         {
             var deliveryState = deliveries.GetValueOrDefault(s.Id); // null = no delivery row exists yet
             var hasEnded = s.EndsAtUtc <= now;
@@ -213,9 +216,18 @@ public class MySessionsModel : PageModel
             // the teacher needs to be in the room before the students are.
             var canStart = s.Status == ClassSessionStatus.Scheduled && !hasEnded
                 && now >= s.StartsAtUtc.Minus(Duration.FromMinutes(15));
-            return new SessionRow(s.Id, s.StartsAtUtc, s.ScheduleTimeZone, s.DurationMinutes,
+
+            // Only worth computing for a session that has not already finished —
+            // a past session's plan limit is no longer actionable.
+            var warning = hasEnded || s.Status != ClassSessionStatus.Scheduled
+                ? null
+                : await _meetings.GetCapabilityWarningAsync(s.Id, HttpContext.RequestAborted);
+
+            rows.Add(new SessionRow(s.Id, s.StartsAtUtc, s.ScheduleTimeZone, s.DurationMinutes,
                 courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
-                s.Status, deliveryState, canDeclare, canStart, meeting?.Status, meeting?.Provider);
-        }).ToList();
+                s.Status, deliveryState, canDeclare, canStart, meeting?.Status, meeting?.Provider, warning));
+        }
+
+        Sessions = rows;
     }
 }

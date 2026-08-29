@@ -269,6 +269,111 @@ public class PayrollServiceTests
         Assert.Equal(period.PeriodId, finalDelivery.PayrollPeriodId);
     }
 
+    /// <summary>
+    /// Owner decision 2026-08-30, recorded as an explicit regression guard
+    /// after the owner-demo simulator was found to generate one payroll line
+    /// PER ATTENDING STUDENT. Production has never had that defect — pay is
+    /// anchored to <see cref="SessionDelivery"/>, whose primary key IS the
+    /// session id — and this test exists so that can never silently change.
+    ///
+    /// Four students attend one 60-minute session at 8 JOD/hour: the teacher
+    /// is paid 8 JOD once, not 32 JOD.
+    /// </summary>
+    [Fact]
+    public async Task A_session_with_many_attending_students_still_produces_exactly_one_payroll_line()
+    {
+        await using var db = _fixture.CreateContext();
+        var fx = await SeedDeclaredDeliveryAsync(db, rateAmount: 8m, rateUnit: RateUnit.PerHour, durationMinutes: 60);
+
+        // Fill every seat — the whole point is that this must not scale the pay.
+        for (var i = 0; i < 4; i++)
+        {
+            var studentUserId = await CreateUserAsync(db, $"student{i}");
+            var student = new Student(fx.CountryId, $"Student {i}", new LocalDate(2012, 3, 4), studentUserId);
+            db.Students.Add(student);
+            await db.SaveChangesAsync();
+            db.SessionEnrollments.Add(new SessionEnrollment(fx.SessionId, student.Id, fx.AgeGroupId,
+                fx.AdminUserId, SystemClock.Instance.GetCurrentInstant()));
+        }
+
+        await db.SaveChangesAsync();
+        Assert.Equal(4, await db.SessionEnrollments.CountAsync(e => e.SessionId == fx.SessionId));
+
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var service = CreatePayrollService(db, new FakeClock(now));
+        await service.VerifyAsync(fx.SessionId, fx.AdminUserId, null, CancellationToken.None);
+
+        var zone = DateTimeZoneProviders.Tzdb["Asia/Amman"];
+        var sessionLocalDate = fx.Session.StartsAtUtc.InZone(zone).Date;
+        var period = await service.OpenPeriodAsync(fx.CountryId, sessionLocalDate.PlusDays(-3), sessionLocalDate.PlusDays(3), CancellationToken.None);
+
+        var linesCreated = await service.AggregateVerifiedDeliveriesAsync(period.PeriodId, CancellationToken.None);
+
+        Assert.Equal(1, linesCreated);
+
+        await using var verify = _fixture.CreateContext();
+        var lines = await verify.PayrollLines.Where(l => l.PeriodId == period.PeriodId).ToListAsync();
+        Assert.Single(lines);
+        Assert.Equal(8m, lines[0].Amount);   // 8 JOD/hour x 60 min, NOT 8 x 4 students
+    }
+
+    /// <summary>The other half of the owner's stated formula: rate x scheduled
+    /// minutes / 60, so a 90-minute session at 8 JOD/hour pays 12 JOD.</summary>
+    [Fact]
+    public async Task A_ninety_minute_session_pays_one_and_a_half_times_the_hourly_rate()
+    {
+        await using var db = _fixture.CreateContext();
+        var fx = await SeedDeclaredDeliveryAsync(db, rateAmount: 8m, rateUnit: RateUnit.PerHour, durationMinutes: 90);
+
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var service = CreatePayrollService(db, new FakeClock(now));
+        await service.VerifyAsync(fx.SessionId, fx.AdminUserId, null, CancellationToken.None);
+
+        await using var verify = _fixture.CreateContext();
+        var delivery = await verify.SessionDeliveries.FirstAsync(d => d.SessionId == fx.SessionId);
+        Assert.Equal(90, delivery.VerifiedMinutes);
+        Assert.Equal(12m, delivery.PayableAmount);
+    }
+
+    /// <summary>
+    /// Owner decision 2026-08-30: "Provider interruptions or continuation
+    /// meeting segments must not create additional payroll items." A second
+    /// provisioned meeting for the same session (what a Zoom Basic cut-off
+    /// forces) must leave payroll completely untouched, because payroll is
+    /// anchored to the session and never to the meeting.
+    /// </summary>
+    [Fact]
+    public async Task A_second_meeting_segment_for_the_same_session_adds_no_payroll_item()
+    {
+        await using var db = _fixture.CreateContext();
+        var fx = await SeedDeclaredDeliveryAsync(db, rateAmount: 8m, rateUnit: RateUnit.PerHour, durationMinutes: 90);
+
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var service = CreatePayrollService(db, new FakeClock(now));
+        await service.VerifyAsync(fx.SessionId, fx.AdminUserId, null, CancellationToken.None);
+
+        var zone = DateTimeZoneProviders.Tzdb["Asia/Amman"];
+        var sessionLocalDate = fx.Session.StartsAtUtc.InZone(zone).Date;
+        var period = await service.OpenPeriodAsync(fx.CountryId, sessionLocalDate.PlusDays(-3), sessionLocalDate.PlusDays(3), CancellationToken.None);
+        Assert.Equal(1, await service.AggregateVerifiedDeliveriesAsync(period.PeriodId, CancellationToken.None));
+
+        // Simulate the continuation segment: a second meeting row against the
+        // SAME session. Payroll must not notice.
+        var connection = new MVTeaches.Domain.Integrations.TeacherMeetingConnection(fx.TeacherId,
+            MVTeaches.Domain.Integrations.VideoProviderType.Zoom, "acct-1", null, "enc-a", "enc-r", null, now);
+        db.TeacherMeetingConnections.Add(connection);
+        await db.SaveChangesAsync();
+        db.ProvisionedMeetings.Add(new MVTeaches.Domain.Integrations.ProvisionedMeeting(fx.SessionId,
+            connection.Id, MVTeaches.Domain.Integrations.VideoProviderType.Zoom, now));
+        await db.SaveChangesAsync();
+
+        var afterSegment = await service.AggregateVerifiedDeliveriesAsync(period.PeriodId, CancellationToken.None);
+
+        Assert.Equal(0, afterSegment);
+        await using var verify = _fixture.CreateContext();
+        Assert.Single(await verify.PayrollLines.Where(l => l.PeriodId == period.PeriodId).ToListAsync());
+    }
+
     [Fact]
     public async Task A_delivery_outside_the_periods_date_range_is_not_aggregated()
     {
