@@ -1,8 +1,11 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Scheduling;
+using MVTeaches.Domain.Notifications;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Persistence;
+using NodaTime;
 
 namespace MVTeaches.Infrastructure.Scheduling;
 
@@ -12,12 +15,15 @@ public class SessionCancellationService : ISessionCancellationService
     private readonly MvTeachesDbContext _db;
     private readonly IEnrollmentService _enrollments;
     private readonly IMeetingProvisioningService _meetings;
+    private readonly IClock _clock;
 
-    public SessionCancellationService(MvTeachesDbContext db, IEnrollmentService enrollments, IMeetingProvisioningService meetings)
+    public SessionCancellationService(MvTeachesDbContext db, IEnrollmentService enrollments,
+        IMeetingProvisioningService meetings, IClock clock)
     {
         _db = db;
         _enrollments = enrollments;
         _meetings = meetings;
+        _clock = clock;
     }
 
     public async Task<CancelSessionResult> CancelAsync(long sessionId, string reason, long cancelledByUserId,
@@ -60,6 +66,7 @@ public class SessionCancellationService : ISessionCancellationService
         var movedOrCancelled = 0;
         var leftUntouched = 0;
         var couldNotMove = 0;
+        var affectedStudentIds = new List<long>();
 
         foreach (var enrollment in activeEnrollments)
         {
@@ -80,6 +87,7 @@ public class SessionCancellationService : ISessionCancellationService
                 {
                     enrollment.MarkTransferred();
                     movedOrCancelled++;
+                    affectedStudentIds.Add(enrollment.StudentId);
                 }
                 else
                 {
@@ -92,6 +100,7 @@ public class SessionCancellationService : ISessionCancellationService
             {
                 enrollment.Cancel();
                 movedOrCancelled++;
+                affectedStudentIds.Add(enrollment.StudentId);
             }
         }
 
@@ -102,6 +111,32 @@ public class SessionCancellationService : ISessionCancellationService
         else
         {
             session.Cancel(reason, cancelledByUserId);
+        }
+
+        // Owner decision 2026-08-30 rule 9: schedule change/cancellation —
+        // the general case (MeetingProvisioningService already covers the
+        // narrower teacher-reassignment case with the same event). Only
+        // students actually moved or cancelled above are notified — someone
+        // already consumed via Join, or who could not be moved, is a
+        // separate admin follow-up, not a "your session changed" message.
+        if (affectedStudentIds.Count > 0)
+        {
+            var now = _clock.GetCurrentInstant();
+            var affectedStudents = await _db.Students
+                .Where(s => affectedStudentIds.Contains(s.Id) && s.UserId != null)
+                .ToListAsync(cancellationToken);
+            foreach (var affectedStudent in affectedStudents)
+            {
+                var payload = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    ["StudentName"] = affectedStudent.FullName,
+                    ["SessionId"] = sessionId.ToString(),
+                    ["Reason"] = reason,
+                });
+                _db.NotificationOutboxItems.Add(new NotificationOutboxItem(
+                    NotificationEvent.SessionCancelledOrMoved, NotificationChannel.WhatsApp,
+                    affectedStudent.UserId!.Value, payload, now));
+            }
         }
 
         await _db.SaveChangesAsync(cancellationToken);

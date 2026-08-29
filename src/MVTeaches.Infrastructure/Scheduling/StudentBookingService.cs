@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Scheduling;
+using MVTeaches.Domain.Notifications;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Persistence;
 using NodaTime;
@@ -141,6 +143,19 @@ public class StudentBookingService : IStudentBookingService
 
         var enrollment = new SessionEnrollment(sessionId, studentId, ageGroup.Id, actingUserId, now);
         _db.SessionEnrollments.Add(enrollment);
+
+        // Owner decision 2026-08-30 rule 9: booking confirmation. student.UserId
+        // is guaranteed non-null here — this method only ever loads a Student
+        // row matched by s.UserId == actingUserId (see above), so there is
+        // always a real account to notify at this point.
+        var payload = JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["StudentName"] = student.FullName,
+            ["SessionId"] = sessionId.ToString(),
+            ["StartsAtUtc"] = session.StartsAtUtc.ToString(),
+        });
+        _db.NotificationOutboxItems.Add(new NotificationOutboxItem(
+            NotificationEvent.BookingConfirmed, NotificationChannel.WhatsApp, student.UserId!.Value, payload, now));
 
         try
         {

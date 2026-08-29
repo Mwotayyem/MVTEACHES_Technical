@@ -100,7 +100,8 @@ public class SessionCancellationServiceTests
                     db, new MVTeaches.Tests.Integrations.FakeTokenProtector(), new FakeClock(now),
                     Microsoft.Extensions.Logging.Abstractions.NullLogger<MVTeaches.Infrastructure.Integrations.Security.TokenRefreshCoordinator>.Instance),
                 new FakeClock(now),
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<MVTeaches.Infrastructure.Integrations.MeetingProvisioningService>.Instance));
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<MVTeaches.Infrastructure.Integrations.MeetingProvisioningService>.Instance),
+            new FakeClock(now));
 
     [Fact]
     public async Task Cancelling_with_no_replacement_cancels_unconsumed_enrollments()
@@ -128,6 +129,12 @@ public class SessionCancellationServiceTests
         Assert.Equal(ClassSessionStatus.Cancelled, refreshedSession.Status);
         var enrollment = await verifyDb.SessionEnrollments.SingleAsync(e => e.SessionId == session.Id && e.StudentId == studentId);
         Assert.Equal(EnrollmentState.Cancelled, enrollment.State);
+
+        // Owner decision 2026-08-30 rule 9: schedule change/cancellation, the
+        // general case.
+        var studentUserId = await verifyDb.Students.Where(s => s.Id == studentId).Select(s => s.UserId).FirstAsync();
+        Assert.True(await verifyDb.NotificationOutboxItems.AnyAsync(
+            n => n.Event == MVTeaches.Domain.Notifications.NotificationEvent.SessionCancelledOrMoved && n.RecipientUserId == studentUserId));
     }
 
     [Fact]

@@ -248,8 +248,12 @@ public class CompensationRequestServiceTests
         Assert.Equal(0, await verify.EntitlementLedgerEntries.CountAsync(l => l.SessionId == replacement.Id));
     }
 
+    /// <summary>Owner decision 2026-08-30 rule 9 supersedes this test's
+    /// original name/assertion ("and no notification") — a rejection now
+    /// fires its own CompensationRejected notification, distinct from
+    /// ReplacementLessonApproved's own approval-only event.</summary>
     [Fact]
-    public async Task Rejecting_a_request_creates_no_replacement_and_no_notification()
+    public async Task Rejecting_a_request_creates_no_replacement_but_does_notify_the_student()
     {
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
@@ -266,7 +270,8 @@ public class CompensationRequestServiceTests
         var requestRow = await verify.CompensationRequests.SingleAsync(r => r.Id == request.RequestId);
         Assert.Equal(CompensationRequestStatus.Rejected, requestRow.Status);
         Assert.Equal("not eligible", requestRow.RejectionReason);
-        Assert.Equal(0, await verify.NotificationOutboxItems.CountAsync(n => n.RecipientUserId == fx.StudentUserId));
+        Assert.Equal(1, await verify.NotificationOutboxItems.CountAsync(
+            n => n.RecipientUserId == fx.StudentUserId && n.Event == MVTeaches.Domain.Notifications.NotificationEvent.CompensationRejected));
         Assert.False(await verify.SessionEnrollments.AnyAsync(e => e.CompensatesForSessionId == originalSessionId));
     }
 

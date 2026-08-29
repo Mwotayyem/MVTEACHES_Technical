@@ -217,6 +217,10 @@ public class StudentBookingServiceTests
             e => e.SessionId == session.Id && e.StudentId == fx.StudentId && e.State == EnrollmentState.Active));
         var refreshed = await verify.ClassSessions.AsNoTracking().FirstAsync(s => s.Id == session.Id);
         Assert.Equal(1, refreshed.SeatsTaken);
+
+        // Owner decision 2026-08-30 rule 9: booking confirmation.
+        Assert.True(await verify.NotificationOutboxItems.AnyAsync(
+            n => n.Event == MVTeaches.Domain.Notifications.NotificationEvent.BookingConfirmed && n.RecipientUserId == fx.StudentUserId));
     }
 
     [Fact]

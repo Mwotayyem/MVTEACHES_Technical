@@ -94,6 +94,10 @@ public class PaymentServiceTests
         var ledgerCount = verify.EntitlementLedgerEntries.Count(
             l => l.SubscriptionId == subscriptionId && l.Reason == LedgerReason.Purchase);
         Assert.Equal(1, ledgerCount);
+
+        // Owner decision 2026-08-30 rule 9: purchase confirmation.
+        Assert.True(verify.NotificationOutboxItems.Any(
+            n => n.Event == MVTeaches.Domain.Notifications.NotificationEvent.SubscriptionConfirmed && n.RecipientUserId == student.UserId!.Value));
     }
 
     /// <summary>

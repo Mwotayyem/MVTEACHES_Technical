@@ -39,6 +39,20 @@ public enum NotificationEvent
     /// speculatively. Distinct from SessionCancelledOrMoved, which is about
     /// the ORIGINAL session changing, not a replacement being granted.</summary>
     ReplacementLessonApproved,
+
+    /// <summary>Owner decision 2026-08-30 rule 9 addition: fired when a
+    /// student successfully books a session through the self-service booking
+    /// flow (StudentBookingService.BookSessionAsync) — distinct from
+    /// SubscriptionConfirmed (a purchase) and from the Join-time attendance
+    /// event, since booking itself moves no entitlement minutes (D-36) and
+    /// deserves its own confirmation regardless.</summary>
+    BookingConfirmed,
+
+    /// <summary>Owner decision 2026-08-30 rule 9 addition: the rejection half
+    /// of the compensation-request cycle ReplacementLessonApproved already
+    /// covers for approval — fired only when an admin rejects a student's
+    /// compensation request, carrying the mandatory rejection reason.</summary>
+    CompensationRejected,
 }
 
 public enum NotificationChannel

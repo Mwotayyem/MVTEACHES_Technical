@@ -127,7 +127,34 @@ public class CompensationRequestService : ICompensationRequestService
 
         request.Reject(reason, rejectedByUserId, _clock.GetCurrentInstant());
         await _db.SaveChangesAsync(cancellationToken);
+
+        // Owner decision 2026-08-30 rule 9: the rejection half of this cycle
+        // — a separate save, matching EnqueueReplacementApprovedNotificationAsync's
+        // own "the core decision must succeed even if a notification-side
+        // problem happens" ordering.
+        await EnqueueCompensationRejectedNotificationAsync(request, cancellationToken);
+
         return new ResolveCompensationRequestResult(ResolveCompensationRequestOutcome.Rejected);
+    }
+
+    private async Task EnqueueCompensationRejectedNotificationAsync(CompensationRequest request, CancellationToken ct)
+    {
+        var student = await _db.Students.AsNoTracking().FirstAsync(s => s.Id == request.StudentId, ct);
+        // Self-service requests always come from the student's own account
+        // (RequestReplacementAsync's own ownership check requires it), so a
+        // real UserId is guaranteed here, matching the approval path's own
+        // note above.
+        var recipientUserId = student.UserId!.Value;
+
+        var payload = JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["StudentName"] = student.FullName,
+            ["Reason"] = request.RejectionReason ?? string.Empty,
+        });
+
+        _db.NotificationOutboxItems.Add(new NotificationOutboxItem(
+            NotificationEvent.CompensationRejected, NotificationChannel.WhatsApp, recipientUserId, payload, _clock.GetCurrentInstant()));
+        await _db.SaveChangesAsync(ct);
     }
 
     private async Task EnqueueReplacementApprovedNotificationAsync(CompensationRequest request, CancellationToken ct)

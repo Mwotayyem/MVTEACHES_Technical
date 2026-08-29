@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Payments;
 using MVTeaches.Domain.Audit;
 using MVTeaches.Domain.Ledger;
+using MVTeaches.Domain.Notifications;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Persistence;
@@ -201,6 +203,24 @@ public class PaymentService : IPaymentService
         if (student.Status == StudentStatus.PaymentBlocked)
         {
             student.ClearPaymentBlock(); // D-14: lifted in the SAME transaction.
+        }
+
+        // Owner decision 2026-08-30 rule 9: purchase confirmation. Same
+        // "no independent login, nothing lost" convention
+        // MeetingProvisioningService already established for a guardian-only
+        // child — the guardian who actually purchased is not separately
+        // notified here, matching that existing precedent rather than
+        // inventing a new one.
+        if (student.UserId is not null)
+        {
+            var payload = JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                ["StudentName"] = student.FullName,
+                ["SubscriptionId"] = subscription.Id.ToString(),
+                ["MinutesTotal"] = subscription.MinutesTotal.ToString(),
+            });
+            _db.NotificationOutboxItems.Add(new NotificationOutboxItem(
+                NotificationEvent.SubscriptionConfirmed, NotificationChannel.WhatsApp, student.UserId.Value, payload, now));
         }
     }
 
