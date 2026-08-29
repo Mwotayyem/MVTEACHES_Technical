@@ -95,6 +95,7 @@ builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<ITeacherRateService, TeacherRateService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IEntitlementBalanceQuery, EntitlementBalanceQuery>();
+builder.Services.AddScoped<IEntitlementTransferService, EntitlementTransferService>();
 builder.Services.AddScoped<ISessionCancellationService, SessionCancellationService>();
 builder.Services.AddScoped<IStudentBookingService, StudentBookingService>();
 builder.Services.AddScoped<ICompensationRequestService, CompensationRequestService>();
