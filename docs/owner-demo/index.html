@@ -322,28 +322,38 @@ function buildSeed(){
       {id:"G2", name:"أ. هبة قاسم", phone:"+962 7 9012 0002", childIds:["S3","S4"]}
     ],
     students:[
-      {id:"S1", name:"سارة المصري", levelId:"B1", guardianId:"G1", phone:"+962 7 9012 3456", totalAttendedHours:3},
-      {id:"S2", name:"يوسف المصري", levelId:"A2", guardianId:"G1", phone:"+962 7 9012 3457", totalAttendedHours:0},
-      {id:"S3", name:"ريم قاسم", levelId:"B1", guardianId:"G2", phone:"+962 7 9012 3458", totalAttendedHours:2},
-      {id:"S4", name:"لمى عودة", levelId:"B1", guardianId:"G2", phone:"+962 7 9012 3459", totalAttendedHours:0}
+      {id:"S1", name:"سارة المصري", levelId:"B1", guardianId:"G1", phone:"+962 7 9012 3456", totalAttendedMinutes:180},
+      {id:"S2", name:"يوسف المصري", levelId:"A2", guardianId:"G1", phone:"+962 7 9012 3457", totalAttendedMinutes:0},
+      {id:"S3", name:"ريم قاسم", levelId:"B1", guardianId:"G2", phone:"+962 7 9012 3458", totalAttendedMinutes:120},
+      {id:"S4", name:"لمى عودة", levelId:"B1", guardianId:"G2", phone:"+962 7 9012 3459", totalAttendedMinutes:0}
+    ],
+    // D-94: the admin publishes package OFFERS; they are purchasable
+    // immediately and need no per-customer activation. A student's own
+    // purchased entitlement is a separate row in `packages` below.
+    packageOffers:[
+      {id:"OF-5",  titleAr:"باقة 5 ساعات",  totalMinutes:300,  price:65,  currency:"JOD", isPublished:true},
+      {id:"OF-10", titleAr:"باقة 10 ساعات", totalMinutes:600,  price:120, currency:"JOD", isPublished:true},
+      {id:"OF-20", titleAr:"باقة 20 ساعة",  totalMinutes:1200, price:220, currency:"JOD", isPublished:true}
     ],
     packages:[
-      {id:"P-1001", studentId:"S1", totalHours:10, remainingHours:7, price:120, currency:"JOD", purchasedAtISO:"2026-08-01T10:00:00", status:"Active"},
-      {id:"P-3001", studentId:"S3", totalHours:10, remainingHours:8, price:120, currency:"JOD", purchasedAtISO:"2026-08-05T10:00:00", status:"Active"},
-      {id:"P-4001", studentId:"S4", totalHours:10, remainingHours:10, price:120, currency:"JOD", purchasedAtISO:"2026-08-10T10:00:00", status:"Active"}
+      // D-95: the atomic unit is the MINUTE, never a whole "session" or "hour" —
+      // a 10-hour package is 600 minutes, and a 90-minute lesson costs 90 of them.
+      {id:"P-1001", studentId:"S1", offerId:"OF-10", totalMinutes:600, remainingMinutes:420, price:120, currency:"JOD", purchasedAtISO:"2026-08-01T10:00:00", status:"Active"},
+      {id:"P-3001", studentId:"S3", offerId:"OF-10", totalMinutes:600, remainingMinutes:480, price:120, currency:"JOD", purchasedAtISO:"2026-08-05T10:00:00", status:"Active"},
+      {id:"P-4001", studentId:"S4", offerId:"OF-10", totalMinutes:600, remainingMinutes:600, price:120, currency:"JOD", purchasedAtISO:"2026-08-10T10:00:00", status:"Active"}
     ],
     sessions:[
-      {id:"SES-101", levelId:"B1", teacherId:"T1", startISO:"2026-08-18T17:00:00", durationMinutes:60, capacity:6},
-      {id:"SES-102", levelId:"B1", teacherId:"T1", startISO:"2026-08-20T17:00:00", durationMinutes:60, capacity:6},
-      {id:"SES-103", levelId:"B1", teacherId:"T2", startISO:"2026-08-25T17:00:00", durationMinutes:40, capacity:6},
-      {id:"SES-104", levelId:"B1", teacherId:"T3", startISO:"2026-08-27T18:00:00", durationMinutes:60, capacity:5},
-      {id:"SES-201", levelId:"B1", teacherId:"T1", startISO:"2026-09-02T17:00:00", durationMinutes:60, capacity:6},
-      {id:"SES-202", levelId:"B1", teacherId:"T2", startISO:"2026-09-04T17:00:00", durationMinutes:40, capacity:6},
-      {id:"SES-203", levelId:"B1", teacherId:"T1", startISO:"2026-09-09T17:00:00", durationMinutes:60, capacity:6},
-      {id:"SES-204", levelId:"B1", teacherId:"T3", startISO:"2026-09-09T18:00:00", durationMinutes:60, capacity:4},
-      {id:"SES-205", levelId:"A2", teacherId:"T4", startISO:"2026-09-03T16:00:00", durationMinutes:45, capacity:6},
-      {id:"SES-206", levelId:"B1", teacherId:"T2", startISO:"2026-09-05T17:00:00", durationMinutes:40, capacity:2},
-      {id:"SES-207", levelId:"B1", teacherId:"T1", startISO:"2026-09-11T17:00:00", durationMinutes:60, capacity:6}
+      {id:"SES-101", levelId:"B1", teacherId:"T1", startISO:"2026-08-18T17:00:00", durationMinutes:60, sessionType:"Group"},
+      {id:"SES-102", levelId:"B1", teacherId:"T1", startISO:"2026-08-20T17:00:00", durationMinutes:60, sessionType:"Group"},
+      {id:"SES-103", levelId:"B1", teacherId:"T2", startISO:"2026-08-25T17:00:00", durationMinutes:40, sessionType:"Group"},
+      {id:"SES-104", levelId:"B1", teacherId:"T3", startISO:"2026-08-27T18:00:00", durationMinutes:60, sessionType:"Group"},
+      {id:"SES-201", levelId:"B1", teacherId:"T1", startISO:"2026-09-02T17:00:00", durationMinutes:60, sessionType:"Group"},
+      {id:"SES-202", levelId:"B1", teacherId:"T2", startISO:"2026-09-04T17:00:00", durationMinutes:40, sessionType:"Group"},
+      {id:"SES-203", levelId:"B1", teacherId:"T1", startISO:"2026-09-09T17:00:00", durationMinutes:60, sessionType:"Group"},
+      {id:"SES-204", levelId:"B1", teacherId:"T3", startISO:"2026-09-09T18:00:00", durationMinutes:60, sessionType:"Group"},
+      {id:"SES-205", levelId:"A2", teacherId:"T4", startISO:"2026-09-03T16:00:00", durationMinutes:45, sessionType:"Group"},
+      {id:"SES-206", levelId:"B1", teacherId:"T2", startISO:"2026-09-05T17:00:00", durationMinutes:40, sessionType:"Group"},
+      {id:"SES-207", levelId:"B1", teacherId:"T1", startISO:"2026-09-11T17:00:00", durationMinutes:60, sessionType:"Group"}
     ],
     bookings:[
       {id:"B-101", studentId:"S1", sessionId:"SES-101", status:"Attended", packageId:"P-1001", createdAtISO:"2026-08-15T09:00:00", attendedAtISO:"2026-08-18T17:05:00", isReplacement:false, compensationRequestId:null},
@@ -547,6 +557,15 @@ function fmtShortDate(iso){
   var d = parseLocal(iso);
   return d.getDate()+" "+AR_MONTHS[d.getMonth()];
 }
+// D-95: balances and progress are minutes internally; this is the only
+// place they become a human-readable "3 hours and 30 minutes" in Arabic.
+function fmtMinutes(mins){
+  mins = Math.max(0, Math.round(mins));
+  var h = Math.floor(mins/60), m = mins%60;
+  if(h===0) return m+" دقيقة";
+  if(m===0) return h+" ساعة";
+  return h+" ساعة و"+m+" دقيقة";
+}
 function fmtCurrency(amount, currency){
   var n = Math.round(amount*100)/100;
   var label = currency==="JOD" ? "د.أ" : (currency==="USD" ? "$" : currency);
@@ -645,9 +664,14 @@ function occupiedCount(sessionId){
   }
   return n;
 }
+// D-98: seat count is a property of the session's TYPE and is fixed by the
+// centre — group = 4, private = 1. It is never stored per session and never
+// entered by a user, so no screen can widen or narrow it.
+function capacityFor(sessionType){ return sessionType === "Private" ? 1 : 4; }
+function sessionCapacity(s){ return capacityFor(s.sessionType); }
 function seatsAvailable(sessionId){
   var s=getSession(sessionId); if(!s) return 0;
-  return Math.max(0, s.capacity - occupiedCount(sessionId));
+  return Math.max(0, sessionCapacity(s) - occupiedCount(sessionId));
 }
 function studentBookingForSession(studentId,sessionId){
   for(var i=0;i<state.bookings.length;i++){
@@ -663,7 +687,7 @@ function sessionsForTeacher(teacherId){
   return state.sessions.filter(function(s){ return s.teacherId===teacherId; });
 }
 function getActivePackage(studentId){
-  var list = state.packages.filter(function(p){ return p.studentId===studentId && p.remainingHours>0; });
+  var list = state.packages.filter(function(p){ return p.studentId===studentId && p.remainingMinutes>0; });
   list.sort(function(a,b){ return parseLocal(a.purchasedAtISO)-parseLocal(b.purchasedAtISO); });
   return list[0]||null;
 }
@@ -677,11 +701,22 @@ function isTeacherReady(teacherId){
   var t=getTeacher(teacherId);
   return !!(t && t.provider.status==="Connected" && t.provider.type!=="none");
 }
-function maxDurationForTeacher(t, capacity){
+// D-96: this is the teacher's own account limit, used ONLY to warn. It never
+// caps the session's scheduled duration, the student's debit, or the pay.
+function providerMinutesLimit(t, sessionType){
   if(t.provider.type==="zoom_basic") return 40;
-  if(t.provider.type==="google_meet") return capacity>1 ? 60 : 1440;
-  if(t.provider.type==="zoom_paid") return 120;
-  return 0;
+  if(t.provider.type==="google_meet") return sessionType==="Private" ? 1440 : 60;
+  return null; // paid Zoom (or unconnected — handled separately as "not ready")
+}
+// Returns a human-readable warning, or null when the account covers the
+// session. A warning is never a reason to refuse the session.
+function capabilityWarning(t, durationMinutes, sessionType){
+  if(!t || t.provider.type==="none") return null; // "not ready" is a separate, harder state
+  var limit = providerMinutesLimit(t, sessionType);
+  if(limit===null || durationMinutes<=limit) return null;
+  var who = t.provider.type==="zoom_basic" ? "حساب Zoom Basic (مجاني)" : "حساب Google المجاني";
+  return who+" ينتهي بعد "+fmtMinutes(limit)+"، بينما هذه الحصة مجدولة "+fmtMinutes(durationMinutes)
+       + ". تبقى مدة الحصة وخصم الطالب وراتب المعلم كما هي بالكامل — وإن قطع المزوّد الاجتماع، يُستخدم زر «متابعة الاجتماع» للعودة إلى نفس الحصة.";
 }
 function pushNotification(obj){
   obj.id = uid("N");
@@ -696,19 +731,29 @@ function notificationsForStudent(sid){
   return state.notifications.filter(function(n){ return n.audience==="student" && n.studentId===sid; })
     .sort(function(a,b){ return parseLocal(b.createdAtISO)-parseLocal(a.createdAtISO); });
 }
+// D-100: pay is calculated ONCE per taught session, regardless of how many
+// students attended, and never once per student. This function previously
+// de-duplicated on (session, teacher, STUDENT), which silently paid a teacher
+// twice for one group session with two attendees — a real defect the owner
+// caught. The production .NET code never had it (SessionDelivery's primary key
+// IS the session id), and the key here is now the session alone to match.
+// Amount = hourly rate x SCHEDULED minutes / 60, so 8 JOD/h pays 8 for a
+// 60-minute session and 12 for a 90-minute one, with 1 or 4 students present.
 function derivePayroll(){
-  var rows = [];
+  var bySession = {};
   state.bookings.forEach(function(b){
     if(b.status!=="Attended") return;
     var s = getSession(b.sessionId); if(!s) return;
     var t = getTeacher(s.teacherId); if(!t) return;
-    var already = rows.find(function(r){ return r.sessionId===s.id && r.teacherId===t.id && r.studentId===b.studentId; });
-    if(already) return;
-    var hours = 1; // one package/attendance "hour" per attended session, matching the package-hour unit
-    var amount = Math.round(hours*t.rate.amount*100)/100;
-    rows.push({ teacherId:t.id, sessionId:s.id, studentId:b.studentId, date:s.startISO, hours:hours, rate:t.rate.amount, currency:t.rate.currency, amount:amount });
+    if(bySession[s.id]) { bySession[s.id].attendeeCount++; return; }
+    bySession[s.id] = {
+      teacherId:t.id, sessionId:s.id, date:s.startISO,
+      minutes:s.durationMinutes, rate:t.rate.amount, currency:t.rate.currency,
+      amount: Math.round((s.durationMinutes/60)*t.rate.amount*100)/100,
+      attendeeCount:1
+    };
   });
-  return rows;
+  return Object.keys(bySession).map(function(k){ return bySession[k]; });
 }
 
 /* ======================================================================
@@ -722,8 +767,10 @@ function settleNoShows(){
       if(s && now() >= parseLocal(sessionEndISO(s))){
         b.status="NoShow";
         if(b.packageId){
+          // D-95: a booked no-show is charged the same scheduled duration a
+          // attendance would have been — the hour is spent either way.
           var pkg = getPackage(b.packageId);
-          if(pkg) pkg.remainingHours = Math.max(0, pkg.remainingHours-1);
+          if(pkg) pkg.remainingMinutes = Math.max(0, pkg.remainingMinutes - s.durationMinutes);
         }
         pushNotification({audience:"student", studentId:b.studentId, kind:"noshow",
           text:"تم تسجيل غيابك عن حصة "+levelName(s.levelId)+" بتاريخ "+fmtDateTime(s.startISO)+"، وخُصمت الساعة تلقائيًا رغم عدم الحضور."});
@@ -754,10 +801,13 @@ function forceJoin(bookingId){
   b.status = "Attended";
   b.attendedAtISO = state.clock;
   var student = getStudent(b.studentId);
-  student.totalAttendedHours += 1;
+  // D-95: the debit is the session's SCHEDULED duration, exactly once. It is
+  // not a flat "one hour", not recalculated from how long the meeting really
+  // ran, and completely independent of the teacher's video-plan limit.
+  student.totalAttendedMinutes += s.durationMinutes;
   if(b.packageId){
     var pkg = getPackage(b.packageId);
-    if(pkg) pkg.remainingHours = Math.max(0, pkg.remainingHours-1);
+    if(pkg) pkg.remainingMinutes = Math.max(0, pkg.remainingMinutes - s.durationMinutes);
   }
   pushNotification({audience:"student", studentId:b.studentId, kind:"attended",
     text:"تم تسجيل حضورك في حصة "+levelName(s.levelId)+" بتاريخ "+fmtDateTime(s.startISO)+"."+(b.isReplacement?" (حصة تعويضية — دون أي خصم إضافي)":"")});
@@ -1053,23 +1103,24 @@ var actions = {
     var date = form.date.value;
     var time = form.time.value;
     var duration = parseInt(form.duration.value,10);
-    var capacity = parseInt(form.capacity.value,10);
+    // D-98: no seat-count field exists — capacity follows the session type.
+    var sessionType = form.sessionType.value;
     var errBox = document.getElementById("create-session-err");
     function fail(msg){ if(errBox){ errBox.textContent = msg; errBox.style.display="block"; } }
     if(errBox){ errBox.style.display="none"; }
-    if(!levelId || !teacherId || !date || !time || !duration || !capacity){ fail("الرجاء تعبئة جميع الحقول."); return; }
+    if(!levelId || !teacherId || !date || !time || !duration || !sessionType){ fail("الرجاء تعبئة جميع الحقول."); return; }
     var t = getTeacher(teacherId);
     if(!t || !isTeacherReady(teacherId)){ fail("هذا المعلم غير جاهز للحصص الأونلاين حاليًا."); return; }
-    if(t.levelIds.indexOf(levelId)===-1){ fail("هذا المعلم لا يُدرّس هذا المستوى."); return; }
-    var maxDur = maxDurationForTeacher(t, capacity);
-    if(duration > maxDur){ fail("المدة المُدخلة ("+duration+" د) تتجاوز الحد الحقيقي لمزوّد هذا المعلم ("+maxDur+" د)."); return; }
-    if(capacity < 1 || capacity > 10){ fail("السعة يجب أن تكون بين 1 و10 مقاعد."); return; }
+    if(t.levelIds.indexOf(levelId)===-1){ fail("هذا المعلم غير مصرَّح له بتدريس هذا المستوى — يحدد الأدمن مستويات كل معلم."); return; }
+    // D-96: the teacher's plan limit is a WARNING, never a refusal. The only
+    // hard block left is having no connected account at all (checked above).
     var startISO = date+"T"+time+":00";
     if(parseLocal(startISO) <= now()){ fail("موعد الحصة يجب أن يكون في المستقبل بالنسبة للوقت التجريبي الحالي ("+fmtDateTime(state.clock)+")."); return; }
     var id = uid("SES");
-    state.sessions.push({id:id, levelId:levelId, teacherId:teacherId, startISO:startISO, durationMinutes:duration, capacity:capacity});
-    pushAudit("الإدارة أنشأت حصة جديدة "+id+" ("+levelName(levelId)+" — "+teacherName(teacherId)+")");
-    setToast("تم إنشاء الحصة بنجاح.", "success");
+    state.sessions.push({id:id, levelId:levelId, teacherId:teacherId, startISO:startISO, durationMinutes:duration, sessionType:sessionType});
+    pushAudit("الإدارة أنشأت حصة جديدة "+id+" ("+levelName(levelId)+" — "+teacherName(teacherId)+" — "+(sessionType==="Private"?"خاصة":"جماعية")+")");
+    var warn = capabilityWarning(t, duration, sessionType);
+    setToast(warn ? "تم إنشاء الحصة. ⚠️ "+warn : "تم إنشاء الحصة بنجاح.", warn ? "warn" : "success");
     persist(); render();
   },
 
@@ -1078,16 +1129,24 @@ var actions = {
     setModal({kind:"purchase", studentId:studentId});
     render();
   },
-  confirmPurchase:function(studentId, hours, price){
+  // D-94: this is the EXCEPTION path (cash / bank transfer / correction), not
+  // how a student normally buys. It is admin-only and always audit-logged.
+  // The normal path — student picks a published offer, pays through the
+  // gateway, entitlement activates on the trusted server-side confirmation —
+  // is not simulated here because no payment provider has been selected.
+  confirmPurchase:function(studentId, offerId){
     var student = getStudent(studentId); if(!student){ render(); return; }
+    var offer = byId(state.packageOffers, offerId);
+    if(!offer){ setToast("الرجاء اختيار باقة منشورة أولًا.", "warn"); render(); return; }
     var id = uid("P");
-    state.packages.push({id:id, studentId:studentId, totalHours:hours, remainingHours:hours, price:price, currency:"JOD",
-      purchasedAtISO:state.clock, status:"Active"});
+    state.packages.push({id:id, studentId:studentId, offerId:offer.id,
+      totalMinutes:offer.totalMinutes, remainingMinutes:offer.totalMinutes,
+      price:offer.price, currency:offer.currency, purchasedAtISO:state.clock, status:"Active"});
     pushNotification({audience:"student", studentId:studentId, kind:"package",
-      text:"تم تفعيل باقة جديدة من "+hours+" ساعة ("+fmtCurrency(price,"JOD")+")."});
-    pushAudit("الإدارة سجّلت باقة جديدة "+id+" للطالب "+student.name+" — "+state.settings.paymentProviderLabel);
+      text:"تم تفعيل باقة جديدة ("+offer.titleAr+") برصيد "+fmtMinutes(offer.totalMinutes)+"."});
+    pushAudit("تسجيل باقة ودفع يدوي: الإدارة سجّلت الباقة "+id+" ("+offer.titleAr+") للطالب "+student.name+" — مسار استثنائي مُدقَّق، وليس الشراء الاعتيادي.");
     runtime.modal = null;
-    setToast("تم تأكيد الدفع (محاكاة) وتفعيل الباقة الجديدة.", "success");
+    setToast("تم تسجيل الدفع اليدوي (محاكاة) وتفعيل الباقة، وسُجِّل ذلك في سجل التدقيق.", "success");
     persist(); render();
   },
 
@@ -1150,7 +1209,7 @@ function render(){
   if(!appEl) appEl = document.getElementById("app");
   var html = "";
   html += '<div class="demo-banner">نسخة توضيحية — جميع البيانات والعمليات وهمية'
-        + (memoryOnly ? '<small>تعذّر الوصول للتخزين المحلي في هذا المتصفح — التغييرات لن تُحفظ بعد إغلاق الصفحة، وسيستمر العرض بشكل آمن في الذاكرة المؤقتة.</small>' : '<small>هذه محاكاة تعليمية داخل المتصفح فقط — لا اتصال بأي خادم أو قاعدة بيانات أو خدمة خارجية حقيقية.</small>')
+        + (memoryOnly ? '<small>تعذّر الوصول للتخزين المحلي في هذا المتصفح — التغييرات لن تُحفظ بعد إغلاق الصفحة، وسيستمر العرض بشكل آمن في الذاكرة المؤقتة.</small>' : '<small>محاكاة داخل المتصفح فقط — لا اتصال بأي خادم أو خدمة خارجية. مُحدَّثة وفق قرارات المالك 2026-08-30 (D-94…D-100): الخصم بالمدة المجدولة · جماعية 4 مقاعد وخاصة مقعد واحد · حدود Zoom/Google تحذير لا منع · راتب المعلم لكل حصة لا لكل طالب.</small>')
         + '</div>';
   if(!state.ui.role){
     html += renderLogin();
@@ -1223,7 +1282,7 @@ function renderModal(modal){
            + opts.map(function(o,i){
                return '<label class="radio-option"><input type="radio" name="replacement-session" value="'+esc(o.id)+'"'+(i===0?' checked':'')+'>'
                     + '<span>'+esc(levelName(o.levelId))+' — '+esc(teacherName(o.teacherId))+'<br>'
-                    + '<span class="hint">'+esc(fmtDateTime(o.startISO))+' · '+o.durationMinutes+' دقيقة · '+seatsAvailable(o.id)+'/'+o.capacity+' مقاعد متاحة</span></span></label>';
+                    + '<span class="hint">'+esc(fmtDateTime(o.startISO))+' · '+o.durationMinutes+' دقيقة · '+seatsAvailable(o.id)+'/'+sessionCapacity(o)+' مقاعد متاحة</span></span></label>';
              }).join("")
            + '</fieldset>'
            + '<div id="approve-err" class="err" style="display:none;margin-top:6px"></div>';
@@ -1239,18 +1298,20 @@ function renderModal(modal){
          + '<button type="button" class="btn btn-danger" data-action="confirmRejectBtn" data-req="'+esc(modal.reqId)+'">تأكيد الرفض</button>';
   } else if(modal.kind==="purchase"){
     var stu = getStudent(modal.studentId);
-    title = "تسجيل باقة ودفعة جديدة — "+stu.name;
-    body = '<form id="purchase-form" data-form="purchase">'
-         + '<div class="form-row">'
-         + '<div class="field"><label for="p-hours">عدد الساعات</label>'
-         + '<select id="p-hours" name="hours"><option value="5">5 ساعات</option><option value="10" selected>10 ساعات</option><option value="20">20 ساعة</option></select></div>'
-         + '<div class="field"><label for="p-price">السعر الإجمالي (د.أ)</label>'
-         + '<input type="number" id="p-price" name="price" min="1" step="1" value="'+(10*state.settings.pricePerHourJOD)+'"></div>'
-         + '</div>'
-         + '<div class="note-box">'+esc(state.settings.paymentProviderLabel)+' — سيُعرض هنا لاحقًا تدفّق دفع حقيقي بعد اختيار مزوّد الدفع النهائي. حاليًا هذا تأكيد دفع محاكى فقط.</div>'
+    title = "تسجيل باقة ودفع يدوي — "+stu.name;
+    body = '<div class="warn-box" style="margin-bottom:12px">هذا <strong>مسار استثنائي</strong> للنقد أو التحويل البنكي أو التصحيح فقط. الشراء الاعتيادي يتم من الطالب نفسه عبر بوابة الدفع، ويُفعَّل الاستحقاق تلقائيًا بعد تأكيد البوابة الموثوق. كل تسجيل يدوي يُكتب في سجل التدقيق.</div>'
+         + '<form id="purchase-form" data-form="purchase">'
+         + '<fieldset><legend>اختر باقة منشورة</legend>'
+         + state.packageOffers.filter(function(o){ return o.isPublished; }).map(function(o,i){
+             return '<label class="radio-option"><input type="radio" name="offer" value="'+esc(o.id)+'"'+(o.id==="OF-10"?' checked':'')+'>'
+                  + '<span><strong>'+esc(o.titleAr)+'</strong> — '+esc(fmtCurrency(o.price,o.currency))+'<br>'
+                  + '<span class="hint">رصيد '+esc(fmtMinutes(o.totalMinutes))+'</span></span></label>';
+           }).join("")
+         + '</fieldset>'
+         + '<div class="note-box">'+esc(state.settings.paymentProviderLabel)+' — لا يوجد أي تكامل دفع حقيقي في هذه النسخة، ولا تُحاكى أي بوابة.</div>'
          + '</form>';
     foot = '<button type="button" class="btn btn-outline" data-action="closeModal">إلغاء</button>'
-         + '<button type="button" class="btn btn-accent" data-action="confirmPurchaseBtn" data-student="'+esc(modal.studentId)+'">تأكيد الدفع (محاكاة)</button>';
+         + '<button type="button" class="btn btn-accent" data-action="confirmPurchaseBtn" data-student="'+esc(modal.studentId)+'">تسجيل الدفع اليدوي (محاكاة)</button>';
   } else if(modal.kind==="meeting"){
     var sess = modal.session;
     title = "🎥 محاكاة الاجتماع — "+levelName(sess.levelId);
@@ -1276,7 +1337,8 @@ function renderSessionSummary(s){
        + '<div class="kv"><span class="k">المعلم</span><span class="v">'+esc(t.name)+'</span></div>'
        + '<div class="kv"><span class="k">الموعد</span><span class="v">'+esc(fmtDateTime(s.startISO))+'</span></div>'
        + '<div class="kv"><span class="k">المدة</span><span class="v">'+s.durationMinutes+' دقيقة</span></div>'
-       + '<div class="kv"><span class="k">المقاعد المتاحة</span><span class="v">'+seatsAvailable(s.id)+' / '+s.capacity+'</span></div>';
+       + '<div class="kv"><span class="k">نوع الحصة</span><span class="v">'+(s.sessionType==="Private"?"خاصة (فردية)":"جماعية")+'</span></div>'
+       + '<div class="kv"><span class="k">المقاعد المتاحة</span><span class="v">'+seatsAvailable(s.id)+' / '+sessionCapacity(s)+'</span></div>';
 }
 
 /* ======================================================================
@@ -1383,7 +1445,7 @@ function renderAdmin(tab){
 
 function renderAdminOverview(){
   var activeStudents = state.students.length;
-  var activePkgs = state.packages.filter(function(p){ return p.remainingHours>0; }).length;
+  var activePkgs = state.packages.filter(function(p){ return p.remainingMinutes>0; }).length;
   var upcoming = state.sessions.filter(function(s){ return !isSessionOver(s); }).length;
   var pendingComp = state.compensationRequests.filter(function(r){ return r.status==="Pending"; }).length;
   var stats = [
@@ -1416,8 +1478,8 @@ function renderAdminPeople(){
     var g = getGuardian(s.guardianId);
     var pkg = getActivePackage(s.id);
     return '<tr><td>'+esc(s.name)+'</td><td>'+esc(levelName(s.levelId))+'</td><td>'+esc(g?g.name:"—")+'</td>'
-      + '<td>'+(pkg? pkg.remainingHours+' / '+pkg.totalHours+' ساعة' : '<span class="badge badge-neutral">لا توجد باقة نشطة</span>')+'</td>'
-      + '<td>'+s.totalAttendedHours+' ساعة</td></tr>';
+      + '<td>'+(pkg? esc(fmtMinutes(pkg.remainingMinutes))+' من '+esc(fmtMinutes(pkg.totalMinutes)) : '<span class="badge badge-neutral">لا توجد باقة نشطة</span>')+'</td>'
+      + '<td>'+esc(fmtMinutes(s.totalAttendedMinutes))+'</td></tr>';
   }).join("");
   var gRows = state.guardians.map(function(g){
     return '<tr><td>'+esc(g.name)+'</td><td>'+esc(g.phone)+'</td><td>'+g.childIds.map(studentName).map(esc).join('، ')+'</td></tr>';
@@ -1440,8 +1502,8 @@ function renderAdminLevels(){
 
 function renderAdminPackages(){
   var rows = state.packages.slice().sort(function(a,b){return parseLocal(b.purchasedAtISO)-parseLocal(a.purchasedAtISO);}).map(function(p){
-    var st = p.remainingHours>0 ? '<span class="badge badge-success">نشطة</span>' : '<span class="badge badge-neutral">مكتملة</span>';
-    return '<tr><td>'+esc(p.id)+'</td><td>'+esc(studentName(p.studentId))+'</td><td>'+p.remainingHours+' / '+p.totalHours+'</td>'
+    var st = p.remainingMinutes>0 ? '<span class="badge badge-success">نشطة</span>' : '<span class="badge badge-neutral">مكتملة</span>';
+    return '<tr><td>'+esc(p.id)+'</td><td>'+esc(studentName(p.studentId))+'</td><td>'+esc(fmtMinutes(p.remainingMinutes))+' من '+esc(fmtMinutes(p.totalMinutes))+'</td>'
       + '<td>'+esc(fmtCurrency(p.price,p.currency))+'</td><td>'+esc(fmtDate(p.purchasedAtISO))+'</td><td>'+st+'</td></tr>';
   }).join("");
   var studentOptions = state.students.map(function(s){ return '<option value="'+s.id+'">'+esc(s.name)+' — '+esc(levelName(s.levelId))+'</option>'; }).join("");
@@ -1474,7 +1536,9 @@ function renderAdminSchedule(){
     + '</div>'
     + '<div class="form-row">'
     + '<div class="field"><label for="cs-duration">المدة (دقيقة)</label><input type="number" id="cs-duration" name="duration" value="60" min="15" max="1440"></div>'
-    + '<div class="field"><label for="cs-capacity">السعة (عدد المقاعد)</label><input type="number" id="cs-capacity" name="capacity" value="6" min="1" max="10"></div>'
+    + '<div class="field"><label for="cs-type">نوع الحصة</label>'
+    + '<select id="cs-type" name="sessionType"><option value="Group" selected>جماعية — 4 مقاعد</option><option value="Private">خاصة (فردية) — مقعد واحد</option></select>'
+    + '<span class="hint">عدد المقاعد يتبع نوع الحصة تلقائيًا ولا يُدخَل يدويًا.</span></div>'
     + '</div>'
     + (notReady.length? '<div class="warn-box" style="margin-bottom:12px">⚠️ لن يظهر في قائمة المعلمين: '+notReady.map(function(t){return esc(t.name);}).join('، ')+' — غير جاهزين للحصص الأونلاين حاليًا.</div>' : '')
     + '<div id="create-session-err" class="warn-box" style="display:none;margin-bottom:12px"></div>'
@@ -1493,10 +1557,14 @@ function renderAdminBookings(){
     return '<tr><td>'+esc(studentName(b.studentId))+'</td><td>'+esc(levelName(s.levelId))+'</td>'
       + '<td>'+esc(fmtDateTime(s.startISO))+'</td><td>'+esc(teacherName(s.teacherId))+'</td>'
       + '<td>'+renderBookingStatusBadge(b)+'</td>'
-      + '<td>'+(b.isReplacement? '<span class="badge badge-info">تعويض</span>' : '—')+'</td></tr>';
+      // D-97: "نوع الحصة" (Group/Private) and "طبيعة الحجز" (Normal/Replacement)
+      // are two independent facts and get two independent columns — collapsing
+      // them into one was the confusion the owner flagged.
+      + '<td>'+(s.sessionType==="Private" ? '<span class="badge badge-neutral">خاصة</span>' : '<span class="badge badge-neutral">جماعية</span>')+'</td>'
+      + '<td>'+(b.isReplacement? '<span class="badge badge-info">تعويضي</span>' : '<span class="badge badge-success">عادي</span>')+'</td></tr>';
   }).join("");
   return '<div class="card"><h2>الحجوزات والحضور</h2><p class="card-sub">سجل شامل لكل الحجوزات في النظام</p>'
-    + '<div class="table-wrap"><table><thead><tr><th>الطالب</th><th>المستوى</th><th>الموعد</th><th>المعلم</th><th>الحالة</th><th>نوع الحصة</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    + '<div class="table-wrap"><table><thead><tr><th>الطالب</th><th>المستوى</th><th>الموعد</th><th>المعلم</th><th>الحالة</th><th>نوع الحصة</th><th>طبيعة الحجز</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 
 function renderBookingStatusBadge(b){
@@ -1580,10 +1648,13 @@ function renderTeacherReadinessCard(t){
 
 function renderAdminCertificates(){
   var rows = state.students.map(function(s){
-    var pct = Math.min(100, Math.round(100*s.totalAttendedHours/state.settings.certificateRequiredHours));
-    var eligible = s.totalAttendedHours >= state.settings.certificateRequiredHours;
+    // Required hours stays the admin-facing unit; attendance is minutes, so the
+    // comparison happens in minutes and the setting is converted, never the reverse.
+    var requiredMinutes = state.settings.certificateRequiredHours * 60;
+    var pct = Math.min(100, Math.round(100*s.totalAttendedMinutes/requiredMinutes));
+    var eligible = s.totalAttendedMinutes >= requiredMinutes;
     return '<tr><td>'+esc(s.name)+'</td><td>'+esc(levelName(s.levelId))+'</td>'
-      + '<td>'+s.totalAttendedHours+' / '+state.settings.certificateRequiredHours+' ساعة</td>'
+      + '<td>'+esc(fmtMinutes(s.totalAttendedMinutes))+' من '+state.settings.certificateRequiredHours+' ساعة</td>'
       + '<td><div class="progress"><span style="width:'+pct+'%"></span></div></td>'
       + '<td>'+(eligible? '<span class="badge badge-success">مؤهّل لإصدار الشهادة</span>' : '<span class="badge badge-neutral">قيد التقدّم</span>')+'</td></tr>';
   }).join("");
@@ -1605,15 +1676,15 @@ function renderAdminPayroll(){
     return '<tr><td>'+esc(teacherName(g.teacherId))+'</td><td>'+g.count+' حصة</td><td>'+esc(fmtCurrency(g.total,g.currency))+'</td></tr>';
   }).join("");
   var lineRows = rows.slice().sort(function(a,b){return parseLocal(b.date)-parseLocal(a.date);}).map(function(r){
-    return '<tr><td>'+esc(teacherName(r.teacherId))+'</td><td>'+esc(studentName(r.studentId))+'</td><td>'+esc(fmtDate(r.date))+'</td>'
-      + '<td>'+r.hours+' ساعة</td><td>'+esc(fmtCurrency(r.rate,r.currency))+'/ساعة</td><td>'+esc(fmtCurrency(r.amount,r.currency))+'</td></tr>';
+    return '<tr><td>'+esc(teacherName(r.teacherId))+'</td><td>'+esc(r.sessionId)+' <span class="hint">('+r.attendeeCount+' حاضر)</span></td><td>'+esc(fmtDate(r.date))+'</td>'
+      + '<td>'+esc(fmtMinutes(r.minutes))+'</td><td>'+esc(fmtCurrency(r.rate,r.currency))+'/ساعة</td><td>'+esc(fmtCurrency(r.amount,r.currency))+'</td></tr>';
   }).join("");
   return '<div class="card"><h2>ملخّص الرواتب حسب المعلم والعملة</h2>'
     + (summaryRows? '<div class="table-wrap"><table><thead><tr><th>المعلم</th><th>عدد الحصص المكتملة</th><th>الإجمالي المستحق</th></tr></thead><tbody>'+summaryRows+'</tbody></table></div>'
        : '<div class="empty-state"><span class="icon">🧾</span>لا توجد حصص مكتملة بعد لاحتساب رواتب عليها.</div>')
     + '</div>'
     + '<div class="card"><h2>السطور التفصيلية</h2>'
-    + (lineRows? '<div class="table-wrap"><table><thead><tr><th>المعلم</th><th>الطالب</th><th>التاريخ</th><th>الساعات</th><th>سعر الساعة</th><th>المبلغ</th></tr></thead><tbody>'+lineRows+'</tbody></table></div>'
+    + (lineRows? '<div class="table-wrap"><table><thead><tr><th>المعلم</th><th>الحصة</th><th>التاريخ</th><th>المدة المجدولة</th><th>سعر الساعة</th><th>المبلغ</th></tr></thead><tbody>'+lineRows+'</tbody></table></div>'
        : '<div class="empty-state"><span class="icon">🧾</span>لا توجد سطور رواتب بعد.</div>')
     + '</div>';
 }
@@ -1681,7 +1752,7 @@ function renderSessionsTable(list, opts){
     + list.map(function(s){
         return '<tr>'+(opts.showLevel? '<td>'+esc(levelName(s.levelId))+'</td>':'')
           + '<td>'+esc(teacherName(s.teacherId))+'</td><td>'+esc(fmtDateTime(s.startISO))+'</td><td>'+s.durationMinutes+' د</td>'
-          + (opts.showCapacity? '<td>'+seatsAvailable(s.id)+' / '+s.capacity+'</td>':'')
+          + (opts.showCapacity? '<td>'+seatsAvailable(s.id)+' / '+sessionCapacity(s)+'</td>':'')
           + '</tr>';
       }).join("")
     + '</tbody></table></div>';
@@ -1729,7 +1800,7 @@ function renderTeacherSessions(t){
       : phase==="upcoming" ? '<span class="badge badge-info">قادمة</span>'
       : '<span class="badge badge-neutral">منتهية</span>';
     return '<tr><td>'+esc(levelName(s.levelId))+'</td><td>'+esc(fmtDateTime(s.startISO))+'</td><td>'+s.durationMinutes+' د</td>'
-      + '<td>'+enrolled+' / '+s.capacity+'</td>'
+      + '<td>'+enrolled+' / '+sessionCapacity(s)+'</td>'
       + '<td>'+badge+'</td>'
       + '<td>'+(canStart? '<button type="button" class="btn btn-accent btn-sm" data-action="startTeacherSessionBtn" data-session="'+s.id+'">بدء الحصة</button>'
           : (notOver? '<button type="button" class="btn btn-outline btn-sm" disabled title="غير جاهز للحصص الأونلاين">غير جاهز</button>' : '—'))+'</td></tr>';
@@ -1792,8 +1863,8 @@ function renderTeacherPayroll(t){
     + Object.keys(byCurrency).map(function(c){ return renderStatCard({label:"إجمالي المستحق ("+c+")", value:fmtCurrency(byCurrency[c],c), hint:rows.filter(function(r){return r.currency===c;}).length+" حصة"}); }).join("")
     + '</div>'
     + '<div class="card"><h2>سجل رواتبي التفصيلي</h2>'
-    + (rows.length? '<div class="table-wrap"><table><thead><tr><th>الطالب</th><th>التاريخ</th><th>الساعات</th><th>سعر الساعة</th><th>المبلغ</th></tr></thead><tbody>'
-        + rows.map(function(r){ return '<tr><td>'+esc(studentName(r.studentId))+'</td><td>'+esc(fmtDate(r.date))+'</td><td>'+r.hours+'</td><td>'+esc(fmtCurrency(r.rate,r.currency))+'</td><td>'+esc(fmtCurrency(r.amount,r.currency))+'</td></tr>'; }).join("")
+    + (rows.length? '<div class="table-wrap"><table><thead><tr><th>الحصة</th><th>التاريخ</th><th>المدة المجدولة</th><th>سعر الساعة</th><th>المبلغ</th></tr></thead><tbody>'
+        + rows.map(function(r){ return '<tr><td>'+esc(r.sessionId)+' <span class="hint">('+r.attendeeCount+' حاضر)</span></td><td>'+esc(fmtDate(r.date))+'</td><td>'+esc(fmtMinutes(r.minutes))+'</td><td>'+esc(fmtCurrency(r.rate,r.currency))+'</td><td>'+esc(fmtCurrency(r.amount,r.currency))+'</td></tr>'; }).join("")
         + '</tbody></table></div>'
       : '<div class="empty-state"><span class="icon">🧾</span>لا توجد حصص مكتملة بعد.</div>')
     + '</div>';
@@ -1821,8 +1892,8 @@ function renderStudentOverview(s){
     .sort(function(a,b){return parseLocal(a.startISO)-parseLocal(b.startISO);});
   return '<div class="grid grid-3">'
     + renderStatCard({label:"المستوى الحالي", value:levelName(s.levelId), hint:"—"})
-    + renderStatCard({label:"الساعات المتبقية", value: pkg? pkg.remainingHours+" / "+pkg.totalHours : "0", hint: pkg? "باقة "+pkg.id : "لا توجد باقة نشطة"})
-    + renderStatCard({label:"إجمالي الساعات المحضورة", value:s.totalAttendedHours, hint:"نحو شهادة إتمام المستوى"})
+    + renderStatCard({label:"الرصيد المتبقي", value: pkg? fmtMinutes(pkg.remainingMinutes) : "0", hint: pkg? "من "+fmtMinutes(pkg.totalMinutes)+" — باقة "+pkg.id : "لا توجد باقة نشطة"})
+    + renderStatCard({label:"إجمالي المدة المحضورة", value:fmtMinutes(s.totalAttendedMinutes), hint:"نحو شهادة إتمام المستوى"})
     + '</div>'
     + '<div class="card"><h2>حصتي القادمة</h2>'
     + (upcoming[0]? renderSessionSummary(upcoming[0]) : '<div class="empty-state"><span class="icon">🗓️</span>لا توجد حصة قادمة محجوزة — يمكنك الحجز من تبويب «الحصص المتاحة».</div>')
@@ -1844,7 +1915,7 @@ function renderStudentAvailable(s){
     var disabled = full || tooSoon || !pkg;
     var label = full? "مكتملة العدد" : (tooSoon? "قريبة جدًا" : (!pkg? "لا توجد ساعات متبقية" : ""));
     return '<tr><td>'+esc(teacherName(sess.teacherId))+'</td><td>'+esc(fmtDateTime(sess.startISO))+'</td><td>'+sess.durationMinutes+' د</td>'
-      + '<td>'+seats+' / '+sess.capacity+'</td>'
+      + '<td>'+seats+' / '+sessionCapacity(sess)+'</td>'
       + '<td>'+(disabled
           ? '<span class="badge badge-neutral">'+label+'</span>'
           : '<button type="button" class="btn btn-primary btn-sm" data-action="openBookConfirmBtn" data-session="'+sess.id+'">حجز</button>')+'</td></tr>';
@@ -1903,14 +1974,15 @@ function renderStudentHistory(s){
 }
 
 function renderCertificatePanel(s){
-  var pct = Math.min(100, Math.round(100*s.totalAttendedHours/state.settings.certificateRequiredHours));
-  var eligible = s.totalAttendedHours >= state.settings.certificateRequiredHours;
+  var requiredMinutes = state.settings.certificateRequiredHours * 60;
+  var pct = Math.min(100, Math.round(100*s.totalAttendedMinutes/requiredMinutes));
+  var eligible = s.totalAttendedMinutes >= requiredMinutes;
   return '<div class="card"><h2>تقدّم الشهادة</h2>'
-    + '<div class="kv"><span class="k">الساعات المحضورة</span><span class="v">'+s.totalAttendedHours+'</span></div>'
+    + '<div class="kv"><span class="k">المدة المحضورة</span><span class="v">'+esc(fmtMinutes(s.totalAttendedMinutes))+'</span></div>'
     + '<div class="kv"><span class="k">الحد المطلوب حاليًا</span><span class="v">'+state.settings.certificateRequiredHours+' ساعة</span></div>'
     + '<div class="progress" style="margin:12px 0"><span style="width:'+pct+'%"></span></div>'
     + (eligible? '<span class="badge badge-success">مبروك — أصبحتِ مؤهّلة لإصدار الشهادة 🎉</span>'
-        : '<span class="badge badge-neutral">لا تزال هناك '+(state.settings.certificateRequiredHours-s.totalAttendedHours)+' ساعة متبقية</span>')
+        : '<span class="badge badge-neutral">لا تزال هناك '+esc(fmtMinutes(requiredMinutes - s.totalAttendedMinutes))+' متبقية</span>')
     + '<p class="hint" style="margin-top:10px">هذا التقدّم يُحسب دائمًا وفق القيمة الحالية للحد الأدنى المطلوب، وليس رقمًا مخزّنًا بشكل منفصل لكل طالب.</p>'
     + '</div>';
 }
@@ -1918,8 +1990,8 @@ function renderCertificatePanel(s){
 function renderStudentPackages(s){
   var list = packagesForStudent(s.id);
   var rows = list.map(function(p){
-    var st = p.remainingHours>0? '<span class="badge badge-success">نشطة</span>' : '<span class="badge badge-neutral">مكتملة</span>';
-    return '<tr><td>'+esc(p.id)+'</td><td>'+p.remainingHours+' / '+p.totalHours+'</td><td>'+esc(fmtCurrency(p.price,p.currency))+'</td><td>'+esc(fmtDate(p.purchasedAtISO))+'</td><td>'+st+'</td></tr>';
+    var st = p.remainingMinutes>0? '<span class="badge badge-success">نشطة</span>' : '<span class="badge badge-neutral">مكتملة</span>';
+    return '<tr><td>'+esc(p.id)+'</td><td>'+esc(fmtMinutes(p.remainingMinutes))+' من '+esc(fmtMinutes(p.totalMinutes))+'</td><td>'+esc(fmtCurrency(p.price,p.currency))+'</td><td>'+esc(fmtDate(p.purchasedAtISO))+'</td><td>'+st+'</td></tr>';
   }).join("");
   return '<div class="card"><h2>باقاتي</h2><p class="card-sub">'+esc(state.settings.paymentProviderLabel)+' — كل عملية شراء تُسجَّل كباقة ودورة حجز جديدة ومستقلة</p>'
     + (rows? '<div class="table-wrap"><table><thead><tr><th>رقم الباقة</th><th>الساعات المتبقية</th><th>السعر</th><th>تاريخ الشراء</th><th>الحالة</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
@@ -2015,9 +2087,8 @@ function actionDispatch(name, el){
       actions.openPurchaseModal(studSel? studSel.value : STUDENT_ID);
       break;
     case "confirmPurchaseBtn":
-      var hoursEl = document.getElementById("p-hours");
-      var priceEl = document.getElementById("p-price");
-      actions.confirmPurchase(data.student, parseInt(hoursEl.value,10), parseFloat(priceEl.value));
+      var pickedOffer = document.querySelector('input[name="offer"]:checked');
+      actions.confirmPurchase(data.student, pickedOffer ? pickedOffer.value : null);
       break;
     case "modalOverlayClick":
       if(el === document.activeElement || true){ /* overlay itself clicked (not its children) */ }
@@ -2056,9 +2127,8 @@ document.addEventListener("submit", function(e){
   }
   else if(kind==="purchase"){
     var sId = runtime.modal && runtime.modal.studentId;
-    var hoursEl = document.getElementById("p-hours");
-    var priceEl = document.getElementById("p-price");
-    if(sId) actions.confirmPurchase(sId, parseInt(hoursEl.value,10), parseFloat(priceEl.value));
+    var pickedOffer2 = document.querySelector('input[name="offer"]:checked');
+    if(sId) actions.confirmPurchase(sId, pickedOffer2 ? pickedOffer2.value : null);
   }
 });
 
@@ -2070,16 +2140,20 @@ function wirePostRenderHints(){
   var teacherSelect = document.getElementById("cs-teacher");
   var hint = document.getElementById("cs-teacher-hint");
   var durationInput = document.getElementById("cs-duration");
-  var capacityInput = document.getElementById("cs-capacity");
+  var typeSelect = document.getElementById("cs-type");
   function updateHint(){
     if(!teacherSelect || !hint) return;
     var t = getTeacher(teacherSelect.value);
     if(!t){ hint.textContent=""; return; }
-    var cap = capacityInput? (parseInt(capacityInput.value,10)||1) : 1;
-    hint.textContent = "الحد الأقصى الحقيقي لهذا المعلم: "+maxDurationForTeacher(t,cap)+" دقيقة";
+    var dur = durationInput ? (parseInt(durationInput.value,10)||0) : 0;
+    var stype = typeSelect ? typeSelect.value : "Group";
+    // D-96: this is advisory only — the form still submits either way.
+    var w = capabilityWarning(t, dur, stype);
+    hint.textContent = w ? ("⚠️ "+w) : "حساب هذا المعلم يغطي المدة المجدولة بالكامل.";
   }
   if(teacherSelect){ teacherSelect.addEventListener("change", updateHint); }
-  if(capacityInput){ capacityInput.addEventListener("input", updateHint); }
+  if(durationInput){ durationInput.addEventListener("input", updateHint); }
+  if(typeSelect){ typeSelect.addEventListener("change", updateHint); }
   updateHint();
 
   var modalEl = document.querySelector(".modal");
