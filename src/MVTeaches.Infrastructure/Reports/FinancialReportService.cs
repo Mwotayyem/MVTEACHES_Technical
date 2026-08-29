@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Reports;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.People;
+using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Persistence;
 using NodaTime;
 
@@ -42,6 +43,36 @@ public class FinancialReportService : IFinancialReportService
         var paymentBlockedStudents = await _db.Students.CountAsync(s => s.Status == StudentStatus.PaymentBlocked, cancellationToken);
         var pendingPayments = await _db.Payments.CountAsync(p => p.Status == PaymentStatus.Pending, cancellationToken);
 
-        return new FinancialReport(periodStart, periodEnd, revenueByCurrency, payrollCostByCurrency, paymentBlockedStudents, pendingPayments);
+        // Owner decision 2026-08-30 rule 9: "sessions/scheduled teaching
+        // hours" — every session SCHEDULED to start in the period, regardless
+        // of whether it has actually happened yet or how it was later
+        // resolved (Cancelled sessions are excluded — they were never
+        // actually taught).
+        var scheduledTeachingMinutes = await _db.ClassSessions
+            .Where(s => s.StartsAtUtc >= startInstant && s.StartsAtUtc < endInstant && s.Status != ClassSessionStatus.Cancelled)
+            .SumAsync(s => (int?)s.DurationMinutes, cancellationToken) ?? 0;
+
+        var expensesByCurrency = await _db.OperatingExpenses
+            .Where(e => e.IncurredOn >= periodStart && e.IncurredOn <= periodEnd)
+            .GroupBy(e => e.Amount.Currency)
+            .Select(g => new CurrencyAmount(g.Key, g.Sum(e => e.Amount.Amount)))
+            .ToListAsync(cancellationToken);
+
+        var netProfitByCurrency = revenueByCurrency
+            .Select(c => c.Currency)
+            .Concat(payrollCostByCurrency.Select(c => c.Currency))
+            .Concat(expensesByCurrency.Select(c => c.Currency))
+            .Distinct()
+            .Select(currency =>
+            {
+                var revenue = revenueByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount ?? 0m;
+                var payroll = payrollCostByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount ?? 0m;
+                var expenses = expensesByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount ?? 0m;
+                return new CurrencyAmount(currency, revenue - payroll - expenses);
+            })
+            .ToList();
+
+        return new FinancialReport(periodStart, periodEnd, revenueByCurrency, payrollCostByCurrency,
+            paymentBlockedStudents, pendingPayments, scheduledTeachingMinutes, expensesByCurrency, netProfitByCurrency);
     }
 }

@@ -92,6 +92,9 @@ public class MvTeachesDbContext : IdentityDbContext<ApplicationUser, Application
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<RefundRequest> RefundRequests => Set<RefundRequest>();
 
+    // Finance
+    public DbSet<MVTeaches.Domain.Finance.OperatingExpense> OperatingExpenses => Set<MVTeaches.Domain.Finance.OperatingExpense>();
+
     // Certificates
     public DbSet<LevelProgress> LevelProgresses => Set<LevelProgress>();
     public DbSet<Certificate> Certificates => Set<Certificate>();

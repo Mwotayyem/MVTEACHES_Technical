@@ -84,6 +84,7 @@ builder.Services.AddScoped<IPayrollRateResolver, PayrollRateResolver>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<IPayrollService, PayrollService>();
 builder.Services.AddScoped<IFinancialReportService, FinancialReportService>();
+builder.Services.AddScoped<IOperatingExpenseService, OperatingExpenseService>();
 builder.Services.AddScoped<IStudentAdmissionService, StudentAdmissionService>();
 builder.Services.AddScoped<ITeacherAdmissionService, TeacherAdmissionService>();
 builder.Services.AddScoped<ITeacherLevelAuthorizationService, TeacherLevelAuthorizationService>();

@@ -4,6 +4,7 @@ using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.Payroll;
 using MVTeaches.Domain.People;
+using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Infrastructure.Reports;
@@ -159,6 +160,94 @@ public class FinancialReportServiceTests
 
         Assert.True(report.PaymentBlockedStudents >= 1);
         Assert.True(report.PendingPayments >= 1);
+    }
+
+    /// <summary>Owner decision 2026-08-30 rule 9: "sessions/scheduled
+    /// teaching hours" — a cancelled session was never actually taught and
+    /// must not inflate this figure.</summary>
+    [Fact]
+    public async Task Scheduled_teaching_minutes_excludes_cancelled_sessions()
+    {
+        await using var db = _fixture.CreateContext();
+        var countryId = (int)NextId();
+        var courseId = NextId();
+        var levelId = (int)NextId();
+        var ageGroupId = (int)NextId();
+        var teacherUserId = await CreateUserAsync(db, "teacher");
+
+        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
+        db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 12, true));
+        var teacher = new Teacher(teacherUserId, "Teacher", "Asia/Amman");
+        db.Teachers.Add(teacher);
+        await db.SaveChangesAsync();
+
+        // A year far from "today" — virtually every other test in this
+        // suite schedules its own sessions at "now + N days" (today's real
+        // date), so a range anywhere near today silently sums in hundreds
+        // of unrelated sessions from every other test file, since this
+        // aggregate query has no per-test scoping key (it deliberately
+        // reports company-wide, matching the real dashboard).
+        var inRangeStart = new LocalDate(2027, 8, 10).AtMidnight().InUtc().ToInstant();
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var scheduled = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
+            inRangeStart, inRangeStart.Plus(Duration.FromMinutes(60)), "Asia/Amman", "10:00", SessionType.Group, now);
+        var cancelled = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
+            inRangeStart.Plus(Duration.FromHours(2)), inRangeStart.Plus(Duration.FromHours(3)), "Asia/Amman", "12:00", SessionType.Group, now);
+        db.ClassSessions.AddRange(scheduled, cancelled);
+        await db.SaveChangesAsync();
+        cancelled.Cancel("test", NextId());
+        await db.SaveChangesAsync();
+
+        var service = new FinancialReportService(db);
+        var report = await service.GenerateAsync(new LocalDate(2027, 8, 1), new LocalDate(2027, 8, 31), CancellationToken.None);
+
+        Assert.Equal(60, report.ScheduledTeachingMinutes); // only the non-cancelled session
+    }
+
+    /// <summary>Owner decision 2026-08-30 rule 9: expenses per currency, and
+    /// net profit = revenue - payroll - expenses, per currency.</summary>
+    [Fact]
+    public async Task Expenses_are_summed_by_currency_and_net_profit_is_revenue_minus_payroll_minus_expenses()
+    {
+        await using var db = _fixture.CreateContext();
+        var (countryId, studentId, payerUserId) = await SeedCountryAndStudentAsync(db);
+        var admin = await CreateUserAsync(db, "admin");
+        // A year not used by any other test in this class OR by
+        // OperatingExpenseServiceTests — OperatingExpense rows have no
+        // natural per-test scoping key the way a payment/payroll line does
+        // (the real report aggregates them company-wide), so an overlapping
+        // date range across test FILES silently sums another test's own
+        // expense rows into this one's total, exactly the kind of
+        // cross-test bleed this session has already root-caused before for
+        // other shared, unscoped ranges.
+        var confirmedAt = new LocalDate(2027, 9, 10).AtMidnight().InUtc().ToInstant();
+
+        var payment = new Payment(studentId, null, payerUserId, new Money(200m, "JOD"), PaymentMethod.CliQ,
+            "manual", "MVT-" + NextId(), confirmedAt.Minus(Duration.FromHours(1)));
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+        payment.Confirm(admin, confirmedAt);
+        await db.SaveChangesAsync();
+
+        var period = new PayrollPeriod(countryId, new LocalDate(2027, 9, 1), new LocalDate(2027, 9, 30));
+        db.PayrollPeriods.Add(period);
+        await db.SaveChangesAsync();
+        db.PayrollLines.Add(new PayrollLine(period.Id, NextId(), NextId(), 60, 30m, "JOD", 30m));
+
+        db.OperatingExpenses.Add(new MVTeaches.Domain.Finance.OperatingExpense(
+            countryId, "Rent", new Money(50m, "JOD"), new LocalDate(2027, 9, 15), null, admin, confirmedAt));
+        await db.SaveChangesAsync();
+
+        var service = new FinancialReportService(db);
+        var report = await service.GenerateAsync(new LocalDate(2027, 9, 1), new LocalDate(2027, 9, 30), CancellationToken.None);
+
+        var expenseLine = Assert.Single(report.ExpensesByCurrency);
+        Assert.Equal(50m, expenseLine.Amount);
+        var netProfitLine = Assert.Single(report.NetProfitByCurrency);
+        Assert.Equal("JOD", netProfitLine.Currency);
+        Assert.Equal(120m, netProfitLine.Amount); // 200 - 30 - 50
     }
 
     [Fact]
