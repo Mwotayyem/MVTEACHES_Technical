@@ -147,6 +147,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         new object[] { "/Admin/Payroll" },
         new object[] { "/Admin/Certificates" },
         new object[] { "/Admin/FinancialReport" },
+        new object[] { "/Admin/PlacementTests" },
     };
 
     [Theory]
@@ -682,6 +683,94 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
 
         Assert.Contains("PUBSLOT-GRANTED", body);
         Assert.DoesNotContain("PUBSLOT-UNGRANTED", body);
+    }
+
+    // ---- Placement test (owner decision 2026-08-30, reversing D-48) ----
+
+    [Fact]
+    public async Task Unauthenticated_request_to_the_placement_test_page_is_redirected()
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync("/PlacementTest");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task Authenticated_admin_is_turned_away_from_the_placement_test_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(AdminEmail);
+        var response = await client.GetAsync("/PlacementTest");
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_student_is_shown_the_placement_test_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(StudentEmail);
+        var response = await client.GetAsync("/PlacementTest");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_guardian_is_shown_the_placement_test_page()
+    {
+        var client = await CreateAuthenticatedClientAsync(GuardianEmail);
+        var response = await client.GetAsync("/PlacementTest");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    /// <summary>Rule 3/IDOR: a guardian must never be able to act on a child
+    /// that is not actually theirs by tampering the studentId form value —
+    /// IPlacementAttemptService's own IsAuthorizedAsync check is the real
+    /// guard; this proves the page surfaces its refusal rather than the
+    /// child's data.</summary>
+    [Fact]
+    public async Task A_guardian_cannot_start_a_placement_attempt_for_a_child_that_is_not_theirs()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+
+        // Reuses this file's own already-established country (see
+        // A_teacher_cannot_declare_delivery_on_another_teachers_session)
+        // rather than adding a new hand-picked 2-letter code — a fresh
+        // literal code risks exactly the cross-test-class collision this
+        // session already root-caused once for TwoLetterCode-generated
+        // codes (IX_countries_code), and this id/code pair is already
+        // proven collision-free across this file's own repeated runs.
+        var countryId = 90_000_001;
+        if (!await db.Countries.AnyAsync(c => c.Id == countryId))
+        {
+            db.Countries.Add(new Country(countryId, "ZY", "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            await db.SaveChangesAsync();
+        }
+
+        // A real student that belongs to nobody the acting guardian is linked to.
+        var strangerChild = new Student(countryId, "Someone Else's Child", new LocalDate(2013, 1, 1));
+        db.Students.Add(strangerChild);
+        await db.SaveChangesAsync();
+
+        var client = await CreateAuthenticatedClientAsync(GuardianEmail);
+        var page = await client.GetStringAsync("/PlacementTest");
+        var token = AntiforgeryTokenPattern.Match(page).Groups[1].Value;
+
+        var form = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["studentId"] = strangerChild.Id.ToString(),
+        };
+        var response = await client.PostAsync("/PlacementTest?handler=Start", new FormUrlEncodedContent(form));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Not authorized", body);
+
+        // The real assertion: no attempt was ever created for the stranger's child.
+        Assert.False(await db.PlacementAttempts.AnyAsync(a => a.StudentId == strangerChild.Id));
     }
 
     // ---- Video-meeting connections (owner clarification 2026-08-29) ----

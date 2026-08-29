@@ -1,0 +1,258 @@
+@page
+@model MVTeaches.Web.Pages.Admin.PlacementTestsModel
+@using MVTeaches.Domain.Placement
+@{
+    ViewData["Title"] = "Placement Tests";
+}
+
+<h1>Placement tests</h1>
+<p class="text-muted">Owner decision 2026-08-30, reversing D-48 — this content is entirely admin-authored; nothing here is invented by the system. A version cannot be published unless its score ranges fully cover every possible score with no gaps or overlaps.</p>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger">
+        @Model.ErrorMessage
+        @if (Model.ValidationErrors.Count > 0)
+        {
+            <ul class="mb-0">
+                @foreach (var e in Model.ValidationErrors)
+                {
+                    <li>@e</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Create a new draft version</h5>
+        <form method="post" asp-page-handler="CreateVersion" class="row g-2">
+            <div class="col-md-8">
+                <label class="form-label" asp-for="NewVersion.Title">Title</label>
+                <input asp-for="NewVersion.Title" class="form-control" placeholder="e.g. English Placement v3" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Create draft</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h2>Versions</h2>
+<div class="table-responsive mb-4">
+    <table class="table table-sm table-striped">
+        <thead><tr><th>#</th><th>Title</th><th>Status</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var v in Model.Versions)
+            {
+                <tr class="@(Model.EditingVersionId == v.Id ? "table-active" : "")">
+                    <td>@v.Id</td>
+                    <td>@v.Title</td>
+                    <td>@v.Status</td>
+                    <td>@(v.IsActive ? "Yes" : "")</td>
+                    <td>
+                        <a asp-page="/Admin/PlacementTests" asp-route-versionId="@v.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        @if (v.Status == PlacementTestStatus.Draft)
+                        {
+                            <form method="post" asp-page-handler="Publish" class="d-inline">
+                                <input type="hidden" name="versionId" value="@v.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-success">Publish</button>
+                            </form>
+                        }
+                        @if (v.Status == PlacementTestStatus.Published && !v.IsActive)
+                        {
+                            <form method="post" asp-page-handler="Activate" class="d-inline">
+                                <input type="hidden" name="versionId" value="@v.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-warning">Activate</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (Model.EditingVersion is not null)
+{
+    <h2>Editing: @Model.EditingVersion.Title (#@Model.EditingVersion.Id, @Model.EditingVersion.Status)</h2>
+
+    @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Add a question</h5>
+                <form method="post" asp-page-handler="AddQuestion" class="row g-2">
+                    <input type="hidden" asp-for="NewQuestion.TestVersionId" value="@Model.EditingVersion.Id" />
+                    <div class="col-12">
+                        <label class="form-label" asp-for="NewQuestion.Text">Question text</label>
+                        <input asp-for="NewQuestion.Text" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewQuestion.Points">Points</label>
+                        <input asp-for="NewQuestion.Points" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewQuestion.SortOrder">Sort order</label>
+                        <input asp-for="NewQuestion.SortOrder" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="NewQuestion.CorrectChoiceNumber">Correct choice #</label>
+                        <select asp-for="NewQuestion.CorrectChoiceNumber" class="form-select">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="NewQuestion.Choice1Text">Choice 1</label>
+                        <input asp-for="NewQuestion.Choice1Text" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="NewQuestion.Choice2Text">Choice 2</label>
+                        <input asp-for="NewQuestion.Choice2Text" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="NewQuestion.Choice3Text">Choice 3 (optional)</label>
+                        <input asp-for="NewQuestion.Choice3Text" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="NewQuestion.Choice4Text">Choice 4 (optional)</label>
+                        <input asp-for="NewQuestion.Choice4Text" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Add question</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Add a score range → level mapping</h5>
+                <form method="post" asp-page-handler="AddScoreRange" class="row g-2">
+                    <input type="hidden" asp-for="NewScoreRange.TestVersionId" value="@Model.EditingVersion.Id" />
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewScoreRange.MinScore">Min score</label>
+                        <input asp-for="NewScoreRange.MinScore" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewScoreRange.MaxScore">Max score</label>
+                        <input asp-for="NewScoreRange.MaxScore" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewScoreRange.LevelId">Level</label>
+                        <select asp-for="NewScoreRange.LevelId" class="form-select">
+                            <option value="">-- select --</option>
+                            @foreach (var l in Model.Levels)
+                            {
+                                <option value="@l.Id">@l.Code</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">Add range</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <h4>Questions</h4>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>#</th><th>Text</th><th>Points</th><th>Choices (✓ = correct)</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var q in Model.EditingQuestions)
+                {
+                    <tr>
+                        <td>@q.SortOrder</td>
+                        <td>@q.Text</td>
+                        <td>@q.Points</td>
+                        <td>
+                            @if (Model.ChoicesByQuestion.TryGetValue(q.Id, out var choices))
+                            {
+                                foreach (var c in choices)
+                                {
+                                    <div>@(c.IsCorrect ? "✓ " : "")@c.Text</div>
+                                }
+                            }
+                        </td>
+                        <td>
+                            @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
+                            {
+                                <form method="post" asp-page-handler="RemoveQuestion">
+                                    <input type="hidden" name="questionId" value="@q.Id" />
+                                    <input type="hidden" name="versionId" value="@Model.EditingVersion.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h4>Score ranges</h4>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Min</th><th>Max</th><th>Level</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in Model.EditingScoreRanges)
+                {
+                    <tr>
+                        <td>@r.MinScore</td>
+                        <td>@r.MaxScore</td>
+                        <td>@(Model.Levels.FirstOrDefault(l => l.Id == r.LevelId)?.Code ?? $"#{r.LevelId}")</td>
+                        <td>
+                            @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
+                            {
+                                <form method="post" asp-page-handler="RemoveScoreRange">
+                                    <input type="hidden" name="scoreRangeId" value="@r.Id" />
+                                    <input type="hidden" name="versionId" value="@Model.EditingVersion.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Pending retake requests</h2>
+<p class="text-muted small">Owner decision 2026-08-30 rule 3: a retake requires explicit admin approval; approving or rejecting is audit-logged.</p>
+<div class="table-responsive">
+    <table class="table table-sm table-striped">
+        <thead><tr><th>#</th><th>Student</th><th>Requested</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var r in Model.PendingRetakeRequests)
+            {
+                <tr>
+                    <td>@r.Id</td>
+                    <td>@Model.StudentNamesById.GetValueOrDefault(r.StudentId, $"#{r.StudentId}")</td>
+                    <td>@r.RequestedAtUtc.ToString()</td>
+                    <td>
+                        <form method="post" asp-page-handler="ApproveRetake" class="d-inline">
+                            <input type="hidden" name="retakeRequestId" value="@r.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-success">Approve</button>
+                        </form>
+                        <form method="post" asp-page-handler="RejectRetake" class="d-inline">
+                            <input type="hidden" name="retakeRequestId" value="@r.Id" />
+                            <input type="text" name="reason" placeholder="Reason (required)" class="form-control form-control-sm d-inline-block" style="width:auto" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
