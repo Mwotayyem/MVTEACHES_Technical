@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Domain.Attendance;
@@ -46,6 +46,10 @@ public class MvTeachesDbContext : IdentityDbContext<ApplicationUser, Application
     public DbSet<Guardian> Guardians => Set<Guardian>();
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Teacher> Teachers => Set<Teacher>();
+
+    /// <summary>Owner decision 2026-08-30 rule 5: the levels each teacher is
+    /// permitted to publish sessions for.</summary>
+    public DbSet<TeacherLevelAssignment> TeacherLevelAssignments => Set<TeacherLevelAssignment>();
     public DbSet<Guardianship> Guardianships => Set<Guardianship>();
 
     // Placement

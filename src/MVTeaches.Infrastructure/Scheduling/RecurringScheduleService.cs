@@ -32,6 +32,18 @@ public class RecurringScheduleService : IRecurringScheduleService
                 "(Teacher portal → Connections; a free Google account is sufficient).", nameof(teacherId));
         }
 
+        // Owner decision 2026-08-30 rule 5: "A teacher must not publish a
+        // session for an unauthorized level." Absence of a grant is denial —
+        // there is no implicit default level for a teacher.
+        var levelAllowed = await _db.TeacherLevelAssignments.AnyAsync(
+            a => a.TeacherId == teacherId && a.LevelId == levelId, cancellationToken);
+        if (!levelAllowed)
+        {
+            throw new ArgumentException(
+                "This teacher is not authorized to teach this level. An admin must grant the level first " +
+                "(Admin portal → Teachers → Levels).", nameof(levelId));
+        }
+
         var schedule = new RecurringSchedule(countryId, courseId, levelId, ageGroupId, teacherId, daysOfWeek,
             startLocal, durationMinutes, timeZoneId, startsOn, capacity, createdByUserId);
         _db.RecurringSchedules.Add(schedule);

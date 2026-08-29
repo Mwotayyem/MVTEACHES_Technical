@@ -70,9 +70,40 @@ public class RecurringScheduleServiceTests
         db.TeacherMeetingConnections.Add(new MVTeaches.Domain.Integrations.TeacherMeetingConnection(
             teacher.Id, MVTeaches.Domain.Integrations.VideoProviderType.GoogleMeet, "acct-" + teacher.Id,
             "t@example.test", "enc::access", "enc::refresh", null, SystemClock.Instance.GetCurrentInstant()));
+
+        // Owner decision 2026-08-30 rule 5: a teacher may only publish for a
+        // level an admin granted them, so every schedule-creating test now
+        // needs the grant too. Its own rejection case is asserted by
+        // Creating_a_schedule_for_a_level_the_teacher_is_not_authorized_for_is_refused.
+        db.TeacherLevelAssignments.Add(new MVTeaches.Domain.People.TeacherLevelAssignment(
+            teacher.Id, levelId, grantedByUserId: teacherUserId, SystemClock.Instance.GetCurrentInstant()));
         await db.SaveChangesAsync();
 
         return (countryId, courseId, levelId, ageGroupId, teacher.Id);
+    }
+
+    /// <summary>Owner decision 2026-08-30 rule 5: "A teacher must not publish a
+    /// session for an unauthorized level."</summary>
+    [Fact]
+    public async Task Creating_a_schedule_for_a_level_the_teacher_is_not_authorized_for_is_refused()
+    {
+        await using var db = _fixture.CreateContext();
+        var (countryId, courseId, _, ageGroupId, teacherId) = await SeedCatalogAndTeacherAsync(db);
+
+        // A second level the teacher was never granted.
+        var otherLevelId = (int)NextId();
+        db.Levels.Add(new Level(otherLevelId, "L" + otherLevelId, "مستوى", "Other Level", otherLevelId));
+        await db.SaveChangesAsync();
+
+        var service = new RecurringScheduleService(db);
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(
+            countryId, courseId, otherLevelId, ageGroupId, teacherId,
+            new[] { IsoDayOfWeek.Monday }, new LocalTime(17, 0), 60, "Asia/Amman",
+            new LocalDate(2026, 9, 1), 4, NextId(), CancellationToken.None));
+
+        Assert.Contains("not authorized to teach this level", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(await db.RecurringSchedules.AnyAsync(s => s.LevelId == otherLevelId));
     }
 
     [Fact]

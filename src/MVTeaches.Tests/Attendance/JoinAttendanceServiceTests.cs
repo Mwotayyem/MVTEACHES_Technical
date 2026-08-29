@@ -58,7 +58,7 @@ public class JoinAttendanceServiceTests
     }
 
     private async Task<(long SessionId, long StudentId, long StudentUserId, int Minutes)> SeedJoinableSessionAsync(
-        Instant now, bool enrolled = true, int? balanceMinutesOverride = null)
+        Instant now, bool enrolled = true, int? balanceMinutesOverride = null, int durationMinutes = 60)
     {
         await using var db = _fixture.CreateContext();
 
@@ -85,8 +85,10 @@ public class JoinAttendanceServiceTests
 
         await db.SaveChangesAsync();
 
+        // Starts 5 minutes ago so Join is already open; the remainder of the
+        // scheduled duration still lies ahead, whatever that duration is.
         var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
-            now.Minus(Duration.FromMinutes(5)), now.Plus(Duration.FromMinutes(55)), "Asia/Amman", "17:00",
+            now.Minus(Duration.FromMinutes(5)), now.Plus(Duration.FromMinutes(durationMinutes - 5)), "Asia/Amman", "17:00",
             SessionType.Group, now.Minus(Duration.FromDays(1)));
         db.ClassSessions.Add(session);
         await db.SaveChangesAsync();
@@ -138,6 +140,37 @@ public class JoinAttendanceServiceTests
         Assert.Equal(1, attendanceCount);
         Assert.Equal(1, consumptionCount);
         Assert.Equal(-minutes, consumedMinutes);
+    }
+
+    /// <summary>
+    /// Owner decision 2026-08-30 rule 2: "A scheduled 60-minute session
+    /// consumes 60 minutes. A scheduled 90-minute session consumes 90
+    /// minutes." The debit follows the SCHEDULED duration exactly — not a
+    /// fixed one-hour unit, not the teacher's video-plan limit, and not how
+    /// long the meeting actually ran.
+    /// </summary>
+    [Theory]
+    [InlineData(60)]
+    [InlineData(90)]
+    [InlineData(45)]
+    public async Task The_debit_equals_the_scheduled_duration_exactly(int scheduledMinutes)
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var (sessionId, studentId, studentUserId, minutes) =
+            await SeedJoinableSessionAsync(now, durationMinutes: scheduledMinutes);
+
+        Assert.Equal(scheduledMinutes, minutes); // the seed really did schedule this long
+
+        var result = await CreateService(now).JoinAsync(
+            new JoinAttendanceRequest(sessionId, studentId, studentUserId), CancellationToken.None);
+        Assert.Equal(JoinOutcome.Recorded, result.Outcome);
+
+        await using var verifyDb = _fixture.CreateContext();
+        var consumed = verifyDb.EntitlementLedgerEntries
+            .Where(l => l.SessionId == sessionId && l.StudentId == studentId && l.Reason == LedgerReason.Consumption)
+            .Sum(l => l.DeltaMinutes);
+
+        Assert.Equal(-scheduledMinutes, consumed);
     }
 
     [Fact]

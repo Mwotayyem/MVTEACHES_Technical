@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Identity;
 
@@ -48,6 +49,28 @@ public class TeacherConfiguration : IEntityTypeConfiguration<Teacher>
         b.Property(x => x.FullName).HasColumnName("full_name").IsRequired();
         b.Property(x => x.TimeZoneId).HasColumnName("timezone_id").IsRequired();
         b.Property(x => x.IsActive).HasColumnName("is_active");
+    }
+}
+
+/// <summary>Owner decision 2026-08-30 rule 5 — the admin-granted set of levels
+/// a teacher may publish sessions for.</summary>
+public class TeacherLevelAssignmentConfiguration : IEntityTypeConfiguration<TeacherLevelAssignment>
+{
+    public void Configure(EntityTypeBuilder<TeacherLevelAssignment> b)
+    {
+        b.ToTable("teacher_level_assignments");
+        b.HasKey(x => x.Id);
+        b.Property(x => x.TeacherId).HasColumnName("teacher_id");
+        b.Property(x => x.LevelId).HasColumnName("level_id");
+        b.Property(x => x.GrantedByUserId).HasColumnName("granted_by");
+        b.Property(x => x.GrantedAtUtc).HasColumnName("granted_at_utc");
+
+        b.HasOne<Teacher>().WithMany().HasForeignKey(x => x.TeacherId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<Level>().WithMany().HasForeignKey(x => x.LevelId).OnDelete(DeleteBehavior.Restrict);
+
+        // One grant per (teacher, level) — the real guard behind the service's
+        // idempotent GrantAsync, not merely a convenience index.
+        b.HasIndex(x => new { x.TeacherId, x.LevelId }).IsUnique().HasDatabaseName("ux_teacher_level");
     }
 }
 
