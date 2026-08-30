@@ -2,10 +2,10 @@
 @model MVTeaches.Web.Pages.PlacementTestModel
 @using MVTeaches.Application.Placement
 @{
-    ViewData["Title"] = "Placement Test";
+    ViewData["Title"] = T["Placement Test"].Value;
 }
 
-<h1>Placement test</h1>
+<h1>@T["Placement Test"]</h1>
 
 @if (Model.StatusMessage is not null)
 {
@@ -18,11 +18,11 @@
 
 @if (Model.NoProfileLinked)
 {
-    <div class="alert alert-warning">Your account has no linked profile yet — ask an admin to create one for you.</div>
+    <div class="alert alert-warning">@T["Your account has no linked profile yet — ask an admin to create one for you."]</div>
 }
 else if (Model.IsGuardian && Model.SelectedStudentId is null)
 {
-    <p class="text-muted">Choose which child to take the placement test for. Each child's attempt, result, and level are completely separate.</p>
+    <p class="text-muted">@T["Choose which child to take the placement test for. Each child's attempt, result, and level are completely separate."]</p>
     <ul class="list-group">
         @foreach (var c in Model.Children)
         {
@@ -36,19 +36,19 @@ else
 {
     @if (Model.IsGuardian)
     {
-        <p class="text-muted">Acting for <strong>@Model.SelectedStudentName</strong> — <a asp-page="/PlacementTest">choose a different child</a>.</p>
+        <p class="text-muted">@T["Acting for {0}", Model.SelectedStudentName ?? ""] — <a asp-page="/PlacementTest">@T["choose a different child"]</a>.</p>
     }
 
     @if (Model.JustScoredPoints is not null)
     {
         <div class="alert alert-info">
-            <strong>Score: @Model.JustScoredPoints</strong> — assigned level: <strong>@Model.JustAssignedLevelCode</strong>.
-            You may now purchase a package matching this level.
+            <strong>@T["Score: {0}", Model.JustScoredPoints]</strong> — @T["assigned level:"] <strong>@Model.JustAssignedLevelCode</strong>.
+            @T["You may now purchase a package matching this level."]
         </div>
     }
     else if (Model.QuizQuestions is not null)
     {
-        <p class="text-muted">Answer every question, then submit. Your answers are scored on the server only — nothing here reveals which choice is correct beforehand.</p>
+        <p class="text-muted">@T["Answer every question, then submit. Your answers are scored on the server only — nothing here reveals which choice is correct beforehand."]</p>
         <form method="post" asp-page-handler="Submit">
             <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
             <input type="hidden" name="attemptId" value="@Model.QuizAttemptId" />
@@ -69,7 +69,7 @@ else
                     </div>
                 </div>
             }
-            <button type="submit" class="btn btn-primary">Submit test</button>
+            <button type="submit" class="btn btn-primary">@T["Submit test"]</button>
         </form>
     }
     else if (Model.Eligibility is not null)
@@ -77,45 +77,45 @@ else
         switch (Model.Eligibility)
         {
             case PlacementEligibilityStatus.EligibleFirstAttempt:
-                <p>Complete the free placement test to unlock package purchases matching your level.</p>
+                <p>@T["Complete the free placement test to unlock package purchases matching your level."]</p>
                 <form method="post" asp-page-handler="Start">
                     <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
-                    <button type="submit" class="btn btn-primary">Take the free placement test</button>
+                    <button type="submit" class="btn btn-primary">@T["Take the free placement test"]</button>
                 </form>
                 break;
 
             case PlacementEligibilityStatus.AttemptInProgress:
-                <p>There is an unfinished attempt — resume it below.</p>
+                <p>@T["There is an unfinished attempt — resume it below."]</p>
                 <form method="post" asp-page-handler="Start">
                     <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
-                    <button type="submit" class="btn btn-primary">Resume the test</button>
+                    <button type="submit" class="btn btn-primary">@T["Resume the test"]</button>
                 </form>
                 break;
 
             case PlacementEligibilityStatus.RetakeApprovedReadyToStart:
-                <p>Your retake request was approved — you may take the test again.</p>
+                <p>@T["Your retake request was approved — you may take the test again."]</p>
                 <form method="post" asp-page-handler="Start">
                     <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
-                    <button type="submit" class="btn btn-primary">Take the test</button>
+                    <button type="submit" class="btn btn-primary">@T["Take the test"]</button>
                 </form>
                 break;
 
             case PlacementEligibilityStatus.RetakePending:
-                <div class="alert alert-info">A retake request is awaiting admin approval.</div>
+                <div class="alert alert-info">@T["A retake request is awaiting admin approval."]</div>
                 break;
 
             case PlacementEligibilityStatus.AlreadyCompletedNoRetakeApproved:
                 @if (Model.MostRecentResult is not null)
                 {
                     <div class="alert alert-info">
-                        Most recent result: <strong>@Model.MostRecentResult.Score points</strong> — level <strong>@Model.MostRecentResult.LevelCode</strong>.
-                        Package purchases are restricted to this level.
+                        @T["Most recent result:"] <strong>@T["{0} points", Model.MostRecentResult.Score]</strong> — @T["level"] <strong>@Model.MostRecentResult.LevelCode</strong>.
+                        @T["Package purchases are restricted to this level."]
                     </div>
                 }
-                <p class="text-muted">Want a different level? A retake requires admin approval.</p>
+                <p class="text-muted">@T["Want a different level? A retake requires admin approval."]</p>
                 <form method="post" asp-page-handler="RequestRetake">
                     <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
-                    <button type="submit" class="btn btn-outline-secondary">Request a retake</button>
+                    <button type="submit" class="btn btn-outline-secondary">@T["Request a retake"]</button>
                 </form>
                 break;
         }

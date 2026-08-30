@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.People;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -27,12 +29,15 @@ public class StudentsModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly IStudentAdmissionService _admissions;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public StudentsModel(MvTeachesDbContext db, IStudentAdmissionService admissions, UserManager<ApplicationUser> userManager)
+    public StudentsModel(MvTeachesDbContext db, IStudentAdmissionService admissions, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _admissions = admissions;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public record StudentRow(long Id, string FullName, string CountryCode, StudentStatus Status,
@@ -134,11 +139,11 @@ public class StudentsModel : PageModel
         var result = await _admissions.RegisterGuardianAsync(NewGuardian.Email, NewGuardian.Password, NewGuardian.FullName, HttpContext.RequestAborted);
         if (result.Outcome == RegisterGuardianOutcome.LoginFailed)
         {
-            ErrorMessage = "Could not create the guardian's login: " + string.Join("; ", result.Errors ?? Array.Empty<string>());
+            ErrorMessage = _localizer["Could not create the guardian's login: {0}", string.Join("; ", result.Errors ?? Array.Empty<string>())].Value;
         }
         else
         {
-            StatusMessage = $"Guardian '{NewGuardian.FullName}' registered.";
+            StatusMessage = _localizer["Guardian '{0}' registered.", NewGuardian.FullName].Value;
         }
 
         await LoadAsync();
@@ -160,11 +165,11 @@ public class StudentsModel : PageModel
 
         if (result.Outcome == RegisterStudentOutcome.LoginFailed)
         {
-            ErrorMessage = "Could not create the student's login: " + string.Join("; ", result.Errors ?? Array.Empty<string>());
+            ErrorMessage = _localizer["Could not create the student's login: {0}", string.Join("; ", result.Errors ?? Array.Empty<string>())].Value;
         }
         else
         {
-            StatusMessage = $"Student '{NewStudent.FullName}' registered (PendingVerification).";
+            StatusMessage = _localizer["Student '{0}' registered (pending verification).", NewStudent.FullName].Value;
         }
 
         await LoadAsync();
@@ -185,13 +190,13 @@ public class StudentsModel : PageModel
 
         ErrorMessage = result.Outcome switch
         {
-            LinkGuardianOutcome.PrimaryConflict => "This student already has a primary guardian — un-primary the existing one first.",
-            LinkGuardianOutcome.AlreadyLinked => "This guardian is already linked to this student.",
+            LinkGuardianOutcome.PrimaryConflict => _localizer["This student already has a primary guardian — un-primary the existing one first."].Value,
+            LinkGuardianOutcome.AlreadyLinked => _localizer["This guardian is already linked to this student."].Value,
             _ => null,
         };
         if (result.Outcome == LinkGuardianOutcome.Linked)
         {
-            StatusMessage = "Guardian linked.";
+            StatusMessage = _localizer["Guardian linked."].Value;
         }
 
         await LoadAsync();
@@ -201,7 +206,7 @@ public class StudentsModel : PageModel
     public async Task<IActionResult> OnPostVerifyAsync(long studentId)
     {
         await _admissions.VerifyStudentAsync(studentId, HttpContext.RequestAborted);
-        StatusMessage = "Student marked verified.";
+        StatusMessage = _localizer["Student marked verified."].Value;
         await LoadAsync();
         return Page();
     }
@@ -217,7 +222,7 @@ public class StudentsModel : PageModel
 
         var actingUserId = GetCurrentUserId();
         await _admissions.AssignLevelAsync(LevelAssignment.StudentId, LevelAssignment.LevelId, actingUserId, LevelAssignment.Reason, HttpContext.RequestAborted);
-        StatusMessage = "Level assigned.";
+        StatusMessage = _localizer["Level assigned."].Value;
         await LoadAsync();
         return Page();
     }

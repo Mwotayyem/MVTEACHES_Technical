@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -27,12 +29,15 @@ public class CompensationRequestsModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly ICompensationRequestService _compensation;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public CompensationRequestsModel(MvTeachesDbContext db, ICompensationRequestService compensation, UserManager<ApplicationUser> userManager)
+    public CompensationRequestsModel(MvTeachesDbContext db, ICompensationRequestService compensation,
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _compensation = compensation;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public record PendingRequestRow(long RequestId, long StudentId, string StudentName, string LevelCode,
@@ -61,20 +66,20 @@ public class CompensationRequestsModel : PageModel
         var result = await _compensation.ApproveAsync(requestId, replacementSessionId, approvedByUserId, HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome == ResolveCompensationRequestOutcome.Approved
-            ? "Replacement approved — the student has been notified."
+            ? _localizer["Replacement approved — the student has been notified."].Value
             : null;
         ErrorMessage = result.Outcome switch
         {
-            ResolveCompensationRequestOutcome.RequestNotFound => "Request not found.",
-            ResolveCompensationRequestOutcome.RequestNotPending => "This request was already resolved.",
-            ResolveCompensationRequestOutcome.ReplacementSessionNotFound => "Replacement session not found.",
-            ResolveCompensationRequestOutcome.ReplacementSessionIsTheSameSession => "The replacement must be a different session.",
-            ResolveCompensationRequestOutcome.ReplacementSessionFull => "The replacement session is full.",
-            ResolveCompensationRequestOutcome.AlreadyEnrolledInReplacementSession => "The student already has an active enrollment on that replacement session.",
-            ResolveCompensationRequestOutcome.NoApplicableAgeGroup => "No age group covers this student's current age.",
-            ResolveCompensationRequestOutcome.ReplacementSessionLevelMismatch => "The replacement session is a different level than the student's.",
-            ResolveCompensationRequestOutcome.ReplacementSessionNotInFuture => "The replacement must be a session that hasn't started yet.",
-            _ => "Could not approve the request.",
+            ResolveCompensationRequestOutcome.RequestNotFound => _localizer["Request not found."].Value,
+            ResolveCompensationRequestOutcome.RequestNotPending => _localizer["This request was already resolved."].Value,
+            ResolveCompensationRequestOutcome.ReplacementSessionNotFound => _localizer["Replacement session not found."].Value,
+            ResolveCompensationRequestOutcome.ReplacementSessionIsTheSameSession => _localizer["The replacement must be a different session."].Value,
+            ResolveCompensationRequestOutcome.ReplacementSessionFull => _localizer["The replacement session is full."].Value,
+            ResolveCompensationRequestOutcome.AlreadyEnrolledInReplacementSession => _localizer["The student already has an active enrollment on that replacement session."].Value,
+            ResolveCompensationRequestOutcome.NoApplicableAgeGroup => _localizer["No age group covers this student's current age."].Value,
+            ResolveCompensationRequestOutcome.ReplacementSessionLevelMismatch => _localizer["The replacement session is a different level than the student's."].Value,
+            ResolveCompensationRequestOutcome.ReplacementSessionNotInFuture => _localizer["The replacement must be a session that hasn't started yet."].Value,
+            _ => _localizer["Could not approve the request."].Value,
         };
 
         await LoadAsync();
@@ -84,14 +89,14 @@ public class CompensationRequestsModel : PageModel
     public async Task<IActionResult> OnPostRejectAsync(long requestId)
     {
         var rejectedByUserId = long.Parse(_userManager.GetUserId(User)!);
-        var reason = string.IsNullOrWhiteSpace(RejectReason) ? "No reason given" : RejectReason;
+        var reason = string.IsNullOrWhiteSpace(RejectReason) ? _localizer["No reason given"].Value : RejectReason;
 
         var result = await _compensation.RejectAsync(requestId, reason, rejectedByUserId, HttpContext.RequestAborted);
-        StatusMessage = result.Outcome == ResolveCompensationRequestOutcome.Rejected ? "Request rejected." : null;
+        StatusMessage = result.Outcome == ResolveCompensationRequestOutcome.Rejected ? _localizer["Request rejected."].Value : null;
         ErrorMessage = result.Outcome switch
         {
-            ResolveCompensationRequestOutcome.RequestNotFound => "Request not found.",
-            ResolveCompensationRequestOutcome.RequestNotPending => "This request was already resolved.",
+            ResolveCompensationRequestOutcome.RequestNotFound => _localizer["Request not found."].Value,
+            ResolveCompensationRequestOutcome.RequestNotPending => _localizer["This request was already resolved."].Value,
             _ => null,
         };
 

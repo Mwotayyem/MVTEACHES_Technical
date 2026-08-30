@@ -1,17 +1,17 @@
 @page
 @model MVTeaches.Web.Pages.Admin.DashboardModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = T["Dashboard"].Value;
 }
 
-<h1>Dashboard</h1>
-<p class="text-muted">Live counts, read directly from the database — nothing here is cached or precomputed.</p>
+<h1>@T["Dashboard"]</h1>
+<p class="text-muted">@T["Live counts, read directly from the database — nothing here is cached or precomputed."]</p>
 
 <div class="row row-cols-1 row-cols-md-3 g-4">
     <div class="col">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Active students</h5>
+                <h5 class="card-title">@T["Active students"]</h5>
                 <p class="card-text display-6">@Model.ActiveStudents</p>
             </div>
         </div>
@@ -19,7 +19,7 @@
     <div class="col">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Active teachers</h5>
+                <h5 class="card-title">@T["Active teachers"]</h5>
                 <p class="card-text display-6">@Model.ActiveTeachers</p>
             </div>
         </div>
@@ -27,7 +27,7 @@
     <div class="col">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Sessions today (UTC)</h5>
+                <h5 class="card-title">@T["Sessions today (UTC)"]</h5>
                 <p class="card-text display-6">@Model.SessionsToday</p>
             </div>
         </div>
@@ -35,7 +35,7 @@
     <div class="col">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Open payroll periods</h5>
+                <h5 class="card-title">@T["Open payroll periods"]</h5>
                 <p class="card-text display-6">@Model.OpenPayrollPeriods</p>
             </div>
         </div>
@@ -43,11 +43,11 @@
     <div class="col">
         <div class="card @(Model.UnresolvedScheduleConflicts > 0 ? "border-warning" : "")">
             <div class="card-body">
-                <h5 class="card-title">Unresolved schedule conflicts</h5>
+                <h5 class="card-title">@T["Unresolved schedule conflicts"]</h5>
                 <p class="card-text display-6">@Model.UnresolvedScheduleConflicts</p>
                 @if (Model.UnresolvedScheduleConflicts > 0)
                 {
-                    <p class="card-text text-warning small">§15.3 — a teacher-overlap or time-off collision the generator could not resolve on its own.</p>
+                    <p class="card-text text-warning small">@T["A teacher-overlap or time-off collision the schedule generator could not resolve on its own."]</p>
                 }
             </div>
         </div>

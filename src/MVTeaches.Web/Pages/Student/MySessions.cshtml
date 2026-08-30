@@ -1,14 +1,14 @@
 @page
 @model MVTeaches.Web.Pages.Student.MySessionsModel
 @{
-    ViewData["Title"] = "My Sessions";
+    ViewData["Title"] = T["My Sessions"].Value;
 }
 
-<h1>My sessions</h1>
+<h1>@T["My Sessions"]</h1>
 
 @if (Model.NoStudentProfileLinked)
 {
-    <div class="alert alert-warning">This account has no linked student profile yet — ask an admin to link it on /Admin/Students.</div>
+    <div class="alert alert-warning">@T["This account has no linked student profile yet — ask an admin to link it on /Admin/Students."]</div>
 }
 else
 {
@@ -22,28 +22,28 @@ else
     }
     @if (Model.NoLevelAssigned)
     {
-        <div class="alert alert-warning">You don't have a level assigned yet — ask an admin. You'll be able to browse and book sessions once you do.</div>
+        <div class="alert alert-warning">@T["You don't have a level assigned yet — ask an admin. You'll be able to browse and book sessions once you do."]</div>
     }
 
-    <h2 class="h4">My enrolled sessions</h2>
+    <h2 class="h4">@T["My enrolled sessions"]</h2>
     <div class="table-responsive mb-4">
         <table class="table table-sm table-striped">
-            <thead><tr><th>Starts</th><th>Course/Level</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
+            <thead><tr><th>@T["Starts"]</th><th>@T["Course and level"]</th><th>@T["Status"]</th><th>@T["Attendance"]</th><th></th></tr></thead>
             <tbody>
                 @foreach (var s in Model.MySessions)
                 {
                     <tr>
                         <td>@s.StartsAtUtc (@s.ScheduleTimeZone)</td>
                         <td>@s.CourseName / @s.LevelCode</td>
-                        <td>@s.SessionStatus</td>
+                        <td>@T["ClassSessionStatus." + s.SessionStatus]</td>
                         <td>
                             @switch (s.Attendance)
                             {
                                 case MVTeaches.Web.Pages.Student.MySessionsModel.AttendanceState.Present:
-                                    <span class="text-success">Present</span>
+                                    <span class="text-success">@T["Present"]</span>
                                     break;
                                 case MVTeaches.Web.Pages.Student.MySessionsModel.AttendanceState.NoShow:
-                                    <span class="text-danger">No-show</span>
+                                    <span class="text-danger">@T["No-show"]</span>
                                     break;
                                 default:
                                     <span class="text-muted">—</span>
@@ -55,15 +55,15 @@ else
                             {
                                 <form method="post" asp-page-handler="Join" class="d-inline">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
-                                    <button type="submit" class="btn btn-sm btn-primary">Join</button>
+                                    <button type="submit" class="btn btn-sm btn-primary">@T["Join"]</button>
                                 </form>
                             }
                             @if (s.CanRequestReplacement)
                             {
                                 <form method="post" asp-page-handler="RequestReplacement" class="d-inline">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
-                                    <input type="text" name="CompensationReason" class="form-control form-control-sm d-inline w-auto" placeholder="Reason (optional)" style="max-width:180px" />
-                                    <button type="submit" class="btn btn-sm btn-outline-warning">Request replacement</button>
+                                    <input type="text" name="CompensationReason" class="form-control form-control-sm d-inline w-auto" placeholder="@T["Reason (optional)"]" style="max-width:180px" />
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">@T["Request replacement"]</button>
                                 </form>
                             }
                         </td>
@@ -73,16 +73,16 @@ else
         </table>
         @if (Model.MySessions.Count == 0)
         {
-            <p class="text-muted">No enrolled sessions in this window.</p>
+            <p class="text-muted">@T["No enrolled sessions in this window."]</p>
         }
     </div>
 
     @if (!Model.NoLevelAssigned)
     {
-        <h2 class="h4">Available sessions for your level</h2>
+        <h2 class="h4">@T["Available sessions for your level"]</h2>
         <div class="table-responsive mb-4">
             <table class="table table-sm table-striped">
-                <thead><tr><th>Starts</th><th>Course/Level</th><th>Seats</th><th></th></tr></thead>
+                <thead><tr><th>@T["Starts"]</th><th>@T["Course and level"]</th><th>@T["Seats booked / capacity"]</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var s in Model.AvailableSessions)
                     {
@@ -93,7 +93,7 @@ else
                             <td>
                                 <form method="post" asp-page-handler="Book">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
-                                    <button type="submit" class="btn btn-sm btn-success">Book</button>
+                                    <button type="submit" class="btn btn-sm btn-success">@T["Book"]</button>
                                 </form>
                             </td>
                         </tr>
@@ -102,22 +102,22 @@ else
             </table>
             @if (Model.AvailableSessions.Count == 0)
             {
-                <p class="text-muted">No available sessions for your level in the next 30 days.</p>
+                <p class="text-muted">@T["No available sessions for your level in the next 30 days."]</p>
             }
         </div>
     }
 
-    <h2 class="h4">My replacement requests</h2>
+    <h2 class="h4">@T["My replacement requests"]</h2>
     <div class="table-responsive">
         <table class="table table-sm table-striped">
-            <thead><tr><th>Missed session</th><th>Reason</th><th>Status</th><th>Replacement</th></tr></thead>
+            <thead><tr><th>@T["Missed session"]</th><th>@T["Reason"]</th><th>@T["Status"]</th><th>@T["Replacement"]</th></tr></thead>
             <tbody>
                 @foreach (var r in Model.MyCompensationRequests)
                 {
                     <tr>
                         <td>@r.OriginalSessionStartsAtUtc</td>
                         <td>@(r.Reason ?? "—")</td>
-                        <td>@r.Status</td>
+                        <td>@T["CompensationRequestStatus." + r.Status]</td>
                         <td>
                             @if (r.Status == MVTeaches.Domain.Scheduling.CompensationRequestStatus.Approved && r.ReplacementStartsAtUtc is not null)
                             {
@@ -125,11 +125,11 @@ else
                             }
                             else if (r.Status == MVTeaches.Domain.Scheduling.CompensationRequestStatus.Rejected)
                             {
-                                @("Rejected" + (r.RejectionReason is not null ? $" — {r.RejectionReason}" : ""))
+                                @(T["CompensationRequestStatus.Rejected"].Value + (r.RejectionReason is not null ? $" — {r.RejectionReason}" : ""))
                             }
                             else
                             {
-                                <span class="text-muted">Pending review</span>
+                                <span class="text-muted">@T["Pending review"]</span>
                             }
                         </td>
                     </tr>
@@ -138,7 +138,7 @@ else
         </table>
         @if (Model.MyCompensationRequests.Count == 0)
         {
-            <p class="text-muted">No replacement requests yet.</p>
+            <p class="text-muted">@T["No replacement requests yet."]</p>
         }
     </div>
 }

@@ -1,7 +1,10 @@
+using System.Globalization;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Integrations;
@@ -38,6 +41,7 @@ using MVTeaches.Infrastructure.Scheduling;
 using MVTeaches.Infrastructure.Settings;
 using MVTeaches.Infrastructure.Subscriptions;
 using NodaTime;
+using MVTeaches.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,7 +77,8 @@ builder.Services
         options.SignIn.RequireConfirmedPhoneNumber = false; // OTP flow confirms via a custom step, not Identity's own token provider
     })
     .AddEntityFrameworkStores<MvTeachesDbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddErrorDescriber<MVTeaches.Web.Identity.LocalizedIdentityErrorDescriber>();
 
 // ---------------------------------------------------------------------
 // Time — NodaTime's real clock everywhere except tests (FakeClock there)
@@ -108,6 +113,8 @@ builder.Services.AddScoped<ISessionCancellationService, SessionCancellationServi
 builder.Services.AddScoped<IStudentBookingService, StudentBookingService>();
 builder.Services.AddScoped<ICompensationRequestService, CompensationRequestService>();
 builder.Services.AddScoped<ISessionFinalizationService, SessionFinalizationService>();
+
+builder.Services.AddLocalization();
 
 // ---------------------------------------------------------------------
 // Integration boundaries — §5-8 of the master engineering prompt.
@@ -165,7 +172,14 @@ builder.Services.AddHangfireServer();
 builder.Services.AddScoped<NotificationDispatchJob>();
 builder.Services.AddScoped<SessionReminderJob>();
 
-builder.Services.AddRazorPages();
+builder.Services
+    .AddRazorPages()
+    .AddViewLocalization(LanguageViewLocationExpanderFormat.Suffix)
+    .AddDataAnnotationsLocalization(options =>
+    {
+        options.DataAnnotationLocalizerProvider = (type, factory) =>
+            factory.Create(typeof(MVTeaches.Web.Resources.SharedResource));
+    });
 
 // Deployment guide §10's flagged gap — a minimal liveness/readiness probe,
 // not a dependency dashboard. See DatabaseHealthCheck's own remarks on why
@@ -175,11 +189,39 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+var supportedUiCultures = new[]
+{
+    new CultureInfo("ar-JO"),
+    new CultureInfo("en"),
+};
+
+// Owner decision 2026-08-30 (bilingual amount/date entry): UI language and
+// number/date FORMATTING are deliberately decoupled. Only "en-US" is ever a
+// supported (non-UI) Culture — ASP.NET Core's own RequestLocalizationMiddleware
+// resolves Culture and UICulture independently against their own Supported
+// lists (a documented, intentional feature), so a payer whose UI is Arabic
+// still has CultureInfo.CurrentCulture pinned to en-US: an HTML5 number/date
+// input always submits "3.500"/"2026-08-30" with a period and ISO order
+// regardless of the browser's own locale, and en-US parses/formats that
+// exact same way. Without this pin, .NET's ar-JO NumberFormatInfo (Arabic
+// decimal/group separators) made ASP.NET Core's default model binder reject
+// a perfectly valid "3.500" submitted from an Arabic-language page — a real,
+// reproduced bug, not a theoretical one. SupportedUICultures is untouched:
+// @T[...] resx lookups still resolve to ar-JO exactly as before.
+var supportedCultures = new[] { new CultureInfo("en-US") };
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("en-US", "ar-JO"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedUiCultures,
+});
 
 app.UseHttpsRedirection();
 app.UseRouting();

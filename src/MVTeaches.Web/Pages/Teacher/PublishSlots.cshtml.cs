@@ -5,12 +5,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.People;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Teacher;
@@ -33,15 +35,18 @@ public class PublishSlotsModel : PageModel
     private readonly ITeacherLevelAuthorizationService _levelAuthorization;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IClock _clock;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public PublishSlotsModel(MvTeachesDbContext db, ITeacherSlotPublishingService publishing,
-        ITeacherLevelAuthorizationService levelAuthorization, UserManager<ApplicationUser> userManager, IClock clock)
+        ITeacherLevelAuthorizationService levelAuthorization, UserManager<ApplicationUser> userManager, IClock clock,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _publishing = publishing;
         _levelAuthorization = levelAuthorization;
         _userManager = userManager;
         _clock = clock;
+        _localizer = localizer;
     }
 
     public record SlotRow(long SessionId, string LocalDateAndTime, int DurationMinutes,
@@ -74,8 +79,17 @@ public class PublishSlotsModel : PageModel
         [Required] public long CourseId { get; set; }
         [Required] public int LevelId { get; set; }
         [Required] public int AgeGroupId { get; set; }
-        [Required] public DateOnly Date { get; set; }
-        [Required] public TimeOnly StartLocal { get; set; }
+
+        // Nullable, not DateOnly/TimeOnly: a real, reported bug — on the
+        // blank "publish a new slot" form (nothing typed yet), a
+        // non-nullable DateOnly/TimeOnly defaults to 0001-01-01/00:00, and
+        // asp-for renders that CLR default straight into the date/time
+        // input's value attribute (a plainly wrong pre-filled date, not an
+        // empty field). [Required] below still enforces a real value on
+        // submit exactly as before.
+        [Required] public DateOnly? Date { get; set; }
+        [Required] public TimeOnly? StartLocal { get; set; }
+
         [Required, Range(1, 480)] public int DurationMinutes { get; set; } = 60;
         [Required] public SessionType SessionType { get; set; } = SessionType.Group;
     }
@@ -104,8 +118,10 @@ public class PublishSlotsModel : PageModel
         // teacher-facing screen already treats Teacher.TimeZoneId as that
         // teacher's own frame of reference (e.g. MySessions' declared hours).
         var zone = DateTimeZoneProviders.Tzdb[teacher.TimeZoneId];
-        var localDate = new LocalDate(NewSlot.Date.Year, NewSlot.Date.Month, NewSlot.Date.Day);
-        var localTime = new LocalTime(NewSlot.StartLocal.Hour, NewSlot.StartLocal.Minute);
+        var date = NewSlot.Date!.Value; // [Required] + TryValidateModel above guarantee this
+        var startLocal = NewSlot.StartLocal!.Value;
+        var localDate = new LocalDate(date.Year, date.Month, date.Day);
+        var localTime = new LocalTime(startLocal.Hour, startLocal.Minute);
         var startInstant = zone.AtLeniently(localDate.At(localTime)).ToInstant();
 
         var result = await _publishing.PublishSlotAsync(teacher.Id, userId, NewSlot.CountryId, NewSlot.CourseId,
@@ -118,16 +134,16 @@ public class PublishSlotsModel : PageModel
             // This page always passes the authenticated teacher's own Id, so
             // this branch is unreachable through the UI itself — it only
             // guards against PublishSlotAsync's own defense-in-depth check.
-            PublishSlotOutcome.Unauthorized => "Could not publish this slot.",
+            PublishSlotOutcome.Unauthorized => _localizer["Could not publish this slot."].Value,
             PublishSlotOutcome.TeacherNotReadyForOnlineSessions =>
-                "You have no connected video account yet — connect Zoom or a free Google account on the Connections page first.",
-            PublishSlotOutcome.NotAuthorizedForLevel => "You are not authorized to teach this level — ask an admin to grant it on your profile.",
-            PublishSlotOutcome.Overlapping => "This overlaps another slot you already published.",
-            _ => "Could not publish this slot.",
+                _localizer["You have no connected video account yet — connect Zoom or a free Google account on the Connections page first."].Value,
+            PublishSlotOutcome.NotAuthorizedForLevel => _localizer["You are not authorized to teach this level — ask an admin to grant it on your profile."].Value,
+            PublishSlotOutcome.Overlapping => _localizer["This overlaps another slot you already published."].Value,
+            _ => _localizer["Could not publish this slot."].Value,
         };
         if (result.Outcome == PublishSlotOutcome.Published)
         {
-            StatusMessage = $"Slot published (session #{result.SessionId}).";
+            StatusMessage = _localizer["Slot published (session #{0}).", result.SessionId!].Value;
         }
 
         await LoadAsync();

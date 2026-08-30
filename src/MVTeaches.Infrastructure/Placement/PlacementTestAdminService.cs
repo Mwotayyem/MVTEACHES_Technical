@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Placement;
 using MVTeaches.Domain.Audit;
 using MVTeaches.Domain.Placement;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Infrastructure.Resources;
 using NodaTime;
 
 namespace MVTeaches.Infrastructure.Placement;
@@ -12,11 +14,13 @@ public class PlacementTestAdminService : IPlacementTestAdminService
 {
     private readonly MvTeachesDbContext _db;
     private readonly IClock _clock;
+    private readonly IStringLocalizer<InfrastructureResource> _localizer;
 
-    public PlacementTestAdminService(MvTeachesDbContext db, IClock clock)
+    public PlacementTestAdminService(MvTeachesDbContext db, IClock clock, IStringLocalizer<InfrastructureResource> localizer)
     {
         _db = db;
         _clock = clock;
+        _localizer = localizer;
     }
 
     public async Task<CreateDraftVersionResult> CreateDraftVersionAsync(string title, long createdByUserId, CancellationToken cancellationToken)
@@ -31,12 +35,12 @@ public class PlacementTestAdminService : IPlacementTestAdminService
         IReadOnlyList<AddQuestionChoice> choices, int sortOrder, CancellationToken cancellationToken)
     {
         var version = await _db.PlacementTestVersions.FirstOrDefaultAsync(v => v.Id == testVersionId, cancellationToken)
-            ?? throw new InvalidOperationException("Test version not found.");
+            ?? throw new InvalidOperationException(_localizer["Test version not found."].Value);
         version.EnsureEditable();
 
         if (choices.Count(c => c.IsCorrect) != 1)
         {
-            throw new ArgumentException("A question must have exactly one correct choice.", nameof(choices));
+            throw new ArgumentException(_localizer["A question must have exactly one correct choice."].Value, nameof(choices));
         }
 
         var question = new PlacementQuestion(testVersionId, text, points, sortOrder);
@@ -72,12 +76,12 @@ public class PlacementTestAdminService : IPlacementTestAdminService
     public async Task<AddScoreRangeResult> AddScoreRangeAsync(long testVersionId, int minScore, int maxScore, int levelId, CancellationToken cancellationToken)
     {
         var version = await _db.PlacementTestVersions.FirstOrDefaultAsync(v => v.Id == testVersionId, cancellationToken)
-            ?? throw new InvalidOperationException("Test version not found.");
+            ?? throw new InvalidOperationException(_localizer["Test version not found."].Value);
         version.EnsureEditable();
 
         if (!await _db.Levels.AnyAsync(l => l.Id == levelId, cancellationToken))
         {
-            throw new InvalidOperationException("Level not found.");
+            throw new InvalidOperationException(_localizer["Level not found."].Value);
         }
 
         var range = new PlacementScoreRange(testVersionId, minScore, maxScore, levelId);
@@ -119,7 +123,7 @@ public class PlacementTestAdminService : IPlacementTestAdminService
         var questions = await _db.PlacementQuestions.Where(q => q.TestVersionId == testVersionId).ToListAsync(cancellationToken);
         if (questions.Count == 0)
         {
-            errors.Add("At least one question is required.");
+            errors.Add(_localizer["At least one question is required."].Value);
         }
 
         var questionIds = questions.Select(q => q.Id).ToList();
@@ -135,11 +139,11 @@ public class PlacementTestAdminService : IPlacementTestAdminService
             var correctCount = choices.Count(c => c.IsCorrect);
             if (choices.Count < 2)
             {
-                errors.Add($"Question #{question.Id} needs at least two answer choices.");
+                errors.Add(_localizer["Question #{0} needs at least two answer choices.", question.Id].Value);
             }
             if (correctCount != 1)
             {
-                errors.Add($"Question #{question.Id} must have exactly one correct answer choice (found {correctCount}).");
+                errors.Add(_localizer["Question #{0} must have exactly one correct answer choice (found {1}).", question.Id, correctCount].Value);
             }
         }
 
@@ -152,7 +156,7 @@ public class PlacementTestAdminService : IPlacementTestAdminService
 
         if (ranges.Count == 0)
         {
-            errors.Add("At least one score range is required.");
+            errors.Add(_localizer["At least one score range is required."].Value);
         }
         else if (totalPossiblePoints > 0)
         {
@@ -161,7 +165,7 @@ public class PlacementTestAdminService : IPlacementTestAdminService
             {
                 if (!levelIds.Contains(range.LevelId))
                 {
-                    errors.Add($"Score range [{range.MinScore},{range.MaxScore}] points to a level that does not exist.");
+                    errors.Add(_localizer["Score range [{0},{1}] points to a level that does not exist.", range.MinScore, range.MaxScore].Value);
                 }
             }
 
@@ -171,20 +175,22 @@ public class PlacementTestAdminService : IPlacementTestAdminService
             // once, no gaps, no overlaps.
             if (ranges[0].MinScore != 0)
             {
-                errors.Add($"Score ranges must start at 0 (the lowest range starts at {ranges[0].MinScore}).");
+                errors.Add(_localizer["Score ranges must start at 0 (the lowest range starts at {0}).", ranges[0].MinScore].Value);
             }
 
             for (var i = 0; i < ranges.Count; i++)
             {
                 if (i > 0 && ranges[i].MinScore != ranges[i - 1].MaxScore + 1)
                 {
-                    errors.Add($"Score ranges must have no gap or overlap between [{ranges[i - 1].MinScore},{ranges[i - 1].MaxScore}] and [{ranges[i].MinScore},{ranges[i].MaxScore}].");
+                    errors.Add(_localizer["Score ranges must have no gap or overlap between [{0},{1}] and [{2},{3}].",
+                        ranges[i - 1].MinScore, ranges[i - 1].MaxScore, ranges[i].MinScore, ranges[i].MaxScore].Value);
                 }
             }
 
             if (ranges[^1].MaxScore != totalPossiblePoints)
             {
-                errors.Add($"Score ranges must cover up to the total possible score ({totalPossiblePoints}); the highest range currently ends at {ranges[^1].MaxScore}.");
+                errors.Add(_localizer["Score ranges must cover up to the total possible score ({0}); the highest range currently ends at {1}.",
+                    totalPossiblePoints, ranges[^1].MaxScore].Value);
             }
         }
 

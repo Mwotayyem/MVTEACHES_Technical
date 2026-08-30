@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Certificates;
 using MVTeaches.Domain.Certificates;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Admin;
 
@@ -21,12 +23,15 @@ public class CertificatesModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly ICertificateService _certificates;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public CertificatesModel(MvTeachesDbContext db, ICertificateService certificates, UserManager<ApplicationUser> userManager)
+    public CertificatesModel(MvTeachesDbContext db, ICertificateService certificates, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _certificates = certificates;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public record ProgressRow(long StudentId, string StudentName, int LevelId, string LevelCode, long CourseId,
@@ -48,12 +53,12 @@ public class CertificatesModel : PageModel
         var result = await _certificates.IssueAsync(studentId, levelId, courseId, issuedByUserId, HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome == IssueCertificateOutcome.Issued
-            ? $"Certificate {result.CertificateNumber} issued."
+            ? _localizer["Certificate {0} issued.", result.CertificateNumber!].Value
             : null;
         ErrorMessage = result.Outcome switch
         {
-            IssueCertificateOutcome.AlreadyIssued => "A certificate for this student/level/course already exists.",
-            IssueCertificateOutcome.NotEligible => "This student has not reached the required hours yet.",
+            IssueCertificateOutcome.AlreadyIssued => _localizer["A certificate for this student/level/course already exists."].Value,
+            IssueCertificateOutcome.NotEligible => _localizer["This student has not reached the required hours yet."].Value,
             _ => null,
         };
 
@@ -64,7 +69,7 @@ public class CertificatesModel : PageModel
     public async Task<IActionResult> OnPostRevokeAsync(long certificateId)
     {
         await _certificates.RevokeAsync(certificateId, HttpContext.RequestAborted);
-        StatusMessage = "Certificate revoked.";
+        StatusMessage = _localizer["Certificate revoked."].Value;
         await LoadAsync();
         return Page();
     }

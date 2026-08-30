@@ -1,11 +1,11 @@
 @page
 @model MVTeaches.Web.Pages.Admin.CertificatesModel
 @{
-    ViewData["Title"] = "Certificates";
+    ViewData["Title"] = T["Certificates"].Value;
 }
 
-<h1>Certificates</h1>
-<p class="text-muted">§27 (D-30/D-51/CONF-03/Q-27): progress is always live, grouped by (student, level, course) — never by subscription. Reaching the hour threshold alone never issues a certificate; issuance is always this explicit action.</p>
+<h1>@T["Certificates"]</h1>
+<p class="text-muted">@T["Progress is always live, grouped by student, level, and course — never by subscription. Reaching the hour threshold alone never issues a certificate; issuance is always this explicit action."]</p>
 
 @if (Model.StatusMessage is not null)
 {
@@ -16,10 +16,10 @@
     <div class="alert alert-danger">@Model.ErrorMessage</div>
 }
 
-<h2>Progress</h2>
+<h2>@T["Progress"]</h2>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>Student</th><th>Level</th><th>Course</th><th>Minutes</th><th>Required</th><th>Eligible</th><th></th></tr></thead>
+        <thead><tr><th>@T["Student"]</th><th>@T["Level"]</th><th>@T["Course"]</th><th>@T["Minutes"]</th><th>@T["Required"]</th><th>@T["Eligible"]</th><th></th></tr></thead>
         <tbody>
             @foreach (var p in Model.Progress)
             {
@@ -33,7 +33,7 @@
                     <td>
                         @if (p.AlreadyIssued)
                         {
-                            <span class="text-muted">Already issued</span>
+                            <span class="text-muted">@T["Already issued"]</span>
                         }
                         else if (p.IsEligible)
                         {
@@ -41,7 +41,7 @@
                                 <input type="hidden" name="studentId" value="@p.StudentId" />
                                 <input type="hidden" name="levelId" value="@p.LevelId" />
                                 <input type="hidden" name="courseId" value="@p.CourseId" />
-                                <button type="submit" class="btn btn-sm btn-success">Issue</button>
+                                <button type="submit" class="btn btn-sm btn-success">@T["Issue"]</button>
                             </form>
                         }
                     </td>
@@ -49,16 +49,16 @@
             }
             @if (Model.Progress.Count == 0)
             {
-                <tr><td colspan="7" class="text-muted">No progress recorded yet.</td></tr>
+                <tr><td colspan="7" class="text-muted">@T["No progress recorded yet."]</td></tr>
             }
         </tbody>
     </table>
 </div>
 
-<h2>Issued certificates</h2>
+<h2>@T["Issued certificates"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>Number</th><th>Student</th><th>Level</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>@T["Number"]</th><th>@T["Student"]</th><th>@T["Level"]</th><th>@T["Status"]</th><th></th></tr></thead>
         <tbody>
             @foreach (var c in Model.Certificates)
             {
@@ -66,13 +66,13 @@
                     <td>@c.CertificateNumber</td>
                     <td>@c.StudentName</td>
                     <td>@c.LevelCode</td>
-                    <td>@c.Status</td>
+                    <td>@T["CertificateStatus." + c.Status]</td>
                     <td>
                         @if (c.Status == MVTeaches.Domain.Certificates.CertificateStatus.Issued)
                         {
                             <form method="post" asp-page-handler="Revoke">
                                 <input type="hidden" name="certificateId" value="@c.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Revoke"]</button>
                             </form>
                         }
                     </td>

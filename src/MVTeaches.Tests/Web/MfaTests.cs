@@ -176,14 +176,17 @@ public class MfaTests : IClassFixture<AuthorizationTests.Factory>, IAsyncLifetim
         Assert.Contains("/Account/ManageMfa", loginResponse.Headers.Location?.ToString() ?? string.Empty);
 
         // --- Step 2: fetch the enrollment page, extract the real shared key ---
-        var mfaPageHtml = await client.GetStringAsync("/Account/ManageMfa");
+        // ?culture=en pins the assertions below to a known language — the
+        // page is now fully localized and defaults to ar-JO, same convention
+        // as AuthorizationTests/LocalizationAndShellTests.
+        var mfaPageHtml = await client.GetStringAsync("/Account/ManageMfa?culture=en");
         var sharedKey = SharedKeyPattern.Match(mfaPageHtml).Groups[1].Value;
         Assert.False(string.IsNullOrWhiteSpace(sharedKey), "Could not find the shared key on the MFA enrollment page.");
         var verifyToken = AntiforgeryTokenPattern.Match(mfaPageHtml).Groups[1].Value;
 
         // --- Step 3: verify with a REAL RFC 6238 code computed from that key ---
         var code = GenerateTotpCode(sharedKey);
-        var verifyResponse = await client.PostAsync("/Account/ManageMfa?handler=Verify", new FormUrlEncodedContent(new Dictionary<string, string>
+        var verifyResponse = await client.PostAsync("/Account/ManageMfa?handler=Verify&culture=en", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = verifyToken,
             ["Verify.Code"] = code,
@@ -194,7 +197,7 @@ public class MfaTests : IClassFixture<AuthorizationTests.Factory>, IAsyncLifetim
         Assert.Contains("recovery code", afterVerifyHtml, StringComparison.OrdinalIgnoreCase);
 
         // --- Step 4: log out, log back in — this time land on the 2FA challenge, not ManageMfa ---
-        var logoutToken = await GetAntiforgeryTokenAsync(client, "/");
+        var logoutToken = await GetAntiforgeryTokenAsync(client, "/Admin/Dashboard");
         await client.PostAsync("/Account/Logout", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = logoutToken,

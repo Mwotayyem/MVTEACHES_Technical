@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Payroll;
 using MVTeaches.Domain.Delivery;
@@ -10,6 +11,7 @@ using MVTeaches.Domain.Integrations;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Teacher;
@@ -31,9 +33,11 @@ public class MySessionsModel : PageModel
     private readonly ITeacherMeetingConnectionService _connections;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IClock _clock;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public MySessionsModel(MvTeachesDbContext db, IPayrollService payroll, IMeetingProvisioningService meetings,
-        ITeacherMeetingConnectionService connections, UserManager<ApplicationUser> userManager, IClock clock)
+        ITeacherMeetingConnectionService connections, UserManager<ApplicationUser> userManager, IClock clock,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _payroll = payroll;
@@ -41,6 +45,7 @@ public class MySessionsModel : PageModel
         _connections = connections;
         _userManager = userManager;
         _clock = clock;
+        _localizer = localizer;
     }
 
     /// <param name="CapabilityWarning">Owner decision 2026-08-30: shown before
@@ -91,7 +96,7 @@ public class MySessionsModel : PageModel
         // confirms another teacher's session id exists.
         if (teacher is null || session is null || session.TeacherId != teacher.Id)
         {
-            ErrorMessage = "Session not found.";
+            ErrorMessage = _localizer["Session not found."];
             await LoadAsync();
             return Page();
         }
@@ -102,13 +107,16 @@ public class MySessionsModel : PageModel
             ErrorMessage = provision.Outcome switch
             {
                 ProvisionMeetingOutcome.NoProviderConnection =>
-                    "You have no connected video account yet — connect Zoom or a free Google account on the Connections page first.",
+                    _localizer["You have no connected video account yet — connect Zoom or a free Google account on the Connections page first."].Value,
                 ProvisionMeetingOutcome.ProviderDisconnected =>
-                    "The account this session's meeting belongs to is no longer connected — reconnect it on the Connections page.",
+                    _localizer["The account this session's meeting belongs to is no longer connected — reconnect it on the Connections page."].Value,
                 ProvisionMeetingOutcome.StillProvisioning =>
-                    "Your meeting is still being prepared — try again in a moment.",
+                    _localizer["Your meeting is still being prepared — try again in a moment."].Value,
+                // provision.Detail is computed by the service itself, not a
+                // literal here — left as-is; localizing it would need the
+                // service to return a resx key rather than free text.
                 ProvisionMeetingOutcome.SessionNotProvisionable => provision.Detail,
-                _ => "The video provider could not create this meeting. Try again shortly, or ask an admin to check the connection.",
+                _ => _localizer["The video provider could not create this meeting. Try again shortly, or ask an admin to check the connection."].Value,
             };
             await LoadAsync();
             return Page();
@@ -117,7 +125,7 @@ public class MySessionsModel : PageModel
         var startUrl = await _meetings.GetHostStartUrlAsync(sessionId, teacher.Id, HttpContext.RequestAborted);
         if (startUrl is null)
         {
-            ErrorMessage = "Could not obtain a host link for this meeting right now — try again shortly.";
+            ErrorMessage = _localizer["Could not obtain a host link for this meeting right now — try again shortly."];
             await LoadAsync();
             return Page();
         }
@@ -141,7 +149,7 @@ public class MySessionsModel : PageModel
         // page never confirms or denies another teacher's session id exists.
         if (teacher is null || session is null || session.TeacherId != teacher.Id)
         {
-            ErrorMessage = "Session not found.";
+            ErrorMessage = _localizer["Session not found."];
             await LoadAsync();
             return Page();
         }
@@ -150,19 +158,19 @@ public class MySessionsModel : PageModel
         // must also hold server-side — otherwise it's just a UI suggestion.
         if (session.EndsAtUtc > _clock.GetCurrentInstant())
         {
-            ErrorMessage = "This session hasn't ended yet — nothing to declare.";
+            ErrorMessage = _localizer["This session hasn't ended yet — nothing to declare."];
             await LoadAsync();
             return Page();
         }
 
         var result = await _payroll.DeclareAsync(sessionId, userId, declaredMinutes, note, HttpContext.RequestAborted);
 
-        StatusMessage = result.Outcome == DeclareDeliveryOutcome.Declared ? "Delivery declared — awaiting admin verification." : null;
+        StatusMessage = result.Outcome == DeclareDeliveryOutcome.Declared ? _localizer["Delivery declared — awaiting admin verification."].Value : null;
         ErrorMessage = result.Outcome switch
         {
-            DeclareDeliveryOutcome.SessionNotFound => "Session not found.",
-            DeclareDeliveryOutcome.SessionNotDelivered => "This session was marked not-delivered — nothing to declare.",
-            DeclareDeliveryOutcome.AlreadyDeclared => "This session's delivery was already declared.",
+            DeclareDeliveryOutcome.SessionNotFound => _localizer["Session not found."].Value,
+            DeclareDeliveryOutcome.SessionNotDelivered => _localizer["This session was marked not-delivered — nothing to declare."].Value,
+            DeclareDeliveryOutcome.AlreadyDeclared => _localizer["This session's delivery was already declared."].Value,
             _ => null,
         };
 

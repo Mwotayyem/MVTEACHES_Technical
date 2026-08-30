@@ -6,6 +6,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- For Microsoft.Extensions.Localization's IStringLocalizer<T> — used by
+         MeetingProvisioningService and PlacementTestAdminService to localize
+         their own user-facing Detail/warning/validation messages with the
+         same resx mechanism the Web project uses, without a new NuGet
+         package or network fetch (this ships in the shared framework
+         already installed for MVTeaches.Web). -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.24" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.11" />

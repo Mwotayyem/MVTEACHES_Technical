@@ -2,7 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Account;
 
@@ -17,10 +19,12 @@ namespace MVTeaches.Web.Pages.Account;
 public class LoginWith2faModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public LoginWith2faModel(SignInManager<ApplicationUser> signInManager)
+    public LoginWith2faModel(SignInManager<ApplicationUser> signInManager, IStringLocalizer<SharedResource> localizer)
     {
         _signInManager = signInManager;
+        _localizer = localizer;
     }
 
     [BindProperty]
@@ -79,11 +83,11 @@ public class LoginWith2faModel : PageModel
 
         if (result.IsLockedOut)
         {
-            ErrorMessage = "This account is temporarily locked after too many failed attempts.";
+            ErrorMessage = _localizer["This account is temporarily locked after too many failed attempts."];
             return Page();
         }
 
-        ErrorMessage = "Invalid verification code.";
+        ErrorMessage = _localizer["Invalid verification code."];
         return Page();
     }
 }

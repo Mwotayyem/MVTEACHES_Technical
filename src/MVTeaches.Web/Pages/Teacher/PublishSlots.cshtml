@@ -2,14 +2,14 @@
 @model MVTeaches.Web.Pages.Teacher.PublishSlotsModel
 @using MVTeaches.Domain.Catalog
 @{
-    ViewData["Title"] = "Publish slots";
+    ViewData["Title"] = T["Publish Slots"].Value;
 }
 
-<h1>Publish a slot</h1>
+<h1>@T["Publish Slots"]</h1>
 
 @if (Model.NoTeacherProfileLinked)
 {
-    <div class="alert alert-warning">Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you.</div>
+    <div class="alert alert-warning">@T["Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you."]</div>
 }
 else
 {
@@ -24,19 +24,19 @@ else
 
     @if (Model.AuthorizedLevels.Count == 0)
     {
-        <div class="alert alert-warning">You have not been authorized for any level yet — ask an admin to grant one on your profile before you can publish a slot.</div>
+        <div class="alert alert-warning">@T["You have not been authorized for any level yet — ask an admin to grant one on your profile before you can publish a slot."]</div>
     }
 
-    <p class="text-muted">Owner decision 2026-08-30 rule 7 — this publishes one bookable slot for students/guardians to choose directly; it is separate from any admin-managed weekly roster. Capacity is always derived from the session type you pick (Group = 4 seats, Private = 1) and is never something you set here. Times are in your own registered time zone.</p>
+    <p class="text-muted">@T["Publish a bookable slot for students or guardians to book directly. Seats fill automatically from the session type you pick (Group = 4 seats, Private = 1 seat) — you never set the seat count yourself. Times are shown and entered in your own registered time zone."]</p>
 
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">New slot</h5>
+            <h5 class="card-title">@T["New slot"]</h5>
             <form method="post" class="row g-2">
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewSlot.CountryId">Country</label>
+                    <label class="form-label" asp-for="NewSlot.CountryId">@T["Country"]</label>
                     <select asp-for="NewSlot.CountryId" class="form-select">
-                        <option value="">-- select --</option>
+                        <option value="">-- @T["select"] --</option>
                         @foreach (var c in Model.Countries)
                         {
                             <option value="@c.Id">@c.NameEn</option>
@@ -44,9 +44,9 @@ else
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewSlot.CourseId">Course</label>
+                    <label class="form-label" asp-for="NewSlot.CourseId">@T["Course"]</label>
                     <select asp-for="NewSlot.CourseId" class="form-select">
-                        <option value="">-- select --</option>
+                        <option value="">-- @T["select"] --</option>
                         @foreach (var c in Model.Courses)
                         {
                             <option value="@c.Id">@c.NameEn</option>
@@ -54,9 +54,9 @@ else
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewSlot.LevelId">Level (only levels you're authorized for)</label>
+                    <label class="form-label" asp-for="NewSlot.LevelId">@T["Level (only levels you're authorized for)"]</label>
                     <select asp-for="NewSlot.LevelId" class="form-select">
-                        <option value="">-- select --</option>
+                        <option value="">-- @T["select"] --</option>
                         @foreach (var l in Model.AuthorizedLevels)
                         {
                             <option value="@l.Id">@l.Code</option>
@@ -64,9 +64,9 @@ else
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewSlot.AgeGroupId">Age group</label>
+                    <label class="form-label" asp-for="NewSlot.AgeGroupId">@T["Age group"]</label>
                     <select asp-for="NewSlot.AgeGroupId" class="form-select">
-                        <option value="">-- select --</option>
+                        <option value="">-- @T["select"] --</option>
                         @foreach (var a in Model.AgeGroups)
                         {
                             <option value="@a.Id">@a.Code</option>
@@ -74,47 +74,61 @@ else
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewSlot.Date">Date</label>
+                    <label class="form-label" asp-for="NewSlot.Date">@T["Date"]</label>
                     <input asp-for="NewSlot.Date" type="date" class="form-control" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewSlot.StartLocal">Start time</label>
+                    <label class="form-label" asp-for="NewSlot.StartLocal">@T["Start time"]</label>
                     <input asp-for="NewSlot.StartLocal" type="time" class="form-control" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewSlot.DurationMinutes">Duration (minutes)</label>
+                    <label class="form-label" asp-for="NewSlot.DurationMinutes">@T["Duration (minutes)"]</label>
                     <input asp-for="NewSlot.DurationMinutes" class="form-control" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewSlot.SessionType">Type</label>
+                    <label class="form-label" asp-for="NewSlot.SessionType">@T["Type"]</label>
                     <select asp-for="NewSlot.SessionType" class="form-select">
-                        <option value="@SessionType.Group">Group (4 seats)</option>
-                        <option value="@SessionType.Private">Private (1 seat)</option>
+                        <option value="@SessionType.Group">@T["Group (4 seats)"]</option>
+                        <option value="@SessionType.Private">@T["Private (1 seat)"]</option>
                     </select>
                 </div>
                 <div class="col-12">
-                    <button type="submit" class="btn btn-primary">Publish slot</button>
+                    <button type="submit" class="btn btn-primary">@T["Publish slot"]</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <h2>Your upcoming slots</h2>
+    <h2>@T["Your upcoming slots"]</h2>
     <div class="table-responsive">
         <table class="table table-sm table-striped">
-            <thead><tr><th>Local start</th><th>Duration</th><th>Type</th><th>Course/Level</th><th>Age group</th><th>Status</th><th>Seats</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>@T["Local start"]</th>
+                    <th>@T["Duration"]</th>
+                    <th>@T["Type"]</th>
+                    <th>@T["Course and level"]</th>
+                    <th>@T["Age group"]</th>
+                    <th>@T["Status"]</th>
+                    <th>@T["Seats booked / capacity"]</th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach (var s in Model.UpcomingSlots)
                 {
                     <tr>
                         <td>@s.LocalDateAndTime</td>
-                        <td>@s.DurationMinutes min</td>
-                        <td>@s.SessionType</td>
+                        <td>@T["Minutes format", s.DurationMinutes]</td>
+                        <td>@T["SessionType." + s.SessionType]</td>
                         <td>@s.CourseName / @s.LevelCode</td>
                         <td>@s.AgeGroupCode</td>
-                        <td>@s.Status</td>
+                        <td>@T["ClassSessionStatus." + s.Status]</td>
                         <td>@s.SeatsTaken / @s.Capacity</td>
                     </tr>
+                }
+                @if (Model.UpcomingSlots.Count == 0)
+                {
+                    <tr><td colspan="7" class="text-muted">@T["No upcoming slots published yet."]</td></tr>
                 }
             </tbody>
         </table>

@@ -2,13 +2,12 @@
 @model MVTeaches.Web.Pages.Admin.StudentsModel
 @using MVTeaches.Domain.People
 @{
-    ViewData["Title"] = "Students";
+    ViewData["Title"] = T["Students"].Value;
 }
 
-<h1>Students &amp; guardians</h1>
+<h1>@T["Students & guardians"]</h1>
 <p class="text-muted">
-    Real self-registration is phone + WhatsApp OTP (§7), which is not yet configured — see the deployment status doc.
-    Until then, an admin enters what staff already collect over the phone.
+    @T["Real self-registration by phone and WhatsApp is not yet available. Until then, an admin enters what staff already collect over the phone."]
 </p>
 
 @if (Model.StatusMessage is not null)
@@ -24,26 +23,26 @@
     <div class="col-md-6">
         <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title">Register a guardian</h5>
-                <p class="text-muted small">Guardians always have an email/password login (§7.1).</p>
+                <h5 class="card-title">@T["Register a guardian"]</h5>
+                <p class="text-muted small">@T["Guardians always have an email/password login."]</p>
                 <form method="post" asp-page-handler="RegisterGuardian">
                     <div asp-validation-summary="None" class="text-danger"></div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="NewGuardian.FullName">Full name</label>
+                        <label class="form-label" asp-for="NewGuardian.FullName">@T["Full name"]</label>
                         <input asp-for="NewGuardian.FullName" class="form-control" />
                         <span asp-validation-for="NewGuardian.FullName" class="text-danger"></span>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="NewGuardian.Email">Email</label>
+                        <label class="form-label" asp-for="NewGuardian.Email">@T["Email"]</label>
                         <input asp-for="NewGuardian.Email" class="form-control" />
                         <span asp-validation-for="NewGuardian.Email" class="text-danger"></span>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="NewGuardian.Password">Temporary password</label>
+                        <label class="form-label" asp-for="NewGuardian.Password">@T["Temporary password"]</label>
                         <input asp-for="NewGuardian.Password" type="password" class="form-control" />
                         <span asp-validation-for="NewGuardian.Password" class="text-danger"></span>
                     </div>
-                    <button type="submit" class="btn btn-primary">Register guardian</button>
+                    <button type="submit" class="btn btn-primary">@T["Register guardian"]</button>
                 </form>
             </div>
         </div>
@@ -52,18 +51,18 @@
     <div class="col-md-6">
         <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title">Register a student</h5>
-                <p class="text-muted small">A child with no independent login (D-02/D-03): leave the login fields blank.</p>
+                <h5 class="card-title">@T["Register a student"]</h5>
+                <p class="text-muted small">@T["A child with no independent login: leave the login fields blank."]</p>
                 <form method="post" asp-page-handler="RegisterStudent">
                     <div class="mb-2">
-                        <label class="form-label" asp-for="NewStudent.FullName">Full name</label>
+                        <label class="form-label" asp-for="NewStudent.FullName">@T["Full name"]</label>
                         <input asp-for="NewStudent.FullName" class="form-control" />
                         <span asp-validation-for="NewStudent.FullName" class="text-danger"></span>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="NewStudent.CountryId">Country</label>
+                        <label class="form-label" asp-for="NewStudent.CountryId">@T["Country"]</label>
                         <select asp-for="NewStudent.CountryId" class="form-select">
-                            <option value="">-- select --</option>
+                            <option value="">-- @T["select"] --</option>
                             @foreach (var country in Model.Countries)
                             {
                                 <option value="@country.Id">@country.NameEn (@country.CurrencyCode)</option>
@@ -72,19 +71,19 @@
                         <span asp-validation-for="NewStudent.CountryId" class="text-danger"></span>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="NewStudent.DateOfBirth">Date of birth</label>
+                        <label class="form-label" asp-for="NewStudent.DateOfBirth">@T["Date of birth"]</label>
                         <input asp-for="NewStudent.DateOfBirth" type="date" class="form-control" />
                         <span asp-validation-for="NewStudent.DateOfBirth" class="text-danger"></span>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="NewStudent.LoginEmail">Login email (optional)</label>
+                        <label class="form-label" asp-for="NewStudent.LoginEmail">@T["Login email (optional)"]</label>
                         <input asp-for="NewStudent.LoginEmail" class="form-control" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="NewStudent.LoginPassword">Login password (optional)</label>
+                        <label class="form-label" asp-for="NewStudent.LoginPassword">@T["Login password (optional)"]</label>
                         <input asp-for="NewStudent.LoginPassword" type="password" class="form-control" />
                     </div>
-                    <button type="submit" class="btn btn-primary">Register student</button>
+                    <button type="submit" class="btn btn-primary">@T["Register student"]</button>
                 </form>
             </div>
         </div>
@@ -95,16 +94,16 @@
     <div class="col-md-6">
         <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title">Link a guardian to a student</h5>
+                <h5 class="card-title">@T["Link a guardian to a student"]</h5>
                 <form method="post" asp-page-handler="LinkGuardian">
                     <div class="mb-2">
-                        <label class="form-label" asp-for="Link.StudentId">Student id</label>
+                        <label class="form-label" asp-for="Link.StudentId">@T["Student id"]</label>
                         <input asp-for="Link.StudentId" class="form-control" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="Link.GuardianId">Guardian</label>
+                        <label class="form-label" asp-for="Link.GuardianId">@T["Guardian"]</label>
                         <select asp-for="Link.GuardianId" class="form-select">
-                            <option value="">-- select --</option>
+                            <option value="">-- @T["select"] --</option>
                             @foreach (var guardian in Model.Guardians)
                             {
                                 <option value="@guardian.Id">@guardian.FullName (#@guardian.Id)</option>
@@ -112,19 +111,19 @@
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="Link.Relationship">Relationship</label>
+                        <label class="form-label" asp-for="Link.Relationship">@T["Relationship"]</label>
                         <select asp-for="Link.Relationship" class="form-select">
                             @foreach (var value in Enum.GetValues<GuardianRelationship>())
                             {
-                                <option value="@value">@value</option>
+                                <option value="@value">@T["GuardianRelationship." + value]</option>
                             }
                         </select>
                     </div>
                     <div class="form-check mb-2">
                         <input asp-for="Link.IsPrimary" class="form-check-input" />
-                        <label class="form-check-label" asp-for="Link.IsPrimary">Primary guardian</label>
+                        <label class="form-check-label" asp-for="Link.IsPrimary">@T["Primary guardian"]</label>
                     </div>
-                    <button type="submit" class="btn btn-primary">Link</button>
+                    <button type="submit" class="btn btn-primary">@T["Link"]</button>
                 </form>
             </div>
         </div>
@@ -133,17 +132,17 @@
     <div class="col-md-6">
         <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title">Assign a level (admin override)</h5>
-                <p class="text-muted small">No placement-interview flow exists yet — every assignment here is an explicit, reasoned override (§10.3).</p>
+                <h5 class="card-title">@T["Assign a level (admin override)"]</h5>
+                <p class="text-muted small">@T["No placement-interview flow exists yet — every assignment here is an explicit, reasoned override."]</p>
                 <form method="post" asp-page-handler="AssignLevel">
                     <div class="mb-2">
-                        <label class="form-label" asp-for="LevelAssignment.StudentId">Student id</label>
+                        <label class="form-label" asp-for="LevelAssignment.StudentId">@T["Student id"]</label>
                         <input asp-for="LevelAssignment.StudentId" class="form-control" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="LevelAssignment.LevelId">Level</label>
+                        <label class="form-label" asp-for="LevelAssignment.LevelId">@T["Level"]</label>
                         <select asp-for="LevelAssignment.LevelId" class="form-select">
-                            <option value="">-- select --</option>
+                            <option value="">-- @T["select"] --</option>
                             @foreach (var level in Model.Levels)
                             {
                                 <option value="@level.Id">@level.Code — @level.NameEn</option>
@@ -151,28 +150,28 @@
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" asp-for="LevelAssignment.Reason">Reason</label>
+                        <label class="form-label" asp-for="LevelAssignment.Reason">@T["Reason"]</label>
                         <input asp-for="LevelAssignment.Reason" class="form-control" />
                         <span asp-validation-for="LevelAssignment.Reason" class="text-danger"></span>
                     </div>
-                    <button type="submit" class="btn btn-primary">Assign level</button>
+                    <button type="submit" class="btn btn-primary">@T["Assign level"]</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<h2>Students</h2>
+<h2>@T["Students"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
         <thead>
             <tr>
                 <th>#</th>
-                <th>Name</th>
-                <th>Country</th>
-                <th>Status</th>
-                <th>Level</th>
-                <th>Guardians</th>
+                <th>@T["Name"]</th>
+                <th>@T["Country"]</th>
+                <th>@T["Status"]</th>
+                <th>@T["Level"]</th>
+                <th>@T["Guardians"]</th>
                 <th></th>
             </tr>
         </thead>
@@ -183,7 +182,7 @@
                     <td>@student.Id</td>
                     <td><a asp-page="/Admin/StudentDetails" asp-route-id="@student.Id">@student.FullName</a></td>
                     <td>@student.CountryCode</td>
-                    <td>@student.Status</td>
+                    <td>@T["StudentStatus." + student.Status]</td>
                     <td>@(student.CurrentLevelCode ?? "—")</td>
                     <td>@string.Join(", ", student.GuardianNames)</td>
                     <td>
@@ -191,7 +190,7 @@
                         {
                             <form method="post" asp-page-handler="Verify" class="d-inline">
                                 <input type="hidden" name="studentId" value="@student.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Mark verified</button>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">@T["Mark verified"]</button>
                             </form>
                         }
                     </td>

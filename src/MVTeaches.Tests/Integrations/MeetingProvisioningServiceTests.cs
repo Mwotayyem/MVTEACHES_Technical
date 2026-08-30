@@ -128,7 +128,8 @@ public class MeetingProvisioningServiceTests
         params FakeVideoMeetingProviderClient[] clients) =>
         new(db, clients, new TokenRefreshCoordinator(db, new FakeTokenProtector(), new FakeClock(now),
                 NullLogger<TokenRefreshCoordinator>.Instance),
-            new FakeClock(now), NullLogger<MeetingProvisioningService>.Instance);
+            new FakeClock(now), NullLogger<MeetingProvisioningService>.Instance,
+            TestLocalization.For<MVTeaches.Infrastructure.Resources.InfrastructureResource>());
 
     private static FakeVideoMeetingProviderClient[] BothProviders(out FakeVideoMeetingProviderClient zoom,
         out FakeVideoMeetingProviderClient google)

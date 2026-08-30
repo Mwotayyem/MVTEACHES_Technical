@@ -1,9 +1,11 @@
+using System.Globalization;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Ledger;
 using MVTeaches.Application.Subscriptions;
 using MVTeaches.Domain.Catalog;
@@ -12,6 +14,7 @@ using MVTeaches.Domain.People;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -30,17 +33,20 @@ public class SubscriptionsModel : PageModel
     private readonly ISubscriptionService _subscriptions;
     private readonly IEntitlementBalanceQuery _balances;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public SubscriptionsModel(MvTeachesDbContext db, ISubscriptionService subscriptions,
-        IEntitlementBalanceQuery balances, UserManager<ApplicationUser> userManager)
+        IEntitlementBalanceQuery balances, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _subscriptions = subscriptions;
         _balances = balances;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
-    public record PlanRow(long Id, string CountryCode, string CourseName, string? LevelCode, SessionType SessionType,
+    public record PlanRow(long Id, string CountryName, string CourseName, string? LevelCode, SessionType SessionType,
         int SessionsCount, int MinutesTotal, decimal Amount, string Currency, int ValidityDays);
 
     public record SubscriptionRow(long Id, string StudentName, string CourseName, string LevelCode,
@@ -66,6 +72,12 @@ public class SubscriptionsModel : PageModel
 
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
+
+    public bool IsArabic => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("ar", StringComparison.OrdinalIgnoreCase);
+
+    public string DisplayCountry(Country country) => IsArabic ? country.NameAr : country.NameEn;
+    public string DisplayCourse(Course course) => IsArabic ? course.NameAr : course.NameEn;
+    public string DisplayLevel(Level level) => IsArabic ? level.NameAr : level.NameEn;
 
     public class CreatePlanInput
     {
@@ -117,7 +129,7 @@ public class SubscriptionsModel : PageModel
             NewPlan.SessionType, NewPlan.SessionsCount, NewPlan.MinutesTotal, new Money(NewPlan.Amount, NewPlan.Currency),
             NewPlan.ValidityDays, today, actingUserId, HttpContext.RequestAborted);
 
-        StatusMessage = "Pricing plan created.";
+        StatusMessage = _localizer["Pricing plan created."];
         await LoadAsync();
         return Page();
     }
@@ -142,16 +154,16 @@ public class SubscriptionsModel : PageModel
         ErrorMessage = result.Outcome switch
         {
             PurchaseFromPlanOutcome.Purchased => null,
-            PurchaseFromPlanOutcome.PlanNotFound => "Pricing plan not found.",
-            PurchaseFromPlanOutcome.PlanNotPublishedForAnyLevel => "This plan has no specific level (or is inactive) and cannot be purchased — every published package must be tied to exactly one level.",
-            PurchaseFromPlanOutcome.StudentHasNoAssignedLevel => "This student has no current assigned level yet — a level must be assigned before any package can be purchased.",
-            PurchaseFromPlanOutcome.LevelMismatch => "This plan's level does not match the student's current assigned level.",
-            _ => "Could not record this purchase.",
+            PurchaseFromPlanOutcome.PlanNotFound => _localizer["Pricing plan not found."].Value,
+            PurchaseFromPlanOutcome.PlanNotPublishedForAnyLevel => _localizer["This plan has no specific level (or is inactive) and cannot be purchased - every published package must be tied to exactly one level."].Value,
+            PurchaseFromPlanOutcome.StudentHasNoAssignedLevel => _localizer["This student has no current assigned level yet - a level must be assigned before any package can be purchased."].Value,
+            PurchaseFromPlanOutcome.LevelMismatch => _localizer["This plan's level does not match the student's current assigned level."].Value,
+            _ => _localizer["Could not record this purchase."].Value,
         };
         if (result.Outcome == PurchaseFromPlanOutcome.Purchased)
         {
-            StatusMessage = $"Subscription #{result.SubscriptionId} created as Draft ({result.Price}) — " +
-                "record and confirm the matching payment on /Admin/Payments to activate it.";
+            StatusMessage = _localizer["Subscription purchase created as draft.",
+                result.SubscriptionId!.Value, result.Price!];
         }
         await LoadAsync();
         return Page();
@@ -171,7 +183,7 @@ public class SubscriptionsModel : PageModel
             Grant.LevelId, Grant.SessionType, Grant.SessionsCount, Grant.MinutesTotal, Grant.ValidityDays, actingUserId, Grant.Reason,
             HttpContext.RequestAborted);
 
-        StatusMessage = $"Subscription #{result.SubscriptionId} granted and activated immediately (D-13, no payment).";
+        StatusMessage = _localizer["Subscription granted and activated immediately.", result.SubscriptionId];
         await LoadAsync();
         return Page();
     }
@@ -185,8 +197,8 @@ public class SubscriptionsModel : PageModel
         Levels = await _db.Levels.Where(l => l.IsActive).OrderBy(l => l.SortOrder).ToListAsync();
         Students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
 
-        var countryByI = Countries.ToDictionary(c => c.Id, c => c.Code);
-        var courseByI = Courses.ToDictionary(c => c.Id, c => c.NameEn);
+        var countryByI = Countries.ToDictionary(c => c.Id, DisplayCountry);
+        var courseByI = Courses.ToDictionary(c => c.Id, DisplayCourse);
         var levelByI = Levels.ToDictionary(l => l.Id, l => l.Code);
         var studentByI = Students.ToDictionary(s => s.Id, s => s.FullName);
 

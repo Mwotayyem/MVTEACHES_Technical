@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Placement;
 using MVTeaches.Domain.People;
 using MVTeaches.Domain.Placement;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages;
@@ -32,12 +34,15 @@ public class PlacementTestModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly IPlacementAttemptService _attempts;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public PlacementTestModel(MvTeachesDbContext db, IPlacementAttemptService attempts, UserManager<ApplicationUser> userManager)
+    public PlacementTestModel(MvTeachesDbContext db, IPlacementAttemptService attempts, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _attempts = attempts;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public record ChildOption(long StudentId, string FullName);
@@ -93,10 +98,10 @@ public class PlacementTestModel : PageModel
         {
             ErrorMessage = result.Outcome switch
             {
-                StartAttemptOutcome.Unauthorized => "Not authorized for this student.",
-                StartAttemptOutcome.NoActiveTestVersion => "No placement test is currently published — please contact the centre.",
-                StartAttemptOutcome.NotEligible => "You are not eligible to start a new attempt right now.",
-                _ => "Could not start the test.",
+                StartAttemptOutcome.Unauthorized => _localizer["Not authorized for this student."],
+                StartAttemptOutcome.NoActiveTestVersion => _localizer["No placement test is currently published — please contact the centre."],
+                StartAttemptOutcome.NotEligible => _localizer["You are not eligible to start a new attempt right now."],
+                _ => _localizer["Could not start the test."],
             };
         }
 
@@ -115,18 +120,18 @@ public class PlacementTestModel : PageModel
             JustScoredPoints = result.Score;
             var level = await _db.Levels.FirstOrDefaultAsync(l => l.Id == result.AssignedLevelId);
             JustAssignedLevelCode = level?.Code;
-            StatusMessage = "Your placement test has been scored.";
+            StatusMessage = _localizer["Your placement test has been scored."];
         }
         else
         {
             ErrorMessage = result.Outcome switch
             {
-                SubmitAttemptOutcome.Unauthorized => "Not authorized for this student.",
-                SubmitAttemptOutcome.AttemptNotFound => "Attempt not found.",
-                SubmitAttemptOutcome.AlreadyCompleted => "This attempt was already submitted.",
-                SubmitAttemptOutcome.MissingAnswers => "Please answer every question before submitting.",
-                SubmitAttemptOutcome.InvalidChoiceForQuestion => "One of the submitted answers was invalid.",
-                _ => "Could not submit the test.",
+                SubmitAttemptOutcome.Unauthorized => _localizer["Not authorized for this student."],
+                SubmitAttemptOutcome.AttemptNotFound => _localizer["Attempt not found."],
+                SubmitAttemptOutcome.AlreadyCompleted => _localizer["This attempt was already submitted."],
+                SubmitAttemptOutcome.MissingAnswers => _localizer["Please answer every question before submitting."],
+                SubmitAttemptOutcome.InvalidChoiceForQuestion => _localizer["One of the submitted answers was invalid."],
+                _ => _localizer["Could not submit the test."],
             };
         }
 
@@ -140,13 +145,13 @@ public class PlacementTestModel : PageModel
         var result = await _attempts.RequestRetakeAsync(studentId, actingUserId, HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome == RequestRetakeOutcome.Requested
-            ? "Retake requested — an admin will review it."
+            ? _localizer["Retake requested — an admin will review it."].Value
             : null;
         ErrorMessage = result.Outcome switch
         {
-            RequestRetakeOutcome.Unauthorized => "Not authorized for this student.",
-            RequestRetakeOutcome.NoCompletedAttemptYet => "There is no completed attempt to retake yet.",
-            RequestRetakeOutcome.AlreadyPendingOrApproved => "A retake request already exists for this student.",
+            RequestRetakeOutcome.Unauthorized => _localizer["Not authorized for this student."].Value,
+            RequestRetakeOutcome.NoCompletedAttemptYet => _localizer["There is no completed attempt to retake yet."].Value,
+            RequestRetakeOutcome.AlreadyPendingOrApproved => _localizer["A retake request already exists for this student."].Value,
             _ => null,
         };
 

@@ -2,11 +2,11 @@
 @model MVTeaches.Web.Pages.Admin.PayrollModel
 @using MVTeaches.Domain.Payroll
 @{
-    ViewData["Title"] = "Payroll";
+    ViewData["Title"] = T["Payroll"].Value;
 }
 
-<h1>Payroll</h1>
-<p class="text-muted">§18.1/§18.2 (D-26): declare → verify → aggregate → review → approve → pay → close. Separation of duties (§18.3 rule 3) means whoever declared a delivery cannot also verify it.</p>
+<h1>@T["Payroll"]</h1>
+<p class="text-muted">@T["The payroll cycle: declare → verify → aggregate → review → approve → pay → close. Whoever declared a delivery cannot also verify it."]</p>
 
 @if (Model.StatusMessage is not null)
 {
@@ -17,10 +17,10 @@
     <div class="alert alert-danger">@Model.ErrorMessage</div>
 }
 
-<h2>Declared, awaiting verification (@Model.DeclaredDeliveries.Count)</h2>
+<h2>@T["Declared, awaiting verification"] (@Model.DeclaredDeliveries.Count)</h2>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>Session</th><th>Teacher</th><th>Declared minutes</th><th>Note</th><th></th></tr></thead>
+        <thead><tr><th>@T["Session"]</th><th>@T["Teacher"]</th><th>@T["Declared minutes"]</th><th>@T["Note"]</th><th></th></tr></thead>
         <tbody>
             @foreach (var d in Model.DeclaredDeliveries)
             {
@@ -32,19 +32,19 @@
                     <td class="d-flex gap-2">
                         <form method="post" asp-page-handler="Verify">
                             <input type="hidden" name="sessionId" value="@d.SessionId" />
-                            <button type="submit" class="btn btn-sm btn-success">Verify</button>
+                            <button type="submit" class="btn btn-sm btn-success">@T["Verify"]</button>
                         </form>
                         <form method="post" asp-page-handler="Reject" class="d-flex gap-1">
                             <input type="hidden" name="sessionId" value="@d.SessionId" />
-                            <input type="text" name="RejectReason" class="form-control form-control-sm" placeholder="Reason" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                            <input type="text" name="RejectReason" class="form-control form-control-sm" placeholder="@T["Reason"]" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
                         </form>
                     </td>
                 </tr>
             }
             @if (Model.DeclaredDeliveries.Count == 0)
             {
-                <tr><td colspan="5" class="text-muted">Nothing awaiting verification.</td></tr>
+                <tr><td colspan="5" class="text-muted">@T["Nothing awaiting verification."]</td></tr>
             }
         </tbody>
     </table>
@@ -52,12 +52,12 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">Open a payroll period</h5>
+        <h5 class="card-title">@T["Open a payroll period"]</h5>
         <form method="post" asp-page-handler="OpenPeriod" class="row g-2 align-items-end">
             <div class="col-auto">
-                <label class="form-label" asp-for="NewPeriod.CountryId">Country</label>
+                <label class="form-label" asp-for="NewPeriod.CountryId">@T["Country"]</label>
                 <select asp-for="NewPeriod.CountryId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var country in Model.Countries)
                     {
                         <option value="@country.Id">@country.NameEn</option>
@@ -65,24 +65,24 @@
                 </select>
             </div>
             <div class="col-auto">
-                <label class="form-label" asp-for="NewPeriod.Start">Start</label>
+                <label class="form-label" asp-for="NewPeriod.Start">@T["Start"]</label>
                 <input asp-for="NewPeriod.Start" type="date" class="form-control" />
             </div>
             <div class="col-auto">
-                <label class="form-label" asp-for="NewPeriod.End">End</label>
+                <label class="form-label" asp-for="NewPeriod.End">@T["End"]</label>
                 <input asp-for="NewPeriod.End" type="date" class="form-control" />
             </div>
             <div class="col-auto">
-                <button type="submit" class="btn btn-primary">Open period</button>
+                <button type="submit" class="btn btn-primary">@T["Open period"]</button>
             </div>
         </form>
     </div>
 </div>
 
-<h2>Periods</h2>
+<h2>@T["Periods"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>Country</th><th>Range</th><th>Status</th><th>Lines</th><th>Total</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>@T["Country"]</th><th>@T["Range"]</th><th>@T["Status"]</th><th>@T["Lines"]</th><th>@T["Total"]</th><th></th></tr></thead>
         <tbody>
             @foreach (var p in Model.Periods)
             {
@@ -90,40 +90,40 @@
                     <td>@p.Id</td>
                     <td>@p.CountryId</td>
                     <td>@p.Start.ToString("yyyy-MM-dd", null) — @p.End.ToString("yyyy-MM-dd", null)</td>
-                    <td>@p.Status</td>
+                    <td>@T["PayrollPeriodStatus." + p.Status]</td>
                     <td>@p.LineCount</td>
-                    <td>@p.TotalAmount.ToString("N3", null)</td>
+                    <td>@p.TotalAmount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture)</td>
                     <td class="d-flex gap-2 flex-wrap">
                         @if (p.Status == PayrollPeriodStatus.Open)
                         {
                             <form method="post" asp-page-handler="Aggregate">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Aggregate</button>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">@T["Aggregate"]</button>
                             </form>
                             <form method="post" asp-page-handler="MoveToReview">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">Move to review</button>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">@T["Move to review"]</button>
                             </form>
                         }
                         @if (p.Status == PayrollPeriodStatus.Review)
                         {
                             <form method="post" asp-page-handler="Approve">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                <button type="submit" class="btn btn-sm btn-success">@T["Approve"]</button>
                             </form>
                         }
                         @if (p.Status == PayrollPeriodStatus.Approved)
                         {
                             <form method="post" asp-page-handler="MarkPaid">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-success">Mark paid</button>
+                                <button type="submit" class="btn btn-sm btn-success">@T["Mark paid"]</button>
                             </form>
                         }
                         @if (p.Status == PayrollPeriodStatus.Paid)
                         {
                             <form method="post" asp-page-handler="Close">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">Close</button>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">@T["Close"]</button>
                             </form>
                         }
                     </td>

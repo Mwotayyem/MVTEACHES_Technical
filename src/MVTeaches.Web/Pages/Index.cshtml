@@ -1,10 +1,39 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = T["Home"];
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="public-hero">
+    <div class="public-hero-copy">
+        <p class="app-eyebrow">@T["MVTEACHES"]</p>
+        <h1>@T["Online lessons organized around real student progress."]</h1>
+        <p>@T["MVTEACHES helps students, guardians, teachers, and admins manage placement, packages, booking, online lessons, attendance, and certificates from one focused workspace."]</p>
+        <div class="public-hero-actions">
+            <a class="btn btn-primary btn-lg" asp-page="/Account/Login">@T["Sign in"]</a>
+            <a class="btn btn-outline-secondary btn-lg" asp-page="/PurchasePackage">@T["View packages"]</a>
+        </div>
+    </div>
+    <div class="public-hero-panel" aria-label="@T["Platform workflow"]">
+        <div>
+            <span>@T["1"]</span>
+            <strong>@T["Placement"]</strong>
+            <p>@T["Start from the correct English level."]</p>
+        </div>
+        <div>
+            <span>@T["2"]</span>
+            <strong>@T["Packages"]</strong>
+            <p>@T["Choose group or private entitlement packages."]</p>
+        </div>
+        <div>
+            <span>@T["3"]</span>
+            <strong>@T["Booking"]</strong>
+            <p>@T["Reserve available sessions for the student level."]</p>
+        </div>
+        <div>
+            <span>@T["4"]</span>
+            <strong>@T["Lessons"]</strong>
+            <p>@T["Join online sessions and track attendance."]</p>
+        </div>
+    </div>
+</section>

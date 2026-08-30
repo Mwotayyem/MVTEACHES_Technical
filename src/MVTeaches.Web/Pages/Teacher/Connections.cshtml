@@ -2,14 +2,14 @@
 @model MVTeaches.Web.Pages.Teacher.ConnectionsModel
 @using MVTeaches.Domain.Integrations
 @{
-    ViewData["Title"] = "Video meeting connections";
+    ViewData["Title"] = T["Connections"].Value;
 }
 
-<h1>Video meeting connections</h1>
+<h1>@T["Video meeting connections"]</h1>
 
 @if (Model.NoTeacherProfileLinked)
 {
-    <div class="alert alert-warning">Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you.</div>
+    <div class="alert alert-warning">@T["Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you."]</div>
 }
 else
 {
@@ -23,25 +23,23 @@ else
     }
 
     <p class="text-muted">
-        MVTeaches creates and manages every meeting through your own connected account — you never copy or paste a meeting link.
-        The centre does not buy, provide, or reimburse video-meeting licences. <strong>You do not need any paid subscription:</strong>
-        a normal free Google account is enough.
+        @T["MVTeaches creates and manages every meeting through your own connected account — you never copy or paste a meeting link. The centre does not buy, provide, or reimburse video-meeting licences."]
+        <strong>@T["You do not need any paid subscription:"]</strong> @T["a normal free Google account is enough."]
     </p>
 
     @if (Model.NotReadyForOnlineSessions)
     {
         <div class="alert alert-danger">
-            <h5 class="alert-heading">Not ready for online sessions</h5>
+            <h5 class="alert-heading">@T["Not ready for online sessions."]</h5>
             <p>
-                You have no connected video account, so you cannot be assigned online sessions yet.
-                Connect one below — a <strong>free Google account is sufficient</strong>, no payment of any kind is required.
+                @T["You have no connected video account, so you cannot be assigned online sessions yet. Connect one below — a free Google account is sufficient, no payment of any kind is required."]
             </p>
             <hr />
-            <p class="mb-1"><strong>If you don't have a Google account yet:</strong></p>
+            <p class="mb-1"><strong>@T["If you don't have a Google account yet:"]</strong></p>
             <ol class="mb-0">
-                <li>Go to <span class="fw-semibold">accounts.google.com/signup</span> and create a free account.</li>
-                <li>Come back to this page and press <strong>Connect Google Meet</strong>.</li>
-                <li>Sign in with that account and approve the access MVTeaches asks for.</li>
+                <li>@T["Go to accounts.google.com/signup and create a free account."]</li>
+                <li>@T["Come back to this page and press Connect Google Meet."]</li>
+                <li>@T["Sign in with that account and approve the access MVTeaches asks for."]</li>
             </ol>
         </div>
     }
@@ -49,7 +47,7 @@ else
     <div class="table-responsive">
         <table class="table table-sm align-middle">
             <thead>
-                <tr><th>Provider</th><th>Status</th><th>Account</th><th>Capability</th><th>Default for new sessions</th><th></th></tr>
+                <tr><th>@T["Provider"]</th><th>@T["Status"]</th><th>@T["Account"]</th><th>@T["Capability"]</th><th>@T["Default for new sessions"]</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach (var provider in new[] { VideoProviderType.Zoom, VideoProviderType.GoogleMeet })
@@ -60,15 +58,15 @@ else
                         <td>
                             @if (connection is null)
                             {
-                                <span class="text-muted">Not connected</span>
+                                <span class="text-muted">@T["Not connected"]</span>
                             }
                             else if (connection.Status == ProviderConnectionStatus.Connected)
                             {
-                                <span class="text-success">Connected</span>
+                                <span class="text-success">@T["Connected"]</span>
                             }
                             else
                             {
-                                <span class="text-danger">@connection.Status</span>
+                                <span class="text-danger">@T["ProviderConnectionStatus." + connection.Status]</span>
                             }
                         </td>
                         <td>@(connection?.ExternalAccountEmail ?? "—")</td>
@@ -81,28 +79,28 @@ else
                             {
                                 @if (connection.CapabilityTier == MeetingCapabilityTier.Full)
                                 {
-                                    <span class="text-success">Licensed — full-length sessions</span>
+                                    <span class="text-success">@T["Licensed — full-length sessions"]</span>
                                 }
                                 else
                                 {
-                                    <span class="text-warning">Basic (free) — meetings limited to @(connection.CapabilityMinutesLimit ?? 40) minutes, including one-to-one</span>
+                                    <span class="text-warning">@T["Basic (free) — meetings limited to {0} minutes, including one-to-one", connection.CapabilityMinutesLimit ?? 40]</span>
                                 }
                             }
                             else
                             {
-                                <span>Free Google limits assumed: one-to-one up to 24 hours, 3+ participants up to 60 minutes</span>
+                                <span>@T["Free Google limits assumed: one-to-one up to 24 hours, 3+ participants up to 60 minutes"]</span>
                             }
                         </td>
                         <td>
                             @if (connection?.IsDefault == true)
                             {
-                                <span class="badge bg-primary">Default</span>
+                                <span class="badge bg-primary">@T["Default"]</span>
                             }
                             else if (connection?.Status == ProviderConnectionStatus.Connected)
                             {
                                 <form method="post" asp-page-handler="SetDefault">
                                     <input type="hidden" name="provider" value="@provider" />
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Make default</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">@T["Make default"]</button>
                                 </form>
                             }
                         </td>
@@ -110,14 +108,14 @@ else
                             <form method="post" asp-page-handler="Connect" class="d-inline">
                                 <input type="hidden" name="provider" value="@provider" />
                                 <button type="submit" class="btn btn-sm btn-primary">
-                                    @(connection is null ? "Connect" : "Reconnect") @MVTeaches.Web.Pages.Teacher.ConnectionsModel.Describe(provider)
+                                    @(connection is null ? T["Connect"] : T["Reconnect"]) @MVTeaches.Web.Pages.Teacher.ConnectionsModel.Describe(provider)
                                 </button>
                             </form>
                             @if (connection is not null && connection.Status == ProviderConnectionStatus.Connected)
                             {
                                 <form method="post" asp-page-handler="Disconnect" class="d-inline">
                                     <input type="hidden" name="provider" value="@provider" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["Disconnect"]</button>
                                 </form>
                             }
                         </td>
@@ -128,7 +126,6 @@ else
     </div>
 
     <p class="text-muted small">
-        Changing your default provider affects only sessions whose meeting hasn't been created yet — an existing session keeps
-        the meeting it already has, under the account that created it.
+        @T["Changing your default provider affects only sessions whose meeting hasn't been created yet — an existing session keeps the meeting it already has, under the account that created it."]
     </p>
 }

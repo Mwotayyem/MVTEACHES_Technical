@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Reports;
 using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Finance;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -24,12 +26,15 @@ public class FinancialReportModel : PageModel
     private readonly IFinancialReportService _reports;
     private readonly IOperatingExpenseService _expenses;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public FinancialReportModel(IFinancialReportService reports, IOperatingExpenseService expenses, UserManager<ApplicationUser> userManager)
+    public FinancialReportModel(IFinancialReportService reports, IOperatingExpenseService expenses,
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
     {
         _reports = reports;
         _expenses = expenses;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -80,11 +85,11 @@ public class FinancialReportModel : PageModel
         var result = await _expenses.RecordAsync(NewExpense.CountryId, NewExpense.Category,
             new Money(NewExpense.Amount, NewExpense.Currency), incurredOn, NewExpense.Note, actingUserId, HttpContext.RequestAborted);
 
-        StatusMessage = result.Outcome == RecordExpenseOutcome.Recorded ? "Expense recorded." : null;
+        StatusMessage = result.Outcome == RecordExpenseOutcome.Recorded ? _localizer["Expense recorded."].Value : null;
         ErrorMessage = result.Outcome switch
         {
-            RecordExpenseOutcome.PayrollCategoryNotAllowed => "Teacher payroll must never be entered as a manual expense — it is already counted automatically.",
-            RecordExpenseOutcome.InvalidAmount => "The amount must be positive.",
+            RecordExpenseOutcome.PayrollCategoryNotAllowed => _localizer["Teacher payroll must never be entered as a manual expense — it is already counted automatically."].Value,
+            RecordExpenseOutcome.InvalidAmount => _localizer["The amount must be positive."].Value,
             _ => null,
         };
 
@@ -104,7 +109,7 @@ public class FinancialReportModel : PageModel
 
         if (To < From)
         {
-            ModelState.AddModelError(string.Empty, "The end date must not be before the start date.");
+            ModelState.AddModelError(string.Empty, _localizer["The end date must not be before the start date."]);
             return;
         }
 

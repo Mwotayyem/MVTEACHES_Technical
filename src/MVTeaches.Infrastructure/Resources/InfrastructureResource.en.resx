@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="This session is {0} — no meeting is created for it." xml:space="preserve"><value>This session is {0} — no meeting is created for it.</value></data>
+  <data name="ClassSessionStatus.Scheduled" xml:space="preserve"><value>Scheduled</value></data>
+  <data name="ClassSessionStatus.Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="ClassSessionStatus.Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="ClassSessionStatus.NotDelivered" xml:space="preserve"><value>Not delivered</value></data>
+  <data name="Only a future session that hasn't started yet can be reassigned." xml:space="preserve"><value>Only a future session that hasn't started yet can be reassigned.</value></data>
+  <data name="This teacher has no connected Zoom or Google Meet account — connect one from the Teacher portal before assigning online sessions." xml:space="preserve"><value>This teacher has no connected Zoom or Google Meet account — connect one from the Teacher portal before assigning online sessions.</value></data>
+  <data name="The new teacher already has another session scheduled at this exact time." xml:space="preserve"><value>The new teacher already has another session scheduled at this exact time.</value></data>
+  <data name="Your Zoom account is Basic (free), which Zoom ends after {0} minutes (one-to-one meetings included), but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. If Zoom ends the meeting early, use &quot;Continue meeting&quot; to bring everyone back into the same session." xml:space="preserve"><value>Your Zoom account is Basic (free), which Zoom ends after {0} minutes (one-to-one meetings included), but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. If Zoom ends the meeting early, use "Continue meeting" to bring everyone back into the same session.</value></data>
+  <data name="A free Google account ends group Google Meet calls after {0} minutes, but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. If Google ends the meeting early, use &quot;Continue meeting&quot; to bring everyone back into the same session." xml:space="preserve"><value>A free Google account ends group Google Meet calls after {0} minutes, but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. If Google ends the meeting early, use "Continue meeting" to bring everyone back into the same session.</value></data>
+  <data name="A free Google account ends one-to-one Google Meet calls after {0} hours, but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration." xml:space="preserve"><value>A free Google account ends one-to-one Google Meet calls after {0} hours, but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration.</value></data>
+  <data name="Google may end this free-tier group meeting automatically at the 60-minute mark." xml:space="preserve"><value>Google may end this free-tier group meeting automatically at the 60-minute mark.</value></data>
+  <data name="The video provider rejected the meeting request." xml:space="preserve"><value>The video provider rejected the meeting request.</value></data>
+  <data name="Test version not found." xml:space="preserve"><value>Test version not found.</value></data>
+  <data name="A question must have exactly one correct choice." xml:space="preserve"><value>A question must have exactly one correct choice.</value></data>
+  <data name="Level not found." xml:space="preserve"><value>Level not found.</value></data>
+  <data name="At least one question is required." xml:space="preserve"><value>At least one question is required.</value></data>
+  <data name="Question #{0} needs at least two answer choices." xml:space="preserve"><value>Question #{0} needs at least two answer choices.</value></data>
+  <data name="Question #{0} must have exactly one correct answer choice (found {1})." xml:space="preserve"><value>Question #{0} must have exactly one correct answer choice (found {1}).</value></data>
+  <data name="At least one score range is required." xml:space="preserve"><value>At least one score range is required.</value></data>
+  <data name="Score range [{0},{1}] points to a level that does not exist." xml:space="preserve"><value>Score range [{0},{1}] points to a level that does not exist.</value></data>
+  <data name="Score ranges must start at 0 (the lowest range starts at {0})." xml:space="preserve"><value>Score ranges must start at 0 (the lowest range starts at {0}).</value></data>
+  <data name="Score ranges must have no gap or overlap between [{0},{1}] and [{2},{3}]." xml:space="preserve"><value>Score ranges must have no gap or overlap between [{0},{1}] and [{2},{3}].</value></data>
+  <data name="Score ranges must cover up to the total possible score ({0}); the highest range currently ends at {1}." xml:space="preserve"><value>Score ranges must cover up to the total possible score ({0}); the highest range currently ends at {1}.</value></data>
+</root>

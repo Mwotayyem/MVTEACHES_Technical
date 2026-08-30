@@ -1,40 +1,42 @@
 @page
 @model MVTeaches.Web.Pages.Account.LoginModel
 @{
-    ViewData["Title"] = "Sign in";
+    ViewData["Title"] = T["Sign in"];
 }
 
-<h1>Sign in</h1>
+<section class="auth-panel">
+    <div class="auth-copy">
+        <p class="app-eyebrow">@T["MVTEACHES"]</p>
+        <h1>@T["Sign in to your learning workspace."]</h1>
+        <p>@T["Use the email address assigned to your admin, teacher, guardian, or student account."]</p>
+    </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <form method="post">
+    <div class="auth-card">
+        <form method="post" novalidate>
             <input type="hidden" asp-for="ReturnUrl" />
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             @if (Model.ErrorMessage is not null)
             {
-                <div class="alert alert-danger">@Model.ErrorMessage</div>
+                <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
             }
             <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" />
-                <label asp-for="Input.Email"></label>
+                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="@T["Email address"]" />
+                <label asp-for="Input.Email">@T["Email address"]</label>
                 <span asp-validation-for="Input.Email" class="text-danger"></span>
             </div>
             <div class="form-floating mb-3">
-                <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" />
-                <label asp-for="Input.Password"></label>
+                <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="@T["Password"]" />
+                <label asp-for="Input.Password">@T["Password"]</label>
                 <span asp-validation-for="Input.Password" class="text-danger"></span>
             </div>
-            <div class="checkbox mb-3">
-                <label asp-for="Input.RememberMe" class="form-label">
-                    <input class="form-check-input" asp-for="Input.RememberMe" />
-                    @Html.DisplayNameFor(m => m.Input.RememberMe)
-                </label>
+            <div class="form-check mb-3">
+                <input class="form-check-input" asp-for="Input.RememberMe" />
+                <label asp-for="Input.RememberMe" class="form-check-label">@T["Remember me"]</label>
             </div>
-            <button type="submit" class="btn btn-primary">Sign in</button>
+            <button type="submit" class="btn btn-primary w-100">@T["Sign in"]</button>
         </form>
     </div>
-</div>
+</section>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

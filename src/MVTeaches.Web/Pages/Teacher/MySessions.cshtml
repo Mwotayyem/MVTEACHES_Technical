@@ -2,14 +2,14 @@
 @model MVTeaches.Web.Pages.Teacher.MySessionsModel
 @using NodaTime
 @{
-    ViewData["Title"] = "My Sessions";
+    ViewData["Title"] = T["My Sessions"].Value;
 }
 
-<h1>My sessions</h1>
+<h1>@T["My Sessions"]</h1>
 
 @if (Model.NoTeacherProfileLinked)
 {
-    <div class="alert alert-warning">Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you.</div>
+    <div class="alert alert-warning">@T["Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you."]</div>
 }
 else
 {
@@ -25,17 +25,16 @@ else
     @if (Model.NotReadyForOnlineSessions)
     {
         <div class="alert alert-danger">
-            <strong>Not ready for online sessions.</strong> You have no connected video account, so you cannot start meetings
-            and cannot be assigned new online sessions. A <strong>free Google account is enough</strong> — no paid subscription
-            of any kind is required. <a asp-page="/Teacher/Connections" class="alert-link">Connect an account</a>.
+            <strong>@T["Not ready for online sessions."]</strong> @T["You have no connected video account, so you cannot start meetings and cannot be assigned new online sessions. A free Google account is enough — no paid subscription of any kind is required."]
+            <a asp-page="/Teacher/Connections" class="alert-link">@T["Connect an account"]</a>.
         </div>
     }
 
-    <p class="text-muted">Last 30 days and next 7 days. Declaring is only offered once a session has actually ended (§18.1 step [1]) — an admin verifies afterward on a separate account (§18.3 rule 3).</p>
+    <p class="text-muted">@T["Last 30 days and next 7 days. Declaring is only offered once a session has actually ended — an admin verifies afterward on a separate account."]</p>
 
     <div class="table-responsive">
         <table class="table table-sm table-striped">
-            <thead><tr><th>When</th><th>Course/Level</th><th>Minutes</th><th>Session status</th><th>Meeting</th><th>Delivery</th><th></th></tr></thead>
+            <thead><tr><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Minutes"]</th><th>@T["Session status"]</th><th>@T["Meeting"]</th><th>@T["Delivery"]</th><th></th></tr></thead>
             <tbody>
                 @foreach (var s in Model.Sessions)
                 {
@@ -45,33 +44,33 @@ else
                         <td>@local.ToString("yyyy-MM-dd HH:mm", null) (@s.ScheduleTimeZone)</td>
                         <td>@s.CourseName / @s.LevelCode</td>
                         <td>@s.DurationMinutes</td>
-                        <td>@s.Status</td>
+                        <td>@T["ClassSessionStatus." + s.Status]</td>
                         <td>
                             @if (s.MeetingStatus is null)
                             {
-                                <span class="text-muted">Not created yet</span>
+                                <span class="text-muted">@T["Not created yet"]</span>
                             }
                             else
                             {
-                                <span>@s.MeetingProvider — @s.MeetingStatus</span>
+                                <span>@T["VideoProviderType." + s.MeetingProvider] — @T["MeetingProvisioningStatus." + s.MeetingStatus]</span>
                             }
                             @if (!string.IsNullOrEmpty(s.CapabilityWarning))
                             {
                                 @* Owner decision 2026-08-30: a warning, never a block — the
                                    Start button below stays available regardless. *@
                                 <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small" role="alert">
-                                    <strong>⚠ Account limit:</strong> @s.CapabilityWarning
+                                    <strong>⚠ @T["Account limit:"]</strong> @s.CapabilityWarning
                                 </div>
                             }
                         </td>
-                        <td>@(s.DeliveryState?.ToString() ?? "—")</td>
+                        <td>@(s.DeliveryState is not null ? T["DeliveryState." + s.DeliveryState].Value : "—")</td>
                         <td>
                             @if (s.CanStart)
                             {
                                 @* The host link is fetched fresh and redirected to server-side — never rendered here. *@
                                 <form method="post" asp-page-handler="Start" class="d-inline">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
-                                    <button type="submit" class="btn btn-sm btn-success">Start session</button>
+                                    <button type="submit" class="btn btn-sm btn-success">@T["Start session"]</button>
                                 </form>
                             }
                             @if (s.CanDeclare)
@@ -79,8 +78,8 @@ else
                                 <form method="post" asp-page-handler="Declare" class="d-flex gap-1">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
                                     <input type="number" name="declaredMinutes" class="form-control form-control-sm" style="width:6rem" value="@s.DurationMinutes" />
-                                    <input type="text" name="note" class="form-control form-control-sm" placeholder="Note (optional)" />
-                                    <button type="submit" class="btn btn-sm btn-primary">Declare</button>
+                                    <input type="text" name="note" class="form-control form-control-sm" placeholder="@T["Note (optional)"]" />
+                                    <button type="submit" class="btn btn-sm btn-primary">@T["Declare"]</button>
                                 </form>
                             }
                         </td>
@@ -88,7 +87,7 @@ else
                 }
                 @if (Model.Sessions.Count == 0)
                 {
-                    <tr><td colspan="7" class="text-muted">No sessions in this window.</td></tr>
+                    <tr><td colspan="7" class="text-muted">@T["No sessions in this window."]</td></tr>
                 }
             </tbody>
         </table>

@@ -1,144 +1,185 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+@using System.Globalization
+@using Microsoft.Extensions.Localization
+@using MVTeaches.Web.Resources
+@inject IStringLocalizer<SharedResource> T
+@{
+    var culture = CultureInfo.CurrentUICulture.Name;
+    var isRtl = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft;
+    var requestPath = Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString;
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? string.Empty;
+    var title = ViewData["Title"]?.ToString() ?? T["MVTEACHES"].Value;
+
+    bool IsCurrent(string page) => string.Equals(currentPage, page, StringComparison.OrdinalIgnoreCase);
+    string NavClass(string page) => IsCurrent(page) ? "app-nav-link active" : "app-nav-link";
+}
+<!DOCTYPE html>
+<html lang="@culture" dir="@(isRtl ? "rtl" : "ltr")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - MVTeaches.Web</title>
+    <title>@title - @T["MVTEACHES"]</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MVTeaches.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">MVTeaches.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Dashboard">Dashboard</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Students">Students</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Teachers">Teachers</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/PlacementTests">Placement Tests</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Schedules">Schedules</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Subscriptions">Subscriptions</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/RescheduleSessions">Reschedule / Compensation</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/CompensationRequests">Compensation Requests</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Payments">Payments</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Payroll">Payroll</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Certificates">Certificates</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/FinancialReport">Financial Report</a>
-                            </li>
-                        }
-                        @if (User.IsInRole(RoleNames.Teacher))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Teacher/MySessions">My Sessions</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Teacher/PublishSlots">Publish Slots</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Teacher/MyPayHistory">My Pay History</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Teacher/Connections">Connections</a>
-                            </li>
-                        }
-                        @if (User.IsInRole(RoleNames.Guardian))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Guardian/MyChildren">My Children</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/PlacementTest">Placement Test</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/PurchasePackage">Purchase Package</a>
-                            </li>
-                        }
-                        @if (User.IsInRole(RoleNames.Student))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Student/MySessions">My Sessions</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/PlacementTest">Placement Test</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/PurchasePackage">Purchase Package</a>
-                            </li>
-                        }
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                    <ul class="navbar-nav">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item">
-                                <span class="nav-link text-dark">@User.Identity!.Name</span>
-                            </li>
-                            <li class="nav-item">
-                                <form method="post" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Content("~/")">
-                                    <button type="submit" class="nav-link btn btn-link text-dark">Sign out</button>
-                                </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Account/Login">Sign in</a>
-                            </li>
-                        }
-                    </ul>
+    <div class="app-shell">
+        <header class="app-topbar">
+            <div class="app-brand">
+                <a class="app-brand-mark" asp-area="" asp-page="/Index" aria-label="@T["MVTEACHES"]">MV</a>
+                <div>
+                    <a class="app-brand-name" asp-area="" asp-page="/Index">@T["MVTEACHES"]</a>
+                    <div class="app-brand-subtitle">@T["Online Education Platform"]</div>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+
+            <button class="app-menu-button" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav"
+                    aria-controls="mobileNav" aria-label="@T["Open navigation"]">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <div class="app-topbar-actions">
+                <form method="post" asp-page="/Culture" class="app-language-switch" aria-label="@T["Language"]">
+                    <input type="hidden" name="returnUrl" value="@requestPath" />
+                    <button type="submit" name="culture" value="ar-JO" class="@(culture.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? "active" : "")">العربية</button>
+                    <button type="submit" name="culture" value="en" class="@(culture.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? "active" : "")">English</button>
+                </form>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="app-user-menu">
+                        <span class="app-user-avatar" aria-hidden="true">@((User.Identity!.Name ?? "U").Substring(0, 1).ToUpperInvariant())</span>
+                        <span class="app-user-name">@User.Identity!.Name</span>
+                    </div>
+                    <form method="post" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Content("~/")">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">@T["Sign out"]</button>
+                    </form>
+                }
+                else
+                {
+                    <a class="btn btn-primary btn-sm" asp-area="" asp-page="/Account/Login">@T["Sign in"]</a>
+                }
+            </div>
+        </header>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <aside class="app-sidebar" aria-label="@T["Primary navigation"]">
+                <nav class="app-nav">
+                    @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
+                    {
+                        <div class="app-nav-group">@T["Overview"]</div>
+                        <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard"><span class="app-nav-icon" aria-hidden="true"></span>@T["Dashboard"]</a>
+                        <div class="app-nav-group">@T["Students and Guardians"]</div>
+                        <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students"><span class="app-nav-icon" aria-hidden="true"></span>@T["Students"]</a>
+                        <a class="@NavClass("/Admin/StudentDetails")" asp-page="/Admin/Students"><span class="app-nav-icon" aria-hidden="true"></span>@T["Student details"]</a>
+                        <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration"><span class="app-nav-icon" aria-hidden="true"></span>@T["Assisted Registration"]</a>
+                        <div class="app-nav-group">@T["Teachers"]</div>
+                        <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers"><span class="app-nav-icon" aria-hidden="true"></span>@T["Teachers"]</a>
+                        <div class="app-nav-group">@T["Placement"]</div>
+                        <a class="@NavClass("/Admin/PlacementTests")" asp-page="/Admin/PlacementTests"><span class="app-nav-icon" aria-hidden="true"></span>@T["Placement Tests"]</a>
+                        <div class="app-nav-group">@T["Packages and Payments"]</div>
+                        <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions"><span class="app-nav-icon" aria-hidden="true"></span>@T["Subscriptions"]</a>
+                        <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments"><span class="app-nav-icon" aria-hidden="true"></span>@T["Payments"]</a>
+                        <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods"><span class="app-nav-icon" aria-hidden="true"></span>@T["Payment Methods"]</a>
+                        <div class="app-nav-group">@T["Scheduling and Attendance"]</div>
+                        <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules"><span class="app-nav-icon" aria-hidden="true"></span>@T["Schedules"]</a>
+                        <a class="@NavClass("/Admin/RescheduleSessions")" asp-page="/Admin/RescheduleSessions"><span class="app-nav-icon" aria-hidden="true"></span>@T["Reschedule / Compensation"]</a>
+                        <a class="@NavClass("/Admin/CompensationRequests")" asp-page="/Admin/CompensationRequests"><span class="app-nav-icon" aria-hidden="true"></span>@T["Compensation Requests"]</a>
+                        <div class="app-nav-group">@T["Payroll and Expenses"]</div>
+                        <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll"><span class="app-nav-icon" aria-hidden="true"></span>@T["Payroll"]</a>
+                        <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport"><span class="app-nav-icon" aria-hidden="true"></span>@T["Financial Report"]</a>
+                        <div class="app-nav-group">@T["Certificates"]</div>
+                        <a class="@NavClass("/Admin/Certificates")" asp-page="/Admin/Certificates"><span class="app-nav-icon" aria-hidden="true"></span>@T["Certificates"]</a>
+                    }
+                    @if (User.IsInRole(RoleNames.Teacher))
+                    {
+                        <div class="app-nav-group">@T["Teacher workspace"]</div>
+                        <a class="@NavClass("/Teacher/MySessions")" asp-page="/Teacher/MySessions"><span class="app-nav-icon" aria-hidden="true"></span>@T["My Sessions"]</a>
+                        <a class="@NavClass("/Teacher/PublishSlots")" asp-page="/Teacher/PublishSlots"><span class="app-nav-icon" aria-hidden="true"></span>@T["Publish Slots"]</a>
+                        <a class="@NavClass("/Teacher/MyPayHistory")" asp-page="/Teacher/MyPayHistory"><span class="app-nav-icon" aria-hidden="true"></span>@T["My Pay History"]</a>
+                        <a class="@NavClass("/Teacher/Connections")" asp-page="/Teacher/Connections"><span class="app-nav-icon" aria-hidden="true"></span>@T["Connections"]</a>
+                    }
+                    @if (User.IsInRole(RoleNames.Guardian))
+                    {
+                        <div class="app-nav-group">@T["Guardian workspace"]</div>
+                        <a class="@NavClass("/Guardian/MyChildren")" asp-page="/Guardian/MyChildren"><span class="app-nav-icon" aria-hidden="true"></span>@T["My Children"]</a>
+                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest"><span class="app-nav-icon" aria-hidden="true"></span>@T["Placement Test"]</a>
+                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage"><span class="app-nav-icon" aria-hidden="true"></span>@T["Purchase Package"]</a>
+                    }
+                    @if (User.IsInRole(RoleNames.Student))
+                    {
+                        <div class="app-nav-group">@T["Student workspace"]</div>
+                        <a class="@NavClass("/Student/MySessions")" asp-page="/Student/MySessions"><span class="app-nav-icon" aria-hidden="true"></span>@T["My Sessions"]</a>
+                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest"><span class="app-nav-icon" aria-hidden="true"></span>@T["Placement Test"]</a>
+                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage"><span class="app-nav-icon" aria-hidden="true"></span>@T["Purchase Package"]</a>
+                    }
+                    <div class="app-nav-group">@T["System"]</div>
+                    <a class="@NavClass("/Privacy")" asp-page="/Privacy"><span class="app-nav-icon" aria-hidden="true"></span>@T["Privacy"]</a>
+                </nav>
+            </aside>
+        }
+
+        <div class="offcanvas @(isRtl ? "offcanvas-end" : "offcanvas-start")" tabindex="-1" id="mobileNav" aria-labelledby="mobileNavLabel">
+            <div class="offcanvas-header">
+                <h2 class="offcanvas-title h5" id="mobileNavLabel">@T["Navigation"]</h2>
+                <button type="button" class="btn-close @(isRtl ? "ms-0 me-auto" : "")" data-bs-dismiss="offcanvas" aria-label="@T["Close"]"></button>
+            </div>
+            <div class="offcanvas-body">
+                <nav class="app-nav">
+                    <a class="@NavClass("/Index")" asp-page="/Index"><span class="app-nav-icon" aria-hidden="true"></span>@T["Home"]</a>
+                    @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
+                    {
+                        <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+                        <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@T["Students"]</a>
+                        <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@T["Assisted Registration"]</a>
+                        <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@T["Teachers"]</a>
+                        <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@T["Schedules"]</a>
+                        <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@T["Subscriptions"]</a>
+                        <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@T["Payments"]</a>
+                        <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@T["Payment Methods"]</a>
+                        <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@T["Payroll"]</a>
+                    }
+                    @if (User.IsInRole(RoleNames.Teacher))
+                    {
+                        <a class="@NavClass("/Teacher/MySessions")" asp-page="/Teacher/MySessions">@T["My Sessions"]</a>
+                        <a class="@NavClass("/Teacher/PublishSlots")" asp-page="/Teacher/PublishSlots">@T["Publish Slots"]</a>
+                        <a class="@NavClass("/Teacher/MyPayHistory")" asp-page="/Teacher/MyPayHistory">@T["My Pay History"]</a>
+                        <a class="@NavClass("/Teacher/Connections")" asp-page="/Teacher/Connections">@T["Connections"]</a>
+                    }
+                    @if (User.IsInRole(RoleNames.Guardian))
+                    {
+                        <a class="@NavClass("/Guardian/MyChildren")" asp-page="/Guardian/MyChildren">@T["My Children"]</a>
+                    }
+                    @if (User.IsInRole(RoleNames.Student))
+                    {
+                        <a class="@NavClass("/Student/MySessions")" asp-page="/Student/MySessions">@T["My Sessions"]</a>
+                    }
+                    @if (User.IsInRole(RoleNames.Guardian) || User.IsInRole(RoleNames.Student))
+                    {
+                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest">@T["Placement Test"]</a>
+                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage">@T["Purchase Package"]</a>
+                    }
+                    <a class="@NavClass("/Privacy")" asp-page="/Privacy">@T["Privacy"]</a>
+                </nav>
+            </div>
+        </div>
+
+        <main class="app-main @(User.Identity?.IsAuthenticated == true ? "" : "public")" role="main">
             @RenderBody()
         </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - MVTeaches.Web - <a asp-area="" asp-page="/Privacy">Privacy</a>
-        </div>
-    </footer>
+        @if (User.Identity?.IsAuthenticated != true)
+        {
+            <footer class="app-footer">
+                <span>&copy; 2026 @T["MVTEACHES"]</span>
+                <a asp-area="" asp-page="/Privacy">@T["Privacy"]</a>
+            </footer>
+        }
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

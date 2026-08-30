@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Payroll;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Delivery;
@@ -11,6 +12,7 @@ using MVTeaches.Domain.Payroll;
 using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -28,12 +30,15 @@ public class PayrollModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly IPayrollService _payroll;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public PayrollModel(MvTeachesDbContext db, IPayrollService payroll, UserManager<ApplicationUser> userManager)
+    public PayrollModel(MvTeachesDbContext db, IPayrollService payroll, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _payroll = payroll;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public record DeclaredRow(long SessionId, string TeacherName, int DeclaredMinutes, string? Note);
@@ -75,15 +80,15 @@ public class PayrollModel : PageModel
             var result = await _payroll.VerifyAsync(sessionId, verifiedByUserId, note: null, HttpContext.RequestAborted);
             ErrorMessage = result.Outcome switch
             {
-                VerifyDeliveryOutcome.SameActorAsDeclarer => "You verified your own declaration — §18.3 rule 3 requires a different admin.",
-                VerifyDeliveryOutcome.NoApplicableRate => "No teacher rate applies for this session yet — create one before verifying.",
-                VerifyDeliveryOutcome.DeliveryNotFound => "Delivery not found.",
-                VerifyDeliveryOutcome.NotDeclared => "This delivery hasn't been declared yet.",
+                VerifyDeliveryOutcome.SameActorAsDeclarer => _localizer["You verified your own declaration — a different admin must verify it."].Value,
+                VerifyDeliveryOutcome.NoApplicableRate => _localizer["No teacher rate applies for this session yet — create one before verifying."].Value,
+                VerifyDeliveryOutcome.DeliveryNotFound => _localizer["Delivery not found."].Value,
+                VerifyDeliveryOutcome.NotDeclared => _localizer["This delivery hasn't been declared yet."].Value,
                 _ => null,
             };
             if (result.Outcome == VerifyDeliveryOutcome.Verified)
             {
-                StatusMessage = "Delivery verified.";
+                StatusMessage = _localizer["Delivery verified."].Value;
             }
         }
         catch (InvalidOperationException ex)
@@ -98,12 +103,12 @@ public class PayrollModel : PageModel
     public async Task<IActionResult> OnPostRejectAsync(long sessionId)
     {
         var rejectedByUserId = long.Parse(_userManager.GetUserId(User)!);
-        var reason = string.IsNullOrWhiteSpace(RejectReason) ? "No reason given" : RejectReason;
+        var reason = string.IsNullOrWhiteSpace(RejectReason) ? _localizer["No reason given"].Value : RejectReason;
 
         try
         {
             await _payroll.RejectAsync(sessionId, rejectedByUserId, reason, HttpContext.RequestAborted);
-            StatusMessage = "Delivery rejected.";
+            StatusMessage = _localizer["Delivery rejected."].Value;
         }
         catch (InvalidOperationException ex)
         {
@@ -130,7 +135,7 @@ public class PayrollModel : PageModel
         try
         {
             await _payroll.OpenPeriodAsync(NewPeriod.CountryId, start, end, HttpContext.RequestAborted);
-            StatusMessage = "Payroll period opened.";
+            StatusMessage = _localizer["Payroll period opened."].Value;
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
         {
@@ -138,7 +143,7 @@ public class PayrollModel : PageModel
             // conflict (the admin double-clicked, or this exact period already
             // exists), not a bug; surface it the same friendly way every other
             // page in this app handles a genuine unique-constraint hit.
-            ErrorMessage = "A payroll period for this country and date range already exists.";
+            ErrorMessage = _localizer["A payroll period for this country and date range already exists."].Value;
         }
         catch (ArgumentException ex)
         {
@@ -152,7 +157,7 @@ public class PayrollModel : PageModel
     public async Task<IActionResult> OnPostAggregateAsync(long periodId)
     {
         var created = await _payroll.AggregateVerifiedDeliveriesAsync(periodId, HttpContext.RequestAborted);
-        StatusMessage = $"{created} payroll line(s) added.";
+        StatusMessage = _localizer["{0} payroll line(s) added.", created].Value;
         await LoadAsync();
         return Page();
     }
@@ -162,7 +167,7 @@ public class PayrollModel : PageModel
         try
         {
             await _payroll.MoveToReviewAsync(periodId, HttpContext.RequestAborted);
-            StatusMessage = "Period moved to review.";
+            StatusMessage = _localizer["Period moved to review."].Value;
         }
         catch (InvalidOperationException ex)
         {
@@ -179,7 +184,7 @@ public class PayrollModel : PageModel
         try
         {
             await _payroll.ApprovePeriodAsync(periodId, approvedByUserId, HttpContext.RequestAborted);
-            StatusMessage = "Period approved and locked (§18.3 rule 1).";
+            StatusMessage = _localizer["Period approved and locked — its lines can no longer change."].Value;
         }
         catch (InvalidOperationException ex)
         {
@@ -195,7 +200,7 @@ public class PayrollModel : PageModel
         try
         {
             await _payroll.MarkPeriodPaidAsync(periodId, HttpContext.RequestAborted);
-            StatusMessage = "Period marked paid.";
+            StatusMessage = _localizer["Period marked paid."].Value;
         }
         catch (InvalidOperationException ex)
         {
@@ -211,7 +216,7 @@ public class PayrollModel : PageModel
         try
         {
             await _payroll.ClosePeriodAsync(periodId, HttpContext.RequestAborted);
-            StatusMessage = "Period closed.";
+            StatusMessage = _localizer["Period closed."].Value;
         }
         catch (InvalidOperationException ex)
         {

@@ -1,14 +1,14 @@
 @page
 @model MVTeaches.Web.Pages.Account.ManageMfaModel
 @{
-    ViewData["Title"] = "Two-factor authentication";
+    ViewData["Title"] = T["Two-factor authentication"].Value;
 }
 
-<h1>Two-factor authentication</h1>
+<h1>@T["Two-factor authentication"]</h1>
 
 @if (Model.IsMandatoryForThisAccount && !Model.IsEnabled)
 {
-    <div class="alert alert-warning">§22: two-factor authentication is required for Admin/SystemAdmin accounts. Please set it up below.</div>
+    <div class="alert alert-warning">@T["Two-factor authentication is required for admin accounts. Please set it up below."]</div>
 }
 @if (Model.StatusMessage is not null)
 {
@@ -22,45 +22,45 @@
 @if (Model.FreshRecoveryCodes is not null)
 {
     <div class="alert alert-warning">
-        <strong>Save these recovery codes now — they are shown only once.</strong> Each one can be used, one time, to sign in if you lose access to your authenticator app.
+        <strong>@T["Save these recovery codes now — they are shown only once."]</strong> @T["Each one can be used, one time, to sign in if you lose access to your authenticator app."]
         <pre class="mt-2 mb-0">@string.Join("\n", Model.FreshRecoveryCodes)</pre>
     </div>
 }
 
 @if (Model.IsEnabled)
 {
-    <p>Two-factor authentication is <strong>enabled</strong> on this account.</p>
-    <p>Recovery codes remaining: <strong>@Model.RecoveryCodesRemaining</strong></p>
+    <p>@T["Two-factor authentication is"] <strong>@T["enabled"]</strong> @T["on this account."]</p>
+    <p>@T["Recovery codes remaining:"] <strong>@Model.RecoveryCodesRemaining</strong></p>
     <form method="post" asp-page-handler="RegenerateRecoveryCodes" class="d-inline">
-        <button type="submit" class="btn btn-outline-secondary">Generate new recovery codes</button>
+        <button type="submit" class="btn btn-outline-secondary">@T["Generate new recovery codes"]</button>
     </form>
     <form method="post" asp-page-handler="Disable" class="d-inline">
-        <button type="submit" class="btn btn-outline-danger">Disable two-factor authentication</button>
+        <button type="submit" class="btn btn-outline-danger">@T["Disable two-factor authentication"]</button>
     </form>
 }
 else
 {
     <div class="card" style="max-width: 40rem;">
         <div class="card-body">
-            <h5 class="card-title">Set up an authenticator app</h5>
+            <h5 class="card-title">@T["Set up an authenticator app"]</h5>
             <ol>
-                <li>Install an authenticator app (Google Authenticator, Microsoft Authenticator, Authy, or similar) if you don't have one.</li>
-                <li>Add an account, choosing "Enter a setup key" (or scan a QR code if your app supports pasting the URI below into a QR generator).</li>
+                <li>@T["Install an authenticator app (Google Authenticator, Microsoft Authenticator, Authy, or similar) if you don't have one."]</li>
+                <li>@T["Add an account, choosing \"Enter a setup key\" (or scan a QR code if your app supports pasting the URI below into a QR generator)."]</li>
                 <li>
-                    Enter this key manually:
+                    @T["Enter this key manually:"]
                     <code>@Model.SharedKey</code>
                 </li>
-                <li>Enter the 6-digit code your app shows below to confirm setup.</li>
+                <li>@T["Enter the 6-digit code your app shows below to confirm setup."]</li>
             </ol>
-            <p class="text-muted small">Setup URI (for apps that accept a pasted otpauth link): <code>@Model.AuthenticatorUri</code></p>
+            <p class="text-muted small">@T["Setup URI (for apps that accept a pasted otpauth link):"] <code>@Model.AuthenticatorUri</code></p>
             <form method="post" asp-page-handler="Verify" class="row g-2">
                 <div class="col-md-4">
-                    <label class="form-label" asp-for="Verify.Code">Verification code</label>
+                    <label class="form-label" asp-for="Verify.Code">@T["Verification code"]</label>
                     <input asp-for="Verify.Code" class="form-control" autocomplete="one-time-code" />
                     <span asp-validation-for="Verify.Code" class="text-danger"></span>
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary">Verify and enable</button>
+                    <button type="submit" class="btn btn-primary">@T["Verify and enable"]</button>
                 </div>
             </form>
         </div>

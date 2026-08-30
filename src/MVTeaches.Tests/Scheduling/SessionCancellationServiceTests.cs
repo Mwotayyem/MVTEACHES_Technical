@@ -129,7 +129,8 @@ public class SessionCancellationServiceTests
                     db, new MVTeaches.Tests.Integrations.FakeTokenProtector(), new FakeClock(now),
                     Microsoft.Extensions.Logging.Abstractions.NullLogger<MVTeaches.Infrastructure.Integrations.Security.TokenRefreshCoordinator>.Instance),
                 new FakeClock(now),
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<MVTeaches.Infrastructure.Integrations.MeetingProvisioningService>.Instance),
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<MVTeaches.Infrastructure.Integrations.MeetingProvisioningService>.Instance,
+                TestLocalization.For<MVTeaches.Infrastructure.Resources.InfrastructureResource>()),
             new FakeClock(now));
 
     [Fact]

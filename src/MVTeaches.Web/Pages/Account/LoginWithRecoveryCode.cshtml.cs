@@ -2,7 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Account;
 
@@ -12,10 +14,12 @@ namespace MVTeaches.Web.Pages.Account;
 public class LoginWithRecoveryCodeModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public LoginWithRecoveryCodeModel(SignInManager<ApplicationUser> signInManager)
+    public LoginWithRecoveryCodeModel(SignInManager<ApplicationUser> signInManager, IStringLocalizer<SharedResource> localizer)
     {
         _signInManager = signInManager;
+        _localizer = localizer;
     }
 
     [BindProperty]
@@ -67,11 +71,11 @@ public class LoginWithRecoveryCodeModel : PageModel
 
         if (result.IsLockedOut)
         {
-            ErrorMessage = "This account is temporarily locked after too many failed attempts.";
+            ErrorMessage = _localizer["This account is temporarily locked after too many failed attempts."];
             return Page();
         }
 
-        ErrorMessage = "Invalid recovery code.";
+        ErrorMessage = _localizer["Invalid recovery code."];
         return Page();
     }
 }

@@ -72,7 +72,8 @@ public class PlacementAttemptServiceTests
     }
 
     private static IPlacementTestAdminService CreateAdminService(MvTeachesDbContext db) =>
-        new PlacementTestAdminService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()));
+        new PlacementTestAdminService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()),
+            TestLocalization.For<MVTeaches.Infrastructure.Resources.InfrastructureResource>());
 
     /// <summary>A minimal always-publishable, active version: one 10-point
     /// question, correct choice "2" is the second option deliberately (index

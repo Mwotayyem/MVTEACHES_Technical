@@ -2,14 +2,14 @@
 @model MVTeaches.Web.Pages.Guardian.MyChildrenModel
 @using NodaTime
 @{
-    ViewData["Title"] = "My Children";
+    ViewData["Title"] = T["My Children"].Value;
 }
 
-<h1>My children</h1>
+<h1>@T["My Children"]</h1>
 
 @if (Model.NoGuardianProfileLinked)
 {
-    <div class="alert alert-warning">Your account has the Guardian role but no linked guardian profile yet — ask an admin to link you to your children on /Admin/Students.</div>
+    <div class="alert alert-warning">@T["Your account has the Guardian role but no linked guardian profile yet — ask an admin to link you to your children on /Admin/Students."]</div>
 }
 else
 {
@@ -22,11 +22,11 @@ else
         <div class="alert alert-danger">@Model.ErrorMessage</div>
     }
 
-    <p class="text-muted">Yesterday through the next 7 days. Press Join once the session has started — the child's full attendance for that session is recorded immediately (D-83); pressing again does nothing extra.</p>
+    <p class="text-muted">@T["Yesterday through the next 7 days. Press Join once the session has started — the child's full attendance for that session is recorded immediately; pressing again does nothing extra."]</p>
 
     <div class="table-responsive">
         <table class="table table-sm table-striped">
-            <thead><tr><th>Child</th><th>When</th><th>Course/Level</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>@T["Child"]</th><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Status"]</th><th></th></tr></thead>
             <tbody>
                 @foreach (var s in Model.UpcomingSessions)
                 {
@@ -39,11 +39,11 @@ else
                         <td>
                             @if (s.AlreadyPresent)
                             {
-                                <span class="badge bg-success">Present</span>
+                                <span class="badge bg-success">@T["Present"]</span>
                             }
                             else
                             {
-                                <span class="text-muted">@s.SessionStatus</span>
+                                <span class="text-muted">@T["ClassSessionStatus." + s.SessionStatus]</span>
                             }
                         </td>
                         <td>
@@ -52,7 +52,7 @@ else
                                 <form method="post" asp-page-handler="Join">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
                                     <input type="hidden" name="studentId" value="@s.StudentId" />
-                                    <button type="submit" class="btn btn-sm btn-primary">Join</button>
+                                    <button type="submit" class="btn btn-sm btn-primary">@T["Join"]</button>
                                 </form>
                             }
                         </td>
@@ -60,7 +60,7 @@ else
                 }
                 @if (Model.UpcomingSessions.Count == 0)
                 {
-                    <tr><td colspan="5" class="text-muted">No sessions in this window.</td></tr>
+                    <tr><td colspan="5" class="text-muted">@T["No sessions in this window."]</td></tr>
                 }
             </tbody>
         </table>

@@ -2,11 +2,11 @@
 @model MVTeaches.Web.Pages.Admin.TeachersModel
 @using MVTeaches.Domain.Payroll
 @{
-    ViewData["Title"] = "Teachers";
+    ViewData["Title"] = T["Teachers"].Value;
 }
 
-<h1>Teachers</h1>
-<p class="text-muted">§9.1/D-28 — a teacher account is always admin-created, never self-registered.</p>
+<h1>@T["Teachers"]</h1>
+<p class="text-muted">@T["A teacher account is always admin-created, never self-registered."]</p>
 
 @if (Model.StatusMessage is not null)
 {
@@ -19,27 +19,27 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">Register a teacher</h5>
+        <h5 class="card-title">@T["Register a teacher"]</h5>
         <form method="post" asp-page-handler="Register" class="row g-2">
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewTeacher.FullName">Full name</label>
+                <label class="form-label" asp-for="NewTeacher.FullName">@T["Full name"]</label>
                 <input asp-for="NewTeacher.FullName" class="form-control" />
                 <span asp-validation-for="NewTeacher.FullName" class="text-danger"></span>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewTeacher.Email">Email</label>
+                <label class="form-label" asp-for="NewTeacher.Email">@T["Email"]</label>
                 <input asp-for="NewTeacher.Email" class="form-control" />
                 <span asp-validation-for="NewTeacher.Email" class="text-danger"></span>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewTeacher.Password">Temporary password</label>
+                <label class="form-label" asp-for="NewTeacher.Password">@T["Temporary password"]</label>
                 <input asp-for="NewTeacher.Password" type="password" class="form-control" />
                 <span asp-validation-for="NewTeacher.Password" class="text-danger"></span>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewTeacher.TimeZoneId">Time zone (IANA)</label>
+                <label class="form-label" asp-for="NewTeacher.TimeZoneId">@T["Time zone (IANA)"]</label>
                 <select asp-for="NewTeacher.TimeZoneId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var tz in Model.TimeZoneIds)
                     {
                         <option value="@tz">@tz</option>
@@ -48,7 +48,7 @@
                 <span asp-validation-for="NewTeacher.TimeZoneId" class="text-danger"></span>
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary">Register teacher</button>
+                <button type="submit" class="btn btn-primary">@T["Register teacher"]</button>
             </div>
         </form>
     </div>
@@ -56,13 +56,13 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">Set a pay rate</h5>
-        <p class="text-muted small">§9.2 (D-27) — most-specific-wins at verification time: (course+level+age group) beats (course+level) beats (course) beats the teacher's own default (leave course/level/age group blank).</p>
+        <h5 class="card-title">@T["Set a pay rate"]</h5>
+        <p class="text-muted small">@T["Most-specific-wins at verification time: (course+level+age group) beats (course+level) beats (course) beats the teacher's own default (leave course/level/age group blank)."]</p>
         <form method="post" asp-page-handler="CreateRate" class="row g-2">
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.TeacherId">Teacher</label>
+                <label class="form-label" asp-for="NewRate.TeacherId">@T["Teacher"]</label>
                 <select asp-for="NewRate.TeacherId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var t in Model.Teachers)
                     {
                         <option value="@t.Id">@t.FullName</option>
@@ -70,9 +70,9 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.CourseId">Course (blank = any)</label>
+                <label class="form-label" asp-for="NewRate.CourseId">@T["Course (blank = any)"]</label>
                 <select asp-for="NewRate.CourseId" class="form-select">
-                    <option value="">-- any --</option>
+                    <option value="">-- @T["any"] --</option>
                     @foreach (var c in Model.Courses)
                     {
                         <option value="@c.Id">@c.NameEn</option>
@@ -80,9 +80,9 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.LevelId">Level (blank = any)</label>
+                <label class="form-label" asp-for="NewRate.LevelId">@T["Level (blank = any)"]</label>
                 <select asp-for="NewRate.LevelId" class="form-select">
-                    <option value="">-- any --</option>
+                    <option value="">-- @T["any"] --</option>
                     @foreach (var l in Model.Levels)
                     {
                         <option value="@l.Id">@l.Code</option>
@@ -90,9 +90,9 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.AgeGroupId">Age group (blank = any)</label>
+                <label class="form-label" asp-for="NewRate.AgeGroupId">@T["Age group (blank = any)"]</label>
                 <select asp-for="NewRate.AgeGroupId" class="form-select">
-                    <option value="">-- any --</option>
+                    <option value="">-- @T["any"] --</option>
                     @foreach (var a in Model.AgeGroups)
                     {
                         <option value="@a.Id">@a.Code</option>
@@ -100,48 +100,48 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.Amount">Amount</label>
+                <label class="form-label" asp-for="NewRate.Amount">@T["Amount"]</label>
                 <input asp-for="NewRate.Amount" class="form-control" />
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.Currency">Currency</label>
+                <label class="form-label" asp-for="NewRate.Currency">@T["Currency"]</label>
                 <input asp-for="NewRate.Currency" class="form-control" placeholder="JOD" />
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.Unit">Unit</label>
+                <label class="form-label" asp-for="NewRate.Unit">@T["Unit"]</label>
                 <select asp-for="NewRate.Unit" class="form-select">
                     @foreach (var v in Enum.GetValues<RateUnit>())
                     {
-                        <option value="@v">@v</option>
+                        <option value="@v">@T["RateUnit." + v]</option>
                     }
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.EffectiveFrom">Effective from</label>
+                <label class="form-label" asp-for="NewRate.EffectiveFrom">@T["Effective from"]</label>
                 <input asp-for="NewRate.EffectiveFrom" type="date" class="form-control" />
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary">Create rate</button>
+                <button type="submit" class="btn btn-primary">@T["Create rate"]</button>
             </div>
         </form>
     </div>
 </div>
 
-<h2>Pay rates</h2>
+<h2>@T["Pay rates"]</h2>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>Teacher</th><th>Course</th><th>Level</th><th>Age group</th><th>Rate</th><th>Unit</th><th>From</th><th>To</th></tr></thead>
+        <thead><tr><th>#</th><th>@T["Teacher"]</th><th>@T["Course"]</th><th>@T["Level"]</th><th>@T["Age group"]</th><th>@T["Rate"]</th><th>@T["Unit"]</th><th>@T["From"]</th><th>@T["To"]</th></tr></thead>
         <tbody>
             @foreach (var r in Model.Rates)
             {
                 <tr>
                     <td>@r.Id</td>
                     <td>@r.TeacherName</td>
-                    <td>@(r.CourseName ?? "any")</td>
-                    <td>@(r.LevelCode ?? "any")</td>
-                    <td>@(r.AgeGroupCode ?? "any")</td>
-                    <td>@r.Amount.ToString("N3", null) @r.Currency</td>
-                    <td>@r.Unit</td>
+                    <td>@(r.CourseName ?? T["any"])</td>
+                    <td>@(r.LevelCode ?? T["any"])</td>
+                    <td>@(r.AgeGroupCode ?? T["any"])</td>
+                    <td>@r.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @r.Currency</td>
+                    <td>@T["RateUnit." + r.Unit]</td>
                     <td>@r.EffectiveFrom.ToString("yyyy-MM-dd", null)</td>
                     <td>@(r.EffectiveTo?.ToString("yyyy-MM-dd", null) ?? "—")</td>
                 </tr>
@@ -152,13 +152,13 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">Grant a teacher an authorized level</h5>
-        <p class="text-muted small">Owner decision 2026-08-30 rule 6/rule 5 — a teacher may publish sessions only for levels explicitly granted here. Granting an already-granted level is refused, not silently accepted twice.</p>
+        <h5 class="card-title">@T["Grant a teacher an authorized level"]</h5>
+        <p class="text-muted small">@T["A teacher may publish sessions only for levels explicitly granted here. Granting an already-granted level is refused, not silently accepted twice."]</p>
         <form method="post" asp-page-handler="GrantLevel" class="row g-2">
             <div class="col-md-4">
-                <label class="form-label" asp-for="LevelGrant.TeacherId">Teacher</label>
+                <label class="form-label" asp-for="LevelGrant.TeacherId">@T["Teacher"]</label>
                 <select asp-for="LevelGrant.TeacherId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var t in Model.Teachers)
                     {
                         <option value="@t.Id">@t.FullName (#@t.Id)</option>
@@ -166,9 +166,9 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label" asp-for="LevelGrant.LevelId">Level</label>
+                <label class="form-label" asp-for="LevelGrant.LevelId">@T["Level"]</label>
                 <select asp-for="LevelGrant.LevelId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var l in Model.Levels)
                     {
                         <option value="@l.Id">@l.Code</option>
@@ -176,16 +176,16 @@
                 </select>
             </div>
             <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">Grant level</button>
+                <button type="submit" class="btn btn-primary">@T["Grant level"]</button>
             </div>
         </form>
     </div>
 </div>
 
-<h2>Teachers</h2>
+<h2>@T["Teachers"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>Name</th><th>Time zone</th><th>Active</th><th>Online sessions</th><th>Authorized levels</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>@T["Name"]</th><th>@T["Time zone"]</th><th>@T["Active"]</th><th>@T["Online sessions"]</th><th>@T["Authorized levels"]</th><th></th></tr></thead>
         <tbody>
             @foreach (var t in Model.Teachers)
             {
@@ -193,15 +193,15 @@
                     <td>@t.Id</td>
                     <td>@t.FullName</td>
                     <td>@t.TimeZoneId</td>
-                    <td>@(t.IsActive ? "Yes" : "No")</td>
+                    <td>@(t.IsActive ? T["Yes"] : T["No"])</td>
                     <td>
                         @if (Model.TeachersNotReadyForOnlineSessions.Contains(t.Id))
                         {
-                            <span class="text-danger" title="No connected Zoom or Google Meet account — this teacher cannot be assigned online sessions. A free Google account is sufficient.">Not ready</span>
+                            <span class="text-danger" title="@T["No connected Zoom or Google Meet account — this teacher cannot be assigned online sessions. A free Google account is sufficient."]">@T["Not ready"]</span>
                         }
                         else
                         {
-                            <span class="text-success">Ready</span>
+                            <span class="text-success">@T["Ready"]</span>
                         }
                     </td>
                     <td>
@@ -212,13 +212,13 @@
                                 <form method="post" asp-page-handler="RevokeLevel" class="d-inline-block me-1 mb-1">
                                     <input type="hidden" name="teacherId" value="@t.Id" />
                                     <input type="hidden" name="levelId" value="@l.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Revoke this level">@l.Code &times;</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="@T["Revoke this level"]">@l.Code &times;</button>
                                 </form>
                             }
                         }
                         else
                         {
-                            <span class="text-muted">none</span>
+                            <span class="text-muted">@T["none"]</span>
                         }
                     </td>
                     <td>
@@ -226,14 +226,14 @@
                         {
                             <form method="post" asp-page-handler="Deactivate">
                                 <input type="hidden" name="teacherId" value="@t.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Deactivate"]</button>
                             </form>
                         }
                         else
                         {
                             <form method="post" asp-page-handler="Reactivate">
                                 <input type="hidden" name="teacherId" value="@t.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-success">Reactivate</button>
+                                <button type="submit" class="btn btn-sm btn-outline-success">@T["Reactivate"]</button>
                             </form>
                         }
                     </td>

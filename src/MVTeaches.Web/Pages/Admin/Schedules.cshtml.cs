@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Catalog;
@@ -11,6 +12,7 @@ using MVTeaches.Domain.Integrations;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -39,10 +41,11 @@ public class SchedulesModel : PageModel
     private readonly IMeetingProvisioningService _meetings;
     private readonly IClock _clock;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public SchedulesModel(MvTeachesDbContext db, IRecurringScheduleService schedules, IEnrollmentService enrollments,
         ISessionCancellationService cancellations, IMeetingProvisioningService meetings, IClock clock,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _schedules = schedules;
@@ -51,6 +54,7 @@ public class SchedulesModel : PageModel
         _meetings = meetings;
         _clock = clock;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public record ScheduleRow(long Id, string TeacherName, string CourseName, string LevelCode, string AgeGroupCode,
@@ -150,7 +154,7 @@ public class SchedulesModel : PageModel
             await _schedules.CreateAsync(NewSchedule.CountryId, NewSchedule.CourseId, NewSchedule.LevelId,
                 NewSchedule.AgeGroupId, NewSchedule.TeacherId, days, startLocal, NewSchedule.DurationMinutes,
                 NewSchedule.TimeZoneId, startsOn, NewSchedule.Capacity, actingUserId, HttpContext.RequestAborted);
-            StatusMessage = "Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual \"Trigger now\" on /hangfire).";
+            StatusMessage = _localizer["Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual \"Trigger now\" on /hangfire)."].Value;
         }
         catch (ArgumentException ex)
         {
@@ -173,7 +177,7 @@ public class SchedulesModel : PageModel
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
         var count = await _enrollments.EnrollInUpcomingSessionsAsync(Enroll.RecurringScheduleId, Enroll.StudentId,
             actingUserId, HttpContext.RequestAborted);
-        StatusMessage = $"Enrolled the student into {count} upcoming session(s) generated from this schedule.";
+        StatusMessage = _localizer["Enrolled the student into {0} upcoming session(s) generated from this schedule.", count].Value;
 
         await LoadAsync();
         return Page();
@@ -196,24 +200,22 @@ public class SchedulesModel : PageModel
         {
             case CancelSessionOutcome.Cancelled:
                 StatusMessage = Cancel.ReplacementSessionId is null
-                    ? $"Session cancelled. {result.EnrollmentsMovedOrCancelled} enrollment(s) cancelled; " +
-                      $"{result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed} already-joined student(s) left untouched " +
-                      "(approve a specific replacement lesson for them on /Admin/RescheduleSessions if appropriate)."
-                    : $"Session cancelled and replaced. {result.EnrollmentsMovedOrCancelled} student(s) moved to the replacement; " +
-                      $"{result.EnrollmentsThatCouldNotBeMovedToReplacement} could not fit and need manual attention; " +
-                      $"{result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed} already-joined student(s) left untouched.";
+                    ? _localizer["Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched (approve a specific replacement lesson for them on /Admin/RescheduleSessions if appropriate).",
+                        result.EnrollmentsMovedOrCancelled, result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed].Value
+                    : _localizer["Session cancelled and replaced. {0} student(s) moved to the replacement; {1} could not fit and need manual attention; {2} already-joined student(s) left untouched.",
+                        result.EnrollmentsMovedOrCancelled, result.EnrollmentsThatCouldNotBeMovedToReplacement, result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed].Value;
                 break;
             case CancelSessionOutcome.SessionNotFound:
-                ErrorMessage = "Session not found.";
+                ErrorMessage = _localizer["Session not found."].Value;
                 break;
             case CancelSessionOutcome.NotCancellable:
-                ErrorMessage = "This session is already cancelled, completed, or marked not delivered.";
+                ErrorMessage = _localizer["This session is already cancelled, completed, or marked not delivered."].Value;
                 break;
             case CancelSessionOutcome.ReplacementSessionNotFound:
-                ErrorMessage = "The replacement session id was not found.";
+                ErrorMessage = _localizer["The replacement session id was not found."].Value;
                 break;
             case CancelSessionOutcome.ReplacementSessionIsTheSameSession:
-                ErrorMessage = "The replacement session must be a different session.";
+                ErrorMessage = _localizer["The replacement session must be a different session."].Value;
                 break;
         }
 
@@ -244,20 +246,18 @@ public class SchedulesModel : PageModel
 
         if (result.Outcome == TeacherReassignmentOutcome.Reassigned)
         {
-            StatusMessage = "Teacher reassigned. The previous meeting was cancelled (or flagged for admin attention if its " +
-                            "account was already revoked); a fresh meeting is created under the new teacher when the session " +
-                            "is next started or joined. Enrolled students have been notified.";
+            StatusMessage = _localizer["Teacher reassigned. The previous meeting was cancelled (or flagged for admin attention if its account was already revoked); a fresh meeting is created under the new teacher when the session is next started or joined. Enrolled students have been notified."].Value;
         }
         else
         {
             ErrorMessage = result.Outcome switch
             {
-                TeacherReassignmentOutcome.SessionNotFound => "Session not found.",
-                TeacherReassignmentOutcome.SessionNotReassignable => result.Detail ?? "That session can no longer be reassigned.",
-                TeacherReassignmentOutcome.NewTeacherOverlaps => result.Detail ?? "The new teacher already has a session at that time.",
+                TeacherReassignmentOutcome.SessionNotFound => _localizer["Session not found."].Value,
+                TeacherReassignmentOutcome.SessionNotReassignable => result.Detail ?? _localizer["That session can no longer be reassigned."].Value,
+                TeacherReassignmentOutcome.NewTeacherOverlaps => result.Detail ?? _localizer["The new teacher already has a session at that time."].Value,
                 TeacherReassignmentOutcome.NewTeacherNotReadyForOnlineSessions => result.Detail
-                    ?? "That teacher has no connected Zoom or Google Meet account.",
-                _ => "Could not reassign the teacher.",
+                    ?? _localizer["That teacher has no connected Zoom or Google Meet account."].Value,
+                _ => _localizer["Could not reassign the teacher."].Value,
             };
         }
 
@@ -268,7 +268,7 @@ public class SchedulesModel : PageModel
     public async Task<IActionResult> OnPostPauseAsync(long scheduleId)
     {
         await _schedules.PauseAsync(scheduleId, HttpContext.RequestAborted);
-        StatusMessage = "Schedule paused — future occurrences stop generating; nothing already generated is affected.";
+        StatusMessage = _localizer["Schedule paused — future occurrences stop generating; nothing already generated is affected."].Value;
         await LoadAsync();
         return Page();
     }
@@ -276,7 +276,7 @@ public class SchedulesModel : PageModel
     public async Task<IActionResult> OnPostResumeAsync(long scheduleId)
     {
         await _schedules.ResumeAsync(scheduleId, HttpContext.RequestAborted);
-        StatusMessage = "Schedule resumed.";
+        StatusMessage = _localizer["Schedule resumed."].Value;
         await LoadAsync();
         return Page();
     }
@@ -307,7 +307,8 @@ public class SchedulesModel : PageModel
         var schedules = await _db.RecurringSchedules.OrderByDescending(s => s.Id).ToListAsync();
         Schedules = schedules.Select(s => new ScheduleRow(s.Id, teacherNames.GetValueOrDefault(s.TeacherId, $"#{s.TeacherId}"),
             courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
-            ageGroupCodes.GetValueOrDefault(s.AgeGroupId, "?"), string.Join(",", s.DaysOfWeek),
+            ageGroupCodes.GetValueOrDefault(s.AgeGroupId, "?"),
+            string.Join(",", s.DaysOfWeek.Select(d => _localizer["DayOfWeek." + d].Value)),
             s.StartLocal.ToString("HH:mm", null), s.DurationMinutes, s.TimeZoneId, s.Status)).ToList();
 
         var now = _clock.GetCurrentInstant();

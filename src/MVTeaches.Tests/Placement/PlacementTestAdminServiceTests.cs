@@ -29,7 +29,8 @@ public class PlacementTestAdminServiceTests
     private static long NextId() => Interlocked.Increment(ref _idSeed);
 
     private static IPlacementTestAdminService CreateService(MvTeachesDbContext db) =>
-        new PlacementTestAdminService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()));
+        new PlacementTestAdminService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()),
+            TestLocalization.For<MVTeaches.Infrastructure.Resources.InfrastructureResource>());
 
     private static async Task<(int LevelA, int LevelB)> SeedTwoLevelsAsync(MvTeachesDbContext db)
     {

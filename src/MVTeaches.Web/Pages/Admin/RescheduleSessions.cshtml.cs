@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -36,14 +38,16 @@ public class RescheduleSessionsModel : PageModel
     private readonly IEnrollmentService _enrollments;
     private readonly IClock _clock;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public RescheduleSessionsModel(MvTeachesDbContext db, IEnrollmentService enrollments, IClock clock,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _enrollments = enrollments;
         _clock = clock;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public record SessionOption(long Id, string Label);
@@ -91,19 +95,19 @@ public class RescheduleSessionsModel : PageModel
 
         if (result.Outcome == RescheduleOutcome.Rescheduled)
         {
-            StatusMessage = "Rescheduled — the student's unattended lesson was moved to the new session. Balance untouched.";
+            StatusMessage = _localizer["Rescheduled — the student's unattended lesson was moved to the new session. Balance untouched."].Value;
         }
         else
         {
             ErrorMessage = result.Outcome switch
             {
-                RescheduleOutcome.OriginalEnrollmentNotFound => "No active enrollment found for that student on the original session.",
-                RescheduleOutcome.OriginalSessionAlreadyConsumed => "That session was already attended (Joined) — use \"Approve a replacement lesson\" below instead.",
-                RescheduleOutcome.ReplacementSessionNotFound => "Replacement session not found.",
-                RescheduleOutcome.ReplacementSessionIsTheSameSession => "The replacement must be a different session.",
-                RescheduleOutcome.ReplacementSessionFull => "The replacement session is full.",
-                RescheduleOutcome.NoApplicableAgeGroup => "No age group covers this student's current age.",
-                _ => "Could not reschedule.",
+                RescheduleOutcome.OriginalEnrollmentNotFound => _localizer["No active enrollment found for that student on the original session."].Value,
+                RescheduleOutcome.OriginalSessionAlreadyConsumed => _localizer["That session was already attended (Joined) — use \"Approve a replacement lesson\" below instead."].Value,
+                RescheduleOutcome.ReplacementSessionNotFound => _localizer["Replacement session not found."].Value,
+                RescheduleOutcome.ReplacementSessionIsTheSameSession => _localizer["The replacement must be a different session."].Value,
+                RescheduleOutcome.ReplacementSessionFull => _localizer["The replacement session is full."].Value,
+                RescheduleOutcome.NoApplicableAgeGroup => _localizer["No age group covers this student's current age."].Value,
+                _ => _localizer["Could not reschedule."].Value,
             };
         }
 
@@ -126,22 +130,22 @@ public class RescheduleSessionsModel : PageModel
 
         if (result.Outcome == ApproveReplacementOutcome.Approved)
         {
-            StatusMessage = "Replacement lesson approved — the student's next Join on it will not deduct their balance again.";
+            StatusMessage = _localizer["Replacement lesson approved — the student's next Join on it will not deduct their balance again."].Value;
         }
         else
         {
             ErrorMessage = result.Outcome switch
             {
-                ApproveReplacementOutcome.OriginalNotYetConsumed => "That session was never attended (no Join recorded) — use \"Reschedule an unattended lesson\" above instead.",
-                ApproveReplacementOutcome.OriginalSessionNotFound => "Original session not found.",
-                ApproveReplacementOutcome.ReplacementSessionNotFound => "Replacement session not found.",
-                ApproveReplacementOutcome.ReplacementSessionIsTheSameSession => "The replacement must be a different session.",
-                ApproveReplacementOutcome.ReplacementSessionFull => "The replacement session is full.",
-                ApproveReplacementOutcome.AlreadyEnrolledInReplacementSession => "The student already has an active enrollment on that replacement session.",
-                ApproveReplacementOutcome.NoApplicableAgeGroup => "No age group covers this student's current age.",
-                ApproveReplacementOutcome.ReplacementSessionLevelMismatch => "The replacement session is a different level than the original.",
-                ApproveReplacementOutcome.ReplacementSessionNotInFuture => "The replacement must be a session that hasn't started yet.",
-                _ => "Could not approve the replacement.",
+                ApproveReplacementOutcome.OriginalNotYetConsumed => _localizer["That session was never attended (no Join recorded) — use \"Reschedule an unattended lesson\" above instead."].Value,
+                ApproveReplacementOutcome.OriginalSessionNotFound => _localizer["Original session not found."].Value,
+                ApproveReplacementOutcome.ReplacementSessionNotFound => _localizer["Replacement session not found."].Value,
+                ApproveReplacementOutcome.ReplacementSessionIsTheSameSession => _localizer["The replacement must be a different session."].Value,
+                ApproveReplacementOutcome.ReplacementSessionFull => _localizer["The replacement session is full."].Value,
+                ApproveReplacementOutcome.AlreadyEnrolledInReplacementSession => _localizer["The student already has an active enrollment on that replacement session."].Value,
+                ApproveReplacementOutcome.NoApplicableAgeGroup => _localizer["No age group covers this student's current age."].Value,
+                ApproveReplacementOutcome.ReplacementSessionLevelMismatch => _localizer["The replacement session is a different level than the original."].Value,
+                ApproveReplacementOutcome.ReplacementSessionNotInFuture => _localizer["The replacement must be a session that hasn't started yet."].Value,
+                _ => _localizer["Could not approve the replacement."].Value,
             };
         }
 

@@ -537,8 +537,10 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         db.ClassSessions.Add(otherTeachersSession);
         await db.SaveChangesAsync();
 
+        // ?culture=en pins the assertion below to a known language — the
+        // page is now fully localized and defaults to ar-JO.
         var attackerClient = await CreateAuthenticatedClientAsync(TeacherEmail);
-        var declarePage = await attackerClient.GetStringAsync("/Teacher/MySessions");
+        var declarePage = await attackerClient.GetStringAsync("/Teacher/MySessions?culture=en");
         var token = AntiforgeryTokenPattern.Match(declarePage).Groups[1].Value;
 
         var form = new Dictionary<string, string>
@@ -547,7 +549,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
             ["sessionId"] = otherTeachersSession.Id.ToString(),
             ["declaredMinutes"] = "60",
         };
-        var response = await attackerClient.PostAsync("/Teacher/MySessions?handler=Declare", new FormUrlEncodedContent(form));
+        var response = await attackerClient.PostAsync("/Teacher/MySessions?handler=Declare&culture=en", new FormUrlEncodedContent(form));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("Session not found", body);
@@ -755,8 +757,10 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         db.Students.Add(strangerChild);
         await db.SaveChangesAsync();
 
+        // ?culture=en pins the assertion below to a known language — the
+        // page is now fully localized and defaults to ar-JO.
         var client = await CreateAuthenticatedClientAsync(GuardianEmail);
-        var page = await client.GetStringAsync("/PlacementTest");
+        var page = await client.GetStringAsync("/PlacementTest?culture=en");
         var token = AntiforgeryTokenPattern.Match(page).Groups[1].Value;
 
         var form = new Dictionary<string, string>
@@ -764,7 +768,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
             ["__RequestVerificationToken"] = token,
             ["studentId"] = strangerChild.Id.ToString(),
         };
-        var response = await client.PostAsync("/PlacementTest?handler=Start", new FormUrlEncodedContent(form));
+        var response = await client.PostAsync("/PlacementTest?handler=Start&culture=en", new FormUrlEncodedContent(form));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -846,8 +850,11 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         db.PricingPlans.Add(plan);
         await db.SaveChangesAsync();
 
+        // ?culture=en pins the assertions below to a known language — the
+        // page is now fully localized (Section 7) and defaults to ar-JO,
+        // same convention as LocalizationAndShellTests.
         var client = await CreateAuthenticatedClientAsync(email);
-        var page = await client.GetStringAsync("/PurchasePackage");
+        var page = await client.GetStringAsync("/PurchasePackage?culture=en");
         Assert.Contains("placement test is required", page);
 
         // Even a direct, form-tampered POST must be refused — the CTA is a
@@ -860,11 +867,72 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
             ["studentId"] = student.Id.ToString(),
             ["pricingPlanId"] = plan.Id.ToString(),
         };
-        var response = await client.PostAsync("/PurchasePackage?handler=Purchase", new FormUrlEncodedContent(form));
+        var response = await client.PostAsync("/PurchasePackage?handler=Purchase&culture=en", new FormUrlEncodedContent(form));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("placement result is required", body);
         Assert.False(await db.Subscriptions.AnyAsync(s => s.StudentId == student.Id));
+    }
+
+    /// <summary>Section 7's own explicit requirement: "verify language
+    /// switching doesn't break price/date entry or decimal interpretation."
+    /// .NET's ar-JO culture renders a plain `decimal.ToString("N3", null)`
+    /// with Arabic-Indic separators (٬/٫) — a real, reproduced bug this
+    /// session found and fixed by switching every money-formatting call site
+    /// to CultureInfo.InvariantCulture explicitly. This proves a price still
+    /// renders with an ASCII "." decimal point under the Arabic UI, so a
+    /// payer reading "50.000 JOD" never has to interpret a locale-specific
+    /// separator for money.</summary>
+    [Fact]
+    public async Task A_price_still_renders_with_an_ascii_decimal_point_under_the_arabic_culture()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        const string email = "authtest-priceformat-student@test.mvteaches.local";
+        await EnsureUserAsync(userManager, email, RoleNames.Student);
+        var user = await userManager.FindByEmailAsync(email);
+        if (!await db.Students.AnyAsync(s => s.UserId == user!.Id))
+        {
+            db.Students.Add(new Student(90_000_002, "Price Format Student", new LocalDate(2013, 1, 1), user!.Id));
+            await db.SaveChangesAsync();
+        }
+
+        var student = await db.Students.FirstAsync(s => s.UserId == user!.Id);
+
+        if (!await db.Courses.AnyAsync(c => c.Code == "PRICEFMT-COURSE"))
+        {
+            db.Courses.Add(new Course("PRICEFMT-COURSE", "دورة", "Course"));
+            await db.SaveChangesAsync();
+        }
+        var courseId = await db.Courses.Where(c => c.Code == "PRICEFMT-COURSE").Select(c => c.Id).FirstAsync();
+        var levelId = 90_000_005;
+        if (!await db.Levels.AnyAsync(l => l.Id == levelId))
+        {
+            db.Levels.Add(new Level(levelId, "PRICEFMT-LVL", "مستوى", "Level", levelId));
+            await db.SaveChangesAsync();
+        }
+        if (!await db.StudentLevels.AnyAsync(l => l.StudentId == student.Id && l.IsCurrent))
+        {
+            db.StudentLevels.Add(new MVTeaches.Domain.Placement.StudentLevel(student.Id, levelId, user!.Id,
+                MVTeaches.Domain.Placement.AssignedByRole.Admin, MVTeaches.Domain.Placement.LevelAssignmentSource.AdminOverride,
+                null, "seed", NodaTime.SystemClock.Instance.GetCurrentInstant()));
+            await db.SaveChangesAsync();
+        }
+        if (!await db.PricingPlans.AnyAsync(p => p.CourseId == courseId && p.LevelId == levelId))
+        {
+            db.PricingPlans.Add(new PricingPlan(90_000_002, courseId, levelId, null, SessionType.Group, 10, 600,
+                new Money(1234.567m, "JOD"), 90, new LocalDate(2026, 1, 1), 1));
+            await db.SaveChangesAsync();
+        }
+
+        var client = await CreateAuthenticatedClientAsync(email);
+        var page = await client.GetStringAsync("/PurchasePackage?culture=ar-JO");
+
+        Assert.Contains("1,234.567 JOD", page);
+        Assert.DoesNotContain("1234٫567", page);
+        Assert.DoesNotContain("1٬234", page);
     }
 
     // ---- Video-meeting connections (owner clarification 2026-08-29) ----

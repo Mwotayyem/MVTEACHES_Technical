@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Domain.Integrations;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Teacher;
 
@@ -26,13 +28,15 @@ public class ConnectionsModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly ITeacherMeetingConnectionService _connections;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public ConnectionsModel(MvTeachesDbContext db, ITeacherMeetingConnectionService connections,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _connections = connections;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public IReadOnlyList<ConnectionSummary> Connections { get; set; } = Array.Empty<ConnectionSummary>();
@@ -55,11 +59,11 @@ public class ConnectionsModel : PageModel
         // short opaque code, never any provider payload.
         (StatusMessage, ErrorMessage) = status switch
         {
-            "connected" => ("Account connected.", (string?)null),
-            "state_invalid" => (null, "That authorization link was invalid, expired, or already used. Please start again."),
-            "mismatch" => (null, "That authorization did not belong to your account. Please start again."),
-            "not_configured" => (null, "This provider is not configured on the server yet — ask an admin."),
-            "failed" => (null, "The provider rejected the authorization. Please try again."),
+            "connected" => (_localizer["Account connected."].Value, (string?)null),
+            "state_invalid" => (null, _localizer["That authorization link was invalid, expired, or already used. Please start again."].Value),
+            "mismatch" => (null, _localizer["That authorization did not belong to your account. Please start again."].Value),
+            "not_configured" => (null, _localizer["This provider is not configured on the server yet — ask an admin."].Value),
+            "failed" => (null, _localizer["The provider rejected the authorization. Please try again."].Value),
             _ => (null, null),
         };
 
@@ -80,7 +84,7 @@ public class ConnectionsModel : PageModel
 
         if (result.Outcome == BeginConnectOutcome.ProviderNotConfigured || result.AuthorizationUrl is null)
         {
-            ErrorMessage = $"{Describe(provider)} is not configured on this server yet — ask an admin to add its OAuth credentials.";
+            ErrorMessage = _localizer["{0} is not configured on this server yet — ask an admin to add its OAuth credentials.", Describe(provider)].Value;
             await LoadAsync();
             return Page();
         }
@@ -99,9 +103,9 @@ public class ConnectionsModel : PageModel
 
         var result = await _connections.DisconnectAsync(teacherId.Value, provider, HttpContext.RequestAborted);
         StatusMessage = result.Outcome == DisconnectOutcome.Disconnected
-            ? $"{Describe(provider)} disconnected. Meetings already created for existing sessions are unaffected."
+            ? _localizer["{0} disconnected. Meetings already created for existing sessions are unaffected.", Describe(provider)].Value
             : null;
-        ErrorMessage = result.Outcome == DisconnectOutcome.NotFound ? "No such connection." : null;
+        ErrorMessage = result.Outcome == DisconnectOutcome.NotFound ? _localizer["No such connection."].Value : null;
 
         await LoadAsync();
         return Page();
@@ -118,10 +122,10 @@ public class ConnectionsModel : PageModel
 
         var result = await _connections.SetDefaultProviderAsync(teacherId.Value, provider, HttpContext.RequestAborted);
         StatusMessage = result.Outcome == SetDefaultProviderOutcome.Updated
-            ? $"{Describe(provider)} is now your default for NEW sessions. Meetings already created for existing sessions are unchanged."
+            ? _localizer["{0} is now your default for NEW sessions. Meetings already created for existing sessions are unchanged.", Describe(provider)].Value
             : null;
         ErrorMessage = result.Outcome == SetDefaultProviderOutcome.NotConnected
-            ? "You must connect that provider before making it your default."
+            ? _localizer["You must connect that provider before making it your default."].Value
             : null;
 
         await LoadAsync();

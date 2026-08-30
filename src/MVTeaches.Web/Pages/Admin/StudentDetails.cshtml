@@ -1,33 +1,33 @@
 @page "{id:long}"
 @model MVTeaches.Web.Pages.Admin.StudentDetailsModel
 @{
-    ViewData["Title"] = "Student";
+    ViewData["Title"] = T["Student"].Value;
 }
 
 @if (Model.Student is { } student)
 {
     <h1>@student.FullName</h1>
-    <p class="text-muted">#@student.Id — @Model.CountryName — @student.Status — born @student.DateOfBirth.ToString("yyyy-MM-dd", null)</p>
+    <p class="text-muted">#@student.Id — @Model.CountryName — @T["StudentStatus." + student.Status] — @T["born"] @student.DateOfBirth.ToString("yyyy-MM-dd", null)</p>
 
     <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <h2>Guardians</h2>
+            <h2>@T["Guardians"]</h2>
             <div class="table-responsive">
                 <table class="table table-sm table-striped">
-                    <thead><tr><th>Name</th><th>Relationship</th><th>Primary</th><th>Can pay</th></tr></thead>
+                    <thead><tr><th>@T["Name"]</th><th>@T["Relationship"]</th><th>@T["Primary"]</th><th>@T["Can pay"]</th></tr></thead>
                     <tbody>
                         @foreach (var g in Model.Guardians)
                         {
                             <tr>
                                 <td>@g.FullName</td>
-                                <td>@g.Relationship</td>
-                                <td>@(g.IsPrimary ? "Yes" : "")</td>
-                                <td>@(g.CanPay ? "Yes" : "No")</td>
+                                <td>@T["GuardianRelationship." + g.Relationship]</td>
+                                <td>@(g.IsPrimary ? T["Yes"] : "")</td>
+                                <td>@(g.CanPay ? T["Yes"] : T["No"])</td>
                             </tr>
                         }
                         @if (Model.Guardians.Count == 0)
                         {
-                            <tr><td colspan="4" class="text-muted">No guardians linked.</td></tr>
+                            <tr><td colspan="4" class="text-muted">@T["No guardians linked."]</td></tr>
                         }
                     </tbody>
                 </table>
@@ -35,23 +35,23 @@
         </div>
 
         <div class="col-md-6">
-            <h2>Level history</h2>
+            <h2>@T["Level history"]</h2>
             <div class="table-responsive">
                 <table class="table table-sm table-striped">
-                    <thead><tr><th>Level</th><th>Source</th><th>Current</th><th>Since</th></tr></thead>
+                    <thead><tr><th>@T["Level"]</th><th>@T["Source"]</th><th>@T["Current"]</th><th>@T["Since"]</th></tr></thead>
                     <tbody>
                         @foreach (var l in Model.LevelHistory)
                         {
                             <tr>
                                 <td>@l.LevelCode</td>
-                                <td>@l.Source@(l.Reason is not null ? $" — {l.Reason}" : "")</td>
+                                <td>@T["LevelAssignmentSource." + l.Source]@(l.Reason is not null ? $" — {l.Reason}" : "")</td>
                                 <td>@(l.IsCurrent ? "✅" : "")</td>
                                 <td>@l.EffectiveFromUtc.ToString("yyyy-MM-dd", null)</td>
                             </tr>
                         }
                         @if (Model.LevelHistory.Count == 0)
                         {
-                            <tr><td colspan="4" class="text-muted">No level assigned yet.</td></tr>
+                            <tr><td colspan="4" class="text-muted">@T["No level assigned yet."]</td></tr>
                         }
                     </tbody>
                 </table>
@@ -59,71 +59,71 @@
         </div>
     </div>
 
-    <h2>Subscriptions</h2>
+    <h2>@T["Subscriptions"]</h2>
     <div class="table-responsive mb-4">
         <table class="table table-sm table-striped">
-            <thead><tr><th>#</th><th>Course/Level</th><th>Price</th><th>Status</th><th>Origin</th><th>Balance (min)</th><th>Expires</th></tr></thead>
+            <thead><tr><th>#</th><th>@T["Course/Level"]</th><th>@T["Price"]</th><th>@T["Status"]</th><th>@T["Origin"]</th><th>@T["Balance (min)"]</th><th>@T["Expires"]</th></tr></thead>
             <tbody>
                 @foreach (var s in Model.Subscriptions)
                 {
                     <tr>
                         <td>@s.Id</td>
                         <td>@s.CourseName / @s.LevelCode</td>
-                        <td>@s.Price.ToString("N3", null) @s.Currency</td>
-                        <td>@s.Status</td>
-                        <td>@s.Origin</td>
+                        <td>@s.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</td>
+                        <td>@T["SubscriptionStatus." + s.Status]</td>
+                        <td>@T["SubscriptionOrigin." + s.Origin]</td>
                         <td>@s.BalanceMinutes</td>
                         <td>@s.ExpiresOn.ToString("yyyy-MM-dd", null)</td>
                     </tr>
                 }
                 @if (Model.Subscriptions.Count == 0)
                 {
-                    <tr><td colspan="7" class="text-muted">No subscriptions yet — see <a asp-page="/Admin/Subscriptions">/Admin/Subscriptions</a>.</td></tr>
+                    <tr><td colspan="7" class="text-muted">@T["No subscriptions yet — see"] <a asp-page="/Admin/Subscriptions">/Admin/Subscriptions</a>.</td></tr>
                 }
             </tbody>
         </table>
     </div>
 
-    <h2>Payment history</h2>
+    <h2>@T["Payment history"]</h2>
     <div class="table-responsive mb-4">
         <table class="table table-sm table-striped">
-            <thead><tr><th>Ref</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+            <thead><tr><th>@T["Ref"]</th><th>@T["Amount"]</th><th>@T["Method"]</th><th>@T["Status"]</th><th>@T["Date"]</th></tr></thead>
             <tbody>
                 @foreach (var p in Model.Payments)
                 {
                     <tr>
                         <td>@p.ReferenceCode</td>
-                        <td>@p.Amount.ToString("N3", null) @p.Currency</td>
-                        <td>@p.Method</td>
-                        <td>@p.Status</td>
+                        <td>@p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</td>
+                        <td>@T["PaymentMethod." + p.Method]</td>
+                        <td>@T["PaymentStatus." + p.Status]</td>
                         <td>@p.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm", null)</td>
                     </tr>
                 }
                 @if (Model.Payments.Count == 0)
                 {
-                    <tr><td colspan="5" class="text-muted">No payments recorded — see <a asp-page="/Admin/Payments">/Admin/Payments</a>.</td></tr>
+                    <tr><td colspan="5" class="text-muted">@T["No payments recorded — see"] <a asp-page="/Admin/Payments">/Admin/Payments</a>.</td></tr>
                 }
             </tbody>
         </table>
     </div>
 
-    <h2>Certificates</h2>
+    <h2>@T["Certificates"]</h2>
     <div class="table-responsive">
         <table class="table table-sm table-striped">
-            <thead><tr><th>Number</th><th>Level</th><th>Status</th><th>Issued</th></tr></thead>
+            <thead><tr><th>@T["Number"]</th><th>@T["Level"]</th><th>@T["Status"]</th><th>@T["Issued"]</th></tr></thead>
             <tbody>
                 @foreach (var c in Model.Certificates)
                 {
                     <tr>
                         <td>@c.CertificateNumber</td>
                         <td>@c.LevelCode</td>
-                        <td>@c.Status</td>
+                        <td>@T["CertificateStatus." + c.Status]</td>
                         <td>@c.IssuedAtUtc.ToString("yyyy-MM-dd", null)</td>
                     </tr>
                 }
                 @if (Model.Certificates.Count == 0)
                 {
-                    <tr><td colspan="4" class="text-muted">No certificates issued yet.</td></tr>
+                    <tr><td colspan="4" class="text-muted">@T["No certificates issued yet."]</td></tr>
                 }
             </tbody>
         </table>

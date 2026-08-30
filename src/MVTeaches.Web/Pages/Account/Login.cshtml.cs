@@ -2,7 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Account;
 
@@ -19,11 +21,14 @@ public class LoginModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+    public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     [BindProperty]
@@ -94,11 +99,11 @@ public class LoginModel : PageModel
 
         if (result.IsLockedOut)
         {
-            ErrorMessage = "This account is temporarily locked after too many failed attempts.";
+            ErrorMessage = _localizer["This account is temporarily locked after too many failed attempts."].Value;
             return Page();
         }
 
-        ErrorMessage = "Invalid email or password.";
+        ErrorMessage = _localizer["Invalid email or password."].Value;
         return Page();
     }
 }

@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Guardian;
@@ -29,13 +31,16 @@ public class MyChildrenModel : PageModel
     private readonly IJoinAttendanceService _join;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IClock _clock;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public MyChildrenModel(MvTeachesDbContext db, IJoinAttendanceService join, UserManager<ApplicationUser> userManager, IClock clock)
+    public MyChildrenModel(MvTeachesDbContext db, IJoinAttendanceService join, UserManager<ApplicationUser> userManager, IClock clock,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _join = join;
         _userManager = userManager;
         _clock = clock;
+        _localizer = localizer;
     }
 
     public record ChildSessionRow(long StudentId, string StudentName, long SessionId, Instant StartsAtUtc,
@@ -61,16 +66,16 @@ public class MyChildrenModel : PageModel
 
         StatusMessage = result.Outcome switch
         {
-            JoinOutcome.Recorded => "Attendance recorded — the session's full duration has been drawn from the subscription.",
-            JoinOutcome.AlreadyRecorded => "Already marked present for this session.",
+            JoinOutcome.Recorded => _localizer["Attendance recorded — the session's full duration has been drawn from the subscription."].Value,
+            JoinOutcome.AlreadyRecorded => _localizer["Already marked present for this session."].Value,
             _ => null,
         };
         ErrorMessage = result.Outcome switch
         {
-            JoinOutcome.Unauthorized => "This child is not enrolled in that session, or this account is not their guardian.",
-            JoinOutcome.SessionNotFound => "Session not found.",
-            JoinOutcome.SessionNotYetJoinable => "This session hasn't started yet.",
-            JoinOutcome.InsufficientBalance => "No subscription has enough remaining balance to cover this session.",
+            JoinOutcome.Unauthorized => _localizer["This child is not enrolled in that session, or this account is not their guardian."].Value,
+            JoinOutcome.SessionNotFound => _localizer["Session not found."].Value,
+            JoinOutcome.SessionNotYetJoinable => _localizer["This session hasn't started yet."].Value,
+            JoinOutcome.InsufficientBalance => _localizer["No subscription has enough remaining balance to cover this session."].Value,
             _ => null,
         };
 

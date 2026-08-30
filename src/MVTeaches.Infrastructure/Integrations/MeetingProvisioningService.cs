@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Domain.Audit;
@@ -9,6 +10,7 @@ using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Integrations.Security;
 using MVTeaches.Infrastructure.Integrations.Zoom;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Infrastructure.Resources;
 using NodaTime;
 
 namespace MVTeaches.Infrastructure.Integrations;
@@ -31,15 +33,18 @@ public class MeetingProvisioningService : IMeetingProvisioningService
     private readonly TokenRefreshCoordinator _tokenRefresh;
     private readonly IClock _clock;
     private readonly ILogger<MeetingProvisioningService> _logger;
+    private readonly IStringLocalizer<InfrastructureResource> _localizer;
 
     public MeetingProvisioningService(MvTeachesDbContext db, IEnumerable<IVideoMeetingProviderClient> clients,
-        TokenRefreshCoordinator tokenRefresh, IClock clock, ILogger<MeetingProvisioningService> logger)
+        TokenRefreshCoordinator tokenRefresh, IClock clock, ILogger<MeetingProvisioningService> logger,
+        IStringLocalizer<InfrastructureResource> localizer)
     {
         _db = db;
         _clients = clients;
         _tokenRefresh = tokenRefresh;
         _clock = clock;
         _logger = logger;
+        _localizer = localizer;
     }
 
     public async Task<ProvisionMeetingResult> GetOrProvisionReadyMeetingAsync(long sessionId, CancellationToken cancellationToken)
@@ -58,7 +63,7 @@ public class MeetingProvisioningService : IMeetingProvisioningService
         if (session.Status != ClassSessionStatus.Scheduled)
         {
             return new ProvisionMeetingResult(ProvisionMeetingOutcome.SessionNotProvisionable,
-                Detail: $"This session is {session.Status} — no meeting is created for it.");
+                Detail: _localizer["This session is {0} — no meeting is created for it.", _localizer["ClassSessionStatus." + session.Status].Value].Value);
         }
 
         var existing = await _db.ProvisionedMeetings.FirstOrDefaultAsync(m => m.SessionId == sessionId && m.IsActive, cancellationToken);
@@ -203,7 +208,7 @@ public class MeetingProvisioningService : IMeetingProvisioningService
         if (session.Status != ClassSessionStatus.Scheduled || session.StartsAtUtc <= _clock.GetCurrentInstant())
         {
             return new TeacherReassignmentResult(TeacherReassignmentOutcome.SessionNotReassignable,
-                "Only a future session that hasn't started yet can be reassigned.");
+                _localizer["Only a future session that hasn't started yet can be reassigned."].Value);
         }
 
         // Owner clarification (2026-08-29): a teacher with no usable
@@ -214,7 +219,7 @@ public class MeetingProvisioningService : IMeetingProvisioningService
         if (!newTeacherReady)
         {
             return new TeacherReassignmentResult(TeacherReassignmentOutcome.NewTeacherNotReadyForOnlineSessions,
-                "This teacher has no connected Zoom or Google Meet account — connect one from the Teacher portal before assigning online sessions.");
+                _localizer["This teacher has no connected Zoom or Google Meet account — connect one from the Teacher portal before assigning online sessions."].Value);
         }
 
         var oldTeacherId = session.TeacherId;
@@ -228,7 +233,7 @@ public class MeetingProvisioningService : IMeetingProvisioningService
         {
             _db.ChangeTracker.Clear();
             return new TeacherReassignmentResult(TeacherReassignmentOutcome.NewTeacherOverlaps,
-                "The new teacher already has another session scheduled at this exact time.");
+                _localizer["The new teacher already has another session scheduled at this exact time."].Value);
         }
 
         await SupersedeOldMeetingAsync(sessionId, cancellationToken);
@@ -367,7 +372,7 @@ public class MeetingProvisioningService : IMeetingProvisioningService
     /// remaining hard block is having no connected account at all
     /// (<see cref="ProvisionMeetingOutcome.NoProviderConnection"/>).
     /// </summary>
-    private static string? CheckCapability(TeacherMeetingConnection connection, ClassSession session)
+    private string? CheckCapability(TeacherMeetingConnection connection, ClassSession session)
     {
         var isGroupCapable = session.Capacity > 1;
 
@@ -379,10 +384,8 @@ public class MeetingProvisioningService : IMeetingProvisioningService
                 return null;
             }
 
-            return $"Your Zoom account is Basic (free), which Zoom ends after {ZoomVideoMeetingProviderClient.ZoomBasicMinutesLimit} minutes " +
-                   $"(one-to-one meetings included), but this session is scheduled for {session.DurationMinutes} minutes. " +
-                   "The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. " +
-                   "If Zoom ends the meeting early, use \"Continue meeting\" to bring everyone back into the same session.";
+            return _localizer["Your Zoom account is Basic (free), which Zoom ends after {0} minutes (one-to-one meetings included), but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. If Zoom ends the meeting early, use \"Continue meeting\" to bring everyone back into the same session.",
+                ZoomVideoMeetingProviderClient.ZoomBasicMinutesLimit, session.DurationMinutes].Value;
         }
 
         // GoogleMeet — never assumed paid (see GoogleMeetProviderClient's own remarks).
@@ -393,13 +396,10 @@ public class MeetingProvisioningService : IMeetingProvisioningService
         }
 
         return isGroupCapable
-            ? $"A free Google account ends group Google Meet calls after {GoogleGroupMinutesLimit} minutes, " +
-              $"but this session is scheduled for {session.DurationMinutes} minutes. The session, the student's deducted " +
-              "minutes, and your pay all stay at the full scheduled duration. If Google ends the meeting early, use " +
-              "\"Continue meeting\" to bring everyone back into the same session."
-            : $"A free Google account ends one-to-one Google Meet calls after {GoogleOneToOneMinutesLimit / 60} hours, " +
-              $"but this session is scheduled for {session.DurationMinutes} minutes. The session, the student's deducted " +
-              "minutes, and your pay all stay at the full scheduled duration.";
+            ? _localizer["A free Google account ends group Google Meet calls after {0} minutes, but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. If Google ends the meeting early, use \"Continue meeting\" to bring everyone back into the same session.",
+                GoogleGroupMinutesLimit, session.DurationMinutes].Value
+            : _localizer["A free Google account ends one-to-one Google Meet calls after {0} hours, but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration.",
+                GoogleOneToOneMinutesLimit / 60, session.DurationMinutes].Value;
     }
 
     private async Task<bool> TryClaimAsync(long provisionedMeetingId, CancellationToken cancellationToken)
@@ -452,7 +452,7 @@ public class MeetingProvisioningService : IMeetingProvisioningService
             string? boundaryWarning = connection.Provider == VideoProviderType.GoogleMeet
                 && connection.CapabilityTier != MeetingCapabilityTier.Full
                 && isGroupCapable && session.DurationMinutes == GoogleGroupMinutesLimit
-                ? "Google may end this free-tier group meeting automatically at the 60-minute mark."
+                ? _localizer["Google may end this free-tier group meeting automatically at the 60-minute mark."].Value
                 : null;
 
             return new ProvisionMeetingResult(ProvisionMeetingOutcome.Ready, handle.JoinUrl, connection.Provider,
@@ -464,7 +464,7 @@ public class MeetingProvisioningService : IMeetingProvisioningService
             meeting.MarkFailed("The video provider rejected the meeting request. Try again shortly, or ask an admin to check the connection.");
             await _db.SaveChangesAsync(cancellationToken);
             return new ProvisionMeetingResult(ProvisionMeetingOutcome.Failed,
-                Detail: "The video provider rejected the meeting request.", Provider: connection.Provider,
+                Detail: _localizer["The video provider rejected the meeting request."].Value, Provider: connection.Provider,
                 CapabilityWarning: capabilityWarning);
         }
     }

@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Account;
 
@@ -38,11 +40,14 @@ public class ManageMfaModel : PageModel
 
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public ManageMfaModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+    public ManageMfaModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _localizer = localizer;
     }
 
     public bool IsEnabled { get; set; }
@@ -95,7 +100,7 @@ public class ManageMfaModel : PageModel
         var isValid = await _userManager.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultAuthenticatorProvider, code);
         if (!isValid)
         {
-            ErrorMessage = "That code didn't verify — check the time on your device and try the next code.";
+            ErrorMessage = _localizer["That code didn't verify — check the time on your device and try the next code."];
             await LoadAsync(user);
             return Page();
         }
@@ -103,7 +108,7 @@ public class ManageMfaModel : PageModel
         await _userManager.SetTwoFactorEnabledAsync(user, true);
         var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
         FreshRecoveryCodes = recoveryCodes?.ToList();
-        StatusMessage = "Two-factor authentication is now enabled. Save these recovery codes — each is shown only once.";
+        StatusMessage = _localizer["Two-factor authentication is now enabled. Save these recovery codes — each is shown only once."];
 
         await LoadAsync(user);
         return Page();
@@ -119,7 +124,7 @@ public class ManageMfaModel : PageModel
 
         await _userManager.SetTwoFactorEnabledAsync(user, false);
         await _userManager.ResetAuthenticatorKeyAsync(user);
-        StatusMessage = "Two-factor authentication disabled. If this account's role requires it, you'll be asked to set it up again next time you sign in.";
+        StatusMessage = _localizer["Two-factor authentication disabled. If this account's role requires it, you'll be asked to set it up again next time you sign in."];
 
         await LoadAsync(user);
         return Page();
@@ -135,7 +140,7 @@ public class ManageMfaModel : PageModel
 
         var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
         FreshRecoveryCodes = recoveryCodes?.ToList();
-        StatusMessage = "New recovery codes generated — the old ones no longer work. Save these now.";
+        StatusMessage = _localizer["New recovery codes generated — the old ones no longer work. Save these now."];
 
         await LoadAsync(user);
         return Page();

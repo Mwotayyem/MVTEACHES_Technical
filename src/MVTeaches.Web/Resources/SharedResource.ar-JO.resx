@@ -1,0 +1,868 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="MVTEACHES" xml:space="preserve"><value>MVTEACHES</value></data>
+  <data name="Online Education Platform" xml:space="preserve"><value>منصة تعليم إلكتروني</value></data>
+  <data name="Open navigation" xml:space="preserve"><value>فتح التنقل</value></data>
+  <data name="Language" xml:space="preserve"><value>اللغة</value></data>
+  <data name="Sign out" xml:space="preserve"><value>تسجيل الخروج</value></data>
+  <data name="Sign in" xml:space="preserve"><value>تسجيل الدخول</value></data>
+  <data name="Primary navigation" xml:space="preserve"><value>التنقل الرئيسي</value></data>
+  <data name="Overview" xml:space="preserve"><value>نظرة عامة</value></data>
+  <data name="Dashboard" xml:space="preserve"><value>لوحة التحكم</value></data>
+  <data name="Students and Guardians" xml:space="preserve"><value>الطلاب وأولياء الأمور</value></data>
+  <data name="Students" xml:space="preserve"><value>الطلاب</value></data>
+  <data name="Student details" xml:space="preserve"><value>تفاصيل الطالب</value></data>
+  <data name="Teachers" xml:space="preserve"><value>المعلمون</value></data>
+  <data name="Placement" xml:space="preserve"><value>تحديد المستوى</value></data>
+  <data name="Placement Tests" xml:space="preserve"><value>اختبارات تحديد المستوى</value></data>
+  <data name="Packages and Payments" xml:space="preserve"><value>الباقات والمدفوعات</value></data>
+  <data name="Subscriptions" xml:space="preserve"><value>الاشتراكات</value></data>
+  <data name="Payments" xml:space="preserve"><value>المدفوعات</value></data>
+  <data name="Scheduling and Attendance" xml:space="preserve"><value>الجداول والحضور</value></data>
+  <data name="Schedules" xml:space="preserve"><value>الجداول</value></data>
+  <data name="Reschedule / Compensation" xml:space="preserve"><value>إعادة الجدولة والتعويض</value></data>
+  <data name="Compensation Requests" xml:space="preserve"><value>طلبات التعويض</value></data>
+  <data name="Payroll and Expenses" xml:space="preserve"><value>الرواتب والمصاريف</value></data>
+  <data name="Payroll" xml:space="preserve"><value>الرواتب</value></data>
+  <data name="Financial Report" xml:space="preserve"><value>التقرير المالي</value></data>
+  <data name="Certificates" xml:space="preserve"><value>الشهادات</value></data>
+  <data name="Teacher workspace" xml:space="preserve"><value>مساحة المعلم</value></data>
+  <data name="My Sessions" xml:space="preserve"><value>حصصي</value></data>
+  <data name="Publish Slots" xml:space="preserve"><value>نشر الأوقات</value></data>
+  <data name="My Pay History" xml:space="preserve"><value>سجل مستحقاتي</value></data>
+  <data name="Connections" xml:space="preserve"><value>الربط</value></data>
+  <data name="Guardian workspace" xml:space="preserve"><value>مساحة ولي الأمر</value></data>
+  <data name="My Children" xml:space="preserve"><value>أبنائي</value></data>
+  <data name="Placement Test" xml:space="preserve"><value>اختبار تحديد المستوى</value></data>
+  <data name="Purchase Package" xml:space="preserve"><value>شراء باقة</value></data>
+  <data name="Student workspace" xml:space="preserve"><value>مساحة الطالب</value></data>
+  <data name="System" xml:space="preserve"><value>النظام</value></data>
+  <data name="Privacy" xml:space="preserve"><value>الخصوصية</value></data>
+  <data name="Navigation" xml:space="preserve"><value>التنقل</value></data>
+  <data name="Close" xml:space="preserve"><value>إغلاق</value></data>
+  <data name="Home" xml:space="preserve"><value>الرئيسية</value></data>
+  <data name="Online lessons organized around real student progress." xml:space="preserve"><value>دروس أونلاين مبنية على تقدّم الطالب الحقيقي.</value></data>
+  <data name="MVTEACHES helps students, guardians, teachers, and admins manage placement, packages, booking, online lessons, attendance, and certificates from one focused workspace." xml:space="preserve"><value>تساعد MVTEACHES الطلاب وأولياء الأمور والمعلمين والإدارة على إدارة تحديد المستوى والباقات والحجز والدروس الأونلاين والحضور والشهادات من مساحة واحدة مركزة.</value></data>
+  <data name="View packages" xml:space="preserve"><value>عرض الباقات</value></data>
+  <data name="Platform workflow" xml:space="preserve"><value>مسار العمل في المنصة</value></data>
+  <data name="1" xml:space="preserve"><value>١</value></data>
+  <data name="2" xml:space="preserve"><value>٢</value></data>
+  <data name="3" xml:space="preserve"><value>٣</value></data>
+  <data name="4" xml:space="preserve"><value>٤</value></data>
+  <data name="Packages" xml:space="preserve"><value>الباقات</value></data>
+  <data name="Booking" xml:space="preserve"><value>الحجز</value></data>
+  <data name="Lessons" xml:space="preserve"><value>الدروس</value></data>
+  <data name="Start from the correct English level." xml:space="preserve"><value>ابدأ من مستوى اللغة الإنجليزية المناسب.</value></data>
+  <data name="Choose group or private entitlement packages." xml:space="preserve"><value>اختر باقات حصص جماعية أو خاصة.</value></data>
+  <data name="Reserve available sessions for the student level." xml:space="preserve"><value>احجز الحصص المتاحة حسب مستوى الطالب.</value></data>
+  <data name="Join online sessions and track attendance." xml:space="preserve"><value>ادخل الحصص الأونلاين وتابع الحضور.</value></data>
+  <data name="Sign in to your learning workspace." xml:space="preserve"><value>سجّل الدخول إلى مساحة التعلم الخاصة بك.</value></data>
+  <data name="Use the email address assigned to your admin, teacher, guardian, or student account." xml:space="preserve"><value>استخدم البريد الإلكتروني المخصص لحساب الإدارة أو المعلم أو ولي الأمر أو الطالب.</value></data>
+  <data name="Email address" xml:space="preserve"><value>البريد الإلكتروني</value></data>
+  <data name="Password" xml:space="preserve"><value>كلمة المرور</value></data>
+  <data name="Remember me" xml:space="preserve"><value>تذكرني</value></data>
+  <data name="This page summarizes the platform-owned privacy posture for local review. Final legal wording should be supplied by the owner before production publication." xml:space="preserve"><value>تلخص هذه الصفحة موقف الخصوصية المملوك للمنصة للمراجعة المحلية. يجب أن يزوّد المالك الصياغة القانونية النهائية قبل النشر للإنتاج.</value></data>
+  <data name="Data handled by the platform" xml:space="preserve"><value>البيانات التي تتعامل معها المنصة</value></data>
+  <data name="MVTEACHES stores account, student, guardian, teacher, scheduling, attendance, subscription, payment, payroll, and certificate records needed to operate the education workflows." xml:space="preserve"><value>تخزن MVTEACHES سجلات الحسابات والطلاب وأولياء الأمور والمعلمين والجداول والحضور والاشتراكات والمدفوعات والرواتب والشهادات اللازمة لتشغيل مسارات التعليم.</value></data>
+  <data name="Operational safeguards" xml:space="preserve"><value>ضوابط التشغيل</value></data>
+  <data name="Access remains role-based, forms keep antiforgery protection, and sensitive integration credentials are handled through configured server-side boundaries." xml:space="preserve"><value>يبقى الوصول مبنيًا على الأدوار، وتحتفظ النماذج بحماية منع التزوير، وتدار بيانات الربط الحساسة عبر حدود الخادم المضبوطة.</value></data>
+  <data name="Error" xml:space="preserve"><value>خطأ</value></data>
+  <data name="Something went wrong." xml:space="preserve"><value>حدث خطأ ما.</value></data>
+  <data name="The request could not be completed. Try again, or contact the system owner if the problem continues." xml:space="preserve"><value>تعذر إكمال الطلب. حاول مرة أخرى، أو تواصل مع مالك النظام إذا استمرت المشكلة.</value></data>
+  <data name="Request ID" xml:space="preserve"><value>رقم الطلب</value></data>
+  <data name="Back home" xml:space="preserve"><value>العودة للرئيسية</value></data>
+  <data name="Pricing plans and subscriptions" xml:space="preserve"><value>خطط الأسعار والاشتراكات</value></data>
+  <data name="Subscriptions page intro" xml:space="preserve"><value>يبقى الاشتراك الذي يتم شراؤه هنا كمسودة إلى أن يتم تسجيل الدفعة المطابقة وتأكيدها في</value></data>
+  <data name="Create a pricing plan" xml:space="preserve"><value>إنشاء خطة أسعار</value></data>
+  <data name="Country" xml:space="preserve"><value>الدولة</value></data>
+  <data name="Select placeholder" xml:space="preserve"><value>-- اختر --</value></data>
+  <data name="Course" xml:space="preserve"><value>الدورة</value></data>
+  <data name="Level optional" xml:space="preserve"><value>المستوى (اتركه فارغًا لكل المستويات)</value></data>
+  <data name="Any level placeholder" xml:space="preserve"><value>-- أي مستوى --</value></data>
+  <data name="Any level" xml:space="preserve"><value>أي مستوى</value></data>
+  <data name="Session type" xml:space="preserve"><value>نوع الحصة</value></data>
+  <data name="Sessions" xml:space="preserve"><value>الحصص</value></data>
+  <data name="Minutes total" xml:space="preserve"><value>إجمالي الدقائق</value></data>
+  <data name="Amount" xml:space="preserve"><value>المبلغ</value></data>
+  <data name="Currency" xml:space="preserve"><value>العملة</value></data>
+  <data name="Validity days" xml:space="preserve"><value>الصلاحية (بالأيام)</value></data>
+  <data name="Create plan" xml:space="preserve"><value>إنشاء الخطة</value></data>
+  <data name="Purchase a subscription from a plan" xml:space="preserve"><value>شراء اشتراك من خطة</value></data>
+  <data name="Student" xml:space="preserve"><value>الطالب</value></data>
+  <data name="Plan" xml:space="preserve"><value>الخطة</value></data>
+  <data name="Origin" xml:space="preserve"><value>مصدر الاشتراك</value></data>
+  <data name="Purchase creates draft" xml:space="preserve"><value>إنشاء شراء كمسودة</value></data>
+  <data name="Grant a subscription free" xml:space="preserve"><value>منح اشتراك مجاني</value></data>
+  <data name="Level" xml:space="preserve"><value>المستوى</value></data>
+  <data name="Minutes" xml:space="preserve"><value>الدقائق</value></data>
+  <data name="Reason mandatory" xml:space="preserve"><value>السبب (إجباري)</value></data>
+  <data name="Grant free" xml:space="preserve"><value>منح مجاني</value></data>
+  <data name="Active plans" xml:space="preserve"><value>الخطط الفعالة</value></data>
+  <data name="Type" xml:space="preserve"><value>النوع</value></data>
+  <data name="Price" xml:space="preserve"><value>السعر</value></data>
+  <data name="Validity" xml:space="preserve"><value>الصلاحية</value></data>
+  <data name="Days format" xml:space="preserve"><value>{0} يوم</value></data>
+  <data name="Recent subscriptions" xml:space="preserve"><value>أحدث الاشتراكات</value></data>
+  <data name="Course and level" xml:space="preserve"><value>الدورة والمستوى</value></data>
+  <data name="Status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Balance minutes" xml:space="preserve"><value>رصيد الدقائق</value></data>
+  <data name="Expires" xml:space="preserve"><value>ينتهي في</value></data>
+  <data name="SessionType.Group" xml:space="preserve"><value>جماعية</value></data>
+  <data name="SessionType.Private" xml:space="preserve"><value>خاصة</value></data>
+  <data name="SessionType.Placement" xml:space="preserve"><value>تحديد مستوى</value></data>
+  <data name="SubscriptionOrigin.SelfPurchase" xml:space="preserve"><value>شراء ذاتي</value></data>
+  <data name="SubscriptionOrigin.GuardianPurchase" xml:space="preserve"><value>شراء ولي الأمر</value></data>
+  <data name="SubscriptionStatus.Draft" xml:space="preserve"><value>مسودة</value></data>
+  <data name="SubscriptionStatus.Active" xml:space="preserve"><value>فعال</value></data>
+  <data name="SubscriptionStatus.Expired" xml:space="preserve"><value>منتهي</value></data>
+  <data name="SubscriptionStatus.Cancelled" xml:space="preserve"><value>ملغى</value></data>
+  <data name="Pricing plan created." xml:space="preserve"><value>تم إنشاء خطة الأسعار.</value></data>
+  <data name="Pricing plan not found." xml:space="preserve"><value>لم يتم العثور على خطة الأسعار.</value></data>
+  <data name="Payment Methods" xml:space="preserve"><value>وسائل الدفع</value></data>
+  <data name="Payment methods intro" xml:space="preserve"><value>هذه تحويلات حقيقية تتم خارج المنصة — لا توجد بوابة دفع إلكتروني. أضِف بيانات الاستقبال هنا لكل وسيلة يقبلها المركز فعليًا.</value></data>
+  <data name="Add a payment method" xml:space="preserve"><value>إضافة وسيلة دفع</value></data>
+  <data name="Method type" xml:space="preserve"><value>نوع الوسيلة</value></data>
+  <data name="PaymentMethod.CliQ" xml:space="preserve"><value>تحويل CliQ محلي</value></data>
+  <data name="PaymentMethod.BankTransfer" xml:space="preserve"><value>تحويل بنكي محلي</value></data>
+  <data name="PaymentMethod.InternationalBankTransfer" xml:space="preserve"><value>تحويل بنكي دولي (IBAN/SWIFT)</value></data>
+  <data name="PaymentMethod.Cash" xml:space="preserve"><value>نقدًا</value></data>
+  <data name="Beneficiary name" xml:space="preserve"><value>اسم المستفيد</value></data>
+  <data name="Accepted currencies" xml:space="preserve"><value>العملات المقبولة</value></data>
+  <data name="CliQ alias" xml:space="preserve"><value>معرّف/رقم CliQ</value></data>
+  <data name="IBAN" xml:space="preserve"><value>رقم الآيبان (IBAN)</value></data>
+  <data name="SWIFT/BIC" xml:space="preserve"><value>رمز السويفت (SWIFT/BIC)</value></data>
+  <data name="Bank name" xml:space="preserve"><value>اسم البنك</value></data>
+  <data name="Additional instructions" xml:space="preserve"><value>تعليمات إضافية</value></data>
+  <data name="Add method" xml:space="preserve"><value>إضافة الوسيلة</value></data>
+  <data name="Configured methods" xml:space="preserve"><value>الوسائل المُعدّة</value></data>
+  <data name="Details" xml:space="preserve"><value>التفاصيل</value></data>
+  <data name="Active" xml:space="preserve"><value>مفعّلة</value></data>
+  <data name="Deactivated" xml:space="preserve"><value>مُعطّلة</value></data>
+  <data name="Deactivate" xml:space="preserve"><value>تعطيل</value></data>
+  <data name="Payment method added." xml:space="preserve"><value>تمت إضافة وسيلة الدفع.</value></data>
+  <data name="Payment method deactivated." xml:space="preserve"><value>تم تعطيل وسيلة الدفع.</value></data>
+  <data name="Assisted Registration" xml:space="preserve"><value>التسجيل بمساعدة الإدارة</value></data>
+  <data name="Assisted registration intro" xml:space="preserve"><value>لأولياء الأمور الذين لا يستطيعون إتمام الخطوات إلكترونيًا — ابحث لتفادي التكرار، سجّل، اربط، وجّه لامتحان تحديد المستوى الحقيقي، ثم اختر الباقة المطابقة وسجّل التحويل.</value></data>
+  <data name="Search for an existing guardian or student" xml:space="preserve"><value>البحث عن ولي أمر أو طالب موجود</value></data>
+  <data name="Search before creating, to avoid duplicate accounts" xml:space="preserve"><value>ابحث قبل الإنشاء لتفادي إنشاء حسابات مكررة</value></data>
+  <data name="Name or email" xml:space="preserve"><value>الاسم أو البريد الإلكتروني</value></data>
+  <data name="Search" xml:space="preserve"><value>بحث</value></data>
+  <data name="Guardians" xml:space="preserve"><value>أولياء الأمور</value></data>
+  <data name="Register a new guardian" xml:space="preserve"><value>تسجيل ولي أمر جديد</value></data>
+  <data name="Full name" xml:space="preserve"><value>الاسم الكامل</value></data>
+  <data name="Temporary password" xml:space="preserve"><value>كلمة مرور مؤقتة</value></data>
+  <data name="Register guardian" xml:space="preserve"><value>تسجيل ولي الأمر</value></data>
+  <data name="Register a new student" xml:space="preserve"><value>تسجيل طالب جديد</value></data>
+  <data name="No login created here intro" xml:space="preserve"><value>لن يُنشأ حساب دخول هنا — يمكن إضافته لاحقًا من صفحة الطلاب إذا رغبت العائلة بذلك.</value></data>
+  <data name="Date of birth" xml:space="preserve"><value>تاريخ الميلاد</value></data>
+  <data name="Register student" xml:space="preserve"><value>تسجيل الطالب</value></data>
+  <data name="Link a guardian to a student" xml:space="preserve"><value>ربط ولي أمر بطالب</value></data>
+  <data name="Guardian id" xml:space="preserve"><value>رقم ولي الأمر</value></data>
+  <data name="Student id" xml:space="preserve"><value>رقم الطالب</value></data>
+  <data name="Relationship" xml:space="preserve"><value>صلة القرابة</value></data>
+  <data name="GuardianRelationship.Parent" xml:space="preserve"><value>والد/والدة</value></data>
+  <data name="GuardianRelationship.LegalGuardian" xml:space="preserve"><value>وصي قانوني</value></data>
+  <data name="GuardianRelationship.Other" xml:space="preserve"><value>أخرى</value></data>
+  <data name="Primary guardian" xml:space="preserve"><value>ولي الأمر الأساسي</value></data>
+  <data name="Link" xml:space="preserve"><value>ربط</value></data>
+  <data name="None" xml:space="preserve"><value>لا يوجد</value></data>
+  <data name="No placement result yet — direct the student to take the test" xml:space="preserve"><value>لا توجد نتيجة تحديد مستوى بعد — وجّه الطالب لأداء الامتحان المجاني:</value></data>
+  <data name="Admin cannot take the exam for the student" xml:space="preserve"><value>لا يمكن للإدارة أداء الامتحان نيابةً عن الطالب — يجب أن يدخل الطالب بحسابه الخاص.</value></data>
+  <data name="Current level" xml:space="preserve"><value>المستوى الحالي</value></data>
+  <data name="No packages published for this level" xml:space="preserve"><value>لا توجد باقات منشورة لهذا المستوى</value></data>
+  <data name="Select a package on behalf of the guardian" xml:space="preserve"><value>اختيار باقة نيابةً عن ولي الأمر</value></data>
+  <data name="Request this package" xml:space="preserve"><value>طلب هذه الباقة</value></data>
+  <data name="Payment requests" xml:space="preserve"><value>طلبات الدفع</value></data>
+  <data name="Reference" xml:space="preserve"><value>المرجع</value></data>
+  <data name="Awaiting transfer" xml:space="preserve"><value>بانتظار التحويل</value></data>
+  <data name="Under review" xml:space="preserve"><value>قيد المراجعة</value></data>
+  <data name="PaymentStatus.Pending" xml:space="preserve"><value>قيد الانتظار</value></data>
+  <data name="PaymentStatus.Confirmed" xml:space="preserve"><value>مؤكد</value></data>
+  <data name="PaymentStatus.Rejected" xml:space="preserve"><value>يحتاج تصحيحًا / مرفوض</value></data>
+  <data name="PaymentStatus.Failed" xml:space="preserve"><value>فشل</value></data>
+  <data name="PaymentStatus.Refunded" xml:space="preserve"><value>مسترد</value></data>
+  <data name="Enter transfer details" xml:space="preserve"><value>إدخال بيانات التحويل</value></data>
+  <data name="Payer name" xml:space="preserve"><value>اسم المُحوِّل</value></data>
+  <data name="Transfer date" xml:space="preserve"><value>تاريخ التحويل</value></data>
+  <data name="Bank reference number" xml:space="preserve"><value>الرقم المرجعي للتحويل</value></data>
+  <data name="Receipt" xml:space="preserve"><value>الإيصال</value></data>
+  <data name="Submit transfer details" xml:space="preserve"><value>إرسال بيانات التحويل</value></data>
+  <data name="This plan has no specific level (or is inactive) and cannot be purchased - every published package must be tied to exactly one level." xml:space="preserve"><value>هذه الخطة غير مرتبطة بمستوى محدد أو غير فعالة، لذلك لا يمكن شراؤها. يجب أن ترتبط كل باقة منشورة بمستوى واحد محدد.</value></data>
+  <data name="This student has no current assigned level yet - a level must be assigned before any package can be purchased." xml:space="preserve"><value>لا يوجد مستوى حالي مخصص لهذا الطالب بعد. يجب تحديد مستوى قبل شراء أي باقة.</value></data>
+  <data name="This plan's level does not match the student's current assigned level." xml:space="preserve"><value>مستوى هذه الخطة لا يطابق المستوى الحالي المخصص للطالب.</value></data>
+  <data name="Could not record this purchase." xml:space="preserve"><value>تعذر تسجيل عملية الشراء.</value></data>
+  <data name="Subscription purchase created as draft." xml:space="preserve"><value>تم إنشاء الاشتراك رقم {0} كمسودة ({1}). سجّل الدفعة المطابقة وأكدها في /Admin/Payments لتفعيله.</value></data>
+  <data name="Subscription granted and activated immediately." xml:space="preserve"><value>تم منح الاشتراك رقم {0} وتفعيله فورًا (D-13، بدون دفعة).</value></data>
+  <data name="Could not create the guardian's account: {0}" xml:space="preserve"><value>تعذر إنشاء حساب ولي الأمر: {0}</value></data>
+  <data name="Guardian registered." xml:space="preserve"><value>تم تسجيل ولي الأمر.</value></data>
+  <data name="Student '{0}' registered — link a guardian, then direct them to the free placement test." xml:space="preserve"><value>تم تسجيل الطالب '{0}' — اربطه بولي أمر، ثم وجّه العائلة لإجراء اختبار تحديد المستوى المجاني.</value></data>
+  <data name="This student already has a primary guardian." xml:space="preserve"><value>هذا الطالب لديه بالفعل ولي أمر أساسي.</value></data>
+  <data name="This guardian is already linked to this student." xml:space="preserve"><value>ولي الأمر هذا مرتبط بالفعل بهذا الطالب.</value></data>
+  <data name="Guardian linked." xml:space="preserve"><value>تم ربط ولي الأمر.</value></data>
+  <data name="Subscription #{0} created as Draft ({1}) — record the guardian's transfer below once they send it." xml:space="preserve"><value>تم إنشاء الاشتراك رقم {0} كمسودة ({1}) — سجّل تحويل ولي الأمر أدناه بعد إرساله.</value></data>
+  <data name="Package not found." xml:space="preserve"><value>الباقة غير موجودة.</value></data>
+  <data name="This package is no longer available." xml:space="preserve"><value>هذه الباقة لم تعد متاحة.</value></data>
+  <data name="A placement result is required before purchasing a package." xml:space="preserve"><value>يلزم وجود نتيجة اختبار تحديد مستوى قبل شراء باقة.</value></data>
+  <data name="This package no longer matches the student's current level." xml:space="preserve"><value>هذه الباقة لم تعد تطابق المستوى الحالي للطالب.</value></data>
+  <data name="The receipt must be a JPEG, PNG, or PDF file." xml:space="preserve"><value>يجب أن يكون الإيصال ملف JPEG أو PNG أو PDF.</value></data>
+  <data name="The receipt file is too large." xml:space="preserve"><value>حجم ملف الإيصال كبير جدًا.</value></data>
+  <data name="The receipt could not be uploaded." xml:space="preserve"><value>تعذر رفع الإيصال.</value></data>
+  <data name="Transfer details recorded — awaiting confirmation on /Admin/Payments once the money is seen in the account." xml:space="preserve"><value>تم تسجيل تفاصيل التحويل — بانتظار التأكيد في /Admin/Payments بعد رؤية المبلغ في الحساب.</value></data>
+  <data name="Payment not found." xml:space="preserve"><value>الدفعة غير موجودة.</value></data>
+  <data name="This payment is no longer pending." xml:space="preserve"><value>هذه الدفعة لم تعد قيد الانتظار.</value></data>
+  <data name="This bank reference looks like it was already used for another payment — double check with the guardian." xml:space="preserve"><value>يبدو أن هذا المرجع البنكي مستخدم مسبقًا لدفعة أخرى — تحقق مع ولي الأمر.</value></data>
+  <data name="Your account has no linked profile yet — ask an admin to create one for you." xml:space="preserve"><value>لا يوجد ملف تعريف مرتبط بحسابك بعد — اطلب من الإدارة إنشاء واحد لك.</value></data>
+  <data name="Choose which child to purchase a package for." xml:space="preserve"><value>اختر الابن الذي تريد شراء باقة له.</value></data>
+  <data name="choose a different child" xml:space="preserve"><value>اختيار ابن آخر</value></data>
+  <data name="Acting for {0}" xml:space="preserve"><value>تتصرف نيابة عن {0}</value></data>
+  <data name="A free placement test is required before any package can be purchased." xml:space="preserve"><value>يلزم إجراء اختبار تحديد المستوى المجاني قبل إمكانية شراء أي باقة.</value></data>
+  <data name="Take the placement test" xml:space="preserve"><value>إجراء اختبار تحديد المستوى</value></data>
+  <data name="Current level: {0}. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions." xml:space="preserve"><value>المستوى الحالي: {0}. تُعرض فقط الباقات المنشورة لهذا المستوى تحديدًا — باقة المجموعات تحجز حصص المجموعات فقط، وباقة الخاص تحجز حصصًا خاصة فقط.</value></data>
+  <data name="No packages are currently published for this level — please contact the centre." xml:space="preserve"><value>لا توجد باقات منشورة حاليًا لهذا المستوى — يرجى التواصل مع المركز.</value></data>
+  <data name="Valid {0} days" xml:space="preserve"><value>صالحة لمدة {0} يومًا</value></data>
+  <data name="Choose a payment method" xml:space="preserve"><value>اختر طريقة الدفع</value></data>
+  <data name="No payment methods are currently available — please contact the centre." xml:space="preserve"><value>لا توجد طرق دفع متاحة حاليًا — يرجى التواصل مع المركز.</value></data>
+  <data name="Package request" xml:space="preserve"><value>طلب الباقة</value></data>
+  <data name="Request payment with this method" xml:space="preserve"><value>طلب الدفع بهذه الطريقة</value></data>
+  <data name="Needs correction" xml:space="preserve"><value>بحاجة إلى تصحيح</value></data>
+  <data name="Before you transfer" xml:space="preserve"><value>قبل إجراء التحويل</value></data>
+  <data name="Verify the beneficiary number/IBAN and name match exactly. If they differ, do not transfer — contact the admin instead." xml:space="preserve"><value>تأكد من تطابق رقم المستفيد/الآيبان والاسم تمامًا. إذا اختلفا، لا تقم بالتحويل — تواصل مع الإدارة بدلاً من ذلك.</value></data>
+  <data name="Verify the amount and currency before sending." xml:space="preserve"><value>تحقق من المبلغ والعملة قبل الإرسال.</value></data>
+  <data name="Mention the reference {0} in your transfer notes." xml:space="preserve"><value>اذكر المرجع {0} في ملاحظات التحويل.</value></data>
+  <data name="Keep your receipt and upload it below." xml:space="preserve"><value>احتفظ بإيصالك وقم برفعه أدناه.</value></data>
+  <data name="Uploading a receipt does not mean your payment is approved or your package is active yet." xml:space="preserve"><value>رفع الإيصال لا يعني أن دفعتك معتمدة أو أن باقتك مفعّلة بعد.</value></data>
+  <data name="If you sent money to the wrong party, contact your bank AND the admin immediately — a refund can never be promised." xml:space="preserve"><value>إذا أرسلت المبلغ لجهة خاطئة، تواصل مع بنكك والإدارة فورًا — لا يمكن ضمان استرداد المبلغ أبدًا.</value></data>
+  <data name="I have read and understood the verification instructions above." xml:space="preserve"><value>لقد قرأت وفهمت تعليمات التحقق أعلاه.</value></data>
+  <data name="Package requested (subscription #{0}, {1}) — choose a payment method below to continue." xml:space="preserve"><value>تم طلب الباقة (اشتراك رقم {0}، {1}) — اختر طريقة دفع أدناه للمتابعة.</value></data>
+  <data name="Not authorized for this student." xml:space="preserve"><value>غير مخوّل للتصرف نيابة عن هذا الطالب.</value></data>
+  <data name="Package request not found." xml:space="preserve"><value>طلب الباقة غير موجود.</value></data>
+  <data name="This package request is no longer awaiting payment." xml:space="preserve"><value>طلب الباقة هذا لم يعد بانتظار الدفع.</value></data>
+  <data name="A payment request already exists for this package — report your transfer against it below." xml:space="preserve"><value>يوجد بالفعل طلب دفع لهذه الباقة — أبلغ عن تحويلك عليه أدناه.</value></data>
+  <data name="Please choose a valid payment method." xml:space="preserve"><value>يرجى اختيار طريقة دفع صالحة.</value></data>
+  <data name="You must confirm you've read the instructions above before submitting." xml:space="preserve"><value>يجب أن تؤكد أنك قرأت التعليمات أعلاه قبل الإرسال.</value></data>
+  <data name="A receipt is required to submit your transfer for review." xml:space="preserve"><value>الإيصال مطلوب لإرسال تحويلك للمراجعة.</value></data>
+  <data name="Transfer details submitted — thank you. The centre will confirm once the money is verified." xml:space="preserve"><value>تم إرسال تفاصيل التحويل — شكرًا لك. سيؤكد المركز ذلك بعد التحقق من وصول المبلغ.</value></data>
+  <data name="This bank reference looks like it was already used for another payment — please double check it." xml:space="preserve"><value>يبدو أن هذا المرجع البنكي مستخدم مسبقًا لدفعة أخرى — يرجى التحقق منه.</value></data>
+  <data name="Payments page intro" xml:space="preserve"><value>قرار الإدارة بتاريخ 2026-08-30: المسار الطبيعي هو أن يشتري الطالب أو ولي الأمر باقة منشورة ويدفع عبر بوابة الدفع، مع تفعيل الاستحقاق تلقائيًا فور وصول تأكيد موثوق من البوابة. لم يتم اختيار مزود دفع بعد، لذا هذا المسار غير مفعّل حاليًا. كل ما في هذه الصفحة هو المسار الاستثنائي — نقدًا أو تحويل بنكي أو CliQ أو تصحيح — وهو مخصص للإدارة فقط ويُسجَّل في سجل التدقيق.</value></data>
+  <data name="Record a manual package and payment" xml:space="preserve"><value>تسجيل باقة ودفعة يدويًا</value></data>
+  <data name="Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package." xml:space="preserve"><value>يُستخدم فقط للنقد أو التحويل البنكي أو التصحيح — وليس الطريقة المعتادة لشراء الطالب لباقة.</value></data>
+  <data name="select" xml:space="preserve"><value>اختر</value></data>
+  <data name="Subscription (optional)" xml:space="preserve"><value>الاشتراك (اختياري)</value></data>
+  <data name="Record" xml:space="preserve"><value>تسجيل</value></data>
+  <data name="Awaiting confirmation" xml:space="preserve"><value>بانتظار التأكيد</value></data>
+  <data name="Actually received amount (if different)" xml:space="preserve"><value>المبلغ المستلم فعليًا (إن اختلف)</value></data>
+  <data name="Actually received currency (if different)" xml:space="preserve"><value>العملة المستلمة فعليًا (إن اختلفت)</value></data>
+  <data name="Confirm receipt of the amount and activate the package" xml:space="preserve"><value>تأكيد استلام المبلغ وتفعيل الباقة</value></data>
+  <data name="Reason" xml:space="preserve"><value>السبب</value></data>
+  <data name="Reject / request correction" xml:space="preserve"><value>رفض / طلب تصحيح</value></data>
+  <data name="Nothing awaiting confirmation." xml:space="preserve"><value>لا يوجد ما ينتظر التأكيد.</value></data>
+  <data name="Recent history" xml:space="preserve"><value>السجل الأخير</value></data>
+  <data name="Received" xml:space="preserve"><value>المستلم</value></data>
+  <data name="Note" xml:space="preserve"><value>ملاحظة</value></data>
+  <data name="View receipt" xml:space="preserve"><value>عرض الإيصال</value></data>
+  <data name="Payment recorded — reference {0}, awaiting confirmation." xml:space="preserve"><value>تم تسجيل الدفعة — المرجع {0}، بانتظار التأكيد.</value></data>
+  <data name="Payment confirmed and package activated." xml:space="preserve"><value>تم تأكيد الدفعة وتفعيل الباقة.</value></data>
+  <data name="This payment was already confirmed." xml:space="preserve"><value>تم تأكيد هذه الدفعة مسبقًا.</value></data>
+  <data name="Payment confirmed as received, but the package needs more funds before it can activate (shortfall or currency mismatch) — it stays inactive until resolved." xml:space="preserve"><value>تم تأكيد استلام الدفعة، لكن الباقة تحتاج إلى مبلغ إضافي قبل تفعيلها (نقص في المبلغ أو اختلاف في العملة) — ستبقى غير مفعّلة حتى تتم تسوية الأمر.</value></data>
+  <data name="This payment is no longer pending (already rejected)." xml:space="preserve"><value>هذه الدفعة لم تعد قيد الانتظار (تم رفضها مسبقًا).</value></data>
+  <data name="No reason given" xml:space="preserve"><value>لم يُذكر سبب</value></data>
+  <data name="Payment rejected — the payer will see this reason and can resubmit." xml:space="preserve"><value>تم رفض الدفعة — سيرى الدافع هذا السبب ويمكنه إعادة الإرسال.</value></data>
+  <data name="Package price" xml:space="preserve"><value>سعر الباقة</value></data>
+  <data name="Confirmed received" xml:space="preserve"><value>المستلم المؤكد</value></data>
+  <data name="Remaining owed" xml:space="preserve"><value>المتبقي</value></data>
+  <data name="Your earlier transfer arrived short of the full price — this is normal after bank/transfer fees. Send the remaining amount below to activate the package." xml:space="preserve"><value>وصل تحويلك السابق بمبلغ أقل من السعر الكامل — هذا أمر طبيعي بسبب رسوم البنك/التحويل. أرسل المبلغ المتبقي أدناه لتفعيل الباقة.</value></data>
+  <data name="Request payment of {0} {1}" xml:space="preserve"><value>طلب دفع مبلغ {0} {1}</value></data>
+  <data name="This package is already fully funded — nothing left to pay." xml:space="preserve"><value>هذه الباقة ممولة بالكامل بالفعل — لا يوجد مبلغ متبقٍ للدفع.</value></data>
+  <data name="Payment of {0} {1} requested — reference {2}. Read the instructions below, then send your transfer and report it here." xml:space="preserve"><value>تم طلب دفع مبلغ {0} {1} — المرجع {2}. اقرأ التعليمات أدناه، ثم أرسل تحويلك وأبلغ عنه هنا.</value></data>
+  <data name="Only {0} {1} of the required {2} {1} was confirmed as received — the package stays inactive until the remaining {3} {1} is sent and confirmed." xml:space="preserve"><value>تم تأكيد استلام {0} {1} فقط من أصل {2} {1} المطلوبة — ستبقى الباقة غير مفعّلة حتى إرسال المبلغ المتبقي {3} {1} وتأكيده.</value></data>
+  <data name="The full package price must arrive at the centre's account after any transfer fees are deducted. If a smaller amount arrives, the remaining difference must be sent before the package can activate." xml:space="preserve"><value>يجب أن يصل كامل سعر الباقة إلى حساب المركز بعد خصم أي رسوم تحويل. عند وصول مبلغ أقل، يلزم استكمال الفرق قبل تفعيل الباقة.</value></data>
+  <data name="Record the guardian's payment" xml:space="preserve"><value>تسجيل دفعة ولي الأمر</value></data>
+  <data name="Payment method config (optional)" xml:space="preserve"><value>طريقة الدفع (اختياري)</value></data>
+  <data name="Record payment" xml:space="preserve"><value>تسجيل الدفعة</value></data>
+  <data name="Payment request of {0} {1} recorded — reference {2}. Enter the guardian's transfer details below once they send it." xml:space="preserve"><value>تم تسجيل طلب دفع بمبلغ {0} {1} — المرجع {2}. أدخل تفاصيل تحويل ولي الأمر أدناه بعد إرساله.</value></data>
+  <data name="Your account has the Teacher role but no linked teacher profile yet — ask an admin to create one for you." xml:space="preserve"><value>حسابك لديه صلاحية معلم لكن لا يوجد ملف تعريف معلم مرتبط به بعد — اطلب من الإدارة إنشاء واحد لك.</value></data>
+  <data name="You have not been authorized for any level yet — ask an admin to grant one on your profile before you can publish a slot." xml:space="preserve"><value>لم يتم تخويلك بأي مستوى بعد — اطلب من الإدارة منح مستوى لملفك الشخصي قبل أن تتمكن من نشر موعد.</value></data>
+  <data name="Publish a bookable slot for students or guardians to book directly. Seats fill automatically from the session type you pick (Group = 4 seats, Private = 1 seat) — you never set the seat count yourself. Times are shown and entered in your own registered time zone." xml:space="preserve"><value>انشر موعدًا يمكن للطلاب أو أولياء الأمور حجزه مباشرة. تُحدَّد المقاعد تلقائيًا حسب نوع الحصة الذي تختاره (مجموعة = 4 مقاعد، خاص = مقعد واحد) — لا تحدد عدد المقاعد بنفسك أبدًا. تُعرض الأوقات وتُدخل بتوقيت منطقتك الزمنية المسجّلة.</value></data>
+  <data name="New slot" xml:space="preserve"><value>موعد جديد</value></data>
+  <data name="Level (only levels you're authorized for)" xml:space="preserve"><value>المستوى (المستويات المخوّلة لك فقط)</value></data>
+  <data name="Age group" xml:space="preserve"><value>الفئة العمرية</value></data>
+  <data name="Date" xml:space="preserve"><value>التاريخ</value></data>
+  <data name="Start time" xml:space="preserve"><value>وقت البدء</value></data>
+  <data name="Duration (minutes)" xml:space="preserve"><value>المدة (بالدقائق)</value></data>
+  <data name="Group (4 seats)" xml:space="preserve"><value>مجموعة (4 مقاعد)</value></data>
+  <data name="Private (1 seat)" xml:space="preserve"><value>خاص (مقعد واحد)</value></data>
+  <data name="Publish slot" xml:space="preserve"><value>نشر الموعد</value></data>
+  <data name="Your upcoming slots" xml:space="preserve"><value>مواعيدك القادمة</value></data>
+  <data name="Local start" xml:space="preserve"><value>وقت البدء المحلي</value></data>
+  <data name="Duration" xml:space="preserve"><value>المدة</value></data>
+  <data name="Seats booked / capacity" xml:space="preserve"><value>المقاعد المحجوزة / السعة</value></data>
+  <data name="Minutes format" xml:space="preserve"><value>{0} دقيقة</value></data>
+  <data name="No upcoming slots published yet." xml:space="preserve"><value>لا توجد مواعيد قادمة منشورة بعد.</value></data>
+  <data name="ClassSessionStatus.Scheduled" xml:space="preserve"><value>مجدولة</value></data>
+  <data name="ClassSessionStatus.Completed" xml:space="preserve"><value>مكتملة</value></data>
+  <data name="ClassSessionStatus.Cancelled" xml:space="preserve"><value>ملغاة</value></data>
+  <data name="ClassSessionStatus.NotDelivered" xml:space="preserve"><value>لم تُقدَّم</value></data>
+  <data name="Could not publish this slot." xml:space="preserve"><value>تعذر نشر هذا الموعد.</value></data>
+  <data name="You have no connected video account yet — connect Zoom or a free Google account on the Connections page first." xml:space="preserve"><value>لا يوجد لديك حساب فيديو مرتبط بعد — اربط حساب Zoom أو حساب Google مجاني من صفحة الربط أولاً.</value></data>
+  <data name="You are not authorized to teach this level — ask an admin to grant it on your profile." xml:space="preserve"><value>غير مخوّل لتدريس هذا المستوى — اطلب من الإدارة منحه لملفك الشخصي.</value></data>
+  <data name="This overlaps another slot you already published." xml:space="preserve"><value>هذا الموعد يتداخل مع موعد آخر سبق أن نشرته.</value></data>
+  <data name="Slot published (session #{0})." xml:space="preserve"><value>تم نشر الموعد (الحصة رقم {0}).</value></data>
+  <data name="Two-factor verification" xml:space="preserve"><value>التحقق بخطوتين</value></data>
+  <data name="Enter the 6-digit code from your authenticator app." xml:space="preserve"><value>أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة الخاص بك.</value></data>
+  <data name="Verification code" xml:space="preserve"><value>رمز التحقق</value></data>
+  <data name="Remember this device" xml:space="preserve"><value>تذكّر هذا الجهاز</value></data>
+  <data name="Verify" xml:space="preserve"><value>تحقّق</value></data>
+  <data name="I don't have access to my authenticator device — use a recovery code" xml:space="preserve"><value>لا يمكنني الوصول إلى جهاز المصادقة — استخدم رمز استرداد</value></data>
+  <data name="This account is temporarily locked after too many failed attempts." xml:space="preserve"><value>تم قفل هذا الحساب مؤقتًا بعد عدة محاولات فاشلة.</value></data>
+  <data name="Invalid verification code." xml:space="preserve"><value>رمز التحقق غير صحيح.</value></data>
+  <data name="Recovery code" xml:space="preserve"><value>رمز الاسترداد</value></data>
+  <data name="Recovery code verification" xml:space="preserve"><value>التحقق برمز الاسترداد</value></data>
+  <data name="Enter one of the recovery codes you saved when you set up two-factor authentication. Each code works only once." xml:space="preserve"><value>أدخل أحد رموز الاسترداد التي حفظتها عند إعداد التحقق بخطوتين. كل رمز يعمل مرة واحدة فقط.</value></data>
+  <data name="Invalid recovery code." xml:space="preserve"><value>رمز الاسترداد غير صحيح.</value></data>
+  <data name="Two-factor authentication" xml:space="preserve"><value>التحقق بخطوتين</value></data>
+  <data name="Two-factor authentication is required for admin accounts. Please set it up below." xml:space="preserve"><value>التحقق بخطوتين إلزامي لحسابات الإدارة. يرجى إعداده أدناه.</value></data>
+  <data name="Save these recovery codes now — they are shown only once." xml:space="preserve"><value>احفظ رموز الاسترداد هذه الآن — تُعرض مرة واحدة فقط.</value></data>
+  <data name="Each one can be used, one time, to sign in if you lose access to your authenticator app." xml:space="preserve"><value>يمكن استخدام كل رمز مرة واحدة لتسجيل الدخول إذا فقدت الوصول إلى تطبيق المصادقة.</value></data>
+  <data name="Two-factor authentication is" xml:space="preserve"><value>التحقق بخطوتين</value></data>
+  <data name="enabled" xml:space="preserve"><value>مفعّل</value></data>
+  <data name="on this account." xml:space="preserve"><value>على هذا الحساب.</value></data>
+  <data name="Recovery codes remaining:" xml:space="preserve"><value>رموز الاسترداد المتبقية:</value></data>
+  <data name="Generate new recovery codes" xml:space="preserve"><value>إنشاء رموز استرداد جديدة</value></data>
+  <data name="Disable two-factor authentication" xml:space="preserve"><value>تعطيل التحقق بخطوتين</value></data>
+  <data name="Set up an authenticator app" xml:space="preserve"><value>إعداد تطبيق مصادقة</value></data>
+  <data name="Install an authenticator app (Google Authenticator, Microsoft Authenticator, Authy, or similar) if you don't have one." xml:space="preserve"><value>ثبّت تطبيق مصادقة (Google Authenticator أو Microsoft Authenticator أو Authy أو ما شابه) إن لم يكن لديك واحد.</value></data>
+  <data name="Add an account, choosing &quot;Enter a setup key&quot; (or scan a QR code if your app supports pasting the URI below into a QR generator)." xml:space="preserve"><value>أضف حسابًا واختر &quot;إدخال مفتاح الإعداد&quot; (أو امسح رمز QR إذا كان تطبيقك يدعم لصق الرابط أدناه في مولّد QR).</value></data>
+  <data name="Enter this key manually:" xml:space="preserve"><value>أدخل هذا المفتاح يدويًا:</value></data>
+  <data name="Enter the 6-digit code your app shows below to confirm setup." xml:space="preserve"><value>أدخل الرمز المكوّن من 6 أرقام الذي يعرضه تطبيقك أدناه لتأكيد الإعداد.</value></data>
+  <data name="Setup URI (for apps that accept a pasted otpauth link):" xml:space="preserve"><value>رابط الإعداد (للتطبيقات التي تقبل لصق رابط otpauth):</value></data>
+  <data name="Verify and enable" xml:space="preserve"><value>تحقّق وفعّل</value></data>
+  <data name="That code didn't verify — check the time on your device and try the next code." xml:space="preserve"><value>لم يتحقق هذا الرمز — تحقق من الوقت على جهازك وجرّب الرمز التالي.</value></data>
+  <data name="Two-factor authentication is now enabled. Save these recovery codes — each is shown only once." xml:space="preserve"><value>تم تفعيل التحقق بخطوتين الآن. احفظ رموز الاسترداد هذه — تُعرض كل واحدة مرة واحدة فقط.</value></data>
+  <data name="Two-factor authentication disabled. If this account's role requires it, you'll be asked to set it up again next time you sign in." xml:space="preserve"><value>تم تعطيل التحقق بخطوتين. إذا كان دور هذا الحساب يتطلبه، سيُطلب منك إعداده مجددًا عند تسجيل الدخول التالي.</value></data>
+  <data name="New recovery codes generated — the old ones no longer work. Save these now." xml:space="preserve"><value>تم إنشاء رموز استرداد جديدة — الرموز القديمة لم تعد تعمل. احفظ هذه الآن.</value></data>
+  <data name="Choose which child to take the placement test for. Each child's attempt, result, and level are completely separate." xml:space="preserve"><value>اختر الابن الذي سيخوض اختبار تحديد المستوى. محاولة كل ابن ونتيجته ومستواه منفصلة تمامًا.</value></data>
+  <data name="Score: {0}" xml:space="preserve"><value>النتيجة: {0}</value></data>
+  <data name="assigned level:" xml:space="preserve"><value>المستوى المخصص:</value></data>
+  <data name="You may now purchase a package matching this level." xml:space="preserve"><value>يمكنك الآن شراء باقة مطابقة لهذا المستوى.</value></data>
+  <data name="Answer every question, then submit. Your answers are scored on the server only — nothing here reveals which choice is correct beforehand." xml:space="preserve"><value>أجب عن كل سؤال، ثم أرسل. تُحتسب إجاباتك على الخادم فقط — لا شيء هنا يكشف الإجابة الصحيحة مسبقًا.</value></data>
+  <data name="Submit test" xml:space="preserve"><value>إرسال الاختبار</value></data>
+  <data name="Complete the free placement test to unlock package purchases matching your level." xml:space="preserve"><value>أكمل اختبار تحديد المستوى المجاني لإتاحة شراء باقات مطابقة لمستواك.</value></data>
+  <data name="Take the free placement test" xml:space="preserve"><value>إجراء اختبار تحديد المستوى المجاني</value></data>
+  <data name="There is an unfinished attempt — resume it below." xml:space="preserve"><value>توجد محاولة غير مكتملة — تابعها أدناه.</value></data>
+  <data name="Resume the test" xml:space="preserve"><value>متابعة الاختبار</value></data>
+  <data name="Your retake request was approved — you may take the test again." xml:space="preserve"><value>تمت الموافقة على طلب إعادة الاختبار — يمكنك خوض الاختبار مجددًا.</value></data>
+  <data name="Take the test" xml:space="preserve"><value>خوض الاختبار</value></data>
+  <data name="A retake request is awaiting admin approval." xml:space="preserve"><value>طلب إعادة الاختبار بانتظار موافقة الإدارة.</value></data>
+  <data name="Most recent result:" xml:space="preserve"><value>آخر نتيجة:</value></data>
+  <data name="{0} points" xml:space="preserve"><value>{0} نقطة</value></data>
+  <data name="Package purchases are restricted to this level." xml:space="preserve"><value>شراء الباقات مقيّد بهذا المستوى.</value></data>
+  <data name="Want a different level? A retake requires admin approval." xml:space="preserve"><value>تريد مستوى مختلفًا؟ إعادة الاختبار تتطلب موافقة الإدارة.</value></data>
+  <data name="Request a retake" xml:space="preserve"><value>طلب إعادة الاختبار</value></data>
+  <data name="No placement test is currently published — please contact the centre." xml:space="preserve"><value>لا يوجد اختبار تحديد مستوى منشور حاليًا — يرجى التواصل مع المركز.</value></data>
+  <data name="You are not eligible to start a new attempt right now." xml:space="preserve"><value>غير مؤهل لبدء محاولة جديدة في الوقت الحالي.</value></data>
+  <data name="Could not start the test." xml:space="preserve"><value>تعذر بدء الاختبار.</value></data>
+  <data name="Your placement test has been scored." xml:space="preserve"><value>تم احتساب نتيجة اختبار تحديد المستوى.</value></data>
+  <data name="Attempt not found." xml:space="preserve"><value>المحاولة غير موجودة.</value></data>
+  <data name="This attempt was already submitted." xml:space="preserve"><value>تم إرسال هذه المحاولة مسبقًا.</value></data>
+  <data name="Please answer every question before submitting." xml:space="preserve"><value>يرجى الإجابة عن كل سؤال قبل الإرسال.</value></data>
+  <data name="One of the submitted answers was invalid." xml:space="preserve"><value>إحدى الإجابات المرسلة غير صالحة.</value></data>
+  <data name="Could not submit the test." xml:space="preserve"><value>تعذر إرسال الاختبار.</value></data>
+  <data name="Retake requested — an admin will review it." xml:space="preserve"><value>تم طلب إعادة الاختبار — ستراجعه الإدارة.</value></data>
+  <data name="There is no completed attempt to retake yet." xml:space="preserve"><value>لا توجد محاولة مكتملة لإعادتها بعد.</value></data>
+  <data name="A retake request already exists for this student." xml:space="preserve"><value>يوجد بالفعل طلب إعادة اختبار لهذا الطالب.</value></data>
+  <data name="Your account has the Guardian role but no linked guardian profile yet — ask an admin to link you to your children on /Admin/Students." xml:space="preserve"><value>حسابك لديه صلاحية ولي أمر لكن لا يوجد ملف تعريف ولي أمر مرتبط به بعد — اطلب من الإدارة ربطك بأبنائك.</value></data>
+  <data name="Yesterday through the next 7 days. Press Join once the session has started — the child's full attendance for that session is recorded immediately; pressing again does nothing extra." xml:space="preserve"><value>من الأمس وحتى 7 أيام قادمة. اضغط انضمام بعد بدء الحصة — يُسجَّل حضور الابن الكامل لتلك الحصة فورًا؛ الضغط مرة أخرى لا يُحدث شيئًا إضافيًا.</value></data>
+  <data name="Child" xml:space="preserve"><value>الابن</value></data>
+  <data name="When" xml:space="preserve"><value>الوقت</value></data>
+  <data name="Present" xml:space="preserve"><value>حاضر</value></data>
+  <data name="Join" xml:space="preserve"><value>انضمام</value></data>
+  <data name="No sessions in this window." xml:space="preserve"><value>لا توجد حصص في هذه الفترة.</value></data>
+  <data name="Attendance recorded — the session's full duration has been drawn from the subscription." xml:space="preserve"><value>تم تسجيل الحضور — تم خصم مدة الحصة الكاملة من الاشتراك.</value></data>
+  <data name="Already marked present for this session." xml:space="preserve"><value>تم تسجيل الحضور مسبقًا لهذه الحصة.</value></data>
+  <data name="This child is not enrolled in that session, or this account is not their guardian." xml:space="preserve"><value>هذا الابن غير مسجّل في تلك الحصة، أو هذا الحساب ليس ولي أمره.</value></data>
+  <data name="Session not found." xml:space="preserve"><value>الحصة غير موجودة.</value></data>
+  <data name="This session hasn't started yet." xml:space="preserve"><value>لم تبدأ هذه الحصة بعد.</value></data>
+  <data name="No subscription has enough remaining balance to cover this session." xml:space="preserve"><value>لا يوجد اشتراك برصيد كافٍ لتغطية هذه الحصة.</value></data>
+  <data name="This account has no linked student profile yet — ask an admin to link it on /Admin/Students." xml:space="preserve"><value>لا يوجد ملف تعريف طالب مرتبط بهذا الحساب بعد — اطلب من الإدارة ربطه.</value></data>
+  <data name="You don't have a level assigned yet — ask an admin. You'll be able to browse and book sessions once you do." xml:space="preserve"><value>لا يوجد لديك مستوى مخصص بعد — اطلب من الإدارة ذلك. ستتمكن من تصفح وحجز الحصص بعد ذلك.</value></data>
+  <data name="My enrolled sessions" xml:space="preserve"><value>حصصي المسجَّلة</value></data>
+  <data name="Starts" xml:space="preserve"><value>تبدأ</value></data>
+  <data name="Attendance" xml:space="preserve"><value>الحضور</value></data>
+  <data name="No-show" xml:space="preserve"><value>غياب</value></data>
+  <data name="Reason (optional)" xml:space="preserve"><value>السبب (اختياري)</value></data>
+  <data name="Request replacement" xml:space="preserve"><value>طلب حصة بديلة</value></data>
+  <data name="No enrolled sessions in this window." xml:space="preserve"><value>لا توجد حصص مسجَّلة في هذه الفترة.</value></data>
+  <data name="Available sessions for your level" xml:space="preserve"><value>الحصص المتاحة لمستواك</value></data>
+  <data name="Book" xml:space="preserve"><value>حجز</value></data>
+  <data name="No available sessions for your level in the next 30 days." xml:space="preserve"><value>لا توجد حصص متاحة لمستواك خلال الأيام الـ30 القادمة.</value></data>
+  <data name="My replacement requests" xml:space="preserve"><value>طلبات الحصص البديلة الخاصة بي</value></data>
+  <data name="Missed session" xml:space="preserve"><value>الحصة الفائتة</value></data>
+  <data name="Replacement" xml:space="preserve"><value>البديل</value></data>
+  <data name="Pending review" xml:space="preserve"><value>قيد المراجعة</value></data>
+  <data name="No replacement requests yet." xml:space="preserve"><value>لا توجد طلبات حصص بديلة بعد.</value></data>
+  <data name="CompensationRequestStatus.Pending" xml:space="preserve"><value>قيد الانتظار</value></data>
+  <data name="CompensationRequestStatus.Approved" xml:space="preserve"><value>موافَق عليه</value></data>
+  <data name="CompensationRequestStatus.Rejected" xml:space="preserve"><value>مرفوض</value></data>
+  <data name="Attendance recorded — the session's full duration has been drawn from your package." xml:space="preserve"><value>تم تسجيل الحضور — تم خصم مدة الحصة الكاملة من باقتك.</value></data>
+  <data name="You're already marked present for this session." xml:space="preserve"><value>تم تسجيل حضورك مسبقًا لهذه الحصة.</value></data>
+  <data name="You are not enrolled in that session." xml:space="preserve"><value>أنت غير مسجّل في تلك الحصة.</value></data>
+  <data name="No package has enough remaining balance to cover this session." xml:space="preserve"><value>لا توجد باقة برصيد كافٍ لتغطية هذه الحصة.</value></data>
+  <data name="This session already ended and was recorded as a no-show — use &quot;Request replacement&quot; below instead." xml:space="preserve"><value>انتهت هذه الحصة بالفعل وسُجّلت كغياب — استخدم &quot;طلب حصة بديلة&quot; أدناه بدلًا من ذلك.</value></data>
+  <data name="Your meeting link is still being prepared — press Join again in a moment. Your attendance is already recorded." xml:space="preserve"><value>رابط الاجتماع لا يزال قيد التجهيز — اضغط انضمام مجددًا بعد قليل. تم تسجيل حضورك بالفعل.</value></data>
+  <data name="This session is no longer running. Your attendance is already recorded — please contact the centre." xml:space="preserve"><value>هذه الحصة لم تعد جارية. تم تسجيل حضورك بالفعل — يرجى التواصل مع المركز.</value></data>
+  <data name="Your teacher's video account isn't connected — please contact the centre. Your attendance is already recorded." xml:space="preserve"><value>حساب الفيديو الخاص بمعلمك غير مرتبط — يرجى التواصل مع المركز. تم تسجيل حضورك بالفعل.</value></data>
+  <data name="The meeting link isn't available right now — please contact the centre. Your attendance is already recorded." xml:space="preserve"><value>رابط الاجتماع غير متاح الآن — يرجى التواصل مع المركز. تم تسجيل حضورك بالفعل.</value></data>
+  <data name="Session booked." xml:space="preserve"><value>تم حجز الحصة.</value></data>
+  <data name="You don't have a level assigned yet — ask an admin." xml:space="preserve"><value>لا يوجد لديك مستوى مخصص بعد — اطلب من الإدارة ذلك.</value></data>
+  <data name="That session is a different level than yours." xml:space="preserve"><value>تلك الحصة بمستوى مختلف عن مستواك.</value></data>
+  <data name="That session can no longer be booked." xml:space="preserve"><value>لم يعد بالإمكان حجز تلك الحصة.</value></data>
+  <data name="You're already booked into that session." xml:space="preserve"><value>أنت محجوز بالفعل في تلك الحصة.</value></data>
+  <data name="That session is full." xml:space="preserve"><value>تلك الحصة ممتلئة.</value></data>
+  <data name="Booking this session would exceed your remaining package balance." xml:space="preserve"><value>حجز هذه الحصة سيتجاوز رصيد باقتك المتبقي.</value></data>
+  <data name="No age group covers your current age." xml:space="preserve"><value>لا توجد فئة عمرية تغطي عمرك الحالي.</value></data>
+  <data name="Replacement request submitted — an admin will review it." xml:space="preserve"><value>تم إرسال طلب الحصة البديلة — ستراجعه الإدارة.</value></data>
+  <data name="That session isn't recorded as a no-show." xml:space="preserve"><value>تلك الحصة غير مسجَّلة كغياب.</value></data>
+  <data name="You already have a request for this session." xml:space="preserve"><value>لديك بالفعل طلب لهذه الحصة.</value></data>
+  <data name="Not ready for online sessions." xml:space="preserve"><value>غير جاهز للحصص الأونلاين.</value></data>
+  <data name="You have no connected video account, so you cannot start meetings and cannot be assigned new online sessions. A free Google account is enough — no paid subscription of any kind is required." xml:space="preserve"><value>لا يوجد لديك حساب فيديو مرتبط، لذا لا يمكنك بدء الاجتماعات ولا يمكن تكليفك بحصص أونلاين جديدة. حساب Google مجاني كافٍ — لا حاجة لأي اشتراك مدفوع.</value></data>
+  <data name="Connect an account" xml:space="preserve"><value>ربط حساب</value></data>
+  <data name="Last 30 days and next 7 days. Declaring is only offered once a session has actually ended — an admin verifies afterward on a separate account." xml:space="preserve"><value>آخر 30 يومًا والأيام السبعة القادمة. يُتاح الإفصاح فقط بعد انتهاء الحصة فعليًا — تتحقق الإدارة لاحقًا من حساب منفصل.</value></data>
+  <data name="Session status" xml:space="preserve"><value>حالة الحصة</value></data>
+  <data name="Meeting" xml:space="preserve"><value>الاجتماع</value></data>
+  <data name="Delivery" xml:space="preserve"><value>التسليم</value></data>
+  <data name="Not created yet" xml:space="preserve"><value>لم يُنشأ بعد</value></data>
+  <data name="Account limit:" xml:space="preserve"><value>حد الحساب:</value></data>
+  <data name="Start session" xml:space="preserve"><value>بدء الحصة</value></data>
+  <data name="Note (optional)" xml:space="preserve"><value>ملاحظة (اختياري)</value></data>
+  <data name="Declare" xml:space="preserve"><value>إفصاح</value></data>
+  <data name="VideoProviderType.Zoom" xml:space="preserve"><value>Zoom</value></data>
+  <data name="VideoProviderType.GoogleMeet" xml:space="preserve"><value>Google Meet</value></data>
+  <data name="MeetingProvisioningStatus.Unconfigured" xml:space="preserve"><value>غير مُهيّأ</value></data>
+  <data name="MeetingProvisioningStatus.Provisioning" xml:space="preserve"><value>قيد التجهيز</value></data>
+  <data name="MeetingProvisioningStatus.Ready" xml:space="preserve"><value>جاهز</value></data>
+  <data name="MeetingProvisioningStatus.Failed" xml:space="preserve"><value>فشل</value></data>
+  <data name="MeetingProvisioningStatus.Disconnected" xml:space="preserve"><value>غير مرتبط</value></data>
+  <data name="MeetingProvisioningStatus.CapabilityBlocked" xml:space="preserve"><value>محظور بسبب حدود الحساب</value></data>
+  <data name="MeetingProvisioningStatus.Cancelled" xml:space="preserve"><value>ملغى</value></data>
+  <data name="MeetingProvisioningStatus.Orphaned" xml:space="preserve"><value>معلّق بلا مرجع</value></data>
+  <data name="DeliveryState.Pending" xml:space="preserve"><value>قيد الانتظار</value></data>
+  <data name="DeliveryState.Declared" xml:space="preserve"><value>مُعلَن</value></data>
+  <data name="DeliveryState.Verified" xml:space="preserve"><value>مُتحقَّق منه</value></data>
+  <data name="DeliveryState.Rejected" xml:space="preserve"><value>مرفوض</value></data>
+  <data name="DeliveryState.Paid" xml:space="preserve"><value>مدفوع</value></data>
+  <data name="The account this session's meeting belongs to is no longer connected — reconnect it on the Connections page." xml:space="preserve"><value>الحساب الذي يتبع له اجتماع هذه الحصة لم يعد مرتبطًا — أعد ربطه من صفحة الربط.</value></data>
+  <data name="Your meeting is still being prepared — try again in a moment." xml:space="preserve"><value>اجتماعك لا يزال قيد التجهيز — حاول مجددًا بعد قليل.</value></data>
+  <data name="The video provider could not create this meeting. Try again shortly, or ask an admin to check the connection." xml:space="preserve"><value>تعذر على مزود الفيديو إنشاء هذا الاجتماع. حاول مجددًا قريبًا، أو اطلب من الإدارة التحقق من الربط.</value></data>
+  <data name="Could not obtain a host link for this meeting right now — try again shortly." xml:space="preserve"><value>تعذر الحصول على رابط المضيف لهذا الاجتماع الآن — حاول مجددًا قريبًا.</value></data>
+  <data name="This session hasn't ended yet — nothing to declare." xml:space="preserve"><value>لم تنتهِ هذه الحصة بعد — لا يوجد ما يُفصَح عنه.</value></data>
+  <data name="Delivery declared — awaiting admin verification." xml:space="preserve"><value>تم الإفصاح عن التسليم — بانتظار تحقق الإدارة.</value></data>
+  <data name="This session was marked not-delivered — nothing to declare." xml:space="preserve"><value>تم تصنيف هذه الحصة كغير مُقدَّمة — لا يوجد ما يُفصَح عنه.</value></data>
+  <data name="This session's delivery was already declared." xml:space="preserve"><value>تم الإفصاح عن تسليم هذه الحصة مسبقًا.</value></data>
+  <data name="Video meeting connections" xml:space="preserve"><value>ربط اجتماعات الفيديو</value></data>
+  <data name="MVTeaches creates and manages every meeting through your own connected account — you never copy or paste a meeting link. The centre does not buy, provide, or reimburse video-meeting licences." xml:space="preserve"><value>تنشئ MVTeaches وتدير كل اجتماع عبر حسابك المرتبط الخاص بك — لا تنسخ أو تلصق رابط اجتماع أبدًا. لا يشتري المركز أو يوفر أو يعوّض تراخيص اجتماعات الفيديو.</value></data>
+  <data name="You do not need any paid subscription:" xml:space="preserve"><value>لا تحتاج إلى أي اشتراك مدفوع:</value></data>
+  <data name="a normal free Google account is enough." xml:space="preserve"><value>حساب Google مجاني عادي كافٍ.</value></data>
+  <data name="You have no connected video account, so you cannot be assigned online sessions yet. Connect one below — a free Google account is sufficient, no payment of any kind is required." xml:space="preserve"><value>لا يوجد لديك حساب فيديو مرتبط، لذا لا يمكن تكليفك بحصص أونلاين بعد. اربط حسابًا أدناه — يكفي حساب Google مجاني، ولا حاجة لأي دفع.</value></data>
+  <data name="If you don't have a Google account yet:" xml:space="preserve"><value>إن لم يكن لديك حساب Google بعد:</value></data>
+  <data name="Go to accounts.google.com/signup and create a free account." xml:space="preserve"><value>اذهب إلى accounts.google.com/signup وأنشئ حسابًا مجانيًا.</value></data>
+  <data name="Come back to this page and press Connect Google Meet." xml:space="preserve"><value>عد إلى هذه الصفحة واضغط ربط Google Meet.</value></data>
+  <data name="Sign in with that account and approve the access MVTeaches asks for." xml:space="preserve"><value>سجّل الدخول بذلك الحساب ووافق على الصلاحيات التي تطلبها MVTeaches.</value></data>
+  <data name="Provider" xml:space="preserve"><value>المزوّد</value></data>
+  <data name="Account" xml:space="preserve"><value>الحساب</value></data>
+  <data name="Capability" xml:space="preserve"><value>القدرة</value></data>
+  <data name="Default for new sessions" xml:space="preserve"><value>الافتراضي للحصص الجديدة</value></data>
+  <data name="Not connected" xml:space="preserve"><value>غير مرتبط</value></data>
+  <data name="Connected" xml:space="preserve"><value>مرتبط</value></data>
+  <data name="ProviderConnectionStatus.Connected" xml:space="preserve"><value>مرتبط</value></data>
+  <data name="ProviderConnectionStatus.Disconnected" xml:space="preserve"><value>غير مرتبط</value></data>
+  <data name="ProviderConnectionStatus.Revoked" xml:space="preserve"><value>مُلغى</value></data>
+  <data name="ProviderConnectionStatus.Error" xml:space="preserve"><value>خطأ</value></data>
+  <data name="Licensed — full-length sessions" xml:space="preserve"><value>مرخّص — حصص كاملة المدة</value></data>
+  <data name="Basic (free) — meetings limited to {0} minutes, including one-to-one" xml:space="preserve"><value>أساسي (مجاني) — الاجتماعات محدودة بـ{0} دقيقة، بما فيها الفردية</value></data>
+  <data name="Free Google limits assumed: one-to-one up to 24 hours, 3+ participants up to 60 minutes" xml:space="preserve"><value>حدود Google المجانية المفترضة: فردي حتى 24 ساعة، 3 مشاركين فأكثر حتى 60 دقيقة</value></data>
+  <data name="Default" xml:space="preserve"><value>افتراضي</value></data>
+  <data name="Make default" xml:space="preserve"><value>جعله افتراضيًا</value></data>
+  <data name="Connect" xml:space="preserve"><value>ربط</value></data>
+  <data name="Reconnect" xml:space="preserve"><value>إعادة الربط</value></data>
+  <data name="Disconnect" xml:space="preserve"><value>إلغاء الربط</value></data>
+  <data name="Changing your default provider affects only sessions whose meeting hasn't been created yet — an existing session keeps the meeting it already has, under the account that created it." xml:space="preserve"><value>تغيير المزوّد الافتراضي يؤثر فقط على الحصص التي لم يُنشأ اجتماعها بعد — الحصة الحالية تحتفظ بالاجتماع الذي لديها بالفعل، ضمن الحساب الذي أنشأه.</value></data>
+  <data name="Account connected." xml:space="preserve"><value>تم ربط الحساب.</value></data>
+  <data name="That authorization link was invalid, expired, or already used. Please start again." xml:space="preserve"><value>رابط التفويض هذا غير صالح أو منتهي الصلاحية أو مستخدم مسبقًا. يرجى البدء مجددًا.</value></data>
+  <data name="That authorization did not belong to your account. Please start again." xml:space="preserve"><value>هذا التفويض لا يخص حسابك. يرجى البدء مجددًا.</value></data>
+  <data name="This provider is not configured on the server yet — ask an admin." xml:space="preserve"><value>هذا المزوّد غير مهيَّأ على الخادم بعد — اطلب من الإدارة ذلك.</value></data>
+  <data name="The provider rejected the authorization. Please try again." xml:space="preserve"><value>رفض المزوّد التفويض. يرجى المحاولة مجددًا.</value></data>
+  <data name="{0} is not configured on this server yet — ask an admin to add its OAuth credentials." xml:space="preserve"><value>{0} غير مهيَّأ على هذا الخادم بعد — اطلب من الإدارة إضافة بيانات اعتماد OAuth الخاصة به.</value></data>
+  <data name="{0} disconnected. Meetings already created for existing sessions are unaffected." xml:space="preserve"><value>تم إلغاء ربط {0}. الاجتماعات المُنشأة مسبقًا للحصص الحالية لا تتأثر.</value></data>
+  <data name="No such connection." xml:space="preserve"><value>لا يوجد ربط كهذا.</value></data>
+  <data name="{0} is now your default for NEW sessions. Meetings already created for existing sessions are unchanged." xml:space="preserve"><value>أصبح {0} الآن افتراضيًا للحصص الجديدة. الاجتماعات المُنشأة مسبقًا للحصص الحالية لا تتغيّر.</value></data>
+  <data name="You must connect that provider before making it your default." xml:space="preserve"><value>يجب ربط ذلك المزوّد قبل جعله افتراضيًا.</value></data>
+  <data name="This account has no linked teacher profile yet — ask an admin to link it on /Admin/Teachers." xml:space="preserve"><value>لا يوجد ملف تعريف معلم مرتبط بهذا الحساب بعد — اطلب من الإدارة ربطه.</value></data>
+  <data name="Paid:" xml:space="preserve"><value>المدفوع:</value></data>
+  <data name="Pending (verified, not yet paid):" xml:space="preserve"><value>قيد الانتظار (مُتحقَّق منه، لم يُدفع بعد):</value></data>
+  <data name="Session date" xml:space="preserve"><value>تاريخ الحصة</value></data>
+  <data name="Rate" xml:space="preserve"><value>المعدّل</value></data>
+  <data name="Period" xml:space="preserve"><value>الفترة</value></data>
+  <data name="Period status" xml:space="preserve"><value>حالة الفترة</value></data>
+  <data name="No payroll lines yet — these appear once a declared delivery is verified and an admin aggregates it into a payroll period." xml:space="preserve"><value>لا توجد سطور رواتب بعد — تظهر هذه بعد التحقق من تسليم مُعلَن عنه وتجميعه من قِبل الإدارة في فترة رواتب.</value></data>
+  <data name="PayrollPeriodStatus.Open" xml:space="preserve"><value>مفتوحة</value></data>
+  <data name="PayrollPeriodStatus.Review" xml:space="preserve"><value>قيد المراجعة</value></data>
+  <data name="PayrollPeriodStatus.Approved" xml:space="preserve"><value>موافَق عليها</value></data>
+  <data name="PayrollPeriodStatus.Paid" xml:space="preserve"><value>مدفوعة</value></data>
+  <data name="PayrollPeriodStatus.Closed" xml:space="preserve"><value>مغلقة</value></data>
+  <data name="Live counts, read directly from the database — nothing here is cached or precomputed." xml:space="preserve"><value>أعداد حيّة، تُقرأ مباشرة من قاعدة البيانات — لا شيء هنا مخزَّن مؤقتًا أو محسوب مسبقًا.</value></data>
+  <data name="Active students" xml:space="preserve"><value>الطلاب النشطون</value></data>
+  <data name="Active teachers" xml:space="preserve"><value>المعلمون النشطون</value></data>
+  <data name="Sessions today (UTC)" xml:space="preserve"><value>حصص اليوم (بتوقيت UTC)</value></data>
+  <data name="Open payroll periods" xml:space="preserve"><value>فترات الرواتب المفتوحة</value></data>
+  <data name="Unresolved schedule conflicts" xml:space="preserve"><value>تعارضات جدولة غير محلولة</value></data>
+  <data name="A teacher-overlap or time-off collision the schedule generator could not resolve on its own." xml:space="preserve"><value>تعارض تداخل معلم أو إجازة لم يتمكن مولّد الجداول من حله تلقائيًا.</value></data>
+  <data name="Progress is always live, grouped by student, level, and course — never by subscription. Reaching the hour threshold alone never issues a certificate; issuance is always this explicit action." xml:space="preserve"><value>التقدّم حيّ دائمًا، مُجمَّع حسب الطالب والمستوى والدورة — وليس حسب الاشتراك. بلوغ حد الساعات وحده لا يُصدر شهادة أبدًا؛ الإصدار دائمًا هذا الإجراء الصريح.</value></data>
+  <data name="Progress" xml:space="preserve"><value>التقدّم</value></data>
+  <data name="Required" xml:space="preserve"><value>المطلوب</value></data>
+  <data name="Eligible" xml:space="preserve"><value>مؤهَّل</value></data>
+  <data name="Already issued" xml:space="preserve"><value>صدرت مسبقًا</value></data>
+  <data name="Issue" xml:space="preserve"><value>إصدار</value></data>
+  <data name="No progress recorded yet." xml:space="preserve"><value>لا يوجد تقدّم مسجَّل بعد.</value></data>
+  <data name="Issued certificates" xml:space="preserve"><value>الشهادات الصادرة</value></data>
+  <data name="Number" xml:space="preserve"><value>الرقم</value></data>
+  <data name="CertificateStatus.Pending" xml:space="preserve"><value>قيد الانتظار</value></data>
+  <data name="CertificateStatus.Issued" xml:space="preserve"><value>صادرة</value></data>
+  <data name="CertificateStatus.Revoked" xml:space="preserve"><value>ملغاة</value></data>
+  <data name="Certificate {0} issued." xml:space="preserve"><value>تم إصدار الشهادة {0}.</value></data>
+  <data name="A certificate for this student/level/course already exists." xml:space="preserve"><value>توجد شهادة بالفعل لهذا الطالب/المستوى/الدورة.</value></data>
+  <data name="This student has not reached the required hours yet." xml:space="preserve"><value>لم يصل هذا الطالب إلى عدد الساعات المطلوب بعد.</value></data>
+  <data name="Certificate revoked." xml:space="preserve"><value>تم إلغاء الشهادة.</value></data>
+  <data name="Student-submitted requests for a missed (no-show) session. Approving links exactly one specific future session — the original absence and its consumption are never touched." xml:space="preserve"><value>طلبات مرسَلة من الطلاب لحصة فائتة (غياب). الموافقة تربط حصة مستقبلية محددة واحدة فقط — الغياب الأصلي واستهلاكه لا يُمسّان أبدًا.</value></data>
+  <data name="Pending" xml:space="preserve"><value>قيد الانتظار</value></data>
+  <data name="Requested" xml:space="preserve"><value>تاريخ الطلب</value></data>
+  <data name="Approve" xml:space="preserve"><value>موافقة</value></data>
+  <data name="Reject" xml:space="preserve"><value>رفض</value></data>
+  <data name="No pending requests." xml:space="preserve"><value>لا توجد طلبات قيد الانتظار.</value></data>
+  <data name="Recently resolved" xml:space="preserve"><value>المحلولة مؤخرًا</value></data>
+  <data name="Outcome" xml:space="preserve"><value>النتيجة</value></data>
+  <data name="Replacement / reason" xml:space="preserve"><value>البديل / السبب</value></data>
+  <data name="Nothing resolved yet." xml:space="preserve"><value>لا يوجد شيء محلول بعد.</value></data>
+  <data name="Replacement approved — the student has been notified." xml:space="preserve"><value>تمت الموافقة على البديل — تم إشعار الطالب.</value></data>
+  <data name="Request not found." xml:space="preserve"><value>الطلب غير موجود.</value></data>
+  <data name="This request was already resolved." xml:space="preserve"><value>تم حل هذا الطلب مسبقًا.</value></data>
+  <data name="Replacement session not found." xml:space="preserve"><value>الحصة البديلة غير موجودة.</value></data>
+  <data name="The replacement must be a different session." xml:space="preserve"><value>يجب أن يكون البديل حصة مختلفة.</value></data>
+  <data name="The replacement session is full." xml:space="preserve"><value>الحصة البديلة ممتلئة.</value></data>
+  <data name="The student already has an active enrollment on that replacement session." xml:space="preserve"><value>الطالب مسجَّل بالفعل بشكل فعّال في تلك الحصة البديلة.</value></data>
+  <data name="No age group covers this student's current age." xml:space="preserve"><value>لا توجد فئة عمرية تغطي عمر هذا الطالب الحالي.</value></data>
+  <data name="The replacement session is a different level than the student's." xml:space="preserve"><value>الحصة البديلة بمستوى مختلف عن مستوى الطالب.</value></data>
+  <data name="The replacement must be a session that hasn't started yet." xml:space="preserve"><value>يجب أن يكون البديل حصة لم تبدأ بعد.</value></data>
+  <data name="Could not approve the request." xml:space="preserve"><value>تعذرت الموافقة على الطلب.</value></data>
+  <data name="Request rejected." xml:space="preserve"><value>تم رفض الطلب.</value></data>
+  <data name="Reschedule and compensation" xml:space="preserve"><value>إعادة الجدولة والتعويض</value></data>
+  <data name="Two distinct cases — pick the one that matches what actually happened. This does not use a spendable makeup-credit balance; every compensation here is tied to one specific real replacement lesson." xml:space="preserve"><value>حالتان متمايزتان — اختر ما يطابق ما حدث فعليًا. هذا لا يستخدم رصيد استرداد قابل للإنفاق؛ كل تعويض هنا مرتبط بحصة بديلة حقيقية واحدة محددة.</value></data>
+  <data name="1. Reschedule an unattended lesson" xml:space="preserve"><value>١. إعادة جدولة حصة لم يُحضرها الطالب</value></data>
+  <data name="The student never pressed Join — nothing was consumed, their balance is already untouched. This just moves that specific lesson-hour to a new session." xml:space="preserve"><value>لم يضغط الطالب انضمام أبدًا — لم يُستهلك شيء، ورصيده لم يُمسّ أصلًا. هذا ينقل فقط ساعة الحصة تلك إلى حصة جديدة.</value></data>
+  <data name="Original (missed) session" xml:space="preserve"><value>الحصة الأصلية (الفائتة)</value></data>
+  <data name="New session" xml:space="preserve"><value>الحصة الجديدة</value></data>
+  <data name="2. Approve a replacement lesson" xml:space="preserve"><value>٢. الموافقة على حصة بديلة</value></data>
+  <data name="The student DID press Join, and the session then failed for reasons outside their control. Their original attendance and consumption stay untouched forever. Approve exactly one specific replacement session — the student's Join on it will not deduct their balance again." xml:space="preserve"><value>ضغط الطالب انضمام بالفعل، ثم فشلت الحصة لأسباب خارجة عن إرادته. حضوره واستهلاكه الأصليان يبقيان دون مساس إلى الأبد. وافق على حصة بديلة محددة واحدة فقط — انضمام الطالب إليها لن يخصم من رصيده مجددًا.</value></data>
+  <data name="Original (affected) session" xml:space="preserve"><value>الحصة الأصلية (المتأثرة)</value></data>
+  <data name="Replacement session" xml:space="preserve"><value>الحصة البديلة</value></data>
+  <data name="Approve replacement" xml:space="preserve"><value>الموافقة على البديل</value></data>
+  <data name="Rescheduled — the student's unattended lesson was moved to the new session. Balance untouched." xml:space="preserve"><value>تمت إعادة الجدولة — تم نقل حصة الطالب غير المحضورة إلى الحصة الجديدة. الرصيد لم يُمسّ.</value></data>
+  <data name="No active enrollment found for that student on the original session." xml:space="preserve"><value>لا يوجد تسجيل فعّال لهذا الطالب في الحصة الأصلية.</value></data>
+  <data name="That session was already attended (Joined) — use &quot;Approve a replacement lesson&quot; below instead." xml:space="preserve"><value>تم حضور تلك الحصة بالفعل (انضمام) — استخدم &quot;الموافقة على حصة بديلة&quot; أدناه بدلًا من ذلك.</value></data>
+  <data name="Could not reschedule." xml:space="preserve"><value>تعذرت إعادة الجدولة.</value></data>
+  <data name="Replacement lesson approved — the student's next Join on it will not deduct their balance again." xml:space="preserve"><value>تمت الموافقة على الحصة البديلة — انضمام الطالب التالي إليها لن يخصم من رصيده مجددًا.</value></data>
+  <data name="That session was never attended (no Join recorded) — use &quot;Reschedule an unattended lesson&quot; above instead." xml:space="preserve"><value>لم تُحضَر تلك الحصة أبدًا (لا يوجد انضمام مسجَّل) — استخدم &quot;إعادة جدولة حصة لم يُحضرها الطالب&quot; أعلاه بدلًا من ذلك.</value></data>
+  <data name="Original session not found." xml:space="preserve"><value>الحصة الأصلية غير موجودة.</value></data>
+  <data name="The replacement session is a different level than the original." xml:space="preserve"><value>الحصة البديلة بمستوى مختلف عن الأصلية.</value></data>
+  <data name="Could not approve the replacement." xml:space="preserve"><value>تعذرت الموافقة على البديل.</value></data>
+  <data name="From" xml:space="preserve"><value>من</value></data>
+  <data name="To" xml:space="preserve"><value>إلى</value></data>
+  <data name="Run" xml:space="preserve"><value>تشغيل</value></data>
+  <data name="{0} to {1} — cash-basis (confirmed payments by confirmation date), live from the database, nothing cached." xml:space="preserve"><value>{0} إلى {1} — على أساس نقدي (الدفعات المؤكدة حسب تاريخ التأكيد)، مباشرة من قاعدة البيانات، لا شيء مخزَّن مؤقتًا.</value></data>
+  <data name="Revenue (confirmed payments)" xml:space="preserve"><value>الإيرادات (الدفعات المؤكدة)</value></data>
+  <data name="No confirmed payments in this range." xml:space="preserve"><value>لا توجد دفعات مؤكدة في هذه الفترة.</value></data>
+  <data name="Payroll cost" xml:space="preserve"><value>تكلفة الرواتب</value></data>
+  <data name="No payroll lines in this range." xml:space="preserve"><value>لا توجد سطور رواتب في هذه الفترة.</value></data>
+  <data name="Students payment-blocked right now" xml:space="preserve"><value>الطلاب الموقوفون بسبب الدفع الآن</value></data>
+  <data name="Payments awaiting confirmation" xml:space="preserve"><value>الدفعات بانتظار التأكيد</value></data>
+  <data name="Scheduled teaching hours" xml:space="preserve"><value>ساعات التدريس المجدولة</value></data>
+  <data name="{0} minutes across every non-cancelled session scheduled in this range." xml:space="preserve"><value>{0} دقيقة عبر كل حصة غير ملغاة مجدولة في هذه الفترة.</value></data>
+  <data name="Net profit (revenue − payroll − expenses)" xml:space="preserve"><value>صافي الربح (الإيرادات − الرواتب − المصاريف)</value></data>
+  <data name="Nothing to report in this range." xml:space="preserve"><value>لا يوجد شيء لعرضه في هذه الفترة.</value></data>
+  <data name="Month-over-month comparison" xml:space="preserve"><value>مقارنة شهر بشهر</value></data>
+  <data name="Compared against the immediately preceding period of the same length ({0} to {1})." xml:space="preserve"><value>مقارنة بالفترة السابقة مباشرة بنفس الطول ({0} إلى {1}).</value></data>
+  <data name="Revenue (this period)" xml:space="preserve"><value>الإيرادات (هذه الفترة)</value></data>
+  <data name="Revenue (previous)" xml:space="preserve"><value>الإيرادات (السابقة)</value></data>
+  <data name="Net profit (this period)" xml:space="preserve"><value>صافي الربح (هذه الفترة)</value></data>
+  <data name="Net profit (previous)" xml:space="preserve"><value>صافي الربح (السابقة)</value></data>
+  <data name="Record an operating expense" xml:space="preserve"><value>تسجيل مصروف تشغيلي</value></data>
+  <data name="Teacher payroll can never be entered here — it is already counted automatically from payroll lines." xml:space="preserve"><value>لا يمكن إدخال رواتب المعلمين هنا أبدًا — تُحتسب تلقائيًا من سطور الرواتب.</value></data>
+  <data name="Country Id" xml:space="preserve"><value>رقم الدولة</value></data>
+  <data name="Category" xml:space="preserve"><value>الفئة</value></data>
+  <data name="e.g. Rent, Marketing" xml:space="preserve"><value>مثال: إيجار، تسويق</value></data>
+  <data name="Incurred on" xml:space="preserve"><value>تاريخ الحدوث</value></data>
+  <data name="Record expense" xml:space="preserve"><value>تسجيل المصروف</value></data>
+  <data name="Operating expenses in this range" xml:space="preserve"><value>المصاريف التشغيلية في هذه الفترة</value></data>
+  <data name="Expense recorded." xml:space="preserve"><value>تم تسجيل المصروف.</value></data>
+  <data name="Teacher payroll must never be entered as a manual expense — it is already counted automatically." xml:space="preserve"><value>لا يجوز إدخال رواتب المعلمين كمصروف يدوي أبدًا — تُحتسب تلقائيًا.</value></data>
+  <data name="The amount must be positive." xml:space="preserve"><value>يجب أن يكون المبلغ موجبًا.</value></data>
+  <data name="The end date must not be before the start date." xml:space="preserve"><value>يجب ألا يكون تاريخ الانتهاء قبل تاريخ البدء.</value></data>
+  <data name="The payroll cycle: declare → verify → aggregate → review → approve → pay → close. Whoever declared a delivery cannot also verify it." xml:space="preserve"><value>دورة الرواتب: إفصاح ← تحقق ← تجميع ← مراجعة ← موافقة ← دفع ← إغلاق. من أفصح عن تسليم لا يمكنه التحقق منه أيضًا.</value></data>
+  <data name="Declared, awaiting verification" xml:space="preserve"><value>مُعلَن عنه، بانتظار التحقق</value></data>
+  <data name="Session" xml:space="preserve"><value>الحصة</value></data>
+  <data name="Teacher" xml:space="preserve"><value>المعلم</value></data>
+  <data name="Declared minutes" xml:space="preserve"><value>الدقائق المُعلَن عنها</value></data>
+  <data name="Nothing awaiting verification." xml:space="preserve"><value>لا شيء بانتظار التحقق.</value></data>
+  <data name="Open a payroll period" xml:space="preserve"><value>فتح فترة رواتب</value></data>
+  <data name="Start" xml:space="preserve"><value>البداية</value></data>
+  <data name="End" xml:space="preserve"><value>النهاية</value></data>
+  <data name="Open period" xml:space="preserve"><value>فتح الفترة</value></data>
+  <data name="Periods" xml:space="preserve"><value>الفترات</value></data>
+  <data name="Range" xml:space="preserve"><value>المدى</value></data>
+  <data name="Lines" xml:space="preserve"><value>السطور</value></data>
+  <data name="Total" xml:space="preserve"><value>الإجمالي</value></data>
+  <data name="Aggregate" xml:space="preserve"><value>تجميع</value></data>
+  <data name="Move to review" xml:space="preserve"><value>نقل إلى المراجعة</value></data>
+  <data name="Mark paid" xml:space="preserve"><value>تعليم كمدفوعة</value></data>
+  <data name="You verified your own declaration — a different admin must verify it." xml:space="preserve"><value>لقد تحققت من إفصاحك الخاص — يجب أن يتحقق منه مسؤول آخر.</value></data>
+  <data name="No teacher rate applies for this session yet — create one before verifying." xml:space="preserve"><value>لا يوجد معدّل معلم ينطبق على هذه الحصة بعد — أنشئ واحدًا قبل التحقق.</value></data>
+  <data name="Delivery not found." xml:space="preserve"><value>التسليم غير موجود.</value></data>
+  <data name="This delivery hasn't been declared yet." xml:space="preserve"><value>لم يتم الإفصاح عن هذا التسليم بعد.</value></data>
+  <data name="Delivery verified." xml:space="preserve"><value>تم التحقق من التسليم.</value></data>
+  <data name="Delivery rejected." xml:space="preserve"><value>تم رفض التسليم.</value></data>
+  <data name="Payroll period opened." xml:space="preserve"><value>تم فتح فترة الرواتب.</value></data>
+  <data name="A payroll period for this country and date range already exists." xml:space="preserve"><value>توجد بالفعل فترة رواتب لهذه الدولة ونطاق التاريخ.</value></data>
+  <data name="{0} payroll line(s) added." xml:space="preserve"><value>تمت إضافة {0} من سطور الرواتب.</value></data>
+  <data name="Period moved to review." xml:space="preserve"><value>تم نقل الفترة إلى المراجعة.</value></data>
+  <data name="Period approved and locked — its lines can no longer change." xml:space="preserve"><value>تمت الموافقة على الفترة وقفلها — لم يعد بالإمكان تغيير سطورها.</value></data>
+  <data name="Period marked paid." xml:space="preserve"><value>تم تعليم الفترة كمدفوعة.</value></data>
+  <data name="Period closed." xml:space="preserve"><value>تم إغلاق الفترة.</value></data>
+  <data name="Students &amp; guardians" xml:space="preserve"><value>الطلاب وأولياء الأمور</value></data>
+  <data name="Real self-registration by phone and WhatsApp is not yet available. Until then, an admin enters what staff already collect over the phone." xml:space="preserve"><value>التسجيل الذاتي عبر الهاتف وواتساب غير متاح بعد. إلى أن يتوفر، يقوم المسؤول بإدخال ما يجمعه الموظفون عبر الهاتف.</value></data>
+  <data name="Register a guardian" xml:space="preserve"><value>تسجيل ولي أمر</value></data>
+  <data name="Guardians always have an email/password login." xml:space="preserve"><value>يكون لأولياء الأمور دائمًا حساب دخول بالبريد الإلكتروني وكلمة المرور.</value></data>
+  <data name="Email" xml:space="preserve"><value>البريد الإلكتروني</value></data>
+  <data name="Register a student" xml:space="preserve"><value>تسجيل طالب</value></data>
+  <data name="A child with no independent login: leave the login fields blank." xml:space="preserve"><value>إذا لم يكن للطفل حساب دخول مستقل: اترك حقول تسجيل الدخول فارغة.</value></data>
+  <data name="Login email (optional)" xml:space="preserve"><value>بريد تسجيل الدخول (اختياري)</value></data>
+  <data name="Login password (optional)" xml:space="preserve"><value>كلمة مرور تسجيل الدخول (اختياري)</value></data>
+  <data name="Guardian" xml:space="preserve"><value>ولي الأمر</value></data>
+  <data name="Assign a level (admin override)" xml:space="preserve"><value>تعيين مستوى (تجاوز إداري)</value></data>
+  <data name="No placement-interview flow exists yet — every assignment here is an explicit, reasoned override." xml:space="preserve"><value>لا توجد آلية مقابلة تحديد مستوى بعد — كل تعيين هنا هو تجاوز صريح ومُبرَّر.</value></data>
+  <data name="Assign level" xml:space="preserve"><value>تعيين المستوى</value></data>
+  <data name="Name" xml:space="preserve"><value>الاسم</value></data>
+  <data name="Mark verified" xml:space="preserve"><value>تعليم كموثّق</value></data>
+  <data name="Could not create the guardian's login: {0}" xml:space="preserve"><value>تعذّر إنشاء حساب دخول ولي الأمر: {0}</value></data>
+  <data name="Guardian '{0}' registered." xml:space="preserve"><value>تم تسجيل ولي الأمر '{0}'.</value></data>
+  <data name="Could not create the student's login: {0}" xml:space="preserve"><value>تعذّر إنشاء حساب دخول الطالب: {0}</value></data>
+  <data name="Student '{0}' registered (pending verification)." xml:space="preserve"><value>تم تسجيل الطالب '{0}' (بانتظار التوثيق).</value></data>
+  <data name="This student already has a primary guardian — un-primary the existing one first." xml:space="preserve"><value>لهذا الطالب بالفعل ولي أمر أساسي — ألغِ الأساسي الحالي أولًا.</value></data>
+  <data name="Student marked verified." xml:space="preserve"><value>تم تعليم الطالب كموثّق.</value></data>
+  <data name="Level assigned." xml:space="preserve"><value>تم تعيين المستوى.</value></data>
+  <data name="StudentStatus.PendingVerification" xml:space="preserve"><value>بانتظار التوثيق</value></data>
+  <data name="StudentStatus.PendingLevel" xml:space="preserve"><value>بانتظار تحديد المستوى</value></data>
+  <data name="StudentStatus.Active" xml:space="preserve"><value>نشط</value></data>
+  <data name="StudentStatus.PaymentBlocked" xml:space="preserve"><value>موقوف للدفع</value></data>
+  <data name="StudentStatus.Expired" xml:space="preserve"><value>منتهٍ</value></data>
+  <data name="StudentStatus.Suspended" xml:space="preserve"><value>موقوف</value></data>
+  <data name="StudentStatus.Migrated" xml:space="preserve"><value>مُرحَّل</value></data>
+  <data name="born" xml:space="preserve"><value>من مواليد</value></data>
+  <data name="Primary" xml:space="preserve"><value>أساسي</value></data>
+  <data name="Can pay" xml:space="preserve"><value>بإمكانه الدفع</value></data>
+  <data name="No guardians linked." xml:space="preserve"><value>لا يوجد أولياء أمور مرتبطون.</value></data>
+  <data name="Level history" xml:space="preserve"><value>سجل المستويات</value></data>
+  <data name="Source" xml:space="preserve"><value>المصدر</value></data>
+  <data name="Current" xml:space="preserve"><value>الحالي</value></data>
+  <data name="Since" xml:space="preserve"><value>منذ</value></data>
+  <data name="No level assigned yet." xml:space="preserve"><value>لم يتم تعيين مستوى بعد.</value></data>
+  <data name="Course/Level" xml:space="preserve"><value>الدورة/المستوى</value></data>
+  <data name="Balance (min)" xml:space="preserve"><value>الرصيد (دقيقة)</value></data>
+  <data name="No subscriptions yet — see" xml:space="preserve"><value>لا توجد اشتراكات بعد — راجع</value></data>
+  <data name="Payment history" xml:space="preserve"><value>سجل الدفعات</value></data>
+  <data name="Ref" xml:space="preserve"><value>المرجع</value></data>
+  <data name="Method" xml:space="preserve"><value>طريقة الدفع</value></data>
+  <data name="No payments recorded — see" xml:space="preserve"><value>لا توجد دفعات مسجلة — راجع</value></data>
+  <data name="Issued" xml:space="preserve"><value>تاريخ الإصدار</value></data>
+  <data name="No certificates issued yet." xml:space="preserve"><value>لم تصدر أي شهادات بعد.</value></data>
+  <data name="Yes" xml:space="preserve"><value>نعم</value></data>
+  <data name="No" xml:space="preserve"><value>لا</value></data>
+  <data name="LevelAssignmentSource.PlacementInterview" xml:space="preserve"><value>مقابلة تحديد مستوى</value></data>
+  <data name="LevelAssignmentSource.Promotion" xml:space="preserve"><value>ترقية</value></data>
+  <data name="LevelAssignmentSource.AdminOverride" xml:space="preserve"><value>تجاوز إداري</value></data>
+  <data name="LevelAssignmentSource.Migration" xml:space="preserve"><value>ترحيل</value></data>
+  <data name="LevelAssignmentSource.PlacementTest" xml:space="preserve"><value>اختبار تحديد المستوى</value></data>
+  <data name="SubscriptionStatus.Extended" xml:space="preserve"><value>مُمدَّد</value></data>
+  <data name="SubscriptionStatus.Completed" xml:space="preserve"><value>مكتمل</value></data>
+  <data name="A teacher account is always admin-created, never self-registered." xml:space="preserve"><value>حساب المعلم يُنشئه المسؤول دائمًا، ولا يُسجَّل ذاتيًا أبدًا.</value></data>
+  <data name="Register a teacher" xml:space="preserve"><value>تسجيل معلم</value></data>
+  <data name="Time zone (IANA)" xml:space="preserve"><value>المنطقة الزمنية (IANA)</value></data>
+  <data name="Register teacher" xml:space="preserve"><value>تسجيل المعلم</value></data>
+  <data name="Set a pay rate" xml:space="preserve"><value>تحديد معدّل الأجر</value></data>
+  <data name="Most-specific-wins at verification time: (course+level+age group) beats (course+level) beats (course) beats the teacher's own default (leave course/level/age group blank)." xml:space="preserve"><value>الأكثر تحديدًا يفوز عند التحقق: (الدورة+المستوى+الفئة العمرية) يتفوق على (الدورة+المستوى) يتفوق على (الدورة) يتفوق على معدّل المعلم الافتراضي (اترك الدورة/المستوى/الفئة العمرية فارغة).</value></data>
+  <data name="Course (blank = any)" xml:space="preserve"><value>الدورة (فارغ = أي)</value></data>
+  <data name="Level (blank = any)" xml:space="preserve"><value>المستوى (فارغ = أي)</value></data>
+  <data name="Age group (blank = any)" xml:space="preserve"><value>الفئة العمرية (فارغ = أي)</value></data>
+  <data name="Unit" xml:space="preserve"><value>الوحدة</value></data>
+  <data name="Effective from" xml:space="preserve"><value>ساري من</value></data>
+  <data name="Create rate" xml:space="preserve"><value>إنشاء المعدّل</value></data>
+  <data name="Pay rates" xml:space="preserve"><value>معدلات الأجور</value></data>
+  <data name="any" xml:space="preserve"><value>أي</value></data>
+  <data name="Grant a teacher an authorized level" xml:space="preserve"><value>منح معلم مستوى مصرّح به</value></data>
+  <data name="A teacher may publish sessions only for levels explicitly granted here. Granting an already-granted level is refused, not silently accepted twice." xml:space="preserve"><value>لا يجوز للمعلم نشر حصص إلا للمستويات الممنوحة له صراحة هنا. منح مستوى ممنوح مسبقًا يُرفض، ولا يُقبل ضمنًا مرتين.</value></data>
+  <data name="Grant level" xml:space="preserve"><value>منح المستوى</value></data>
+  <data name="Time zone" xml:space="preserve"><value>المنطقة الزمنية</value></data>
+  <data name="Online sessions" xml:space="preserve"><value>الحصص عبر الإنترنت</value></data>
+  <data name="Authorized levels" xml:space="preserve"><value>المستويات المصرّح بها</value></data>
+  <data name="No connected Zoom or Google Meet account — this teacher cannot be assigned online sessions. A free Google account is sufficient." xml:space="preserve"><value>لا يوجد حساب Zoom أو Google Meet متصل — لا يمكن تعيين حصص عبر الإنترنت لهذا المعلم. يكفي حساب Google مجاني.</value></data>
+  <data name="Not ready" xml:space="preserve"><value>غير جاهز</value></data>
+  <data name="Ready" xml:space="preserve"><value>جاهز</value></data>
+  <data name="Revoke this level" xml:space="preserve"><value>إلغاء هذا المستوى</value></data>
+  <data name="Reactivate" xml:space="preserve"><value>إعادة التفعيل</value></data>
+  <data name="Could not create the teacher's login: {0}" xml:space="preserve"><value>تعذّر إنشاء حساب دخول المعلم: {0}</value></data>
+  <data name="Teacher '{0}' registered." xml:space="preserve"><value>تم تسجيل المعلم '{0}'.</value></data>
+  <data name="Rate created." xml:space="preserve"><value>تم إنشاء المعدّل.</value></data>
+  <data name="This teacher is already authorized for this level." xml:space="preserve"><value>هذا المعلم مصرّح له بهذا المستوى بالفعل.</value></data>
+  <data name="Teacher not found." xml:space="preserve"><value>المعلم غير موجود.</value></data>
+  <data name="Level not found." xml:space="preserve"><value>المستوى غير موجود.</value></data>
+  <data name="Could not grant this level." xml:space="preserve"><value>تعذّر منح هذا المستوى.</value></data>
+  <data name="Level granted." xml:space="preserve"><value>تم منح المستوى.</value></data>
+  <data name="This teacher was not authorized for this level." xml:space="preserve"><value>لم يكن هذا المعلم مصرَّحًا له بهذا المستوى.</value></data>
+  <data name="Could not revoke this level." xml:space="preserve"><value>تعذّر إلغاء هذا المستوى.</value></data>
+  <data name="Level revoked." xml:space="preserve"><value>تم إلغاء المستوى.</value></data>
+  <data name="Teacher deactivated." xml:space="preserve"><value>تم إلغاء تفعيل المعلم.</value></data>
+  <data name="Teacher reactivated." xml:space="preserve"><value>تمت إعادة تفعيل المعلم.</value></data>
+  <data name="RateUnit.PerHour" xml:space="preserve"><value>لكل ساعة</value></data>
+  <data name="RateUnit.PerSession" xml:space="preserve"><value>لكل حصة</value></data>
+  <data name="Recurring schedules" xml:space="preserve"><value>الجداول المتكررة</value></data>
+  <data name="A fixed weekly schedule, not a free-form booking calendar. Creating one here is what lets the nightly generator (or an admin's &quot;Trigger now&quot; on" xml:space="preserve"><value>جدول أسبوعي ثابت، وليس تقويم حجز حر. إنشاء واحد هنا هو ما يتيح للمولّد الليلي (أو زر &quot;تشغيل الآن&quot; الخاص بالمسؤول على</value></data>
+  <data name="actually produce real sessions." xml:space="preserve"><value>إنتاج حصص فعلية بالفعل.</value></data>
+  <data name="Create a recurring schedule" xml:space="preserve"><value>إنشاء جدول متكرر</value></data>
+  <data name="Hidden — not ready for online sessions (no connected video account; a free Google account is enough):" xml:space="preserve"><value>مخفي — غير جاهز للحصص عبر الإنترنت (لا يوجد حساب فيديو متصل؛ يكفي حساب Google مجاني):</value></data>
+  <data name="Days of week" xml:space="preserve"><value>أيام الأسبوع</value></data>
+  <data name="Start time (local)" xml:space="preserve"><value>وقت البدء (محلي)</value></data>
+  <data name="Starts on" xml:space="preserve"><value>يبدأ في</value></data>
+  <data name="Capacity" xml:space="preserve"><value>السعة</value></data>
+  <data name="Create schedule" xml:space="preserve"><value>إنشاء الجدول</value></data>
+  <data name="Enroll a student" xml:space="preserve"><value>تسجيل طالب</value></data>
+  <data name="This enrolls the student directly into every currently-generated, not-yet-started session under the chosen schedule — a one-time bulk action, not a standing membership. A student added to a schedule AFTER new sessions are generated needs enrolling again for those new ones." xml:space="preserve"><value>يقوم هذا بتسجيل الطالب مباشرة في كل حصة تم إنشاؤها ولم تبدأ بعد ضمن الجدول المختار — إجراء دفعي لمرة واحدة، وليس عضوية دائمة. الطالب المضاف إلى جدول بعد إنشاء حصص جديدة يحتاج إلى تسجيل مجدداً لتلك الحصص الجديدة.</value></data>
+  <data name="Schedule" xml:space="preserve"><value>الجدول</value></data>
+  <data name="Enroll into upcoming sessions" xml:space="preserve"><value>تسجيل في الحصص القادمة</value></data>
+  <data name="Cancel a session" xml:space="preserve"><value>إلغاء حصة</value></data>
+  <data name="Give a replacement session and every not-yet-joined enrollment transfers to it with no ledger movement — the substitute session's own Join is the one deduction. Leave it blank for a plain cancellation. A student who already pressed Join before the problem occurred is never touched automatically — approve their specific replacement lesson on" xml:space="preserve"><value>حدِّد حصة بديلة وستنتقل إليها كل حالات التسجيل التي لم تُستهلك بعد دون أي حركة في السجل — ضغط &quot;انضمام&quot; في الحصة البديلة نفسها هو الخصم الوحيد. اتركها فارغة للإلغاء البسيط. الطالب الذي ضغط &quot;انضمام&quot; بالفعل قبل حدوث المشكلة لا يُعدَّل تلقائيًا أبدًا — وافق على حصة بديلة محددة له على</value></data>
+  <data name="instead." xml:space="preserve"><value>بدلاً من ذلك.</value></data>
+  <data name="Replacement session (optional)" xml:space="preserve"><value>الحصة البديلة (اختياري)</value></data>
+  <data name="Cancel session" xml:space="preserve"><value>إلغاء الحصة</value></data>
+  <data name="Reassign a session's teacher" xml:space="preserve"><value>إعادة تعيين معلم الحصة</value></data>
+  <data name="Only a future session that hasn't started yet. The former teacher's meeting is cancelled under their own connected account (or flagged for admin attention if that account was already revoked) — it is never reused for the new teacher — and a fresh meeting is created under the new teacher's own account the next time the session is started or joined. Enrolled students are notified. A teacher with no connected Zoom or Google Meet account cannot be selected here; a free Google account is sufficient for them to become available." xml:space="preserve"><value>حصة مستقبلية لم تبدأ بعد فقط. تُلغى اجتماع المعلم السابق تحت حسابه المتصل الخاص (أو تُميَّز لانتباه المسؤول إذا كان ذلك الحساب قد أُلغي بالفعل) — لا يُعاد استخدامه للمعلم الجديد أبدًا — ويُنشأ اجتماع جديد تحت حساب المعلم الجديد في المرة القادمة التي تبدأ أو ينضم فيها إلى الحصة. يُخطَر الطلاب المسجلون. لا يمكن اختيار معلم بلا حساب Zoom أو Google Meet متصل هنا؛ يكفي حساب Google مجاني ليصبح متاحًا.</value></data>
+  <data name="New teacher" xml:space="preserve"><value>المعلم الجديد</value></data>
+  <data name="Reassign" xml:space="preserve"><value>إعادة التعيين</value></data>
+  <data name="Not selectable (no connected video account):" xml:space="preserve"><value>غير قابل للاختيار (لا يوجد حساب فيديو متصل):</value></data>
+  <data name="Upcoming sessions (next 14 days)" xml:space="preserve"><value>الحصص القادمة (الـ14 يومًا القادمة)</value></data>
+  <data name="Starts (UTC)" xml:space="preserve"><value>تبدأ (UTC)</value></data>
+  <data name="Seats" xml:space="preserve"><value>المقاعد</value></data>
+  <data name="Course/Level/Age" xml:space="preserve"><value>الدورة/المستوى/العمر</value></data>
+  <data name="Days" xml:space="preserve"><value>الأيام</value></data>
+  <data name="Time" xml:space="preserve"><value>الوقت</value></data>
+  <data name="min" xml:space="preserve"><value>دقيقة</value></data>
+  <data name="Pause" xml:space="preserve"><value>إيقاف مؤقت</value></data>
+  <data name="Resume" xml:space="preserve"><value>استئناف</value></data>
+  <data name="Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual &quot;Trigger now&quot; on /hangfire)." xml:space="preserve"><value>تم إنشاء الجدول المتكرر — سيبدأ بإنتاج الحصص عند عملية التوليد الليلية القادمة (أو عبر زر &quot;تشغيل الآن&quot; اليدوي للمسؤول على /hangfire).</value></data>
+  <data name="Enrolled the student into {0} upcoming session(s) generated from this schedule." xml:space="preserve"><value>تم تسجيل الطالب في {0} من الحصص القادمة الناتجة عن هذا الجدول.</value></data>
+  <data name="Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched (approve a specific replacement lesson for them on /Admin/RescheduleSessions if appropriate)." xml:space="preserve"><value>تم إلغاء الحصة. تم إلغاء {0} تسجيل(ات)؛ {1} من الطلاب الذين انضموا بالفعل تُركوا دون تعديل (وافق على حصة بديلة محددة لهم على /Admin/RescheduleSessions إذا لزم الأمر).</value></data>
+  <data name="Session cancelled and replaced. {0} student(s) moved to the replacement; {1} could not fit and need manual attention; {2} already-joined student(s) left untouched." xml:space="preserve"><value>تم إلغاء الحصة واستبدالها. تم نقل {0} من الطلاب إلى الحصة البديلة؛ {1} لم يتسع لهم المكان ويحتاجون لمتابعة يدوية؛ {2} من الطلاب الذين انضموا بالفعل تُركوا دون تعديل.</value></data>
+  <data name="This session is already cancelled, completed, or marked not delivered." xml:space="preserve"><value>هذه الحصة ملغاة أو مكتملة أو معلَّمة كغير مُقدَّمة بالفعل.</value></data>
+  <data name="The replacement session id was not found." xml:space="preserve"><value>لم يتم العثور على رقم الحصة البديلة.</value></data>
+  <data name="The replacement session must be a different session." xml:space="preserve"><value>يجب أن تكون الحصة البديلة حصة مختلفة.</value></data>
+  <data name="Teacher reassigned. The previous meeting was cancelled (or flagged for admin attention if its account was already revoked); a fresh meeting is created under the new teacher when the session is next started or joined. Enrolled students have been notified." xml:space="preserve"><value>تمت إعادة تعيين المعلم. أُلغي الاجتماع السابق (أو تم تمييزه لانتباه المسؤول إذا كان حسابه قد أُلغي بالفعل)؛ يُنشأ اجتماع جديد تحت المعلم الجديد عند بدء الحصة أو الانضمام إليها القادم. تم إخطار الطلاب المسجلين.</value></data>
+  <data name="That session can no longer be reassigned." xml:space="preserve"><value>لم يعد بالإمكان إعادة تعيين هذه الحصة.</value></data>
+  <data name="The new teacher already has a session at that time." xml:space="preserve"><value>لدى المعلم الجديد حصة بالفعل في ذلك الوقت.</value></data>
+  <data name="That teacher has no connected Zoom or Google Meet account." xml:space="preserve"><value>لا يوجد لدى هذا المعلم حساب Zoom أو Google Meet متصل.</value></data>
+  <data name="Could not reassign the teacher." xml:space="preserve"><value>تعذّر إعادة تعيين المعلم.</value></data>
+  <data name="Schedule paused — future occurrences stop generating; nothing already generated is affected." xml:space="preserve"><value>تم إيقاف الجدول مؤقتًا — تتوقف الحدوث المستقبلية عن التوليد؛ لا يتأثر أي شيء تم توليده بالفعل.</value></data>
+  <data name="Schedule resumed." xml:space="preserve"><value>تم استئناف الجدول.</value></data>
+  <data name="RecurringScheduleStatus.Active" xml:space="preserve"><value>نشط</value></data>
+  <data name="RecurringScheduleStatus.Paused" xml:space="preserve"><value>متوقف مؤقتًا</value></data>
+  <data name="RecurringScheduleStatus.Ended" xml:space="preserve"><value>منتهٍ</value></data>
+  <data name="DayOfWeek.Monday" xml:space="preserve"><value>الاثنين</value></data>
+  <data name="DayOfWeek.Tuesday" xml:space="preserve"><value>الثلاثاء</value></data>
+  <data name="DayOfWeek.Wednesday" xml:space="preserve"><value>الأربعاء</value></data>
+  <data name="DayOfWeek.Thursday" xml:space="preserve"><value>الخميس</value></data>
+  <data name="DayOfWeek.Friday" xml:space="preserve"><value>الجمعة</value></data>
+  <data name="DayOfWeek.Saturday" xml:space="preserve"><value>السبت</value></data>
+  <data name="DayOfWeek.Sunday" xml:space="preserve"><value>الأحد</value></data>
+  <data name="This content is entirely admin-authored; nothing here is invented by the system. A version cannot be published unless its score ranges fully cover every possible score with no gaps or overlaps." xml:space="preserve"><value>هذا المحتوى من تأليف المسؤول بالكامل؛ لا شيء هنا من اختراع النظام. لا يمكن نشر نسخة إلا إذا كانت نطاقات درجاتها تغطي كل درجة ممكنة بالكامل دون فجوات أو تداخل.</value></data>
+  <data name="Create a new draft version" xml:space="preserve"><value>إنشاء نسخة مسودة جديدة</value></data>
+  <data name="Title" xml:space="preserve"><value>العنوان</value></data>
+  <data name="Create draft" xml:space="preserve"><value>إنشاء مسودة</value></data>
+  <data name="Versions" xml:space="preserve"><value>النسخ</value></data>
+  <data name="Edit" xml:space="preserve"><value>تعديل</value></data>
+  <data name="Publish" xml:space="preserve"><value>نشر</value></data>
+  <data name="Activate" xml:space="preserve"><value>تفعيل</value></data>
+  <data name="Editing:" xml:space="preserve"><value>التعديل:</value></data>
+  <data name="Add a question" xml:space="preserve"><value>إضافة سؤال</value></data>
+  <data name="Question text" xml:space="preserve"><value>نص السؤال</value></data>
+  <data name="Points" xml:space="preserve"><value>النقاط</value></data>
+  <data name="Sort order" xml:space="preserve"><value>ترتيب العرض</value></data>
+  <data name="Correct choice #" xml:space="preserve"><value>رقم الخيار الصحيح</value></data>
+  <data name="Choice 1" xml:space="preserve"><value>الخيار 1</value></data>
+  <data name="Choice 2" xml:space="preserve"><value>الخيار 2</value></data>
+  <data name="Choice 3 (optional)" xml:space="preserve"><value>الخيار 3 (اختياري)</value></data>
+  <data name="Choice 4 (optional)" xml:space="preserve"><value>الخيار 4 (اختياري)</value></data>
+  <data name="Add question" xml:space="preserve"><value>إضافة السؤال</value></data>
+  <data name="Add a score range → level mapping" xml:space="preserve"><value>إضافة ربط نطاق درجات ← مستوى</value></data>
+  <data name="Min score" xml:space="preserve"><value>أدنى درجة</value></data>
+  <data name="Max score" xml:space="preserve"><value>أعلى درجة</value></data>
+  <data name="Add range" xml:space="preserve"><value>إضافة النطاق</value></data>
+  <data name="Questions" xml:space="preserve"><value>الأسئلة</value></data>
+  <data name="Text" xml:space="preserve"><value>النص</value></data>
+  <data name="Choices (✓ = correct)" xml:space="preserve"><value>الخيارات (✓ = صحيح)</value></data>
+  <data name="Remove" xml:space="preserve"><value>إزالة</value></data>
+  <data name="Score ranges" xml:space="preserve"><value>نطاقات الدرجات</value></data>
+  <data name="Max" xml:space="preserve"><value>الأعلى</value></data>
+  <data name="Pending retake requests" xml:space="preserve"><value>طلبات إعادة الاختبار المعلّقة</value></data>
+  <data name="A retake requires explicit admin approval; approving or rejecting is audit-logged." xml:space="preserve"><value>تتطلب إعادة الاختبار موافقة صريحة من المسؤول؛ يُسجَّل قرار الموافقة أو الرفض في سجل التدقيق.</value></data>
+  <data name="Reason (required)" xml:space="preserve"><value>السبب (مطلوب)</value></data>
+  <data name="Draft version #{0} created." xml:space="preserve"><value>تم إنشاء النسخة المسودة رقم {0}.</value></data>
+  <data name="Question added." xml:space="preserve"><value>تمت إضافة السؤال.</value></data>
+  <data name="Question removed." xml:space="preserve"><value>تمت إزالة السؤال.</value></data>
+  <data name="Score range added." xml:space="preserve"><value>تمت إضافة نطاق الدرجات.</value></data>
+  <data name="Score range removed." xml:space="preserve"><value>تمت إزالة نطاق الدرجات.</value></data>
+  <data name="Version published." xml:space="preserve"><value>تم نشر النسخة.</value></data>
+  <data name="Version not found." xml:space="preserve"><value>النسخة غير موجودة.</value></data>
+  <data name="This version is already published." xml:space="preserve"><value>هذه النسخة منشورة بالفعل.</value></data>
+  <data name="This version cannot be published yet — see the errors below." xml:space="preserve"><value>لا يمكن نشر هذه النسخة بعد — راجع الأخطاء أدناه.</value></data>
+  <data name="Could not publish this version." xml:space="preserve"><value>تعذّر نشر هذه النسخة.</value></data>
+  <data name="Version activated — new attempts will use it." xml:space="preserve"><value>تم تفعيل النسخة — ستُستخدم في المحاولات الجديدة.</value></data>
+  <data name="Only a published version can be activated." xml:space="preserve"><value>يمكن تفعيل نسخة منشورة فقط.</value></data>
+  <data name="Retake approved." xml:space="preserve"><value>تمت الموافقة على إعادة الاختبار.</value></data>
+  <data name="This request was already decided." xml:space="preserve"><value>تم البت في هذا الطلب بالفعل.</value></data>
+  <data name="A reason is required to reject a retake request." xml:space="preserve"><value>السبب مطلوب لرفض طلب إعادة الاختبار.</value></data>
+  <data name="Retake rejected." xml:space="preserve"><value>تم رفض إعادة الاختبار.</value></data>
+  <data name="PlacementTestStatus.Draft" xml:space="preserve"><value>مسودة</value></data>
+  <data name="PlacementTestStatus.Published" xml:space="preserve"><value>منشور</value></data>
+  <data name="Invalid email or password." xml:space="preserve"><value>البريد الإلكتروني أو كلمة المرور غير صحيحة.</value></data>
+  <data name="e.g. English Placement v3" xml:space="preserve"><value>مثال: تحديد مستوى اللغة الإنجليزية - النسخة 3</value></data>
+  <data name="An unexpected error occurred." xml:space="preserve"><value>حدث خطأ غير متوقع.</value></data>
+  <data name="Optimistic concurrency failure, object has been modified." xml:space="preserve"><value>فشل التزامن التفاؤلي، تم تعديل الكائن.</value></data>
+  <data name="Incorrect password." xml:space="preserve"><value>كلمة المرور غير صحيحة.</value></data>
+  <data name="Invalid token." xml:space="preserve"><value>الرمز غير صالح.</value></data>
+  <data name="A user with this login already exists." xml:space="preserve"><value>يوجد مستخدم بهذا الحساب بالفعل.</value></data>
+  <data name="Email '{0}' is invalid — only letters, digits, and the characters -._@+ are allowed." xml:space="preserve"><value>البريد الإلكتروني '{0}' غير صالح — يُسمح فقط بالحروف والأرقام والرموز -._@+.</value></data>
+  <data name="Email '{0}' is invalid." xml:space="preserve"><value>البريد الإلكتروني '{0}' غير صالح.</value></data>
+  <data name="Email '{0}' is already taken." xml:space="preserve"><value>البريد الإلكتروني '{0}' مستخدم بالفعل.</value></data>
+  <data name="Role name '{0}' is invalid." xml:space="preserve"><value>اسم الدور '{0}' غير صالح.</value></data>
+  <data name="Role name '{0}' is already taken." xml:space="preserve"><value>اسم الدور '{0}' مستخدم بالفعل.</value></data>
+  <data name="User already in role '{0}'." xml:space="preserve"><value>المستخدم موجود بالفعل في الدور '{0}'.</value></data>
+  <data name="User is not in role '{0}'." xml:space="preserve"><value>المستخدم ليس في الدور '{0}'.</value></data>
+  <data name="Passwords must be at least {0} characters." xml:space="preserve"><value>يجب ألا تقل كلمة المرور عن {0} حرفًا.</value></data>
+  <data name="Passwords must have at least one non-alphanumeric character." xml:space="preserve"><value>يجب أن تحتوي كلمة المرور على رمز غير أبجدي رقمي واحد على الأقل.</value></data>
+  <data name="Passwords must have at least one digit ('0'-'9')." xml:space="preserve"><value>يجب أن تحتوي كلمة المرور على رقم واحد على الأقل ('0'-'9').</value></data>
+  <data name="Passwords must have at least one lowercase letter ('a'-'z')." xml:space="preserve"><value>يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل ('a'-'z').</value></data>
+  <data name="Passwords must have at least one uppercase letter ('A'-'Z')." xml:space="preserve"><value>يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل ('A'-'Z').</value></data>
+  <data name="Passwords must use at least {0} different characters." xml:space="preserve"><value>يجب أن تستخدم كلمة المرور {0} أحرف مختلفة على الأقل.</value></data>
+  <data name="Lockout is not enabled for this user." xml:space="preserve"><value>الإيقاف المؤقت غير مفعّل لهذا المستخدم.</value></data>
+  <data name="Recovery code redemption failed." xml:space="preserve"><value>فشل استخدام رمز الاسترداد.</value></data>
+</root>

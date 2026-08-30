@@ -1,8 +1,17 @@
-﻿@page
+@page
 @model PrivacyModel
 @{
-    ViewData["Title"] = "Privacy Policy";
+    ViewData["Title"] = T["Privacy"];
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<h1>@T["Privacy"]</h1>
+<p class="text-muted">@T["This page summarizes the platform-owned privacy posture for local review. Final legal wording should be supplied by the owner before production publication."]</p>
+
+<div class="card">
+    <div class="card-body">
+        <h2 class="h4">@T["Data handled by the platform"]</h2>
+        <p>@T["MVTEACHES stores account, student, guardian, teacher, scheduling, attendance, subscription, payment, payroll, and certificate records needed to operate the education workflows."]</p>
+        <h2 class="h4">@T["Operational safeguards"]</h2>
+        <p>@T["Access remains role-based, forms keep antiforgery protection, and sensitive integration credentials are handled through configured server-side boundaries."]</p>
+    </div>
+</div>

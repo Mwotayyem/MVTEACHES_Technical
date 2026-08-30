@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Payroll;
 using MVTeaches.Application.People;
 using MVTeaches.Domain.Catalog;
@@ -11,6 +12,7 @@ using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Payroll;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -29,15 +31,18 @@ public class TeachersModel : PageModel
     private readonly ITeacherRateService _rates;
     private readonly ITeacherLevelAuthorizationService _levelAuthorization;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public TeachersModel(MvTeachesDbContext db, ITeacherAdmissionService teachers, ITeacherRateService rates,
-        ITeacherLevelAuthorizationService levelAuthorization, UserManager<ApplicationUser> userManager)
+        ITeacherLevelAuthorizationService levelAuthorization, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _teachers = teachers;
         _rates = rates;
         _levelAuthorization = levelAuthorization;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Teacher namespace.
@@ -135,11 +140,11 @@ public class TeachersModel : PageModel
 
         if (result.Outcome == RegisterTeacherOutcome.LoginFailed)
         {
-            ErrorMessage = "Could not create the teacher's login: " + string.Join("; ", result.Errors ?? Array.Empty<string>());
+            ErrorMessage = _localizer["Could not create the teacher's login: {0}", string.Join("; ", result.Errors ?? Array.Empty<string>())].Value;
         }
         else
         {
-            StatusMessage = $"Teacher '{NewTeacher.FullName}' registered.";
+            StatusMessage = _localizer["Teacher '{0}' registered.", NewTeacher.FullName].Value;
         }
 
         await LoadAsync();
@@ -162,7 +167,7 @@ public class TeachersModel : PageModel
         {
             await _rates.CreateRateAsync(NewRate.TeacherId, NewRate.CourseId, NewRate.LevelId, NewRate.AgeGroupId,
                 new Money(NewRate.Amount, NewRate.Currency), NewRate.Unit, effectiveFrom, actingUserId, HttpContext.RequestAborted);
-            StatusMessage = "Rate created.";
+            StatusMessage = _localizer["Rate created."].Value;
         }
         catch (ArgumentOutOfRangeException ex)
         {
@@ -193,14 +198,14 @@ public class TeachersModel : PageModel
         ErrorMessage = outcome switch
         {
             TeacherLevelGrantOutcome.Granted => null,
-            TeacherLevelGrantOutcome.AlreadyGranted => "This teacher is already authorized for this level.",
-            TeacherLevelGrantOutcome.TeacherNotFound => "Teacher not found.",
-            TeacherLevelGrantOutcome.LevelNotFound => "Level not found.",
-            _ => "Could not grant this level.",
+            TeacherLevelGrantOutcome.AlreadyGranted => _localizer["This teacher is already authorized for this level."].Value,
+            TeacherLevelGrantOutcome.TeacherNotFound => _localizer["Teacher not found."].Value,
+            TeacherLevelGrantOutcome.LevelNotFound => _localizer["Level not found."].Value,
+            _ => _localizer["Could not grant this level."].Value,
         };
         if (outcome == TeacherLevelGrantOutcome.Granted)
         {
-            StatusMessage = "Level granted.";
+            StatusMessage = _localizer["Level granted."].Value;
         }
 
         await LoadAsync();
@@ -214,13 +219,13 @@ public class TeachersModel : PageModel
     {
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
         var outcome = await _levelAuthorization.RevokeAsync(teacherId, levelId, actingUserId, HttpContext.RequestAborted);
-        StatusMessage = outcome == TeacherLevelRevokeOutcome.Revoked ? "Level revoked." : null;
+        StatusMessage = outcome == TeacherLevelRevokeOutcome.Revoked ? _localizer["Level revoked."].Value : null;
         ErrorMessage = outcome switch
         {
             TeacherLevelRevokeOutcome.Revoked => null,
-            TeacherLevelRevokeOutcome.NotGranted => "This teacher was not authorized for this level.",
-            TeacherLevelRevokeOutcome.TeacherNotFound => "Teacher not found.",
-            _ => "Could not revoke this level.",
+            TeacherLevelRevokeOutcome.NotGranted => _localizer["This teacher was not authorized for this level."].Value,
+            TeacherLevelRevokeOutcome.TeacherNotFound => _localizer["Teacher not found."].Value,
+            _ => _localizer["Could not revoke this level."].Value,
         };
 
         await LoadAsync();
@@ -230,7 +235,7 @@ public class TeachersModel : PageModel
     public async Task<IActionResult> OnPostDeactivateAsync(long teacherId)
     {
         await _teachers.DeactivateAsync(teacherId, HttpContext.RequestAborted);
-        StatusMessage = "Teacher deactivated.";
+        StatusMessage = _localizer["Teacher deactivated."].Value;
         await LoadAsync();
         return Page();
     }
@@ -238,7 +243,7 @@ public class TeachersModel : PageModel
     public async Task<IActionResult> OnPostReactivateAsync(long teacherId)
     {
         await _teachers.ReactivateAsync(teacherId, HttpContext.RequestAborted);
-        StatusMessage = "Teacher reactivated.";
+        StatusMessage = _localizer["Teacher reactivated."].Value;
         await LoadAsync();
         return Page();
     }

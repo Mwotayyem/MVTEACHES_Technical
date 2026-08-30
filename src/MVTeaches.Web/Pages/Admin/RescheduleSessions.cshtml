@@ -1,11 +1,11 @@
 @page
 @model MVTeaches.Web.Pages.Admin.RescheduleSessionsModel
 @{
-    ViewData["Title"] = "Reschedule / Compensation";
+    ViewData["Title"] = T["Reschedule / Compensation"].Value;
 }
 
-<h1>Reschedule &amp; compensation</h1>
-<p class="text-muted">Two distinct cases — pick the one that matches what actually happened. This does not use a spendable makeup-credit balance; every compensation here is tied to one specific real replacement lesson.</p>
+<h1>@T["Reschedule and compensation"]</h1>
+<p class="text-muted">@T["Two distinct cases — pick the one that matches what actually happened. This does not use a spendable makeup-credit balance; every compensation here is tied to one specific real replacement lesson."]</p>
 
 @if (Model.StatusMessage is not null)
 {
@@ -18,13 +18,13 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">1. Reschedule an unattended lesson</h5>
-        <p class="text-muted small">The student never pressed Join — nothing was consumed, their balance is already untouched. This just moves that specific lesson-hour to a new session.</p>
+        <h5 class="card-title">@T["1. Reschedule an unattended lesson"]</h5>
+        <p class="text-muted small">@T["The student never pressed Join — nothing was consumed, their balance is already untouched. This just moves that specific lesson-hour to a new session."]</p>
         <form method="post" asp-page-handler="Reschedule" class="row g-2">
             <div class="col-md-4">
-                <label class="form-label" asp-for="Reschedule.StudentId">Student</label>
+                <label class="form-label" asp-for="Reschedule.StudentId">@T["Student"]</label>
                 <select asp-for="Reschedule.StudentId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var s in Model.Students)
                     {
                         <option value="@s.Id">@s.FullName (#@s.Id)</option>
@@ -32,9 +32,9 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label" asp-for="Reschedule.OriginalSessionId">Original (missed) session</label>
+                <label class="form-label" asp-for="Reschedule.OriginalSessionId">@T["Original (missed) session"]</label>
                 <select asp-for="Reschedule.OriginalSessionId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var s in Model.Sessions)
                     {
                         <option value="@s.Id">@s.Label</option>
@@ -42,9 +42,9 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label" asp-for="Reschedule.ReplacementSessionId">New session</label>
+                <label class="form-label" asp-for="Reschedule.ReplacementSessionId">@T["New session"]</label>
                 <select asp-for="Reschedule.ReplacementSessionId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var s in Model.Sessions)
                     {
                         <option value="@s.Id">@s.Label</option>
@@ -52,7 +52,7 @@
                 </select>
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary">Reschedule</button>
+                <button type="submit" class="btn btn-primary">@T["Reschedule"]</button>
             </div>
         </form>
     </div>
@@ -60,13 +60,13 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">2. Approve a replacement lesson</h5>
-        <p class="text-muted small">The student DID press Join, and the session then failed for reasons outside their control (§17.4). Their original attendance and consumption stay untouched forever. Approve exactly one specific replacement session — the student's Join on it will not deduct their balance again.</p>
+        <h5 class="card-title">@T["2. Approve a replacement lesson"]</h5>
+        <p class="text-muted small">@T["The student DID press Join, and the session then failed for reasons outside their control. Their original attendance and consumption stay untouched forever. Approve exactly one specific replacement session — the student's Join on it will not deduct their balance again."]</p>
         <form method="post" asp-page-handler="Approve" class="row g-2">
             <div class="col-md-4">
-                <label class="form-label" asp-for="Approve.StudentId">Student</label>
+                <label class="form-label" asp-for="Approve.StudentId">@T["Student"]</label>
                 <select asp-for="Approve.StudentId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var s in Model.Students)
                     {
                         <option value="@s.Id">@s.FullName (#@s.Id)</option>
@@ -74,9 +74,9 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label" asp-for="Approve.OriginalSessionId">Original (affected) session</label>
+                <label class="form-label" asp-for="Approve.OriginalSessionId">@T["Original (affected) session"]</label>
                 <select asp-for="Approve.OriginalSessionId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var s in Model.Sessions)
                     {
                         <option value="@s.Id">@s.Label</option>
@@ -84,9 +84,9 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label" asp-for="Approve.ReplacementSessionId">Replacement session</label>
+                <label class="form-label" asp-for="Approve.ReplacementSessionId">@T["Replacement session"]</label>
                 <select asp-for="Approve.ReplacementSessionId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var s in Model.Sessions)
                     {
                         <option value="@s.Id">@s.Label</option>
@@ -94,7 +94,7 @@
                 </select>
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary">Approve replacement</button>
+                <button type="submit" class="btn btn-primary">@T["Approve replacement"]</button>
             </div>
         </form>
     </div>

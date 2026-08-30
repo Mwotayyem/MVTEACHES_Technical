@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="This session is {0} — no meeting is created for it." xml:space="preserve"><value>هذه الحصة {0} — لا يتم إنشاء اجتماع لها.</value></data>
+  <data name="ClassSessionStatus.Scheduled" xml:space="preserve"><value>مجدولة</value></data>
+  <data name="ClassSessionStatus.Completed" xml:space="preserve"><value>مكتملة</value></data>
+  <data name="ClassSessionStatus.Cancelled" xml:space="preserve"><value>ملغاة</value></data>
+  <data name="ClassSessionStatus.NotDelivered" xml:space="preserve"><value>غير مُقدَّمة</value></data>
+  <data name="Only a future session that hasn't started yet can be reassigned." xml:space="preserve"><value>يمكن إعادة تعيين حصة مستقبلية لم تبدأ بعد فقط.</value></data>
+  <data name="This teacher has no connected Zoom or Google Meet account — connect one from the Teacher portal before assigning online sessions." xml:space="preserve"><value>لا يوجد لدى هذا المعلم حساب Zoom أو Google Meet متصل — قم بربط حساب من بوابة المعلم قبل تعيين حصص عبر الإنترنت.</value></data>
+  <data name="The new teacher already has another session scheduled at this exact time." xml:space="preserve"><value>لدى المعلم الجديد حصة أخرى مجدولة بالفعل في هذا الوقت بالضبط.</value></data>
+  <data name="Your Zoom account is Basic (free), which Zoom ends after {0} minutes (one-to-one meetings included), but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. If Zoom ends the meeting early, use &quot;Continue meeting&quot; to bring everyone back into the same session." xml:space="preserve"><value>حسابك في Zoom أساسي (مجاني)، وينهي Zoom الاجتماعات بعد {0} دقيقة (بما في ذلك الاجتماعات الفردية)، لكن هذه الحصة مجدولة لمدة {1} دقيقة. تبقى مدة الحصة، والدقائق المخصومة من الطالب، وأجرك، جميعها عند المدة المجدولة الكاملة. إذا أنهى Zoom الاجتماع مبكرًا، استخدم "متابعة الاجتماع" لإعادة الجميع إلى نفس الحصة.</value></data>
+  <data name="A free Google account ends group Google Meet calls after {0} minutes, but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration. If Google ends the meeting early, use &quot;Continue meeting&quot; to bring everyone back into the same session." xml:space="preserve"><value>ينهي حساب Google المجاني مكالمات Google Meet الجماعية بعد {0} دقيقة، لكن هذه الحصة مجدولة لمدة {1} دقيقة. تبقى مدة الحصة، والدقائق المخصومة من الطالب، وأجرك، جميعها عند المدة المجدولة الكاملة. إذا أنهى Google الاجتماع مبكرًا، استخدم "متابعة الاجتماع" لإعادة الجميع إلى نفس الحصة.</value></data>
+  <data name="A free Google account ends one-to-one Google Meet calls after {0} hours, but this session is scheduled for {1} minutes. The session, the student's deducted minutes, and your pay all stay at the full scheduled duration." xml:space="preserve"><value>ينهي حساب Google المجاني مكالمات Google Meet الفردية بعد {0} ساعة، لكن هذه الحصة مجدولة لمدة {1} دقيقة. تبقى مدة الحصة، والدقائق المخصومة من الطالب، وأجرك، جميعها عند المدة المجدولة الكاملة.</value></data>
+  <data name="Google may end this free-tier group meeting automatically at the 60-minute mark." xml:space="preserve"><value>قد ينهي Google هذا الاجتماع الجماعي المجاني تلقائيًا عند علامة الـ60 دقيقة.</value></data>
+  <data name="The video provider rejected the meeting request." xml:space="preserve"><value>رفض مزود الفيديو طلب الاجتماع.</value></data>
+  <data name="Test version not found." xml:space="preserve"><value>نسخة الاختبار غير موجودة.</value></data>
+  <data name="A question must have exactly one correct choice." xml:space="preserve"><value>يجب أن يكون للسؤال خيار صحيح واحد بالضبط.</value></data>
+  <data name="Level not found." xml:space="preserve"><value>المستوى غير موجود.</value></data>
+  <data name="At least one question is required." xml:space="preserve"><value>مطلوب سؤال واحد على الأقل.</value></data>
+  <data name="Question #{0} needs at least two answer choices." xml:space="preserve"><value>يحتاج السؤال رقم {0} إلى خيارين على الأقل.</value></data>
+  <data name="Question #{0} must have exactly one correct answer choice (found {1})." xml:space="preserve"><value>يجب أن يكون للسؤال رقم {0} خيار إجابة صحيح واحد بالضبط (تم العثور على {1}).</value></data>
+  <data name="At least one score range is required." xml:space="preserve"><value>مطلوب نطاق درجات واحد على الأقل.</value></data>
+  <data name="Score range [{0},{1}] points to a level that does not exist." xml:space="preserve"><value>نطاق الدرجات [{0},{1}] يشير إلى مستوى غير موجود.</value></data>
+  <data name="Score ranges must start at 0 (the lowest range starts at {0})." xml:space="preserve"><value>يجب أن تبدأ نطاقات الدرجات من 0 (أدنى نطاق يبدأ من {0}).</value></data>
+  <data name="Score ranges must have no gap or overlap between [{0},{1}] and [{2},{3}]." xml:space="preserve"><value>يجب ألا توجد فجوة أو تداخل بين نطاقي الدرجات [{0},{1}] و[{2},{3}].</value></data>
+  <data name="Score ranges must cover up to the total possible score ({0}); the highest range currently ends at {1}." xml:space="preserve"><value>يجب أن تغطي نطاقات الدرجات إجمالي الدرجة الممكنة ({0})؛ ينتهي النطاق الأعلى حاليًا عند {1}.</value></data>
+</root>

@@ -1,14 +1,14 @@
 @page
 @model MVTeaches.Web.Pages.Teacher.MyPayHistoryModel
 @{
-    ViewData["Title"] = "My Pay History";
+    ViewData["Title"] = T["My Pay History"].Value;
 }
 
-<h1>My pay history</h1>
+<h1>@T["My Pay History"]</h1>
 
 @if (Model.NoTeacherProfileLinked)
 {
-    <div class="alert alert-warning">This account has no linked teacher profile yet — ask an admin to link it on /Admin/Teachers.</div>
+    <div class="alert alert-warning">@T["This account has no linked teacher profile yet — ask an admin to link it on /Admin/Teachers."]</div>
 }
 else
 {
@@ -21,8 +21,8 @@ else
                     <div class="card">
                         <div class="card-body">
                             <h6 class="card-subtitle mb-2 text-muted">@t.Currency</h6>
-                            <p class="mb-1"><strong>Paid:</strong> @t.Paid.ToString("0.00")</p>
-                            <p class="mb-0"><strong>Pending (verified, not yet paid):</strong> @t.Pending.ToString("0.00")</p>
+                            <p class="mb-1"><strong>@T["Paid:"]</strong> @t.Paid.ToString("0.00")</p>
+                            <p class="mb-0"><strong>@T["Pending (verified, not yet paid):"]</strong> @t.Pending.ToString("0.00")</p>
                         </div>
                     </div>
                 </div>
@@ -34,13 +34,13 @@ else
         <table class="table table-sm table-striped">
             <thead>
                 <tr>
-                    <th>Session date</th>
-                    <th>Course/Level</th>
-                    <th>Minutes</th>
-                    <th>Rate</th>
-                    <th>Amount</th>
-                    <th>Period</th>
-                    <th>Period status</th>
+                    <th>@T["Session date"]</th>
+                    <th>@T["Course and level"]</th>
+                    <th>@T["Minutes"]</th>
+                    <th>@T["Rate"]</th>
+                    <th>@T["Amount"]</th>
+                    <th>@T["Period"]</th>
+                    <th>@T["Period status"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -53,14 +53,14 @@ else
                         <td>@l.RateAmount.ToString("0.00") @l.Currency</td>
                         <td>@l.Amount.ToString("0.00") @l.Currency</td>
                         <td>@l.PeriodStart – @l.PeriodEnd</td>
-                        <td>@l.PeriodStatus</td>
+                        <td>@T["PayrollPeriodStatus." + l.PeriodStatus]</td>
                     </tr>
                 }
             </tbody>
         </table>
         @if (Model.Lines.Count == 0)
         {
-            <p class="text-muted">No payroll lines yet — these appear once a declared delivery is verified and an admin aggregates it into a payroll period.</p>
+            <p class="text-muted">@T["No payroll lines yet — these appear once a declared delivery is verified and an admin aggregates it into a payroll period."]</p>
         }
     </div>
 }

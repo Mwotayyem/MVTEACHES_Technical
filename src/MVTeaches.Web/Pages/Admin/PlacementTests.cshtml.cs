@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Placement;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Placement;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Admin;
 
@@ -29,12 +31,15 @@ public class PlacementTestsModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly IPlacementTestAdminService _admin;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public PlacementTestsModel(MvTeachesDbContext db, IPlacementTestAdminService admin, UserManager<ApplicationUser> userManager)
+    public PlacementTestsModel(MvTeachesDbContext db, IPlacementTestAdminService admin, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _admin = admin;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public IReadOnlyList<PlacementTestVersion> Versions { get; set; } = Array.Empty<PlacementTestVersion>();
@@ -106,7 +111,7 @@ public class PlacementTestsModel : PageModel
 
         var actingUserId = GetCurrentUserId();
         var result = await _admin.CreateDraftVersionAsync(NewVersion.Title, actingUserId, HttpContext.RequestAborted);
-        StatusMessage = $"Draft version #{result.TestVersionId} created.";
+        StatusMessage = _localizer["Draft version #{0} created.", result.TestVersionId].Value;
 
         await LoadAsync(result.TestVersionId);
         return Page();
@@ -139,7 +144,7 @@ public class PlacementTestsModel : PageModel
         {
             await _admin.AddQuestionAsync(NewQuestion.TestVersionId, NewQuestion.Text, NewQuestion.Points,
                 choices, NewQuestion.SortOrder, HttpContext.RequestAborted);
-            StatusMessage = "Question added.";
+            StatusMessage = _localizer["Question added."].Value;
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
@@ -153,7 +158,7 @@ public class PlacementTestsModel : PageModel
     public async Task<IActionResult> OnPostRemoveQuestionAsync(long questionId, long versionId)
     {
         await _admin.RemoveQuestionAsync(questionId, HttpContext.RequestAborted);
-        StatusMessage = "Question removed.";
+        StatusMessage = _localizer["Question removed."].Value;
         await LoadAsync(versionId);
         return Page();
     }
@@ -171,7 +176,7 @@ public class PlacementTestsModel : PageModel
         {
             await _admin.AddScoreRangeAsync(NewScoreRange.TestVersionId, NewScoreRange.MinScore,
                 NewScoreRange.MaxScore, NewScoreRange.LevelId, HttpContext.RequestAborted);
-            StatusMessage = "Score range added.";
+            StatusMessage = _localizer["Score range added."].Value;
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
@@ -185,7 +190,7 @@ public class PlacementTestsModel : PageModel
     public async Task<IActionResult> OnPostRemoveScoreRangeAsync(long scoreRangeId, long versionId)
     {
         await _admin.RemoveScoreRangeAsync(scoreRangeId, HttpContext.RequestAborted);
-        StatusMessage = "Score range removed.";
+        StatusMessage = _localizer["Score range removed."].Value;
         await LoadAsync(versionId);
         return Page();
     }
@@ -197,17 +202,17 @@ public class PlacementTestsModel : PageModel
 
         if (result.Outcome == PublishOutcome.Published)
         {
-            StatusMessage = "Version published.";
+            StatusMessage = _localizer["Version published."].Value;
         }
         else
         {
             ValidationErrors = result.ValidationErrors;
             ErrorMessage = result.Outcome switch
             {
-                PublishOutcome.VersionNotFound => "Version not found.",
-                PublishOutcome.AlreadyPublished => "This version is already published.",
-                PublishOutcome.ValidationFailed => "This version cannot be published yet — see the errors below.",
-                _ => "Could not publish this version.",
+                PublishOutcome.VersionNotFound => _localizer["Version not found."].Value,
+                PublishOutcome.AlreadyPublished => _localizer["This version is already published."].Value,
+                PublishOutcome.ValidationFailed => _localizer["This version cannot be published yet — see the errors below."].Value,
+                _ => _localizer["Could not publish this version."].Value,
             };
         }
 
@@ -218,11 +223,11 @@ public class PlacementTestsModel : PageModel
     public async Task<IActionResult> OnPostActivateAsync(long versionId)
     {
         var result = await _admin.ActivateAsync(versionId, HttpContext.RequestAborted);
-        StatusMessage = result == ActivateOutcome.Activated ? "Version activated — new attempts will use it." : null;
+        StatusMessage = result == ActivateOutcome.Activated ? _localizer["Version activated — new attempts will use it."].Value : null;
         ErrorMessage = result switch
         {
-            ActivateOutcome.VersionNotFound => "Version not found.",
-            ActivateOutcome.NotPublished => "Only a published version can be activated.",
+            ActivateOutcome.VersionNotFound => _localizer["Version not found."].Value,
+            ActivateOutcome.NotPublished => _localizer["Only a published version can be activated."].Value,
             _ => null,
         };
 
@@ -234,8 +239,8 @@ public class PlacementTestsModel : PageModel
     {
         var actingUserId = GetCurrentUserId();
         var result = await _admin.ApproveRetakeAsync(retakeRequestId, actingUserId, reason, HttpContext.RequestAborted);
-        StatusMessage = result == RetakeDecisionOutcome.Decided ? "Retake approved." : null;
-        ErrorMessage = result == RetakeDecisionOutcome.AlreadyDecided ? "This request was already decided." : null;
+        StatusMessage = result == RetakeDecisionOutcome.Decided ? _localizer["Retake approved."].Value : null;
+        ErrorMessage = result == RetakeDecisionOutcome.AlreadyDecided ? _localizer["This request was already decided."].Value : null;
 
         await LoadAsync(null);
         return Page();
@@ -246,14 +251,14 @@ public class PlacementTestsModel : PageModel
         var actingUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(reason))
         {
-            ErrorMessage = "A reason is required to reject a retake request.";
+            ErrorMessage = _localizer["A reason is required to reject a retake request."].Value;
             await LoadAsync(null);
             return Page();
         }
 
         var result = await _admin.RejectRetakeAsync(retakeRequestId, actingUserId, reason, HttpContext.RequestAborted);
-        StatusMessage = result == RetakeDecisionOutcome.Decided ? "Retake rejected." : null;
-        ErrorMessage = result == RetakeDecisionOutcome.AlreadyDecided ? "This request was already decided." : null;
+        StatusMessage = result == RetakeDecisionOutcome.Decided ? _localizer["Retake rejected."].Value : null;
+        ErrorMessage = result == RetakeDecisionOutcome.AlreadyDecided ? _localizer["This request was already decided."].Value : null;
 
         await LoadAsync(null);
         return Page();

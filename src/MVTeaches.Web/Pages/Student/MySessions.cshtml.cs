@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Student;
@@ -36,10 +38,11 @@ public class MySessionsModel : PageModel
     private readonly IMeetingProvisioningService _meetings;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IClock _clock;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public MySessionsModel(MvTeachesDbContext db, IJoinAttendanceService join, IStudentBookingService booking,
         ICompensationRequestService compensation, IMeetingProvisioningService meetings,
-        UserManager<ApplicationUser> userManager, IClock clock)
+        UserManager<ApplicationUser> userManager, IClock clock, IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _join = join;
@@ -48,6 +51,7 @@ public class MySessionsModel : PageModel
         _meetings = meetings;
         _userManager = userManager;
         _clock = clock;
+        _localizer = localizer;
     }
 
     public enum AttendanceState { NotYetResolved, Present, NoShow }
@@ -101,17 +105,17 @@ public class MySessionsModel : PageModel
 
         StatusMessage = result.Outcome switch
         {
-            JoinOutcome.Recorded => "Attendance recorded — the session's full duration has been drawn from your package.",
-            JoinOutcome.AlreadyRecorded => "You're already marked present for this session.",
+            JoinOutcome.Recorded => _localizer["Attendance recorded — the session's full duration has been drawn from your package."].Value,
+            JoinOutcome.AlreadyRecorded => _localizer["You're already marked present for this session."].Value,
             _ => null,
         };
         ErrorMessage = result.Outcome switch
         {
-            JoinOutcome.Unauthorized => "You are not enrolled in that session.",
-            JoinOutcome.SessionNotFound => "Session not found.",
-            JoinOutcome.SessionNotYetJoinable => "This session hasn't started yet.",
-            JoinOutcome.InsufficientBalance => "No package has enough remaining balance to cover this session.",
-            JoinOutcome.AlreadyFinalizedAsNoShow => "This session already ended and was recorded as a no-show — use \"Request replacement\" below instead.",
+            JoinOutcome.Unauthorized => _localizer["You are not enrolled in that session."].Value,
+            JoinOutcome.SessionNotFound => _localizer["Session not found."].Value,
+            JoinOutcome.SessionNotYetJoinable => _localizer["This session hasn't started yet."].Value,
+            JoinOutcome.InsufficientBalance => _localizer["No package has enough remaining balance to cover this session."].Value,
+            JoinOutcome.AlreadyFinalizedAsNoShow => _localizer["This session already ended and was recorded as a no-show — use \"Request replacement\" below instead."].Value,
             _ => null,
         };
 
@@ -133,11 +137,11 @@ public class MySessionsModel : PageModel
             // unavailable, which is never a reason to undo a recorded Join.
             ErrorMessage = provision.Outcome switch
             {
-                ProvisionMeetingOutcome.StillProvisioning => "Your meeting link is still being prepared — press Join again in a moment. Your attendance is already recorded.",
-                ProvisionMeetingOutcome.SessionNotProvisionable => "This session is no longer running. Your attendance is already recorded — please contact the centre.",
+                ProvisionMeetingOutcome.StillProvisioning => _localizer["Your meeting link is still being prepared — press Join again in a moment. Your attendance is already recorded."].Value,
+                ProvisionMeetingOutcome.SessionNotProvisionable => _localizer["This session is no longer running. Your attendance is already recorded — please contact the centre."].Value,
                 ProvisionMeetingOutcome.NoProviderConnection or ProvisionMeetingOutcome.ProviderDisconnected =>
-                    "Your teacher's video account isn't connected — please contact the centre. Your attendance is already recorded.",
-                _ => "The meeting link isn't available right now — please contact the centre. Your attendance is already recorded.",
+                    _localizer["Your teacher's video account isn't connected — please contact the centre. Your attendance is already recorded."].Value,
+                _ => _localizer["The meeting link isn't available right now — please contact the centre. Your attendance is already recorded."].Value,
             };
         }
 
@@ -157,18 +161,18 @@ public class MySessionsModel : PageModel
 
         var result = await _booking.BookSessionAsync(student.Id, sessionId, actingUserId, HttpContext.RequestAborted);
 
-        StatusMessage = result.Outcome == BookSessionOutcome.Booked ? "Session booked." : null;
+        StatusMessage = result.Outcome == BookSessionOutcome.Booked ? _localizer["Session booked."].Value : null;
         ErrorMessage = result.Outcome switch
         {
-            BookSessionOutcome.Unauthorized => "Session not found.", // never confirm/deny another student's data
-            BookSessionOutcome.SessionNotFound => "Session not found.",
-            BookSessionOutcome.NoCurrentLevelAssigned => "You don't have a level assigned yet — ask an admin.",
-            BookSessionOutcome.SessionLevelMismatch => "That session is a different level than yours.",
-            BookSessionOutcome.SessionNotBookable => "That session can no longer be booked.",
-            BookSessionOutcome.AlreadyBooked => "You're already booked into that session.",
-            BookSessionOutcome.SessionFull => "That session is full.",
-            BookSessionOutcome.PackageLimitExceeded => "Booking this session would exceed your remaining package balance.",
-            BookSessionOutcome.NoApplicableAgeGroup => "No age group covers your current age.",
+            BookSessionOutcome.Unauthorized => _localizer["Session not found."].Value, // never confirm/deny another student's data
+            BookSessionOutcome.SessionNotFound => _localizer["Session not found."].Value,
+            BookSessionOutcome.NoCurrentLevelAssigned => _localizer["You don't have a level assigned yet — ask an admin."].Value,
+            BookSessionOutcome.SessionLevelMismatch => _localizer["That session is a different level than yours."].Value,
+            BookSessionOutcome.SessionNotBookable => _localizer["That session can no longer be booked."].Value,
+            BookSessionOutcome.AlreadyBooked => _localizer["You're already booked into that session."].Value,
+            BookSessionOutcome.SessionFull => _localizer["That session is full."].Value,
+            BookSessionOutcome.PackageLimitExceeded => _localizer["Booking this session would exceed your remaining package balance."].Value,
+            BookSessionOutcome.NoApplicableAgeGroup => _localizer["No age group covers your current age."].Value,
             _ => null,
         };
 
@@ -189,13 +193,13 @@ public class MySessionsModel : PageModel
         var result = await _compensation.RequestReplacementAsync(student.Id, sessionId, CompensationReason, actingUserId, HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome == SubmitCompensationRequestOutcome.Submitted
-            ? "Replacement request submitted — an admin will review it."
+            ? _localizer["Replacement request submitted — an admin will review it."].Value
             : null;
         ErrorMessage = result.Outcome switch
         {
-            SubmitCompensationRequestOutcome.Unauthorized => "Session not found.",
-            SubmitCompensationRequestOutcome.NotANoShow => "That session isn't recorded as a no-show.",
-            SubmitCompensationRequestOutcome.DuplicateRequest => "You already have a request for this session.",
+            SubmitCompensationRequestOutcome.Unauthorized => _localizer["Session not found."].Value,
+            SubmitCompensationRequestOutcome.NotANoShow => _localizer["That session isn't recorded as a no-show."].Value,
+            SubmitCompensationRequestOutcome.DuplicateRequest => _localizer["You already have a request for this session."].Value,
             _ => null,
         };
 

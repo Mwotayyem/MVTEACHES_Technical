@@ -1,11 +1,11 @@
 @page
 @model MVTeaches.Web.Pages.Admin.CompensationRequestsModel
 @{
-    ViewData["Title"] = "Compensation Requests";
+    ViewData["Title"] = T["Compensation Requests"].Value;
 }
 
-<h1>Compensation requests</h1>
-<p class="text-muted">Student-submitted requests for a missed (no-show) session. Approving links exactly one specific future session — the original absence and its consumption are never touched.</p>
+<h1>@T["Compensation Requests"]</h1>
+<p class="text-muted">@T["Student-submitted requests for a missed (no-show) session. Approving links exactly one specific future session — the original absence and its consumption are never touched."]</p>
 
 @if (Model.StatusMessage is not null)
 {
@@ -16,10 +16,10 @@
     <div class="alert alert-danger">@Model.ErrorMessage</div>
 }
 
-<h2 class="h4">Pending</h2>
+<h2 class="h4">@T["Pending"]</h2>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>Student</th><th>Level</th><th>Missed session</th><th>Reason</th><th>Requested</th><th>Approve</th><th>Reject</th></tr></thead>
+        <thead><tr><th>@T["Student"]</th><th>@T["Level"]</th><th>@T["Missed session"]</th><th>@T["Reason"]</th><th>@T["Requested"]</th><th>@T["Approve"]</th><th>@T["Reject"]</th></tr></thead>
         <tbody>
             @foreach (var r in Model.PendingRequests)
             {
@@ -33,20 +33,20 @@
                         <form method="post" asp-page-handler="Approve" class="d-flex gap-1">
                             <input type="hidden" name="requestId" value="@r.RequestId" />
                             <select name="replacementSessionId" class="form-select form-select-sm">
-                                <option value="">-- select --</option>
+                                <option value="">-- @T["select"] --</option>
                                 @foreach (var opt in r.CandidateReplacementSessions)
                                 {
                                     <option value="@opt.Id">@opt.Label</option>
                                 }
                             </select>
-                            <button type="submit" class="btn btn-sm btn-primary">Approve</button>
+                            <button type="submit" class="btn btn-sm btn-primary">@T["Approve"]</button>
                         </form>
                     </td>
                     <td>
                         <form method="post" asp-page-handler="Reject">
                             <input type="hidden" name="requestId" value="@r.RequestId" />
-                            <input type="text" name="RejectReason" class="form-control form-control-sm mb-1" placeholder="Reason" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                            <input type="text" name="RejectReason" class="form-control form-control-sm mb-1" placeholder="@T["Reason"]" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
                         </form>
                     </td>
                 </tr>
@@ -55,20 +55,20 @@
     </table>
     @if (Model.PendingRequests.Count == 0)
     {
-        <p class="text-muted">No pending requests.</p>
+        <p class="text-muted">@T["No pending requests."]</p>
     }
 </div>
 
-<h2 class="h4">Recently resolved</h2>
+<h2 class="h4">@T["Recently resolved"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>Student</th><th>Outcome</th><th>Replacement / reason</th></tr></thead>
+        <thead><tr><th>@T["Student"]</th><th>@T["Outcome"]</th><th>@T["Replacement / reason"]</th></tr></thead>
         <tbody>
             @foreach (var r in Model.RecentlyResolved)
             {
                 <tr>
                     <td>@r.StudentName</td>
-                    <td>@r.Status</td>
+                    <td>@T["CompensationRequestStatus." + r.Status]</td>
                     <td>
                         @if (r.Status == MVTeaches.Domain.Scheduling.CompensationRequestStatus.Approved)
                         {
@@ -85,6 +85,6 @@
     </table>
     @if (Model.RecentlyResolved.Count == 0)
     {
-        <p class="text-muted">Nothing resolved yet.</p>
+        <p class="text-muted">@T["Nothing resolved yet."]</p>
     }
 </div>
