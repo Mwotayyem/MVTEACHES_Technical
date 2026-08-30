@@ -1,10 +1,11 @@
 @page
 @model MVTeaches.Web.Pages.PurchasePackageModel
+@using MVTeaches.Domain.Payments
 @{
-    ViewData["Title"] = "Purchase a Package";
+    ViewData["Title"] = T["Purchase Package"].Value;
 }
 
-<h1>Purchase a package</h1>
+<h1>@T["Purchase Package"]</h1>
 
 @if (Model.StatusMessage is not null)
 {
@@ -17,11 +18,11 @@
 
 @if (Model.NoProfileLinked)
 {
-    <div class="alert alert-warning">Your account has no linked profile yet — ask an admin to create one for you.</div>
+    <div class="alert alert-warning">@T["Your account has no linked profile yet — ask an admin to create one for you."]</div>
 }
 else if (Model.IsGuardian && Model.SelectedStudentId is null)
 {
-    <p class="text-muted">Choose which child to purchase a package for.</p>
+    <p class="text-muted">@T["Choose which child to purchase a package for."]</p>
     <ul class="list-group">
         @foreach (var c in Model.Children)
         {
@@ -35,27 +36,27 @@ else
 {
     @if (Model.IsGuardian)
     {
-        <p class="text-muted">Acting for <strong>@Model.SelectedStudentName</strong> — <a asp-page="/PurchasePackage">choose a different child</a>.</p>
+        <p class="text-muted">@T["Acting for {0}", Model.SelectedStudentName ?? ""] — <a asp-page="/PurchasePackage">@T["choose a different child"]</a>.</p>
     }
 
     @if (Model.NeedsPlacementTest)
     {
         <div class="alert alert-info">
-            A free placement test is required before any package can be purchased.
-            <a asp-page="/PlacementTest" asp-route-studentId="@Model.SelectedStudentId" class="alert-link">Take the placement test</a>.
+            @T["A free placement test is required before any package can be purchased."]
+            <a asp-page="/PlacementTest" asp-route-studentId="@Model.SelectedStudentId" class="alert-link">@T["Take the placement test"]</a>.
         </div>
     }
     else
     {
-        <p class="text-muted">Current level: <strong>@Model.CurrentLevelCode</strong>. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions.</p>
+        <p class="text-muted">@T["Current level: {0}. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions.", Model.CurrentLevelCode ?? "?"]</p>
 
         @if (Model.EligiblePlans.Count == 0)
         {
-            <div class="alert alert-warning">No packages are currently published for this level — please contact the centre.</div>
+            <div class="alert alert-warning">@T["No packages are currently published for this level — please contact the centre."]</div>
         }
         else
         {
-            <div class="row g-3">
+            <div class="row g-3 mb-4">
                 @foreach (var p in Model.EligiblePlans)
                 {
                     <div class="col-md-4">
@@ -63,19 +64,163 @@ else
                             <div class="card-body">
                                 <h5 class="card-title">@p.CourseName — @p.LevelCode</h5>
                                 <p class="card-text">
-                                    @p.SessionType · @p.SessionsCount sessions · @p.MinutesTotal minutes<br />
-                                    <strong>@p.Amount.ToString("N3", null) @p.Currency</strong><br />
-                                    Valid @p.ValidityDays days
+                                    @T["SessionType." + p.SessionType] · @p.SessionsCount @T["Sessions"] · @p.MinutesTotal @T["Minutes"]<br />
+                                    <strong>@p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</strong><br />
+                                    @T["Valid {0} days", p.ValidityDays]
                                 </p>
                                 <form method="post" asp-page-handler="Purchase">
                                     <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
                                     <input type="hidden" name="pricingPlanId" value="@p.Id" />
-                                    <button type="submit" class="btn btn-primary">Request this package</button>
+                                    <button type="submit" class="btn btn-primary">@T["Request this package"]</button>
                                 </form>
                             </div>
                         </div>
                     </div>
                 }
+            </div>
+        }
+    }
+
+    @if (Model.UnpaidDraftSubscriptions.Count > 0)
+    {
+        <h2>@T["Choose a payment method"]</h2>
+        @if (Model.ActiveMethods.Count == 0)
+        {
+            <div class="alert alert-warning">@T["No payment methods are currently available — please contact the centre."]</div>
+        }
+        else
+        {
+            @foreach (var s in Model.UnpaidDraftSubscriptions)
+            {
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">@T["Package request"] #@s.Id</h5>
+                        <dl class="row small mb-2">
+                            <dt class="col-sm-3">@T["Package price"]</dt>
+                            <dd class="col-sm-9">@s.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</dd>
+                            @if (s.ConfirmedReceived > 0)
+                            {
+                                <dt class="col-sm-3">@T["Confirmed received"]</dt>
+                                <dd class="col-sm-9">@s.ConfirmedReceived.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</dd>
+                                <dt class="col-sm-3">@T["Remaining owed"]</dt>
+                                <dd class="col-sm-9 fw-bold">@s.RemainingOwed.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</dd>
+                            }
+                        </dl>
+                        @if (s.ConfirmedReceived > 0)
+                        {
+                            <div class="alert alert-warning small">@T["Your earlier transfer arrived short of the full price — this is normal after bank/transfer fees. Send the remaining amount below to activate the package."]</div>
+                        }
+                        <form method="post" asp-page-handler="RequestPayment" class="row g-2">
+                            <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
+                            <input type="hidden" name="subscriptionId" value="@s.Id" />
+                            <div class="col-md-8">
+                                <select name="paymentMethodConfigId" class="form-select">
+                                    @foreach (var m in Model.ActiveMethods)
+                                    {
+                                        <option value="@m.Id">@T["PaymentMethod." + m.Type] — @m.BeneficiaryName (@m.AcceptedCurrenciesCsv)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    @T["Request payment of {0} {1}", s.RemainingOwed.ToString("N3", System.Globalization.CultureInfo.InvariantCulture), s.Currency]
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+    }
+
+    @if (Model.OwnPayments.Count > 0)
+    {
+        <h2>@T["Payment requests"]</h2>
+        @foreach (var p in Model.OwnPayments)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        @T["Reference"]: @p.ReferenceCode — @p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency
+                        (@T["PaymentMethod." + p.Method])
+                    </h5>
+                    <p>
+                        @if (p.Status == PaymentStatus.Pending && !p.HasSubmittedTransferDetails)
+                        {
+                            <span class="badge bg-warning text-dark">@T["Awaiting transfer"]</span>
+                        }
+                        else if (p.Status == PaymentStatus.Pending)
+                        {
+                            <span class="badge bg-info text-dark">@T["Under review"]</span>
+                        }
+                        else
+                        {
+                            <span>@T["PaymentStatus." + p.Status]</span>
+                        }
+                    </p>
+                    @if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount < p.Amount)
+                    {
+                        <div class="alert alert-warning small">
+                            @T["Only {0} {1} of the required {2} {1} was confirmed as received — the package stays inactive until the remaining {3} {1} is sent and confirmed.",
+                                p.ReceivedAmount.Value.ToString("N3", System.Globalization.CultureInfo.InvariantCulture),
+                                p.Currency,
+                                p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture),
+                                (p.Amount - p.ReceivedAmount.Value).ToString("N3", System.Globalization.CultureInfo.InvariantCulture)]
+                        </div>
+                    }
+
+                    @if (p.Status == PaymentStatus.Rejected && p.RejectionReason is not null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>@T["Needs correction"]:</strong> @p.RejectionReason
+                        </div>
+                    }
+
+                    @if (p.Status == PaymentStatus.Pending && p.Method != PaymentMethod.Cash)
+                    {
+                        <details class="mt-2" open="@(!p.HasSubmittedTransferDetails)">
+                            <summary class="fw-semibold">@T["Before you transfer"]</summary>
+                            <div class="alert alert-info mt-2">
+                                <ul class="mb-2">
+                                    <li>@T["Verify the beneficiary number/IBAN and name match exactly. If they differ, do not transfer — contact the admin instead."]</li>
+                                    <li>@T["Verify the amount and currency before sending."]</li>
+                                    <li><strong>@T["The full package price must arrive at the centre's account after any transfer fees are deducted. If a smaller amount arrives, the remaining difference must be sent before the package can activate."]</strong></li>
+                                    <li>@T["Mention the reference {0} in your transfer notes.", p.ReferenceCode]</li>
+                                    <li>@T["Keep your receipt and upload it below."]</li>
+                                    <li>@T["Uploading a receipt does not mean your payment is approved or your package is active yet."]</li>
+                                    <li>@T["If you sent money to the wrong party, contact your bank AND the admin immediately — a refund can never be promised."]</li>
+                                </ul>
+                            </div>
+                            <form method="post" asp-page-handler="SubmitTransfer" enctype="multipart/form-data" class="row g-2">
+                                <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
+                                <input type="hidden" name="Transfer.PaymentId" value="@p.Id" />
+                                <div class="col-md-4">
+                                    <label class="form-label">@T["Payer name"]</label>
+                                    <input name="Transfer.PayerDisplayName" class="form-control" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">@T["Transfer date"]</label>
+                                    <input name="Transfer.TransferDate" type="date" class="form-control" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">@T["Bank reference number"]</label>
+                                    <input name="Transfer.BankReferenceNumber" class="form-control" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@T["Receipt"]</label>
+                                    <input name="Transfer.Receipt" type="file" accept="image/jpeg,image/png,application/pdf" class="form-control" required />
+                                </div>
+                                <div class="col-12 form-check">
+                                    <input type="checkbox" name="Transfer.Acknowledged" value="true" class="form-check-input" id="ack-@p.Id" required />
+                                    <label class="form-check-label" for="ack-@p.Id">@T["I have read and understood the verification instructions above."]</label>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">@T["Submit transfer details"]</button>
+                                </div>
+                            </form>
+                        </details>
+                    }
+                </div>
             </div>
         }
     }

@@ -1,18 +1,16 @@
-﻿@page
+@page
 @model MVTeaches.Web.Pages.Admin.PaymentsModel
 @using MVTeaches.Domain.Payments
 @{
-    ViewData["Title"] = "Payments";
+    ViewData["Title"] = T["Payments"].Value;
 }
 
-<h1>Payments</h1>
-<p class="text-muted">
-    Owner decision 2026-08-30: the <strong>normal</strong> path is the student or guardian buying a published
-    package and paying through the payment gateway, with the entitlement activating automatically once the
-    gateway's trusted server-side confirmation arrives. No payment provider has been selected yet, so that path
-    is not live. Everything on this page is the <strong>exception</strong> path — cash, bank transfer, CliQ, or a
-    correction — which is admin-only and written to the audit log.
-</p>
+@functions {
+    string Label(string key) => T[key].Value;
+}
+
+<h1>@T["Payments"]</h1>
+<p class="text-muted">@T["Payments page intro"]</p>
 
 @if (Model.StatusMessage is not null)
 {
@@ -25,13 +23,13 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">تسجيل باقة ودفع يدوي <span class="text-muted fs-6">(Record a manual package &amp; payment)</span></h5>
-        <p class="text-muted small mb-2">Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package.</p>
+        <h5 class="card-title">@T["Record a manual package and payment"]</h5>
+        <p class="text-muted small mb-2">@T["Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package."]</p>
         <form method="post" asp-page-handler="Record" class="row g-2 align-items-end">
             <div class="col-auto">
-                <label class="form-label" asp-for="NewPayment.StudentId">Student</label>
+                <label class="form-label" asp-for="NewPayment.StudentId">@T["Student"]</label>
                 <select asp-for="NewPayment.StudentId" class="form-select">
-                    <option value="">-- select --</option>
+                    <option value="">-- @T["select"] --</option>
                     @foreach (var student in Model.Students)
                     {
                         <option value="@student.Id">@student.FullName (#@student.Id)</option>
@@ -39,79 +37,114 @@
                 </select>
             </div>
             <div class="col-auto">
-                <label class="form-label" asp-for="NewPayment.SubscriptionId">Subscription (optional — D-38)</label>
+                <label class="form-label" asp-for="NewPayment.SubscriptionId">@T["Subscription (optional)"]</label>
                 <select asp-for="NewPayment.SubscriptionId" class="form-select">
-                    <option value="">-- none --</option>
+                    <option value="">-- @T["None"] --</option>
                     @foreach (var d in Model.DraftSubscriptions)
                     {
-                        <option value="@d.Id">#@d.Id @d.StudentName — @d.Amount.ToString("N3", null) @d.Currency</option>
+                        var optionLabel = d.ConfirmedReceived > 0
+                            ? $"#{d.Id} {d.StudentName} — {Label("Package price")}: {d.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture)} {d.Currency} ({Label("Remaining owed")}: {d.RemainingOwed.ToString("N3", System.Globalization.CultureInfo.InvariantCulture)} {d.Currency})"
+                            : $"#{d.Id} {d.StudentName} — {d.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture)} {d.Currency}";
+                        <option value="@d.Id">@optionLabel</option>
                     }
                 </select>
             </div>
             <div class="col-auto">
-                <label class="form-label" asp-for="NewPayment.Amount">Amount</label>
+                <label class="form-label" asp-for="NewPayment.Amount">@T["Amount"]</label>
                 <input asp-for="NewPayment.Amount" class="form-control" />
             </div>
             <div class="col-auto">
-                <label class="form-label" asp-for="NewPayment.Currency">Currency</label>
+                <label class="form-label" asp-for="NewPayment.Currency">@T["Currency"]</label>
                 <input asp-for="NewPayment.Currency" class="form-control" placeholder="JOD" style="width:6rem" />
             </div>
             <div class="col-auto">
-                <label class="form-label" asp-for="NewPayment.Method">Method</label>
+                <label class="form-label" asp-for="NewPayment.Method">@T["Method type"]</label>
                 <select asp-for="NewPayment.Method" class="form-select">
                     @foreach (var value in Enum.GetValues<PaymentMethod>())
                     {
-                        <option value="@value">@value</option>
+                        <option value="@value">@T["PaymentMethod." + value]</option>
                     }
                 </select>
             </div>
             <div class="col-auto">
-                <button type="submit" class="btn btn-primary">Record</button>
+                <button type="submit" class="btn btn-primary">@T["Record"]</button>
             </div>
         </form>
     </div>
 </div>
 
-<h2>Awaiting confirmation (@Model.PendingPayments.Count)</h2>
-<div class="table-responsive mb-4">
-    <table class="table table-sm table-striped">
-        <thead>
-            <tr><th>Ref</th><th>Student</th><th>Amount</th><th>Method</th><th></th></tr>
-        </thead>
-        <tbody>
-            @foreach (var p in Model.PendingPayments)
-            {
-                <tr>
-                    <td>@p.ReferenceCode</td>
-                    <td>@p.StudentName</td>
-                    <td>@p.Amount.ToString("N3", null) @p.Currency</td>
-                    <td>@p.Method</td>
-                    <td class="d-flex gap-2">
-                        <form method="post" asp-page-handler="Confirm">
-                            <input type="hidden" name="paymentId" value="@p.Id" />
-                            <button type="submit" class="btn btn-sm btn-success">Confirm</button>
-                        </form>
-                        <form method="post" asp-page-handler="Reject" class="d-flex gap-1">
-                            <input type="hidden" name="paymentId" value="@p.Id" />
-                            <input type="text" name="RejectReason" class="form-control form-control-sm" placeholder="Reason" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
-                        </form>
-                    </td>
-                </tr>
-            }
-            @if (Model.PendingPayments.Count == 0)
-            {
-                <tr><td colspan="5" class="text-muted">Nothing awaiting confirmation.</td></tr>
-            }
-        </tbody>
-    </table>
+<h2>@T["Awaiting confirmation"] (@Model.PendingPayments.Count)</h2>
+<div class="mb-4">
+    @foreach (var p in Model.PendingPayments)
+    {
+        <div class="card mb-2">
+            <div class="card-body">
+                <h5 class="card-title">
+                    @p.ReferenceCode — @p.StudentName — @p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency
+                    (@T["PaymentMethod." + p.Method])
+                </h5>
+                <p class="mb-1">
+                    @if (p.HasSubmittedTransferDetails)
+                    {
+                        <span class="badge bg-info text-dark">@T["Under review"]</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark">@T["Awaiting transfer"]</span>
+                    }
+                </p>
+                @if (p.HasSubmittedTransferDetails)
+                {
+                    <dl class="row small mb-2">
+                        <dt class="col-sm-2">@T["Payer name"]</dt><dd class="col-sm-4">@(p.PayerDisplayName ?? "—")</dd>
+                        <dt class="col-sm-2">@T["Transfer date"]</dt><dd class="col-sm-4">@(p.TransferDate?.ToString() ?? "—")</dd>
+                        <dt class="col-sm-2">@T["Bank reference number"]</dt><dd class="col-sm-4">@(p.BankReferenceNumber ?? "—")</dd>
+                        <dt class="col-sm-2">@T["Receipt"]</dt>
+                        <dd class="col-sm-4">
+                            @if (p.HasReceipt)
+                            {
+                                <a asp-page="/Files/Receipt" asp-route-paymentId="@p.Id" target="_blank">@T["View receipt"]</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </dd>
+                    </dl>
+                }
+                <form method="post" asp-page-handler="Confirm" class="row g-2 align-items-end mb-2">
+                    <input type="hidden" name="paymentId" value="@p.Id" />
+                    <div class="col-auto">
+                        <label class="form-label small mb-0">@T["Actually received amount (if different)"]</label>
+                        <input type="number" step="0.001" name="receivedAmount" class="form-control form-control-sm" style="width:8rem" />
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small mb-0">@T["Actually received currency (if different)"]</label>
+                        <input type="text" name="receivedCurrency" class="form-control form-control-sm" style="width:6rem" placeholder="@p.Currency" />
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-sm btn-success">@T["Confirm receipt of the amount and activate the package"]</button>
+                    </div>
+                </form>
+                <form method="post" asp-page-handler="Reject" class="d-flex gap-1">
+                    <input type="hidden" name="paymentId" value="@p.Id" />
+                    <input type="text" name="RejectReason" class="form-control form-control-sm" placeholder="@T["Reason"]" />
+                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject / request correction"]</button>
+                </form>
+            </div>
+        </div>
+    }
+    @if (Model.PendingPayments.Count == 0)
+    {
+        <p class="text-muted">@T["Nothing awaiting confirmation."]</p>
+    }
 </div>
 
-<h2>Recent history</h2>
+<h2>@T["Recent history"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
         <thead>
-            <tr><th>Ref</th><th>Student</th><th>Amount</th><th>Method</th><th>Status</th><th>Note</th></tr>
+            <tr><th>@T["Reference"]</th><th>@T["Student"]</th><th>@T["Amount"]</th><th>@T["Received"]</th><th>@T["Method type"]</th><th>@T["Status"]</th><th>@T["Note"]</th></tr>
         </thead>
         <tbody>
             @foreach (var p in Model.RecentPayments)
@@ -119,9 +152,16 @@
                 <tr>
                     <td>@p.ReferenceCode</td>
                     <td>@p.StudentName</td>
-                    <td>@p.Amount.ToString("N3", null) @p.Currency</td>
-                    <td>@p.Method</td>
-                    <td>@p.Status</td>
+                    <td>@p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</td>
+                    <td>
+                        @(p.ReceivedAmount is not null ? p.ReceivedAmount.Value.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) + " " + p.ReceivedCurrency : "—")
+                        @if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount < p.Amount)
+                        {
+                            <span class="badge bg-warning text-dark">@T["Remaining owed"]: @((p.Amount - p.ReceivedAmount.Value).ToString("N3", System.Globalization.CultureInfo.InvariantCulture)) @p.Currency</span>
+                        }
+                    </td>
+                    <td>@T["PaymentMethod." + p.Method]</td>
+                    <td>@T["PaymentStatus." + p.Status]</td>
                     <td>@p.RejectionReason</td>
                 </tr>
             }

@@ -1,0 +1,112 @@
+@page
+@model MVTeaches.Web.Pages.Admin.PaymentMethodsModel
+@using MVTeaches.Domain.Payments
+@{
+    ViewData["Title"] = T["Payment Methods"].Value;
+}
+
+<h1>@T["Payment Methods"]</h1>
+<p class="text-muted">@T["Payment methods intro"]</p>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">@T["Add a payment method"]</h5>
+        <form method="post" asp-page-handler="Create" class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.Type">@T["Method type"]</label>
+                <select asp-for="NewMethod.Type" class="form-select">
+                    <option value="@PaymentMethod.CliQ">@T["PaymentMethod.CliQ"]</option>
+                    <option value="@PaymentMethod.BankTransfer">@T["PaymentMethod.BankTransfer"]</option>
+                    <option value="@PaymentMethod.InternationalBankTransfer">@T["PaymentMethod.InternationalBankTransfer"]</option>
+                    <option value="@PaymentMethod.Cash">@T["PaymentMethod.Cash"]</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.BeneficiaryName">@T["Beneficiary name"]</label>
+                <input asp-for="NewMethod.BeneficiaryName" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.AcceptedCurrencies">@T["Accepted currencies"]</label>
+                <input asp-for="NewMethod.AcceptedCurrencies" class="form-control" placeholder="JOD" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.CliqAlias">@T["CliQ alias"]</label>
+                <input asp-for="NewMethod.CliqAlias" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.Iban">@T["IBAN"]</label>
+                <input asp-for="NewMethod.Iban" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.SwiftBic">@T["SWIFT/BIC"]</label>
+                <input asp-for="NewMethod.SwiftBic" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.BankName">@T["Bank name"]</label>
+                <input asp-for="NewMethod.BankName" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.CountryName">@T["Country"]</label>
+                <input asp-for="NewMethod.CountryName" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="NewMethod.Instructions">@T["Additional instructions"]</label>
+                <input asp-for="NewMethod.Instructions" class="form-control" />
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">@T["Add method"]</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h2>@T["Configured methods"]</h2>
+<div class="table-responsive">
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>@T["Method type"]</th>
+                <th>@T["Beneficiary name"]</th>
+                <th>@T["Details"]</th>
+                <th>@T["Accepted currencies"]</th>
+                <th>@T["Status"]</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in Model.Methods)
+            {
+                <tr>
+                    <td>@T["PaymentMethod." + m.Type]</td>
+                    <td>@(m.Type == PaymentMethod.Cash ? "—" : m.BeneficiaryName)</td>
+                    <td>
+                        @if (m.CliqAlias is not null) { <div>@T["CliQ alias"]: @m.CliqAlias</div> }
+                        @if (m.Iban is not null) { <div>IBAN: @m.Iban</div> }
+                        @if (m.SwiftBic is not null) { <div>SWIFT/BIC: @m.SwiftBic</div> }
+                        @if (m.BankName is not null) { <div>@m.BankName</div> }
+                    </td>
+                    <td>@m.AcceptedCurrenciesCsv</td>
+                    <td>@(m.IsActive ? T["Active"] : T["Deactivated"])</td>
+                    <td>
+                        @if (m.IsActive)
+                        {
+                            <form method="post" asp-page-handler="Deactivate">
+                                <input type="hidden" name="id" value="@m.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Deactivate"]</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

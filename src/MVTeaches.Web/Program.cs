@@ -90,6 +90,10 @@ builder.Services.AddSingleton<IClock>(SystemClock.Instance);
 // ---------------------------------------------------------------------
 builder.Services.AddScoped<IJoinAttendanceService, JoinAttendanceService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPaymentMethodConfigService, PaymentMethodConfigService>();
+builder.Services.AddScoped<MVTeaches.Application.Files.IFileStorageService, MVTeaches.Infrastructure.Files.FileStorageService>();
+builder.Services.Configure<MVTeaches.Infrastructure.Files.FileStorageOptions>(
+    builder.Configuration.GetSection(MVTeaches.Infrastructure.Files.FileStorageOptions.SectionName));
 builder.Services.AddScoped<ISettingsProvider, SettingsProvider>();
 builder.Services.AddScoped<IScheduleGenerationService, ScheduleGenerationService>();
 builder.Services.AddScoped<IPayrollRateResolver, PayrollRateResolver>();

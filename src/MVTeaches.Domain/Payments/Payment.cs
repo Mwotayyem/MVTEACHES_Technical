@@ -8,6 +8,13 @@ public enum PaymentMethod
     Card,
     CliQ,
     BankTransfer,
+
+    /// <summary>Owner decision 2026-08-30: cross-border wire transfer (IBAN/SWIFT),
+    /// distinct from a local <see cref="BankTransfer"/> — the received amount can
+    /// differ from the requested one (fees/FX), which <see cref="Payment.ReceivedAmount"/>
+    /// exists to reconcile against, never silently.</summary>
+    InternationalBankTransfer,
+
     PayPal,
     Cash,
     Migration,
@@ -65,12 +72,47 @@ public class Payment
     public Instant? ConfirmedAtUtc { get; private set; }
     public string? RejectionReason { get; private set; }
 
+    /// <summary>The transfer sender's real name, as typed by the payer or
+    /// entered by an admin on their behalf — deliberately independent of
+    /// <see cref="PayerUserId"/>, since the person who actually pressed
+    /// "transfer" in their banking app is very often not the account holder
+    /// (a guardian paying for a direct-login student, a relative wiring
+    /// money). Never assumed to match the student's own name.</summary>
+    public string? PayerDisplayName { get; private set; }
+
+    /// <summary>The date the payer says the transfer happened — reported,
+    /// not verified; verification is what admin confirmation is for.</summary>
+    public LocalDate? TransferDate { get; private set; }
+
+    /// <summary>Snapshots which <c>PaymentMethodConfig</c> (beneficiary
+    /// name/IBAN/CliQ id/etc.) was actually shown to the payer at request
+    /// time — an admin editing the bank details later must never silently
+    /// rewrite what a historical payment record says the payer was told.</summary>
+    public long? PaymentMethodConfigId { get; private set; }
+
+    /// <summary>Set only at confirmation time, and only when it differs from
+    /// <see cref="Amount"/> — an international wire's bank fees or a partial
+    /// transfer mean the amount that actually landed can be less than what
+    /// was requested. Never auto-converted across currencies (D-53's own
+    /// "no automatic FX" rule, extended here): a <see cref="ReceivedCurrency"/>
+    /// that differs from what the subscription actually needs contributes
+    /// nothing toward activating it — see PaymentService's own remarks.</summary>
+    public decimal? ReceivedAmount { get; private set; }
+    public string? ReceivedCurrency { get; private set; }
+
+    /// <summary>Set when this payment is a corrected resubmission after a
+    /// prior one was rejected — the prior row is NEVER edited or deleted
+    /// (§20.5's append-only discipline, applied here too); this is a pointer
+    /// to it, preserving the full correction history for audit.</summary>
+    public long? SupersedesPaymentId { get; private set; }
+
     public Instant CreatedAtUtc { get; private set; }
 
     private Payment() { }
 
     public Payment(long studentId, long? subscriptionId, long? payerUserId, Money amount, PaymentMethod method,
-        string providerKey, string referenceCode, Instant createdAtUtc, long? proofFileId = null, string? providerTransactionId = null)
+        string providerKey, string referenceCode, Instant createdAtUtc, long? proofFileId = null, string? providerTransactionId = null,
+        string? payerDisplayName = null, LocalDate? transferDate = null, long? paymentMethodConfigId = null, long? supersedesPaymentId = null)
     {
         if (amount.Amount <= 0)
         {
@@ -91,8 +133,45 @@ public class Payment
         ReferenceCode = referenceCode;
         ProofFileId = proofFileId;
         ProviderTransactionId = providerTransactionId;
+        PayerDisplayName = payerDisplayName;
+        TransferDate = transferDate;
+        PaymentMethodConfigId = paymentMethodConfigId;
+        SupersedesPaymentId = supersedesPaymentId;
         CreatedAtUtc = createdAtUtc;
     }
+
+    /// <summary>Fills in what the payer (or an admin acting on their behalf)
+    /// reports after actually sending the transfer — this is the "submitted,
+    /// awaiting review" transition (a Payment created without ever calling
+    /// this stays "awaiting transfer" from the UI's point of view, purely by
+    /// having none of these fields set yet — no new PaymentStatus value was
+    /// needed for that distinction). Only possible while still Pending.</summary>
+    public void AttachTransferDetails(string? payerDisplayName, LocalDate? transferDate, string? bankReferenceNumber, long? receiptDocumentId)
+    {
+        if (Status != PaymentStatus.Pending)
+        {
+            throw new InvalidOperationException($"Cannot attach transfer details to a payment already in state {Status}.");
+        }
+
+        PayerDisplayName = payerDisplayName;
+        TransferDate = transferDate;
+        if (!string.IsNullOrWhiteSpace(bankReferenceNumber))
+        {
+            ProviderTransactionId = bankReferenceNumber;
+        }
+        if (receiptDocumentId is not null)
+        {
+            ProofFileId = receiptDocumentId;
+        }
+    }
+
+    /// <summary>True once the payer has actually reported sending the
+    /// transfer (a name, a date, a reference, or a receipt) — the UI's
+    /// "submitted, awaiting review" state, distinct from "still waiting for
+    /// the payer to transfer at all". Deliberately computed, never stored.</summary>
+    public bool HasSubmittedTransferDetails =>
+        !string.IsNullOrWhiteSpace(PayerDisplayName) || TransferDate is not null
+        || !string.IsNullOrWhiteSpace(ProviderTransactionId) || ProofFileId is not null;
 
     /// <summary>
     /// Idempotency guard: a browser success page or a webhook replay must never
@@ -100,8 +179,16 @@ public class Payment
     /// caller MUST rely on the database's UNIQUE(ProviderKey, ProviderTransactionId)
     /// and UNIQUE(ReferenceCode) constraints in addition to this state check —
     /// this method alone does not protect against a concurrent duplicate.
+    ///
+    /// <paramref name="receivedAmount"/>/<paramref name="receivedCurrency"/> are
+    /// only ever supplied when they differ from what was requested (an
+    /// international transfer's fees/shortfall) — omitted, they default to
+    /// exactly what was requested, which is what every domestic method
+    /// (CliQ/local bank/cash/card) always means: confirming is verifying the
+    /// full requested amount actually arrived, never a policy decision about
+    /// tolerating a difference.
     /// </summary>
-    public void Confirm(long confirmedByUserId, Instant nowUtc)
+    public void Confirm(long confirmedByUserId, Instant nowUtc, decimal? receivedAmount = null, string? receivedCurrency = null)
     {
         if (Status != PaymentStatus.Pending)
         {
@@ -111,6 +198,8 @@ public class Payment
         Status = PaymentStatus.Confirmed;
         ConfirmedByUserId = confirmedByUserId;
         ConfirmedAtUtc = nowUtc;
+        ReceivedAmount = receivedAmount ?? Amount.Amount;
+        ReceivedCurrency = receivedCurrency ?? Amount.Currency;
     }
 
     public void Reject(string reason)

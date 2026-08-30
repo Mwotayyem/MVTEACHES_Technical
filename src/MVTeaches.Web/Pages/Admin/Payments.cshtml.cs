@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Payments;
 using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Payments;
@@ -11,6 +12,7 @@ using MVTeaches.Domain.People;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Admin;
 
@@ -20,6 +22,15 @@ namespace MVTeaches.Web.Pages.Admin;
 /// D-39/D-11), then confirm or reject it. All business logic lives in
 /// IPaymentService, already tested against real PostgreSQL; this page is a
 /// thin form + list over it, same as every other admin screen so far.
+///
+/// Owner decision 2026-08-30 (Section 6): the user-facing confirm action is
+/// deliberately labeled "تأكيد استلام المبلغ وتفعيل الباقة" / "Confirm
+/// receipt of the amount and activate the package" — a click here means the
+/// admin has actually verified the bank/CliQ account, not merely acknowledged
+/// a receipt upload. The optional received-amount/currency fields exist only
+/// for the discrepancy case (an international transfer's fee/shortfall, or a
+/// different currency arriving) — left blank, confirming means exactly what
+/// it always meant: the full requested amount, in the requested currency.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
 public class PaymentsModel : PageModel
@@ -27,18 +38,23 @@ public class PaymentsModel : PageModel
     private readonly MvTeachesDbContext _db;
     private readonly IPaymentService _payments;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public PaymentsModel(MvTeachesDbContext db, IPaymentService payments, UserManager<ApplicationUser> userManager)
+    public PaymentsModel(MvTeachesDbContext db, IPaymentService payments, UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _payments = payments;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     public record PaymentRow(long Id, string StudentName, decimal Amount, string Currency, PaymentMethod Method,
-        PaymentStatus Status, string ReferenceCode, string? RejectionReason);
+        PaymentStatus Status, string ReferenceCode, string? RejectionReason, string? PayerDisplayName,
+        NodaTime.LocalDate? TransferDate, string? BankReferenceNumber, bool HasReceipt, bool HasSubmittedTransferDetails,
+        decimal? ReceivedAmount, string? ReceivedCurrency);
 
-    public record DraftSubscriptionRow(long Id, string StudentName, decimal Amount, string Currency);
+    public record DraftSubscriptionRow(long Id, string StudentName, decimal Price, string Currency, decimal ConfirmedReceived, decimal RemainingOwed);
 
     public IReadOnlyList<PaymentRow> PendingPayments { get; set; } = Array.Empty<PaymentRow>();
     public IReadOnlyList<PaymentRow> RecentPayments { get; set; } = Array.Empty<PaymentRow>();
@@ -96,27 +112,37 @@ public class PaymentsModel : PageModel
         var request = new RecordPaymentRequest(NewPayment.StudentId, NewPayment.SubscriptionId, PayerUserId: null,
             new Money(NewPayment.Amount, NewPayment.Currency), NewPayment.Method, ProofFileId: null);
         var result = await _payments.RecordManualPaymentAsync(request, HttpContext.RequestAborted);
-        StatusMessage = $"Payment recorded — reference {result.ReferenceCode}, awaiting confirmation.";
+        StatusMessage = _localizer["Payment recorded — reference {0}, awaiting confirmation.", result.ReferenceCode].Value;
 
         await LoadAsync();
         return Page();
     }
 
-    public async Task<IActionResult> OnPostConfirmAsync(long paymentId)
+    /// <summary><paramref name="receivedAmount"/>/<paramref name="receivedCurrency"/>
+    /// are left null on the ordinary path (both come through as null/empty
+    /// from an untouched form) — only a discrepancy the admin actually typed
+    /// in reaches IPaymentService.ConfirmAsync as a real override.</summary>
+    public async Task<IActionResult> OnPostConfirmAsync(long paymentId, decimal? receivedAmount, string? receivedCurrency)
     {
         var confirmedByUserId = long.Parse(_userManager.GetUserId(User)!);
-        var result = await _payments.ConfirmAsync(paymentId, confirmedByUserId, HttpContext.RequestAborted);
+        Money? actuallyReceived = receivedAmount is not null && !string.IsNullOrWhiteSpace(receivedCurrency)
+            ? new Money(receivedAmount.Value, receivedCurrency)
+            : null;
+
+        var result = await _payments.ConfirmAsync(paymentId, confirmedByUserId, HttpContext.RequestAborted, actuallyReceived);
 
         StatusMessage = result.Outcome switch
         {
-            ConfirmPaymentOutcome.Confirmed => "Payment confirmed.",
-            ConfirmPaymentOutcome.AlreadyConfirmed => "This payment was already confirmed.",
+            ConfirmPaymentOutcome.Confirmed => _localizer["Payment confirmed and package activated."].Value,
+            ConfirmPaymentOutcome.AlreadyConfirmed => _localizer["This payment was already confirmed."].Value,
+            ConfirmPaymentOutcome.ConfirmedButSubscriptionNotYetFullyFunded =>
+                _localizer["Payment confirmed as received, but the package needs more funds before it can activate (shortfall or currency mismatch) — it stays inactive until resolved."].Value,
             _ => null,
         };
         ErrorMessage = result.Outcome switch
         {
-            ConfirmPaymentOutcome.NotFound => "Payment not found.",
-            ConfirmPaymentOutcome.NotPending => "This payment is no longer pending (already rejected).",
+            ConfirmPaymentOutcome.NotFound => _localizer["Payment not found."].Value,
+            ConfirmPaymentOutcome.NotPending => _localizer["This payment is no longer pending (already rejected)."].Value,
             _ => null,
         };
 
@@ -127,12 +153,12 @@ public class PaymentsModel : PageModel
     public async Task<IActionResult> OnPostRejectAsync(long paymentId)
     {
         var rejectedByUserId = long.Parse(_userManager.GetUserId(User)!);
-        var reason = string.IsNullOrWhiteSpace(RejectReason) ? "No reason given" : RejectReason;
+        var reason = string.IsNullOrWhiteSpace(RejectReason) ? _localizer["No reason given"].Value : RejectReason;
 
         try
         {
             await _payments.RejectAsync(paymentId, reason, rejectedByUserId, HttpContext.RequestAborted);
-            StatusMessage = "Payment rejected.";
+            StatusMessage = _localizer["Payment rejected — the payer will see this reason and can resubmit."].Value;
         }
         catch (InvalidOperationException ex)
         {
@@ -153,8 +179,14 @@ public class PaymentsModel : PageModel
             .OrderByDescending(s => s.Id)
             .Take(100)
             .ToListAsync();
-        DraftSubscriptions = drafts.Select(s => new DraftSubscriptionRow(
-            s.Id, studentNames.GetValueOrDefault(s.StudentId, $"#{s.StudentId}"), s.Price.Amount, s.Price.Currency)).ToList();
+        var draftRows = new List<DraftSubscriptionRow>();
+        foreach (var s in drafts)
+        {
+            var funding = await _payments.GetSubscriptionFundingStatusAsync(s.Id, HttpContext.RequestAborted);
+            draftRows.Add(new DraftSubscriptionRow(s.Id, studentNames.GetValueOrDefault(s.StudentId, $"#{s.StudentId}"),
+                funding.Price.Amount, funding.Price.Currency, funding.ConfirmedReceived, funding.RemainingOwed.Amount));
+        }
+        DraftSubscriptions = draftRows;
 
         var pending = await _db.Payments
             .Where(p => p.Status == PaymentStatus.Pending)
@@ -172,5 +204,6 @@ public class PaymentsModel : PageModel
 
     private static PaymentRow ToRow(Payment p, IReadOnlyDictionary<long, string> studentNames) =>
         new(p.Id, studentNames.GetValueOrDefault(p.StudentId, $"#{p.StudentId}"), p.Amount.Amount, p.Amount.Currency,
-            p.Method, p.Status, p.ReferenceCode, p.RejectionReason);
+            p.Method, p.Status, p.ReferenceCode, p.RejectionReason, p.PayerDisplayName, p.TransferDate,
+            p.ProviderTransactionId, p.ProofFileId is not null, p.HasSubmittedTransferDetails, p.ReceivedAmount, p.ReceivedCurrency);
 }

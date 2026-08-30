@@ -3,6 +3,7 @@ using System;
 using MVTeaches.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NodaTime;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MVTeaches.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(MvTeachesDbContext))]
-    partial class MvTeachesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260830152127_ManualPaymentMethodsAndTransferDetails")]
+    partial class ManualPaymentMethodsAndTransferDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1287,8 +1290,8 @@ namespace MVTeaches.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Method")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("method");
 
                     b.Property<string>("PayerDisplayName")

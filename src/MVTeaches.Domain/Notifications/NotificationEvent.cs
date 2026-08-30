@@ -53,6 +53,14 @@ public enum NotificationEvent
     /// covers for approval — fired only when an admin rejects a student's
     /// compensation request, carrying the mandatory rejection reason.</summary>
     CompensationRejected,
+
+    /// <summary>Owner decision 2026-08-30 (manual payment methods, Section 8):
+    /// fired when an admin rejects a Pending payment (PaymentService.RejectAsync)
+    /// — the payer's own "needs correction" signal, carrying the mandatory
+    /// rejection reason but never the bank details or the receipt image
+    /// itself. Distinct from SubscriptionConfirmed, which only ever fires on
+    /// success.</summary>
+    PaymentNeedsCorrection,
 }
 
 public enum NotificationChannel
