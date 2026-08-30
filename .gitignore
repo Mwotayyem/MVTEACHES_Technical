@@ -11,3 +11,7 @@ src/**/obj/
 
 # Vendored front-end libraries (fetched via libman, not our source)
 src/MVTeaches.Web/wwwroot/lib/
+
+# Local Staging runtime state (Data Protection keys, uploaded receipts) —
+# persistent on purpose (outside bin/), but machine-local and never committed.
+src/MVTeaches.Web/App_Data/

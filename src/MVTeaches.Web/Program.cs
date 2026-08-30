@@ -80,6 +80,31 @@ builder.Services
     .AddDefaultTokenProviders()
     .AddErrorDescriber<MVTeaches.Web.Identity.LocalizedIdentityErrorDescriber>();
 
+// Local Staging isolation: a browser cookie's identity is (name, domain,
+// path) — the PORT is not part of it. Running Development and Local
+// Staging side by side on the same "localhost" domain with the default,
+// environment-agnostic cookie name would mean whichever app signs in
+// LAST overwrites the other's auth cookie in the browser, silently
+// logging the other environment out or (worse) mixing up which
+// environment a request is actually authenticated against. Development
+// deliberately keeps ASP.NET Core Identity's own default cookie
+// name/behavior untouched (no reason to disrupt anyone already using it);
+// every OTHER environment (Staging today, Production later) gets its own
+// name suffixed with the environment, so it can never collide with
+// Development's in the same browser. The antiforgery cookie gets the same
+// treatment for the same reason.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.ConfigureApplicationCookie(options =>
+    {
+        options.Cookie.Name = $".MVTeaches.Identity.{builder.Environment.EnvironmentName}";
+    });
+    builder.Services.AddAntiforgery(options =>
+    {
+        options.Cookie.Name = $".MVTeaches.Antiforgery.{builder.Environment.EnvironmentName}";
+    });
+}
+
 // ---------------------------------------------------------------------
 // Time — NodaTime's real clock everywhere except tests (FakeClock there)
 // ---------------------------------------------------------------------
@@ -135,6 +160,7 @@ builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection(Wha
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.Configure<BootstrapAdminOptions>(builder.Configuration.GetSection(BootstrapAdminOptions.SectionName));
 builder.Services.Configure<LocalDevelopmentSeedOptions>(builder.Configuration.GetSection(LocalDevelopmentSeedOptions.SectionName));
+builder.Services.Configure<StagingSeedOptions>(builder.Configuration.GetSection(StagingSeedOptions.SectionName));
 
 builder.Services.AddScoped<INotificationSender, NotConfiguredWhatsAppSender>();
 builder.Services.AddScoped<INotificationSender, SmtpEmailSender>(); // real — see SmtpEmailSender's remarks
@@ -266,9 +292,20 @@ using (var scope = app.Services.CreateScope())
     // schema already exists, which only this migration step creates.
     await MVTeaches.Infrastructure.Persistence.LocalDevelopmentSeeder.MigrateIfEnabledAsync(scope.ServiceProvider, app.Environment);
 
+    // The SAME local-convenience pattern, independently gated for the
+    // "Local Staging" environment on THIS machine only — never a real
+    // remote staging/production deployment, which still applies migrations
+    // as the deliberate, separate, human-run `dotnet ef database update`
+    // step documented in /docs/deployment/README.md. See StagingSeeder's
+    // own remarks and docs/LOCAL-STAGING.md for why this is a wholly
+    // separate class/guard from LocalDevelopmentSeeder, not an extension
+    // of it — relaxing one can never accidentally relax the other.
+    await MVTeaches.Infrastructure.Persistence.StagingSeeder.MigrateIfEnabledAsync(scope.ServiceProvider, app.Environment);
+
     await MVTeaches.Infrastructure.Persistence.DataSeeder.SeedAsync(scope.ServiceProvider);
 
     await MVTeaches.Infrastructure.Persistence.LocalDevelopmentSeeder.SeedAsync(scope.ServiceProvider, app.Environment);
+    await MVTeaches.Infrastructure.Persistence.StagingSeeder.SeedAsync(scope.ServiceProvider, app.Environment);
 }
 
 // Admin-only Hangfire dashboard — never exposed unauthenticated (§22 IDOR/auth review).

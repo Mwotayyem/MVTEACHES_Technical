@@ -2,6 +2,7 @@
 @using Microsoft.Extensions.Localization
 @using MVTeaches.Web.Resources
 @inject IStringLocalizer<SharedResource> T
+@inject IWebHostEnvironment Env
 @{
     var culture = CultureInfo.CurrentUICulture.Name;
     var isRtl = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft;
@@ -24,6 +25,12 @@
     <link rel="stylesheet" href="~/MVTeaches.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
+    @if (Env.IsStaging())
+    {
+        <div class="app-staging-banner" role="alert">
+            بيانات تجريبية — Local Staging — ليست بيانات حقيقية · Test data — not real data
+        </div>
+    }
     <div class="app-shell">
         <header class="app-topbar">
             <div class="app-brand">

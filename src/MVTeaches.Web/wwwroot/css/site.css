@@ -654,6 +654,19 @@ label,
   }
 }
 
+/* Local Staging only (Env.IsStaging() in _Layout.cshtml) — a persistent,
+   impossible-to-miss reminder that everything on screen is test data, never
+   real students/guardians/payments. Sits above the app shell on every page. */
+.app-staging-banner {
+  background: #b45309;
+  color: #fff;
+  text-align: center;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
