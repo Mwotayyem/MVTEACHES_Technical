@@ -53,7 +53,35 @@ if (-not $PublishDir) {
     $PublishDir = Join-Path $webProjectDir "bin\LocalStagingPublish"
 }
 
+$stagingPorts = @(7217, 5094)
+
 Write-Host "== Local Staging ==" -ForegroundColor Cyan
+
+# A previous run left running (its window was closed without Ctrl+C, or a
+# prior VS session never stopped it) holds the published DLLs locked, which
+# makes the publish step below fail with a wall of MSB3021/MSB3027 "file is
+# in use" errors that look like build errors but are not - the actual C#
+# compiles fine. Stop whatever is already listening on Local Staging's own
+# ports first, so this can never happen silently.
+$existingProcessIds = @()
+foreach ($port in $stagingPorts) {
+    $conns = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+    if ($conns) {
+        $existingProcessIds += $conns | Select-Object -ExpandProperty OwningProcess
+    }
+}
+$existingProcessIds = $existingProcessIds | Select-Object -Unique
+foreach ($existingId in $existingProcessIds) {
+    $existingProc = Get-Process -Id $existingId -ErrorAction SilentlyContinue
+    if ($existingProc) {
+        Write-Host "Stopping a previous Local Staging run (PID $existingId, $($existingProc.ProcessName)) that is still holding port $($stagingPorts -join '/') and would otherwise block this publish ..." -ForegroundColor Yellow
+        Stop-Process -Id $existingId -Force -ErrorAction SilentlyContinue
+    }
+}
+if ($existingProcessIds.Count -gt 0) {
+    Start-Sleep -Seconds 2
+}
+
 Write-Host "Publishing (Release) to: $PublishDir"
 dotnet publish $webProject -c Release -o $PublishDir
 if ($LASTEXITCODE -ne 0) {
@@ -86,8 +114,33 @@ $env:FileStorage__StoragePath = Join-Path $appDataDir "private-uploads"
 # from publish output (see the .csproj), so a relative path in Program.cs
 # would resolve against the publish folder (this script's working
 # directory) and never find it. Point it at this absolute, stable location
-# instead — the project folder, where the file actually lives.
+# instead - the project folder, where the file actually lives.
 $env:MVTEACHES_STAGING_SECRETS_PATH = Join-Path $webProjectDir "appsettings.Staging.secrets.json"
+
+# Open the browser automatically once the app is actually listening,
+# instead of right away - launching an Executable-profile process (e.g.
+# from Visual Studio's launch-profile dropdown, or an External Tool) does
+# not open a browser on its own the way a "Project" profile does, and
+# opening it before the server is ready would just show a connection
+# error. This runs in a separate, invisible helper process so it doesn't
+# interfere with this script's own output or block the foreground `dotnet`
+# call below; it gives up after 60 seconds so it never lingers if startup
+# fails (the real error is still visible in this window either way).
+$browserWaitScript = @'
+$deadline = (Get-Date).AddSeconds(60)
+while ((Get-Date) -lt $deadline) {
+    try {
+        $client = New-Object System.Net.Sockets.TcpClient
+        $client.Connect('127.0.0.1', 7217)
+        $client.Close()
+        Start-Process 'https://localhost:7217'
+        break
+    } catch {
+        Start-Sleep -Milliseconds 400
+    }
+}
+'@
+Start-Process -FilePath "powershell.exe" -WindowStyle Hidden -ArgumentList @('-NoProfile', '-Command', $browserWaitScript)
 
 Push-Location $PublishDir
 try {
