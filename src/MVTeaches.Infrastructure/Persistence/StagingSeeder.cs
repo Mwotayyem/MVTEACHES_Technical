@@ -5,13 +5,18 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Payments;
 using MVTeaches.Application.Placement;
+using MVTeaches.Application.Scheduling;
+using MVTeaches.Application.Subscriptions;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.People;
+using MVTeaches.Domain.Placement;
 using MVTeaches.Domain.Scheduling;
+using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Application.People;
 using MVTeaches.Infrastructure.Identity;
 using NodaTime;
@@ -19,10 +24,18 @@ using NodaTime;
 namespace MVTeaches.Infrastructure.Persistence;
 
 /// <summary>
-/// Local Staging bootstrap: applies pending migrations and inserts a small,
-/// clearly-labelled set of test accounts/content so a real acceptance pass
-/// can exercise every role against real services and a real (but isolated)
-/// database — no repository fork, no simulated business logic.
+/// Local Staging bootstrap: applies pending migrations and inserts a realistic,
+/// clearly-labelled set of test accounts/content so a real acceptance pass —
+/// or simply eyeballing every dashboard — can exercise every role against real
+/// services and a real (but isolated) database. No repository fork, no
+/// simulated business logic: every teacher/guardian/student/session/purchase
+/// below is created either as a plain entity (the same shape DataSeeder's own
+/// reference rows use) or by calling the SAME application services a real
+/// admin/teacher/guardian/student action would call (IEnrollmentService,
+/// ISubscriptionService, IPaymentService, IJoinAttendanceService,
+/// ISessionFinalizationService, ICompensationRequestService) — so every
+/// resulting balance, ledger entry, and attendance record is exactly what the
+/// real feature would have produced, not a hand-faked shortcut.
 ///
 /// Deliberately a SEPARATE class from <see cref="LocalDevelopmentSeeder"/>,
 /// not an extension of it — see <see cref="StagingSeedOptions"/>'s own
@@ -47,8 +60,20 @@ public static class StagingSeeder
     // Levels seeded by DataSeeder.SeedLevelsAsync — see its own remarks for
     // why these are fixed ids, not looked up by code, in that one place.
     private const int A1LevelId = 1;
+    private const int A2LevelId = 2;
+    private const int B1LevelId = 3;
+    private const int B2LevelId = 4;
+    private const int C1LevelId = 5;
+    private const int C2LevelId = 6;
+    private const int AdultsAgeGroupId = 3;
     private const string StagingDomain = "@staging.mvteaches.local";
     private const string TestDataMarker = "[STAGING TEST DATA]";
+
+    /// <summary>Every "transfer" reported below is fictitious — recorded and
+    /// confirmed through the real payment flow purely so a Confirmed payment,
+    /// an active subscription, and a real entitlement ledger entry exist to
+    /// look at; no money changes hands anywhere in Local Staging.</summary>
+    private const string DemoTransferNote = "Staging demo data — no real transfer; recorded for acceptance testing only.";
 
     private static async Task<(MvTeachesDbContext Db, ILogger Logger, StagingSeedOptions Options)?> CheckGatesAsync(
         IServiceProvider services, IHostEnvironment env, CancellationToken cancellationToken)
@@ -142,7 +167,14 @@ public static class StagingSeeder
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var levelAuthorization = services.GetRequiredService<ITeacherLevelAuthorizationService>();
         var placementAdmin = services.GetRequiredService<IPlacementTestAdminService>();
-        var paymentMethods = services.GetRequiredService<IPaymentMethodConfigService>();
+        var paymentMethodConfigs = services.GetRequiredService<IPaymentMethodConfigService>();
+        var subscriptions = services.GetRequiredService<ISubscriptionService>();
+        var paymentService = services.GetRequiredService<IPaymentService>();
+        var enrollmentService = services.GetRequiredService<IEnrollmentService>();
+        var joinAttendance = services.GetRequiredService<IJoinAttendanceService>();
+        var finalization = services.GetRequiredService<ISessionFinalizationService>();
+        var compensationRequests = services.GetRequiredService<ICompensationRequestService>();
+        var studentAdmission = services.GetRequiredService<IStudentAdmissionService>();
         var clock = services.GetRequiredService<IClock>();
         var now = clock.GetCurrentInstant();
 
@@ -158,49 +190,251 @@ public static class StagingSeeder
         {
             logger.LogWarning(
                 "StagingSeed: no Admin account exists yet — set Bootstrap__AdminEmail/Bootstrap__AdminPassword " +
-                "(real environment variables) and restart before this bootstrap can seed a teacher/plans/placement " +
-                "test that need an acting admin id. Guardian/student accounts below are unaffected.");
+                "(real environment variables) and restart before this bootstrap can seed teachers/guardians/students, " +
+                "packages, sessions, or payments that need an acting admin id.");
+            return;
         }
 
         var courseId = await db.Courses.Where(c => c.Code == "GENERAL-ENGLISH").Select(c => (long?)c.Id).FirstOrDefaultAsync(cancellationToken)
             ?? await db.Courses.Select(c => (long?)c.Id).FirstOrDefaultAsync(cancellationToken);
         const int countryId = 1; // JO — seeded by DataSeeder.SeedCountriesAsync
-        const int adultsAgeGroupId = 3; // seeded by DataSeeder.SeedAgeGroupsAsync
-
-        var teacherId = await SeedTeacherAsync(db, userManager, levelAuthorization, options.SeedPassword!, adminUserId, now, logger, cancellationToken);
-        await SeedGuardianAndChildrenAsync(db, userManager, countryId, options.SeedPassword!, logger, cancellationToken);
-        await SeedDirectLoginStudentAsync(db, userManager, countryId, options.SeedPassword!, logger, cancellationToken);
-
-        if (adminUserId is not null)
-        {
-            await SeedPaymentMethodAsync(paymentMethods, adminUserId.Value, cancellationToken, logger);
-        }
 
         if (courseId is null)
         {
-            logger.LogWarning("StagingSeed: no course exists yet (DataSeeder should have created one) — skipping pricing plans and sample sessions this run.");
-        }
-        else
-        {
-            if (adminUserId is not null)
-            {
-                await SeedPricingPlansAsync(db, countryId, courseId.Value, adminUserId.Value, now, logger, cancellationToken);
-            }
-
-            if (teacherId is not null)
-            {
-                await SeedFutureSessionsAsync(db, countryId, courseId.Value, adultsAgeGroupId, teacherId.Value, now, logger, cancellationToken);
-            }
+            logger.LogWarning("StagingSeed: no course exists yet (DataSeeder should have created one) — skipping the whole demo dataset this run.");
+            return;
         }
 
-        if (adminUserId is not null)
+        // ---- Teachers ------------------------------------------------
+        var teacherSpecs = new[]
         {
-            await SeedTestPlacementAsync(placementAdmin, adminUserId.Value, cancellationToken, logger);
+            new TeacherSpec("staging-teacher" + StagingDomain, "أحمد الزعبي", new[] { A1LevelId, A2LevelId }),
+            new TeacherSpec("staging-teacher2" + StagingDomain, "ليلى الحوراني", new[] { A2LevelId, B1LevelId }),
+            new TeacherSpec("staging-teacher3" + StagingDomain, "عمر النابلسي", new[] { B1LevelId, B2LevelId }),
+            new TeacherSpec("staging-teacher4" + StagingDomain, "رنا خصاونة", new[] { B2LevelId, C1LevelId }),
+            new TeacherSpec("staging-teacher5" + StagingDomain, "سامر عبدالله", new[] { C1LevelId, C2LevelId }),
+        };
+        var teacherIds = new long[teacherSpecs.Length];
+        for (var i = 0; i < teacherSpecs.Length; i++)
+        {
+            teacherIds[i] = await SeedTeacherAsync(db, userManager, levelAuthorization, teacherSpecs[i],
+                options.SeedPassword!, adminUserId.Value, logger, cancellationToken);
         }
+
+        // ---- Guardians + children --------------------------------------
+        var guardianSpecs = new[]
+        {
+            new GuardianSpec("staging-guardian" + StagingDomain, "منى العمري", new[]
+            {
+                new ChildSpec("يزن العمري", new LocalDate(2014, 3, 1), A1LevelId),
+                new ChildSpec("جود العمري", new LocalDate(2018, 7, 15), null),
+            }),
+            new GuardianSpec("staging-guardian2" + StagingDomain, "خالد فريحات", new[]
+            {
+                new ChildSpec("ريان فريحات", new LocalDate(2012, 5, 10), A2LevelId),
+            }),
+            new GuardianSpec("staging-guardian3" + StagingDomain, "سلمى دعيبس", new[]
+            {
+                new ChildSpec("تالا دعيبس", new LocalDate(2016, 9, 20), A1LevelId),
+                new ChildSpec("زيد دعيبس", new LocalDate(2013, 2, 14), null),
+            }),
+            new GuardianSpec("staging-guardian4" + StagingDomain, "وائل الشوابكة", new[]
+            {
+                new ChildSpec("نور الشوابكة", new LocalDate(2009, 11, 30), B1LevelId),
+            }),
+        };
+
+        var studentsByName = new Dictionary<string, SeededStudent>();
+        foreach (var guardianSpec in guardianSpecs)
+        {
+            var children = await SeedGuardianAsync(db, userManager, studentAdmission, countryId, guardianSpec,
+                options.SeedPassword!, adminUserId.Value, now, logger, cancellationToken);
+            foreach (var (name, student) in children)
+            {
+                studentsByName[name] = student;
+            }
+        }
+
+        // ---- Direct-login students -------------------------------------
+        var directStudentSpecs = new[]
+        {
+            // No level yet on purpose — demonstrates "no placement result yet
+            // ⟹ the purchase CTA, not a package list" for a real, empty-state screen.
+            new DirectStudentSpec("staging-student" + StagingDomain, "علي المصري", new LocalDate(2000, 1, 10), null),
+            new DirectStudentSpec("staging-student2" + StagingDomain, "مريم صالح", new LocalDate(1998, 4, 12), A2LevelId),
+            new DirectStudentSpec("staging-student3" + StagingDomain, "فراس القضاة", new LocalDate(1995, 11, 2), B2LevelId),
+            new DirectStudentSpec("staging-student4" + StagingDomain, "هبة النجار", new LocalDate(1990, 9, 20), C1LevelId),
+        };
+        foreach (var spec in directStudentSpecs)
+        {
+            var student = await SeedDirectStudentAsync(db, userManager, studentAdmission, countryId, spec,
+                options.SeedPassword!, adminUserId.Value, now, logger, cancellationToken);
+            studentsByName[spec.FullName] = student;
+        }
+
+        // ---- Payment methods --------------------------------------------
+        var cliqId = await EnsurePaymentMethodAsync(db, paymentMethodConfigs, PaymentMethod.CliQ,
+            $"{TestDataMarker} Beneficiary", "staging-cliq-alias", null, null, null, "Jordan",
+            $"{TestDataMarker} — do not send real money to this alias.", new[] { "JOD" }, adminUserId.Value, cancellationToken);
+        await EnsurePaymentMethodAsync(db, paymentMethodConfigs, PaymentMethod.BankTransfer,
+            $"{TestDataMarker} Beneficiary", null, "JO00STAGE0000000000000000", "MVTeaches Staging Bank", "STAGEJOXX", "Jordan",
+            $"{TestDataMarker} — a local bank transfer option, for testing only.", new[] { "JOD" }, adminUserId.Value, cancellationToken);
+
+        // ---- Pricing plans: every level, Group + Private -----------------
+        var levelIds = new[] { A1LevelId, A2LevelId, B1LevelId, B2LevelId, C1LevelId, C2LevelId };
+        var planIds = new Dictionary<(int LevelId, SessionType Type), long>();
+        var today = now.InUtc().Date;
+        foreach (var levelId in levelIds)
+        {
+            planIds[(levelId, SessionType.Group)] = await EnsurePricingPlanAsync(db, subscriptions, countryId,
+                courseId.Value, levelId, SessionType.Group, sessionsCount: 10, minutesTotal: 600,
+                new Money(50m, "JOD"), validityDays: 90, today, adminUserId.Value, cancellationToken);
+            planIds[(levelId, SessionType.Private)] = await EnsurePricingPlanAsync(db, subscriptions, countryId,
+                courseId.Value, levelId, SessionType.Private, sessionsCount: 5, minutesTotal: 300,
+                new Money(120m, "JOD"), validityDays: 90, today, adminUserId.Value, cancellationToken);
+        }
+
+        // ---- Purchases: active packages, a self-paid one, and one still
+        // awaiting admin confirmation ---------------------------------------
+        var yazan = studentsByName["يزن العمري"];
+        var tala = studentsByName["تالا دعيبس"];
+        var rayan = studentsByName["ريان فريحات"];
+        var noor = studentsByName["نور الشوابكة"];
+        var maryam = studentsByName["مريم صالح"];
+        var firas = studentsByName["فراس القضاة"];
+        var heba = studentsByName["هبة النجار"];
+
+        await PurchaseAndPayAsync(db, subscriptions, paymentService, yazan.StudentId, yazan.ActingUserId,
+            planIds[(A1LevelId, SessionType.Group)], SubscriptionOrigin.GuardianPurchase, cliqId, adminUserId.Value,
+            confirmPayment: true, "منى العمري", today, logger, cancellationToken);
+        await PurchaseAndPayAsync(db, subscriptions, paymentService, tala.StudentId, tala.ActingUserId,
+            planIds[(A1LevelId, SessionType.Group)], SubscriptionOrigin.GuardianPurchase, cliqId, adminUserId.Value,
+            confirmPayment: true, "سلمى دعيبس", today, logger, cancellationToken);
+        await PurchaseAndPayAsync(db, subscriptions, paymentService, rayan.StudentId, rayan.ActingUserId,
+            planIds[(A2LevelId, SessionType.Group)], SubscriptionOrigin.GuardianPurchase, cliqId, adminUserId.Value,
+            confirmPayment: true, "خالد فريحات", today, logger, cancellationToken);
+        await PurchaseAndPayAsync(db, subscriptions, paymentService, noor.StudentId, noor.ActingUserId,
+            planIds[(B1LevelId, SessionType.Group)], SubscriptionOrigin.GuardianPurchase, cliqId, adminUserId.Value,
+            confirmPayment: true, "وائل الشوابكة", today, logger, cancellationToken);
+        await PurchaseAndPayAsync(db, subscriptions, paymentService, maryam.StudentId, maryam.ActingUserId,
+            planIds[(A2LevelId, SessionType.Group)], SubscriptionOrigin.SelfPurchase, cliqId, adminUserId.Value,
+            confirmPayment: true, "مريم صالح", today, logger, cancellationToken);
+        await PurchaseAndPayAsync(db, subscriptions, paymentService, firas.StudentId, firas.ActingUserId,
+            planIds[(B2LevelId, SessionType.Private)], SubscriptionOrigin.SelfPurchase, cliqId, adminUserId.Value,
+            confirmPayment: true, "فراس القضاة", today, logger, cancellationToken);
+
+        // هبة: an older package that has since expired (needs renewal) ...
+        var hebaExpiredSubId = await PurchaseAndPayAsync(db, subscriptions, paymentService, heba.StudentId, heba.ActingUserId,
+            planIds[(C1LevelId, SessionType.Private)], SubscriptionOrigin.SelfPurchase, cliqId, adminUserId.Value,
+            confirmPayment: true, "هبة النجار", today, logger, cancellationToken);
+        await MarkSubscriptionExpiredIfActiveAsync(db, hebaExpiredSubId, cancellationToken);
+
+        // ... and a fresh renewal she has reported paying for but that no
+        // admin has confirmed yet — a real "needs admin review" item.
+        await PurchaseAndPayAsync(db, subscriptions, paymentService, heba.StudentId, heba.ActingUserId,
+            planIds[(C1LevelId, SessionType.Group)], SubscriptionOrigin.SelfPurchase, cliqId, adminUserId.Value,
+            confirmPayment: false, "هبة النجار", today, logger, cancellationToken);
+
+        // ---- Future sessions (scheduling) --------------------------------
+        var futureSessions = new[]
+        {
+            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, now.Plus(Duration.FromDays(1)), "10:00", new[] { yazan, tala }),
+            new SessionSpec(teacherIds[0], A2LevelId, SessionType.Private, now.Plus(Duration.FromDays(2)), "11:00", Array.Empty<SeededStudent>()),
+            new SessionSpec(teacherIds[1], A2LevelId, SessionType.Group, now.Plus(Duration.FromDays(1)), "12:00", new[] { maryam, rayan }),
+            new SessionSpec(teacherIds[1], B1LevelId, SessionType.Group, now.Plus(Duration.FromDays(2)), "13:00", new[] { noor }),
+            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, now.Plus(Duration.FromDays(1)), "14:00", new[] { firas }),
+            new SessionSpec(teacherIds[2], B1LevelId, SessionType.Group, now.Plus(Duration.FromDays(3)), "15:00", Array.Empty<SeededStudent>()),
+            new SessionSpec(teacherIds[3], C1LevelId, SessionType.Group, now.Plus(Duration.FromDays(2)), "16:00", Array.Empty<SeededStudent>()),
+            new SessionSpec(teacherIds[4], C2LevelId, SessionType.Private, now.Plus(Duration.FromDays(3)), "17:00", Array.Empty<SeededStudent>()),
+        };
+        foreach (var spec in futureSessions)
+        {
+            await SeedSessionAsync(db, enrollmentService, countryId, courseId.Value, spec, now, logger, cancellationToken);
+        }
+
+        // ---- Past sessions (scheduling + attendance history) ---------------
+        var pastSessions = new[]
+        {
+            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, now.Minus(Duration.FromDays(5)), "10:00", new[] { yazan }),
+            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, now.Minus(Duration.FromDays(2)), "10:00", new[] { yazan, tala }),
+            new SessionSpec(teacherIds[1], A2LevelId, SessionType.Group, now.Minus(Duration.FromDays(3)), "12:00", new[] { maryam, rayan }),
+            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, now.Minus(Duration.FromDays(4)), "14:00", new[] { firas }),
+            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, now.Minus(Duration.FromDays(2)), "14:00", new[] { firas }),
+        };
+        // Every past student except رياان (no-show, no request) and the
+        // second فراس session (no-show, becomes a compensation request below)
+        // presses Join for real — the same call the student's own "Join" button makes.
+        var presentByStartOffset = new HashSet<(long TeacherId, long StudentId)>
+        {
+            (teacherIds[0], yazan.StudentId),
+            (teacherIds[1], maryam.StudentId),
+        };
+        long? firasNoShowSessionId = null;
+        foreach (var spec in pastSessions)
+        {
+            var sessionId = await SeedSessionAsync(db, enrollmentService, countryId, courseId.Value, spec, now, logger, cancellationToken);
+            if (sessionId is null)
+            {
+                continue;
+            }
+
+            foreach (var student in spec.Students)
+            {
+                var isFirasSecondPrivateSession = spec.TeacherId == teacherIds[2] && spec.SessionType == SessionType.Private
+                    && student.StudentId == firas.StudentId && spec.StartsAtUtc == now.Minus(Duration.FromDays(2));
+                var isRayanGroupSession = student.StudentId == rayan.StudentId;
+
+                if (isFirasSecondPrivateSession)
+                {
+                    firasNoShowSessionId = sessionId; // left un-joined on purpose — see below
+                    continue;
+                }
+                if (isRayanGroupSession)
+                {
+                    continue; // left un-joined on purpose — a plain, unrequested no-show
+                }
+
+                await joinAttendance.JoinAsync(new JoinAttendanceRequest(sessionId.Value, student.StudentId, student.ActingUserId), cancellationToken);
+            }
+        }
+
+        // The frequent Hangfire sweep (see Program.cs) would do this on its
+        // own within minutes of each session ending; running it once here
+        // immediately gives every past session its real Completed status and
+        // every un-joined enrollment its real no-show attendance record and
+        // ledger entry — the exact outcome the sweep itself would produce.
+        await finalization.FinalizeEndedSessionsAsync(cancellationToken);
+
+        if (firasNoShowSessionId is not null)
+        {
+            var requestResult = await compensationRequests.RequestReplacementAsync(firas.StudentId, firasNoShowSessionId.Value,
+                "لم أتمكن من حضور الحصة بسبب ظرف طارئ. [STAGING TEST DATA]", firas.ActingUserId, cancellationToken);
+            if (requestResult.Outcome != SubmitCompensationRequestOutcome.Submitted
+                && requestResult.Outcome != SubmitCompensationRequestOutcome.DuplicateRequest)
+            {
+                logger.LogWarning("StagingSeed: could not submit the demo compensation request: {Outcome}", requestResult.Outcome);
+            }
+        }
+
+        await SeedTestPlacementAsync(placementAdmin, adminUserId.Value, cancellationToken, logger);
 
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("StagingSeed: Local Staging test data is ready — see docs/LOCAL-STAGING.md for the seeded account list.");
     }
+
+    private sealed record TeacherSpec(string Email, string FullName, int[] LevelIds);
+    private sealed record ChildSpec(string FullName, LocalDate DateOfBirth, int? LevelId);
+    private sealed record GuardianSpec(string Email, string FullName, ChildSpec[] Children);
+    private sealed record DirectStudentSpec(string Email, string FullName, LocalDate DateOfBirth, int? LevelId);
+
+    /// <summary><paramref name="ActingUserId"/> is who a purchase/booking/Join
+    /// call should be attributed to: the student's own login for a
+    /// direct-login student, or the primary guardian's login for a
+    /// guardian-only child with no independent login of their own.</summary>
+    private sealed record SeededStudent(long StudentId, long ActingUserId, int? LevelId);
+
+    private sealed record SessionSpec(long TeacherId, int LevelId, SessionType SessionType, Instant StartsAtUtc,
+        string LocalStartText, IReadOnlyList<SeededStudent> Students);
 
     private static async Task<ApplicationUser?> FindAnyAdminAsync(UserManager<ApplicationUser> userManager, CancellationToken ct)
     {
@@ -287,23 +521,26 @@ public static class StagingSeeder
         throw new InvalidOperationException(message + " — see the log above.");
     }
 
-    private static async Task<long?> SeedTeacherAsync(MvTeachesDbContext db, UserManager<ApplicationUser> userManager,
-        ITeacherLevelAuthorizationService levelAuthorization, string password, long? adminUserId, Instant now, ILogger logger, CancellationToken ct)
+    private static async Task<long> SeedTeacherAsync(MvTeachesDbContext db, UserManager<ApplicationUser> userManager,
+        ITeacherLevelAuthorizationService levelAuthorization, TeacherSpec spec, string password, long adminUserId,
+        ILogger logger, CancellationToken ct)
     {
-        var email = "staging-teacher" + StagingDomain;
-        var user = await CreateOrReconcileUserAsync(userManager, email, password, new[] { RoleNames.Teacher }, logger, ct);
+        var user = await CreateOrReconcileUserAsync(userManager, spec.Email, password, new[] { RoleNames.Teacher }, logger, ct);
 
         var teacher = await db.Teachers.FirstOrDefaultAsync(t => t.UserId == user.Id, ct);
         if (teacher is null)
         {
-            teacher = new Teacher(user.Id, $"{TestDataMarker} Teacher", "Asia/Amman");
+            teacher = new Teacher(user.Id, spec.FullName, "Asia/Amman");
             db.Teachers.Add(teacher);
             await db.SaveChangesAsync(ct);
         }
 
-        if (!await levelAuthorization.IsAuthorizedForLevelAsync(teacher.Id, A1LevelId, ct))
+        foreach (var levelId in spec.LevelIds)
         {
-            await levelAuthorization.GrantAsync(teacher.Id, A1LevelId, adminUserId ?? user.Id, ct);
+            if (!await levelAuthorization.IsAuthorizedForLevelAsync(teacher.Id, levelId, ct))
+            {
+                await levelAuthorization.GrantAsync(teacher.Id, levelId, adminUserId, ct);
+            }
         }
 
         // Deliberately NOT given a TeacherMeetingConnection — faking Zoom/
@@ -313,98 +550,261 @@ public static class StagingSeeder
         return teacher.Id;
     }
 
-    private static async Task SeedGuardianAndChildrenAsync(MvTeachesDbContext db, UserManager<ApplicationUser> userManager,
-        int countryId, string password, ILogger logger, CancellationToken ct)
+    private static async Task<IReadOnlyDictionary<string, SeededStudent>> SeedGuardianAsync(
+        MvTeachesDbContext db, UserManager<ApplicationUser> userManager, IStudentAdmissionService studentAdmission,
+        int countryId, GuardianSpec spec, string password, long adminUserId, Instant now, ILogger logger, CancellationToken ct)
     {
-        var email = "staging-guardian" + StagingDomain;
-        var user = await CreateOrReconcileUserAsync(userManager, email, password, new[] { RoleNames.Guardian }, logger, ct);
+        var user = await CreateOrReconcileUserAsync(userManager, spec.Email, password, new[] { RoleNames.Guardian }, logger, ct);
 
         var guardian = await db.Guardians.FirstOrDefaultAsync(g => g.UserId == user.Id, ct);
         if (guardian is null)
         {
-            guardian = new Guardian(user.Id, $"{TestDataMarker} Guardian");
+            guardian = new Guardian(user.Id, spec.FullName);
             db.Guardians.Add(guardian);
             await db.SaveChangesAsync(ct);
         }
 
-        var existingChildren = await db.Guardianships.Where(g => g.GuardianId == guardian.Id).Select(g => g.StudentId).ToListAsync(ct);
-        if (existingChildren.Count > 0)
+        var result = new Dictionary<string, SeededStudent>();
+        foreach (var child in spec.Children)
         {
-            return;
+            var existingLink = await db.Guardianships
+                .Where(g => g.GuardianId == guardian.Id)
+                .Join(db.Students, g => g.StudentId, s => s.Id, (g, s) => new { g.StudentId, s.FullName })
+                .FirstOrDefaultAsync(x => x.FullName == child.FullName, ct);
+
+            long studentId;
+            if (existingLink is not null)
+            {
+                studentId = existingLink.StudentId;
+            }
+            else
+            {
+                var student = new Student(countryId, child.FullName, child.DateOfBirth);
+                student.MarkVerified();
+                db.Students.Add(student);
+                await db.SaveChangesAsync(ct);
+
+                db.Guardianships.Add(new Guardianship(guardian.Id, student.Id, GuardianRelationship.Parent, isPrimary: true, user.Id));
+                await db.SaveChangesAsync(ct);
+                studentId = student.Id;
+            }
+
+            if (child.LevelId is not null)
+            {
+                await EnsureStudentLevelAsync(db, studentAdmission, studentId, child.LevelId.Value, adminUserId, ct);
+            }
+
+            result[child.FullName] = new SeededStudent(studentId, user.Id, child.LevelId);
         }
 
-        // Two SEPARATE, independent children — no shared login, no shared
-        // placement/level/balance — exactly what proves guardian-side
-        // isolation in acceptance step 9.
-        var child1 = new Student(countryId, $"{TestDataMarker} Child One", new LocalDate(2014, 3, 1));
-        var child2 = new Student(countryId, $"{TestDataMarker} Child Two", new LocalDate(2016, 7, 15));
-        child1.MarkVerified();
-        child2.MarkVerified();
-        db.Students.AddRange(child1, child2);
-        await db.SaveChangesAsync(ct);
-
-        db.Guardianships.AddRange(
-            new Guardianship(guardian.Id, child1.Id, GuardianRelationship.Parent, isPrimary: true, user.Id),
-            new Guardianship(guardian.Id, child2.Id, GuardianRelationship.Parent, isPrimary: true, user.Id));
-        await db.SaveChangesAsync(ct);
+        return result;
     }
 
-    /// <summary>No StudentLevel row yet (verified but PendingLevel) — this
-    /// account demonstrates "no placement result yet ⟹ the purchase CTA,
-    /// not a package list" (acceptance step 3) before taking the test.</summary>
-    private static async Task SeedDirectLoginStudentAsync(MvTeachesDbContext db, UserManager<ApplicationUser> userManager,
-        int countryId, string password, ILogger logger, CancellationToken ct)
-    {
-        var email = "staging-student" + StagingDomain;
-        var user = await CreateOrReconcileUserAsync(userManager, email, password, new[] { RoleNames.Student }, logger, ct, countryId);
-
-        if (await db.Students.AnyAsync(s => s.UserId == user.Id, ct))
-        {
-            return;
-        }
-
-        var student = new Student(countryId, $"{TestDataMarker} Direct Student", new LocalDate(2010, 5, 20), user.Id);
-        student.MarkVerified();
-        db.Students.Add(student);
-        await db.SaveChangesAsync(ct);
-    }
-
-    /// <summary>Section 4/5's manual transfer flow needs at least one active
-    /// payment method to choose from — a CliQ alias is the simplest real
-    /// shape and exercises the exact same admin-authoring path a real
-    /// deployment would use, never a raw database insert.</summary>
-    private static async Task SeedPaymentMethodAsync(IPaymentMethodConfigService paymentMethods, long adminUserId,
-        CancellationToken ct, ILogger logger)
-    {
-        var existing = await paymentMethods.ListAllAsync(ct);
-        if (existing.Any())
-        {
-            return;
-        }
-
-        await paymentMethods.CreateAsync(PaymentMethod.CliQ, $"{TestDataMarker} Beneficiary", "staging-cliq-alias",
-            iban: null, bankName: null, swiftBic: null, countryName: "Jordan",
-            instructions: $"{TestDataMarker} — do not send real money to this alias.",
-            acceptedCurrencies: new[] { "JOD" }, adminUserId, ct);
-    }
-
-    private static async Task SeedPricingPlansAsync(MvTeachesDbContext db, int countryId, long courseId, long adminUserId,
+    private static async Task<SeededStudent> SeedDirectStudentAsync(MvTeachesDbContext db, UserManager<ApplicationUser> userManager,
+        IStudentAdmissionService studentAdmission, int countryId, DirectStudentSpec spec, string password, long adminUserId,
         Instant now, ILogger logger, CancellationToken ct)
     {
-        var today = now.InUtc().Date;
-        var hasA1Group = await db.PricingPlans.AnyAsync(p => p.CourseId == courseId && p.LevelId == A1LevelId && p.SessionType == SessionType.Group, ct);
-        var hasA1Private = await db.PricingPlans.AnyAsync(p => p.CourseId == courseId && p.LevelId == A1LevelId && p.SessionType == SessionType.Private, ct);
+        var user = await CreateOrReconcileUserAsync(userManager, spec.Email, password, new[] { RoleNames.Student }, logger, ct, countryId);
 
-        if (!hasA1Group)
+        var existing = await db.Students.FirstOrDefaultAsync(s => s.UserId == user.Id, ct);
+        long studentId;
+        if (existing is not null)
         {
-            db.PricingPlans.Add(new PricingPlan(countryId, courseId, A1LevelId, null, SessionType.Group,
-                sessionsCount: 10, minutesTotal: 600, new Money(50m, "JOD"), validityDays: 90, today, adminUserId));
+            studentId = existing.Id;
         }
-        if (!hasA1Private)
+        else
         {
-            db.PricingPlans.Add(new PricingPlan(countryId, courseId, A1LevelId, null, SessionType.Private,
-                sessionsCount: 5, minutesTotal: 300, new Money(120m, "JOD"), validityDays: 90, today, adminUserId));
+            var student = new Student(countryId, spec.FullName, spec.DateOfBirth, user.Id);
+            student.MarkVerified();
+            db.Students.Add(student);
+            await db.SaveChangesAsync(ct);
+            studentId = student.Id;
         }
+
+        if (spec.LevelId is not null)
+        {
+            await EnsureStudentLevelAsync(db, studentAdmission, studentId, spec.LevelId.Value, adminUserId, ct);
+        }
+
+        return new SeededStudent(studentId, user.Id, spec.LevelId);
+    }
+
+    /// <summary>Delegates to <see cref="IStudentAdmissionService.AssignLevelAsync"/> —
+    /// the same admin action the Admin/Students page itself calls (an explicit,
+    /// reasoned AdminOverride) — rather than inserting a StudentLevel row by
+    /// hand, specifically because that service is also what advances
+    /// Student.Status PendingLevel → Active (§8.1); a hand-rolled insert would
+    /// leave the student's own status stuck at PendingLevel despite having a
+    /// current level, which is exactly the kind of inconsistent state a real
+    /// admin action never produces.</summary>
+    private static async Task EnsureStudentLevelAsync(MvTeachesDbContext db, IStudentAdmissionService studentAdmission,
+        long studentId, int levelId, long adminUserId, CancellationToken ct)
+    {
+        var hasCurrent = await db.StudentLevels.AnyAsync(l => l.StudentId == studentId && l.IsCurrent, ct);
+        if (hasCurrent)
+        {
+            return;
+        }
+
+        await studentAdmission.AssignLevelAsync(studentId, levelId, adminUserId,
+            $"{TestDataMarker} level assigned directly for acceptance testing.", ct);
+    }
+
+    private static async Task<long> EnsurePaymentMethodAsync(MvTeachesDbContext db, IPaymentMethodConfigService paymentMethods,
+        PaymentMethod type, string beneficiaryName, string? cliqAlias, string? iban, string? bankName, string? swiftBic,
+        string? countryName, string? instructions, IReadOnlyList<string> acceptedCurrencies, long adminUserId, CancellationToken ct)
+    {
+        var existing = await paymentMethods.ListAllAsync(ct);
+        var match = existing.FirstOrDefault(m => m.Type == type);
+        if (match is not null)
+        {
+            return match.Id;
+        }
+
+        var created = await paymentMethods.CreateAsync(type, beneficiaryName, cliqAlias, iban, bankName, swiftBic,
+            countryName, instructions, acceptedCurrencies, adminUserId, ct);
+        return created.Id;
+    }
+
+    private static async Task<long> EnsurePricingPlanAsync(MvTeachesDbContext db, ISubscriptionService subscriptions,
+        int countryId, long courseId, int levelId, SessionType sessionType, int sessionsCount, int minutesTotal,
+        Money amount, int validityDays, LocalDate effectiveFrom, long adminUserId, CancellationToken ct)
+    {
+        var existing = await db.PricingPlans.FirstOrDefaultAsync(
+            p => p.CourseId == courseId && p.LevelId == levelId && p.SessionType == sessionType, ct);
+        if (existing is not null)
+        {
+            return existing.Id;
+        }
+
+        var result = await subscriptions.CreatePricingPlanAsync(countryId, courseId, levelId, ageGroupId: null,
+            sessionType, sessionsCount, minutesTotal, amount, validityDays, effectiveFrom, adminUserId, ct);
+        return result.PricingPlanId;
+    }
+
+    /// <summary>The full real self-service purchase journey — request a
+    /// package, report a transfer, and (unless <paramref name="confirmPayment"/>
+    /// is false, for the one demo case that should stay "awaiting admin
+    /// review") have an admin confirm it — never a hand-crafted shortcut.
+    /// Idempotent on (StudentId, LevelId, SessionType): re-running this
+    /// bootstrap never creates a second subscription for the same one.</summary>
+    private static async Task<long> PurchaseAndPayAsync(MvTeachesDbContext db, ISubscriptionService subscriptions,
+        IPaymentService paymentService, long studentId, long actingUserId, long planId, SubscriptionOrigin origin,
+        long paymentMethodConfigId, long adminUserId, bool confirmPayment, string payerDisplayName, LocalDate transferDate,
+        ILogger logger, CancellationToken ct)
+    {
+        // A fresh identity map for every purchase. Without this, re-reading
+        // the SAME PricingPlan for a second student's purchase (every level
+        // has exactly one Group and one Private plan, shared by design)
+        // hands EF back the exact same tracked "Amount#Money" owned-entity
+        // instance it gave the FIRST purchase — which that first Subscription
+        // has already claimed as its own "Price#Money". EF then tries to
+        // re-parent that single shared instance onto the second Subscription,
+        // which fails hard ("part of a key and cannot be modified") because
+        // an owned entity's key includes its owner's id. A single, short-lived
+        // request-scoped DbContext (the real, normal way every one of these
+        // services is actually called) never buffers two purchases together
+        // long enough to hit this; this long-lived seeding run does, purely
+        // because it is not itself a normal request. Clearing here is a
+        // seeder-only workaround — it changes nothing about how a purchase
+        // behaves, only forces this script to re-read each entity fresh.
+        db.ChangeTracker.Clear();
+
+        var plan = await db.PricingPlans.FirstAsync(p => p.Id == planId, ct);
+        var existing = await db.Subscriptions.FirstOrDefaultAsync(
+            s => s.StudentId == studentId && s.LevelId == plan.LevelId && s.SessionType == plan.SessionType, ct);
+        if (existing is not null)
+        {
+            return existing.Id;
+        }
+
+        var purchase = await subscriptions.PurchaseFromPlanAsync(studentId, planId, actingUserId, origin, isAdminInitiated: false, ct);
+        if (purchase.Outcome != PurchaseFromPlanOutcome.Purchased || purchase.SubscriptionId is null)
+        {
+            logger.LogError("StagingSeed: demo purchase failed for student {StudentId}, plan {PlanId}: {Outcome}",
+                studentId, planId, purchase.Outcome);
+            throw new InvalidOperationException($"StagingSeed could not purchase plan {planId} for student {studentId}: {purchase.Outcome}");
+        }
+
+        var request = await paymentService.RequestOwnPaymentAsync(studentId, purchase.SubscriptionId.Value, paymentMethodConfigId, actingUserId, ct);
+        if (request.Outcome != RequestOwnPaymentOutcome.Requested || request.PaymentId is null)
+        {
+            logger.LogError("StagingSeed: demo payment request failed for subscription {SubscriptionId}: {Outcome}",
+                purchase.SubscriptionId, request.Outcome);
+            throw new InvalidOperationException($"StagingSeed could not request payment for subscription {purchase.SubscriptionId}: {request.Outcome}");
+        }
+
+        await paymentService.AttachTransferDetailsAsync(request.PaymentId.Value, actingUserId, isAdminInitiated: false,
+            payerDisplayName, transferDate, $"STG-{request.PaymentId.Value:D6}", receiptFileId: null, ct);
+
+        if (confirmPayment)
+        {
+            await paymentService.ConfirmAsync(request.PaymentId.Value, adminUserId, ct);
+        }
+
+        return purchase.SubscriptionId.Value;
+    }
+
+    private static async Task MarkSubscriptionExpiredIfActiveAsync(MvTeachesDbContext db, long subscriptionId, CancellationToken ct)
+    {
+        var subscription = await db.Subscriptions.FirstOrDefaultAsync(s => s.Id == subscriptionId, ct);
+        if (subscription is null || subscription.Status != SubscriptionStatus.Active)
+        {
+            return; // already expired by an earlier run, or never activated — nothing to do
+        }
+
+        // Local Staging cannot fast-forward wall-clock time to let the real
+        // nightly expiry sweep (§19.3) reach this subscription naturally —
+        // this calls the exact same public domain method that sweep calls,
+        // to represent its outcome for a demo "needs renewal" package.
+        subscription.MarkExpired();
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Direct entity construction — same reasoning as the original
+    /// seed's own remark: going through ITeacherSlotPublishingService would
+    /// correctly refuse every one of these teachers for having no connected
+    /// video account. Every DB-level invariant (capacity-matches-type,
+    /// no-overlap) still applies regardless of how the row is created.
+    /// Returns null (and logs) instead of throwing if the no-overlap
+    /// constraint rejects a slot — acceptable for a demo dataset, never for
+    /// real scheduling.</summary>
+    private static async Task<long?> SeedSessionAsync(MvTeachesDbContext db, IEnrollmentService enrollmentService,
+        int countryId, long courseId, SessionSpec spec, Instant now, ILogger logger, CancellationToken ct)
+    {
+        var existing = await db.ClassSessions.FirstOrDefaultAsync(
+            s => s.TeacherId == spec.TeacherId && s.StartsAtUtc == spec.StartsAtUtc, ct);
+        long sessionId;
+        if (existing is not null)
+        {
+            sessionId = existing.Id;
+        }
+        else
+        {
+            var session = new ClassSession(countryId, null, courseId, spec.LevelId, AdultsAgeGroupId, spec.TeacherId,
+                spec.StartsAtUtc, spec.StartsAtUtc.Plus(Duration.FromMinutes(60)), "Asia/Amman", spec.LocalStartText,
+                spec.SessionType, now);
+            db.ClassSessions.Add(session);
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex)
+            {
+                logger.LogWarning(ex, "StagingSeed: could not create a demo session for teacher {TeacherId} at {StartsAtUtc} — skipping it.",
+                    spec.TeacherId, spec.StartsAtUtc);
+                db.ChangeTracker.Clear();
+                return null;
+            }
+            sessionId = session.Id;
+        }
+
+        foreach (var student in spec.Students)
+        {
+            await enrollmentService.EnrollInSessionAsync(sessionId, student.StudentId, student.ActingUserId, ct);
+        }
+
+        return sessionId;
     }
 
     /// <summary>Same deterministic-outcome shape as LocalDevelopmentSeeder's
@@ -436,28 +836,5 @@ public static class StagingSeeder
         }
 
         await placementAdmin.ActivateAsync(draft.TestVersionId, ct);
-    }
-
-    private static async Task SeedFutureSessionsAsync(MvTeachesDbContext db, int countryId, long courseId, int ageGroupId,
-        long teacherId, Instant now, ILogger logger, CancellationToken ct)
-    {
-        if (await db.ClassSessions.AnyAsync(s => s.TeacherId == teacherId, ct))
-        {
-            return;
-        }
-
-        // Seeded directly (not through ITeacherSlotPublishingService, which
-        // would correctly refuse this teacher for having no connected video
-        // account) — every DB-level invariant (capacity-matches-type,
-        // no-overlap) still applies regardless of how the row is created.
-        // This lets acceptance step 7 (booking) run without a real Zoom/
-        // Google connection; a real Start/Join still correctly needs one.
-        var groupStart = now.Plus(Duration.FromDays(1));
-        var privateStart = now.Plus(Duration.FromDays(2));
-
-        db.ClassSessions.Add(new ClassSession(countryId, null, courseId, A1LevelId, ageGroupId, teacherId,
-            groupStart, groupStart.Plus(Duration.FromMinutes(60)), "Asia/Amman", "10:00", SessionType.Group, now));
-        db.ClassSessions.Add(new ClassSession(countryId, null, courseId, A1LevelId, ageGroupId, teacherId,
-            privateStart, privateStart.Plus(Duration.FromMinutes(60)), "Asia/Amman", "11:00", SessionType.Private, now));
     }
 }
