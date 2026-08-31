@@ -69,7 +69,21 @@ this reason.
 Instead, create `src/MVTeaches.Web/appsettings.Staging.secrets.json`
 (gitignored — see `.gitignore` — and loaded by `Program.cs` only when
 `builder.Environment.IsStaging()` is true, so it can never be read by a
-Development or Production run even if it ended up on the wrong machine):
+Development or Production run even if it ended up on the wrong machine).
+
+**This file's location is resolved from `MVTEACHES_STAGING_SECRETS_PATH`
+(an absolute path), not a fixed relative one** — `scripts/run-local-staging.ps1`
+sets that variable to this project folder before launching. This matters
+because the file is deliberately excluded from `dotnet publish` output
+(see the `.csproj`), and the published app's working directory is the
+publish folder itself (§3.3) — a relative path would silently resolve
+there, find nothing, and every setting below would become a no-op with no
+error (this was hit once: `StagingSeed:SeedPassword`/`Bootstrap:AdminPassword`
+changes had zero effect until this was fixed, because the connection
+string kept working only by coincidence via an unrelated leftover
+environment variable). A plain `dotnet run`/F5 launch needs no override —
+its working directory is already the project folder, which is the
+relative fallback.
 
 ```json
 {

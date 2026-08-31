@@ -68,9 +68,24 @@ if (builder.Environment.IsDevelopment())
 // Production's own environment-variable-based configuration (see
 // /docs/deployment/README.md) completely untouched. Never commit it; see
 // docs/LOCAL-STAGING.md for how to populate it.
+//
+// The path is resolved from MVTEACHES_STAGING_SECRETS_PATH (an absolute
+// path) when set, falling back to the plain relative filename otherwise.
+// This is load-bearing, not cosmetic: Local Staging's supported launch
+// method (scripts/run-local-staging.ps1) runs the *published* build, whose
+// working directory is the publish output folder — and this file is
+// deliberately excluded from publish output (see the .csproj) so it can
+// never be copied there. A relative path would silently resolve to the
+// publish folder and never be found, making every setting in this file a
+// silent no-op under that launch method. The script sets the environment
+// variable to this project folder's own copy; a plain `dotnet run`/F5
+// launch (working directory already the project folder) needs no override
+// and keeps working via the relative fallback.
 if (builder.Environment.IsStaging())
 {
-    builder.Configuration.AddJsonFile("appsettings.Staging.secrets.json", optional: true, reloadOnChange: false);
+    var stagingSecretsPath = Environment.GetEnvironmentVariable("MVTEACHES_STAGING_SECRETS_PATH")
+        ?? "appsettings.Staging.secrets.json";
+    builder.Configuration.AddJsonFile(stagingSecretsPath, optional: true, reloadOnChange: false);
 }
 
 // ---------------------------------------------------------------------

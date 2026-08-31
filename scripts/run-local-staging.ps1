@@ -82,6 +82,12 @@ $env:ASPNETCORE_URLS = "https://localhost:7217;http://localhost:5094"
 # otherwise resolve against the publish folder and be wiped on every publish).
 $env:DataProtectionKeysPath = Join-Path $appDataDir "dataprotection-keys"
 $env:FileStorage__StoragePath = Join-Path $appDataDir "private-uploads"
+# Same reasoning: appsettings.Staging.secrets.json is deliberately excluded
+# from publish output (see the .csproj), so a relative path in Program.cs
+# would resolve against the publish folder (this script's working
+# directory) and never find it. Point it at this absolute, stable location
+# instead — the project folder, where the file actually lives.
+$env:MVTEACHES_STAGING_SECRETS_PATH = Join-Path $webProjectDir "appsettings.Staging.secrets.json"
 
 Push-Location $PublishDir
 try {
