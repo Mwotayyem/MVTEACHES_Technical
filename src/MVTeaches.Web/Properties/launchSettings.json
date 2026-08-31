@@ -27,6 +27,14 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Staging"
       }
+    },
+    "Local Staging (Published)": {
+      "commandName": "Executable",
+      "executablePath": "powershell.exe",
+      "commandLineArgs": "-NoProfile -ExecutionPolicy Bypass -File \"$(SolutionDir)..\\scripts\\run-local-staging.ps1\"",
+      "workingDirectory": "$(SolutionDir)..",
+      "launchBrowser": true,
+      "launchUrl": "https://localhost:7217"
     }
   }
 }

@@ -162,9 +162,38 @@ instead by the script setting `DataProtectionKeysPath` and
 `FileStorage__StoragePath` as absolute-path environment variables pointing
 at the project folder's `App_Data/staging`, which override the relative
 defaults in `appsettings.Staging.json` without moving the working
-directory. To link it into Visual Studio 2026 as an
-External Tool: **Tools → External Tools → Add**, Command =
-`powershell.exe`, Arguments =
+directory.
+
+**Running it from inside Visual Studio 2026, without typing the command
+each time:** pick **`Local Staging (Published)`** from the launch-profile
+dropdown (next to the green Run arrow), then **Start Without Debugging**
+(Ctrl+F5) — a debugger can't usefully attach to a script-launched child
+process, so debugging isn't meaningful for this profile. It runs this
+exact script via `commandName: "Executable"` in `launchSettings.json` and
+then opens the browser at `https://localhost:7217` once it starts
+listening.
+
+**Do not use the plain `Local Staging` profile (or `https`/`http`) for
+this.** They exist for other purposes, and neither runs a published
+build:
+- `https`/`http` set `ASPNETCORE_ENVIRONMENT=Development` — they connect
+  to `mvteaches_local`, not `mvteaches_staging`, so none of the seeded
+  Staging accounts exist there at all ("email or password incorrect" is
+  the actual, correct answer in that case, not a bug).
+- `Local Staging` sets the right environment but still uses
+  `commandName: "Project"` (`dotnet run`) — it reproduces the exact
+  empty-body CSS/JS bug described above. It's kept only for quick,
+  non-visual checks (e.g. confirming a migration applies) where the
+  rendered page doesn't matter.
+
+Prefer not to have `Local Staging (Published)` and `https`/`Local Staging`
+running at the same time from the same solution — they'd all try to bind
+`7216`/`7217` independently and the ports are fixed, so whichever started
+second simply fails to bind rather than conflicting silently.
+
+An External Tool works too, as an alternative that doesn't depend on
+which launch profile is selected: **Tools → External Tools → Add**,
+Command = `powershell.exe`, Arguments =
 `-ExecutionPolicy Bypass -File "$(SolutionDir)..\scripts\run-local-staging.ps1"`,
 Initial directory = `$(SolutionDir)..`.
 
