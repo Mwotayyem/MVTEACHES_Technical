@@ -52,6 +52,27 @@ if (builder.Environment.IsDevelopment())
     builder.Logging.AddDebug();
 }
 
+// Local Staging's own secrets (ConnectionStrings:MvTeaches, StagingSeed:*,
+// Bootstrap:*) — ASP.NET Core's User Secrets provider is only added when
+// IsDevelopment() is true, so Staging needs a different mechanism. A
+// machine-wide "User"-scope environment variable was tried first and
+// rejected: it silently redirected every dotnet process on this Windows
+// account — including a plain Development run — to the staging database,
+// with no warning. This file is the replacement: it is gitignored, lives
+// only in this worktree, and — because it is added after CreateBuilder's
+// own default providers — outranks any stray environment variable that
+// might exist, so that mistake cannot recur. The IsStaging() guard is
+// deliberate and load-bearing, not just tidiness: it makes it impossible
+// for this file to be consulted by Development or a future Production
+// deployment even if it somehow ended up present there, and it leaves
+// Production's own environment-variable-based configuration (see
+// /docs/deployment/README.md) completely untouched. Never commit it; see
+// docs/LOCAL-STAGING.md for how to populate it.
+if (builder.Environment.IsStaging())
+{
+    builder.Configuration.AddJsonFile("appsettings.Staging.secrets.json", optional: true, reloadOnChange: false);
+}
+
 // ---------------------------------------------------------------------
 // Persistence (PostgreSQL 16 + NodaTime — Technical Study §33, §14.4 rule 4)
 // ---------------------------------------------------------------------

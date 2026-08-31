@@ -26,4 +26,13 @@
     <UserSecretsId>af1408e2-6734-4d27-948a-1477a376483d</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Local Staging's own secrets file (see Program.cs, docs/LOCAL-STAGING.md).
+         Gitignored and normally absent from a checkout, but if it exists on
+         this machine it must never be swept into a `dotnet publish` output —
+         named exactly, not by pattern, so this can't collide with any other
+         static asset or SDK-managed item. -->
+    <Content Remove="appsettings.Staging.secrets.json" />
+  </ItemGroup>
+
 </Project>

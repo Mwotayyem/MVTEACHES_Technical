@@ -31,7 +31,8 @@ on top of the same code, for this machine only.
 | Launch profile | `https` (or `http`) | **`Local Staging`** |
 | Ports | `https://localhost:7216`, `http://localhost:5093` | `https://localhost:7217`, `http://localhost:5094` |
 | Database | `mvteaches_local` (port 5432) | `mvteaches_staging` (port 5432, **separate role + database**) |
-| Secrets source | `dotnet user-secrets` (auto-loaded because `IsDevelopment()`) | **Real environment variables** — Staging does NOT get User Secrets automatically; see §4 |
+| Secrets source | `dotnet user-secrets` (auto-loaded because `IsDevelopment()`) | **`appsettings.Staging.secrets.json`** (gitignored, next to `appsettings.Staging.json`) — Staging does NOT get User Secrets automatically; see §4 |
+| Launch method | `dotnet run` / F5 in Visual Studio | **`dotnet publish` then run the published output** — `dotnet run` is NOT sufficient for Staging; see §3.3 |
 | Auth cookie name | ASP.NET Core Identity's own default | `.MVTeaches.Identity.Staging` (environment-suffixed, never collides with Development's in the same browser) |
 | Antiforgery cookie name | ASP.NET Core's own default | `.MVTeaches.Antiforgery.Staging` |
 | Data Protection keys | `bin/dataprotection-keys` (next to the binaries) | `App_Data/staging/dataprotection-keys` (persistent, survives rebuilds, never committed — see `.gitignore`) |
@@ -57,46 +58,109 @@ CREATE DATABASE mvteaches_staging OWNER mvteaches_staging;
 This is a genuinely separate role and database from `mvteaches_local` —
 inspecting or dropping one can never accidentally touch the other.
 
-### 3.2 Set the required environment variables (User scope, this machine only)
+### 3.2 Create `appsettings.Staging.secrets.json` (this machine only, never committed)
 
-Staging does **not** read `dotnet user-secrets` — ASP.NET Core's host only
-adds that provider when `IsDevelopment()` is true. Set these as real
-**persistent environment variables** instead (PowerShell, run once; a new
-terminal or an IDE restart is needed to pick them up):
+**Do not use a machine-wide `'User'`-scope environment variable for
+this.** That was tried once and it silently redirected *every* `dotnet`
+process on this Windows account — including a plain Development run — to
+`mvteaches_staging`, with no warning at all. It was removed for exactly
+this reason.
 
-```powershell
-[System.Environment]::SetEnvironmentVariable('ConnectionStrings__MvTeaches',
-    'Host=127.0.0.1;Port=5432;Database=mvteaches_staging;Username=mvteaches_staging;Password=<the password you chose>', 'User')
-[System.Environment]::SetEnvironmentVariable('Bootstrap__AdminEmail', 'staging-admin@staging.mvteaches.local', 'User')
-[System.Environment]::SetEnvironmentVariable('Bootstrap__AdminPassword', '<a real password, 10+ chars, incl. one non-alphanumeric>', 'User')
-[System.Environment]::SetEnvironmentVariable('StagingSeed__Enabled', 'true', 'User')
-[System.Environment]::SetEnvironmentVariable('StagingSeed__SeedPassword', '<a real password, same rule>', 'User')
+Instead, create `src/MVTeaches.Web/appsettings.Staging.secrets.json`
+(gitignored — see `.gitignore` — and loaded by `Program.cs` only when
+`builder.Environment.IsStaging()` is true, so it can never be read by a
+Development or Production run even if it ended up on the wrong machine):
+
+```json
+{
+  "ConnectionStrings": {
+    "MvTeaches": "Host=127.0.0.1;Port=5432;Database=mvteaches_staging;Username=mvteaches_staging;Password=<the password you chose>"
+  },
+  "Bootstrap": {
+    "AdminEmail": "staging-admin@staging.mvteaches.local",
+    "AdminPassword": "<a real password, 10+ chars, incl. one non-alphanumeric>"
+  },
+  "StagingSeed": {
+    "Enabled": true,
+    "SeedPassword": "<a real password, same rule>"
+  }
+}
 ```
 
 **Password rule that actually matters here**: this app's Identity policy
 (`Program.cs`) requires length ≥ 10 and — via ASP.NET Core Identity's own
 unchanged default — at least one uppercase, one lowercase, one digit, and
-one **non-alphanumeric** character. A purely alphanumeric generated
-password fails silently loud (a clear error in the log, not a crash) —
-this was hit and fixed once already while setting this environment up.
+one **non-alphanumeric** character. A purely alphanumeric password fails
+silently loud (a clear error in the log, not a crash) — this was hit and
+fixed once already while setting this environment up.
 
-Remove `Bootstrap__AdminEmail`/`Bootstrap__AdminPassword` once the admin
-account exists (same one-time-only rule as Development's own bootstrap;
-`StagingSeeder` reuses the *existing* admin from then on and does not
-re-run this step).
+Remove `Bootstrap.AdminEmail`/`Bootstrap.AdminPassword` from the file once
+the admin account exists (same one-time-only rule as Development's own
+bootstrap; `StagingSeeder` reuses the *existing* admin from then on and
+does not re-run this step). Keep `ConnectionStrings.MvTeaches` and
+`StagingSeed.SeedPassword` in the file permanently — they're needed on
+every run.
 
-### 3.3 First run
+### 3.3 First run — and every run after: `dotnet run` is NOT enough
 
-Open `عون-staging-setup/src/MVTeaches.slnx` in Visual Studio, or from a
-terminal:
+**Local Staging must be started via `dotnet publish` and then running the
+published output — never `dotnet run` / F5's `Local Staging` profile
+directly.** This was discovered the hard way: `dotnet run`/`dotnet build`
+never generate the precompressed `.br`/`.gz` sibling files that ASP.NET
+Core's static-asset compression negotiation requires outside the
+Development environment. Without them, every CSS/JS request in Staging
+still returns HTTP 200 with the right `Content-Type` — but with an
+**empty body** — to any real browser, because a real browser always sends
+`Accept-Encoding: br` (a plain PowerShell `Invoke-WebRequest` doesn't send
+that header by default, which is why an earlier HTTP-only check missed
+this entirely and reported "200 OK" while the page rendered as unstyled
+raw HTML). Development is unaffected — it uses a different, dev-only
+static-asset code path that doesn't depend on those precompressed files —
+which is also why this never showed up when testing the base app.
+`StaticAssetsTests.cs` (see `src/MVTeaches.Tests/Web/`) is an in-process
+HTTP smoke test (200 + correct Content-Type + not an HTML/redirect body)
+and does **not** cover this specific bug — it runs against a `dotnet
+build` output under the Development environment, which never reproduces
+the compression-negotiation issue described here. The manual check below
+is the real verification for that.
+
+The supported way to run Local Staging:
 
 ```powershell
-cd عون-staging-setup/src/MVTeaches.Web
-dotnet run --launch-profile "Local Staging"
+cd عون-staging-setup
+.\scripts\run-local-staging.ps1
 ```
 
-In Visual Studio, pick **Local Staging** from the launch-profile dropdown
-(next to the green Run arrow) instead of `https`/`http`, then F5.
+This publishes fresh (Release) into `src/MVTeaches.Web/bin/LocalStagingPublish`
+(already gitignored, since it's under `bin/`) and then runs that published
+`MVTeaches.Web.dll` with `ASPNETCORE_ENVIRONMENT=Staging` on the usual
+`https://localhost:7217` / `http://localhost:5094`, run **from the publish
+folder itself** — not from the `MVTeaches.Web` project folder. This matters:
+an earlier version of this script changed the working directory to the
+project folder so `App_Data` paths would stay persistent, and that broke
+static assets all over again, because ASP.NET Core resolves its content
+root (and therefore where it looks for the precompressed `.br`/`.gz` files
+from §3.3 above) from the current directory by default — pointing it back
+at the source tree silently made it serve the *un*compressed source
+`wwwroot`, which still returned the same empty bodies. Persistence of
+`App_Data` (Data Protection keys, uploaded receipts — see §2) is handled
+instead by the script setting `DataProtectionKeysPath` and
+`FileStorage__StoragePath` as absolute-path environment variables pointing
+at the project folder's `App_Data/staging`, which override the relative
+defaults in `appsettings.Staging.json` without moving the working
+directory. To link it into Visual Studio 2026 as an
+External Tool: **Tools → External Tools → Add**, Command =
+`powershell.exe`, Arguments =
+`-ExecutionPolicy Bypass -File "$(SolutionDir)..\scripts\run-local-staging.ps1"`,
+Initial directory = `$(SolutionDir)..`.
+
+**Verifying the design actually rendered — HTTP 200 alone proves
+nothing.** After running the script, open `https://localhost:7217` in a
+real browser (not `Invoke-WebRequest`/`curl` without an explicit
+`Accept-Encoding` header) and hard-refresh. This manual browser check, or
+an explicit `curl -H "Accept-Encoding: br"` against a CSS/JS URL
+confirming a non-empty body, is the real verification — `StaticAssetsTests`
+does not cover this (see above).
 
 On first run this: connects, refuses outright if the connected database's
 name isn't exactly `mvteaches_staging` (the same defence-in-depth pattern
@@ -115,14 +179,21 @@ duplicates a row.
   secrets — only non-secret defaults (`DataProtectionKeysPath`,
   `FileStorage:StoragePath`, `StagingSeed:RequiredDatabaseName`) and
   explanatory `_comment_*` keys.
-- The database password, `Bootstrap__AdminPassword`, and
-  `StagingSeed__SeedPassword` all live **only** in this machine's User
-  environment variables, set once per §3.2. They are never written to any
-  file this repository tracks, never logged (the app logs "reconciled the
-  configured seed password for X", never the value itself), and are not
-  reproduced anywhere in this document either.
-- To find or change a value later, read it back yourself:
-  `[System.Environment]::GetEnvironmentVariable('Bootstrap__AdminPassword', 'User')`.
+- The database connection string, `Bootstrap.AdminPassword`, and
+  `StagingSeed.SeedPassword` all live **only** in
+  `src/MVTeaches.Web/appsettings.Staging.secrets.json`, created once per
+  §3.2 — a file this repository's `.gitignore` excludes by exact name, and
+  which `Program.cs` loads only when `IsStaging()` is true. It is never
+  written to any file this repository tracks, never logged (the app logs
+  "reconciled the configured seed password for X", never the value
+  itself), never published (the `.csproj` excludes it by name from
+  `dotnet publish` output — verify with `Get-ChildItem -Recurse
+  <publish-folder> -Filter appsettings.Staging.secrets.json`, which should
+  return nothing), and is not reproduced anywhere in this document either.
+- To find or change a value later, open the file directly — it's a plain
+  local JSON file, not an environment variable.
+- **Do not** go back to a machine-wide environment variable for any of
+  this — see §3.2 for why that was tried once and rejected.
 
 ## 5. Seeded Local Staging accounts
 
@@ -133,8 +204,8 @@ Passwords are whatever you set in §3.2 — never printed here.
 
 | Email | Role | Password source | Notes |
 |---|---|---|---|
-| *(your `Bootstrap__AdminEmail`)* | Admin + SystemAdmin | `Bootstrap__AdminPassword` | Same production-safe bootstrap mechanism as every environment; `DataSeeder` grants it only while the Admin role has zero members. |
-| `staging-teacher@staging.mvteaches.local` | Teacher | `StagingSeed__SeedPassword` | Granted the A1 level via the real, audited `ITeacherLevelAuthorizationService.GrantAsync` — not a raw insert. **No** Zoom/Google connection (deliberately — see §7). |
+| *(your `Bootstrap.AdminEmail`)* | Admin + SystemAdmin | `Bootstrap.AdminPassword` | Same production-safe bootstrap mechanism as every environment; `DataSeeder` grants it only while the Admin role has zero members. |
+| `staging-teacher@staging.mvteaches.local` | Teacher | `StagingSeed.SeedPassword` | Granted the A1 level via the real, audited `ITeacherLevelAuthorizationService.GrantAsync` — not a raw insert. **No** Zoom/Google connection (deliberately — see §7). |
 | `staging-guardian@staging.mvteaches.local` | Guardian | same | Linked to **two independent** children, "[STAGING TEST DATA] Child One" and "...Child Two" — neither has a login of their own or a placement result yet, so guardian-side isolation (acceptance step 9) can be exercised directly. |
 | `staging-student@staging.mvteaches.local` | Student | same | A **direct** login, no placement result yet — demonstrates the "no result ⟹ purchase CTA, not a package list" rule from a cold start. |
 
@@ -221,10 +292,13 @@ against `mvteaches_local` or vice versa.
 
 ## 8. Stopping Local Staging / going back to Development
 
-Local Staging runs as its own `dotnet run` process — closing that terminal
-(or Ctrl+C, or stopping the debugger in Visual Studio) stops it. It never
-touches Development's process, port, or database, so Development can be
-started or left running at the same time with no conflict.
+Local Staging runs as its own process, started by
+`scripts/run-local-staging.ps1` — closing that terminal (or Ctrl+C) stops
+it. It never touches Development's process, port, or database, so
+Development can be started or left running (in Visual Studio or a second
+terminal) at the same time with no conflict — different ports, different
+databases, environment-suffixed cookie names, and separate Data
+Protection/upload folders (§2).
 
 To remove the worktree entirely later (optional, only when this branch of
 work is fully merged or abandoned):

@@ -15,6 +15,16 @@ src/**/obj/
 # exact 9 files kept (5 used by _Layout.cshtml/_ValidationScriptsPartial.cshtml
 # + 4 accompanying LICENSE files) in docs/LOCAL-STAGING.md.
 
+# RazorSDK's scoped-CSS bundle — `dotnet publish` (but not `dotnet build`/`run`)
+# copies this into wwwroot/ on its own; a generated, fingerprint-named build
+# artifact, never source, in case it ever ends up here.
+src/MVTeaches.Web/wwwroot/*.styles.css
+
 # Local Staging runtime state (Data Protection keys, uploaded receipts) —
 # persistent on purpose (outside bin/), but machine-local and never committed.
 src/MVTeaches.Web/App_Data/
+
+# Local Staging's own secrets (ConnectionStrings:MvTeaches, StagingSeed:*,
+# Bootstrap:*) — loaded by Program.cs only when this file exists; never a
+# machine-wide environment variable, never committed. See docs/LOCAL-STAGING.md.
+src/MVTeaches.Web/appsettings.Staging.secrets.json
