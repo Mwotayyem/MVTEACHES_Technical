@@ -9,8 +9,11 @@ src/**/bin/
 src/**/obj/
 *.user
 
-# Vendored front-end libraries (fetched via libman, not our source)
-src/MVTeaches.Web/wwwroot/lib/
+# wwwroot/lib/ used to be gitignored ("fetched via libman") but no libman.json
+# or restore step ever existed, so a fresh clone/worktree/publish silently had
+# no Bootstrap/jQuery at all. Now tracked directly in Git instead — see the
+# exact 9 files kept (5 used by _Layout.cshtml/_ValidationScriptsPartial.cshtml
+# + 4 accompanying LICENSE files) in docs/LOCAL-STAGING.md.
 
 # Local Staging runtime state (Data Protection keys, uploaded receipts) —
 # persistent on purpose (outside bin/), but machine-local and never committed.
