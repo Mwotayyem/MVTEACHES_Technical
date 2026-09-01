@@ -6,7 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Integrations;
+using MVTeaches.Application.Ledger;
 using MVTeaches.Application.Scheduling;
+using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
@@ -36,19 +38,22 @@ public class MySessionsModel : PageModel
     private readonly IStudentBookingService _booking;
     private readonly ICompensationRequestService _compensation;
     private readonly IMeetingProvisioningService _meetings;
+    private readonly IEntitlementBalanceQuery _balances;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IClock _clock;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public MySessionsModel(MvTeachesDbContext db, IJoinAttendanceService join, IStudentBookingService booking,
         ICompensationRequestService compensation, IMeetingProvisioningService meetings,
-        UserManager<ApplicationUser> userManager, IClock clock, IStringLocalizer<SharedResource> localizer)
+        IEntitlementBalanceQuery balances, UserManager<ApplicationUser> userManager, IClock clock,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _join = join;
         _booking = booking;
         _compensation = compensation;
         _meetings = meetings;
+        _balances = balances;
         _userManager = userManager;
         _clock = clock;
         _localizer = localizer;
@@ -63,7 +68,8 @@ public class MySessionsModel : PageModel
         string LevelCode, int SeatsRemaining, int Capacity);
 
     public record CompensationRequestRow(long RequestId, long OriginalSessionId, Instant OriginalSessionStartsAtUtc,
-        string? Reason, CompensationRequestStatus Status, Instant? ReplacementStartsAtUtc, string? RejectionReason);
+        string OriginalSessionTimeZone, string? Reason, CompensationRequestStatus Status,
+        Instant? ReplacementStartsAtUtc, string? ReplacementTimeZone, string? RejectionReason);
 
     public IReadOnlyList<SessionRow> MySessions { get; set; } = Array.Empty<SessionRow>();
     public IReadOnlyList<AvailableSessionRow> AvailableSessions { get; set; } = Array.Empty<AvailableSessionRow>();
@@ -78,6 +84,21 @@ public class MySessionsModel : PageModel
     /// level assignment (§10.3) yet — nothing to browse or book until an
     /// admin assigns one.</summary>
     public bool NoLevelAssigned { get; set; }
+
+    // Who am I, what level am I, where do I stand — the four facts a student
+    // asked to see on their own screen. All read from rows this page already
+    // loads; nothing new is stored.
+    public string StudentName { get; set; } = string.Empty;
+
+    /// <summary>The student's own record number, shown to them (and quoted to
+    /// the centre when they ask about their account).</summary>
+    public long StudentNumber { get; set; }
+
+    public MVTeaches.Domain.People.StudentStatus StudentStatus { get; set; }
+
+    public string? CurrentLevelCode { get; set; }
+
+    public int RemainingMinutes { get; set; }
 
     [BindProperty]
     public string? CompensationReason { get; set; }
@@ -227,6 +248,24 @@ public class MySessionsModel : PageModel
         var courseNames = await _db.Courses.ToDictionaryAsync(c => c.Id, c => c.NameEn);
         var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
 
+        StudentName = student.FullName;
+        StudentNumber = student.Id;
+        StudentStatus = student.Status;
+        CurrentLevelCode = currentLevelId is null ? null : levelCodes.GetValueOrDefault(currentLevelId.Value);
+
+        // Remaining minutes across the student's active packages, read the one
+        // approved way (D-36: always SUM(delta_minutes) at read time).
+        var activeSubscriptionIds = await _db.Subscriptions
+            .Where(s => s.StudentId == student.Id && s.Status == SubscriptionStatus.Active)
+            .Select(s => s.Id)
+            .ToListAsync();
+        var remaining = 0;
+        foreach (var subscriptionId in activeSubscriptionIds)
+        {
+            remaining += await _balances.GetSubscriptionBalanceAsync(subscriptionId, HttpContext.RequestAborted);
+        }
+        RemainingMinutes = remaining;
+
         await LoadMySessionsAsync(student.Id, now, courseNames, levelCodes);
 
         if (currentLevelId is not null)
@@ -316,13 +355,19 @@ public class MySessionsModel : PageModel
             .Concat(requests.Where(r => r.ReplacementSessionId.HasValue).Select(r => r.ReplacementSessionId!.Value))
             .Distinct()
             .ToList();
-        var sessionStarts = await _db.ClassSessions
+        var sessionMoments = await _db.ClassSessions
             .Where(s => sessionIds.Contains(s.Id))
-            .ToDictionaryAsync(s => s.Id, s => s.StartsAtUtc);
+            .ToDictionaryAsync(s => s.Id, s => new { s.StartsAtUtc, s.ScheduleTimeZone });
 
-        MyCompensationRequests = requests.Select(r => new CompensationRequestRow(
-            r.Id, r.OriginalSessionId, sessionStarts.GetValueOrDefault(r.OriginalSessionId), r.Reason, r.Status,
-            r.ReplacementSessionId.HasValue ? sessionStarts.GetValueOrDefault(r.ReplacementSessionId.Value) : null,
-            r.RejectionReason)).ToList();
+        MyCompensationRequests = requests.Select(r =>
+        {
+            var original = sessionMoments.GetValueOrDefault(r.OriginalSessionId);
+            var replacement = r.ReplacementSessionId.HasValue
+                ? sessionMoments.GetValueOrDefault(r.ReplacementSessionId.Value)
+                : null;
+            return new CompensationRequestRow(
+                r.Id, r.OriginalSessionId, original?.StartsAtUtc ?? default, original?.ScheduleTimeZone ?? string.Empty,
+                r.Reason, r.Status, replacement?.StartsAtUtc, replacement?.ScheduleTimeZone, r.RejectionReason);
+        }).ToList();
     }
 }

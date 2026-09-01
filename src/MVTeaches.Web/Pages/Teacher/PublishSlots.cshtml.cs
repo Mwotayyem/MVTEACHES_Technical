@@ -12,6 +12,7 @@ using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -181,8 +182,9 @@ public class PublishSlotsModel : PageModel
 
         UpcomingSlots = sessions.Select(s =>
         {
-            var zone = DateTimeZoneProviders.Tzdb[s.ScheduleTimeZone];
-            var local = s.StartsAtUtc.InZone(zone).LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            // Shown to a teacher, so it is formatted in their own language and
+            // in the slot's own schedule zone — never an ISO timestamp.
+            var local = _localizer.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone);
             return new SlotRow(s.Id, local, s.DurationMinutes, s.SessionType,
                 courseNameById.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
                 ageGroupCodes.GetValueOrDefault(s.AgeGroupId, "?"), s.Status, s.SeatsTaken, s.Capacity);

@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.PurchasePackageModel
 @using MVTeaches.Domain.Payments
 @{
@@ -65,7 +65,7 @@ else
                                 <h5 class="card-title">@p.CourseName — @p.LevelCode</h5>
                                 <p class="card-text">
                                     @T["SessionType." + p.SessionType] · @p.SessionsCount @T["Sessions"] · @p.MinutesTotal @T["Minutes"]<br />
-                                    <strong>@p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</strong><br />
+                                    <strong>@T.Money(p.Amount, p.Currency)</strong><br />
                                     @T["Valid {0} days", p.ValidityDays]
                                 </p>
                                 <form method="post" asp-page-handler="Purchase">
@@ -94,16 +94,16 @@ else
             {
                 <div class="card mb-3">
                     <div class="card-body">
-                        <h5 class="card-title">@T["Package request"] #@s.Id</h5>
+                        <h5 class="card-title">@T["Package request"] — @T.Money(s.Price, s.Currency)</h5>
                         <dl class="row small mb-2">
                             <dt class="col-sm-3">@T["Package price"]</dt>
-                            <dd class="col-sm-9">@s.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</dd>
+                            <dd class="col-sm-9">@T.Money(s.Price, s.Currency)</dd>
                             @if (s.ConfirmedReceived > 0)
                             {
                                 <dt class="col-sm-3">@T["Confirmed received"]</dt>
-                                <dd class="col-sm-9">@s.ConfirmedReceived.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</dd>
+                                <dd class="col-sm-9">@T.Money(s.ConfirmedReceived, s.Currency)</dd>
                                 <dt class="col-sm-3">@T["Remaining owed"]</dt>
-                                <dd class="col-sm-9 fw-bold">@s.RemainingOwed.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</dd>
+                                <dd class="col-sm-9 fw-bold">@T.Money(s.RemainingOwed, s.Currency)</dd>
                             }
                         </dl>
                         @if (s.ConfirmedReceived > 0)
@@ -123,7 +123,7 @@ else
                             </div>
                             <div class="col-md-4">
                                 <button type="submit" class="btn btn-primary w-100">
-                                    @T["Request payment of {0} {1}", s.RemainingOwed.ToString("N3", System.Globalization.CultureInfo.InvariantCulture), s.Currency]
+                                    @T["Request payment of {0}", T.Money(s.RemainingOwed, s.Currency)]
                                 </button>
                             </div>
                         </form>
@@ -141,7 +141,7 @@ else
             <div class="card mb-3">
                 <div class="card-body">
                     <h5 class="card-title">
-                        @T["Reference"]: @p.ReferenceCode — @p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency
+                        @T["Reference"]: @p.ReferenceCode — @T.Money(p.Amount, p.Currency)
                         (@T["PaymentMethod." + p.Method])
                     </h5>
                     <p>
@@ -161,11 +161,10 @@ else
                     @if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount < p.Amount)
                     {
                         <div class="alert alert-warning small">
-                            @T["Only {0} {1} of the required {2} {1} was confirmed as received — the package stays inactive until the remaining {3} {1} is sent and confirmed.",
-                                p.ReceivedAmount.Value.ToString("N3", System.Globalization.CultureInfo.InvariantCulture),
-                                p.Currency,
-                                p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture),
-                                (p.Amount - p.ReceivedAmount.Value).ToString("N3", System.Globalization.CultureInfo.InvariantCulture)]
+                            @T["Only {0} of the required {1} was confirmed as received — the package stays inactive until the remaining {2} is sent and confirmed.",
+                                T.Money(p.ReceivedAmount.Value, p.Currency),
+                                T.Money(p.Amount, p.Currency),
+                                T.Money(p.Amount - p.ReceivedAmount.Value, p.Currency)]
                         </div>
                     }
 

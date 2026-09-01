@@ -49,6 +49,14 @@ public class MyChildrenModel : PageModel
 
     public IReadOnlyList<ChildSessionRow> UpcomingSessions { get; set; } = Array.Empty<ChildSessionRow>();
 
+    /// <summary>Who this guardian's children are, independently of whether any
+    /// of them happens to have a session this week — the previous page showed
+    /// nothing at all in that (very common) case.</summary>
+    public record ChildRow(long StudentId, string FullName, string? LevelCode,
+        MVTeaches.Domain.People.StudentStatus Status, int UpcomingSessionCount);
+
+    public IReadOnlyList<ChildRow> Children { get; set; } = Array.Empty<ChildRow>();
+
     /// <summary>True only when this Guardian-role account has no linked
     /// Guardian row yet — an admin data-entry gap (see /Admin/Students),
     /// not something this page can fix itself.</summary>
@@ -137,7 +145,7 @@ public class MyChildrenModel : PageModel
 
                 var alreadyPresent = presentPairs.Contains((session.Id, studentId));
                 var canJoin = !alreadyPresent && now >= session.StartsAtUtc && session.Status == ClassSessionStatus.Scheduled;
-                rows.Add(new ChildSessionRow(studentId, childNames.GetValueOrDefault(studentId, $"#{studentId}"),
+                rows.Add(new ChildSessionRow(studentId, childNames.GetValueOrDefault(studentId, string.Empty),
                     session.Id, session.StartsAtUtc, session.ScheduleTimeZone,
                     courseNames.GetValueOrDefault(session.CourseId, "?"), levelCodes.GetValueOrDefault(session.LevelId, "?"),
                     session.Status, alreadyPresent, canJoin));
@@ -145,5 +153,20 @@ public class MyChildrenModel : PageModel
         }
 
         UpcomingSessions = rows;
+
+        var currentLevelByChild = await _db.StudentLevels
+            .Where(l => childIds.Contains(l.StudentId) && l.IsCurrent)
+            .ToDictionaryAsync(l => l.StudentId, l => l.LevelId);
+        var children = await _db.Students
+            .Where(s => childIds.Contains(s.Id))
+            .OrderBy(s => s.FullName)
+            .ToListAsync();
+
+        Children = children.Select(child => new ChildRow(
+            child.Id,
+            child.FullName,
+            currentLevelByChild.TryGetValue(child.Id, out var levelId) ? levelCodes.GetValueOrDefault(levelId) : null,
+            child.Status,
+            rows.Count(r => r.StudentId == child.Id))).ToList();
     }
 }

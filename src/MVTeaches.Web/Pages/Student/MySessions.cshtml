@@ -1,52 +1,89 @@
 @page
 @model MVTeaches.Web.Pages.Student.MySessionsModel
+@using MVTeaches.Domain.People
 @{
     ViewData["Title"] = T["My Sessions"].Value;
+}
+
+@functions {
+    string StudentStatusClass(StudentStatus status) => status switch
+    {
+        StudentStatus.Active => "app-status is-success",
+        StudentStatus.PendingVerification or StudentStatus.PendingLevel => "app-status is-warning",
+        StudentStatus.PaymentBlocked or StudentStatus.Suspended => "app-status is-danger",
+        _ => "app-status is-muted",
+    };
 }
 
 <h1>@T["My Sessions"]</h1>
 
 @if (Model.NoStudentProfileLinked)
 {
-    <div class="alert alert-warning">@T["This account has no linked student profile yet — ask an admin to link it on /Admin/Students."]</div>
+    <div class="alert alert-warning" role="alert">@T["This account has no linked student profile yet — ask an admin to link it on /Admin/Students."]</div>
 }
 else
 {
+    <dl class="app-summary">
+        <div>
+            <dt>@T["Name"]</dt>
+            <dd>@Model.StudentName</dd>
+        </div>
+        <div>
+            <dt>@T["Student number"]</dt>
+            <dd><span class="app-ref">@Model.StudentNumber</span></dd>
+        </div>
+        <div>
+            <dt>@T["Current level"]</dt>
+            <dd>@(Model.CurrentLevelCode ?? T["Not specified"].Value)</dd>
+        </div>
+        <div>
+            <dt>@T["Status"]</dt>
+            <dd><span class="@StudentStatusClass(Model.StudentStatus)">@T["StudentStatus." + Model.StudentStatus]</span></dd>
+        </div>
+        <div>
+            <dt>@T["Remaining on active packages"]</dt>
+            <dd>@T.Minutes(Model.RemainingMinutes)</dd>
+        </div>
+    </dl>
+
     @if (Model.StatusMessage is not null)
     {
-        <div class="alert alert-success">@Model.StatusMessage</div>
+        <div class="alert alert-success" role="status">@Model.StatusMessage</div>
     }
     @if (Model.ErrorMessage is not null)
     {
-        <div class="alert alert-danger">@Model.ErrorMessage</div>
+        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
     }
     @if (Model.NoLevelAssigned)
     {
-        <div class="alert alert-warning">@T["You don't have a level assigned yet — ask an admin. You'll be able to browse and book sessions once you do."]</div>
+        <div class="alert alert-warning" role="alert">@T["You don't have a level assigned yet — ask an admin. You'll be able to browse and book sessions once you do."]</div>
     }
 
     <h2 class="h4">@T["My enrolled sessions"]</h2>
     <div class="table-responsive mb-4">
         <table class="table table-sm table-striped">
-            <thead><tr><th>@T["Starts"]</th><th>@T["Course and level"]</th><th>@T["Status"]</th><th>@T["Attendance"]</th><th></th></tr></thead>
+            <thead><tr><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Status"]</th><th>@T["Attendance"]</th><th>@T["Actions"]</th></tr></thead>
             <tbody>
                 @foreach (var s in Model.MySessions)
                 {
                     <tr>
-                        <td>@s.StartsAtUtc (@s.ScheduleTimeZone)</td>
+                        <td>
+                            @T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone)
+                            <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
+                        </td>
                         <td>@s.CourseName / @s.LevelCode</td>
                         <td>@T["ClassSessionStatus." + s.SessionStatus]</td>
                         <td>
                             @switch (s.Attendance)
                             {
                                 case MVTeaches.Web.Pages.Student.MySessionsModel.AttendanceState.Present:
-                                    <span class="text-success">@T["Present"]</span>
+                                    <span class="app-status is-success">@T["Present"]</span>
                                     break;
                                 case MVTeaches.Web.Pages.Student.MySessionsModel.AttendanceState.NoShow:
-                                    <span class="text-danger">@T["No-show"]</span>
+                                    <span class="app-status is-danger">@T["No-show"]</span>
                                     break;
                                 default:
-                                    <span class="text-muted">—</span>
+                                    <span class="text-muted">@T["Not specified"]</span>
                                     break;
                             }
                         </td>
@@ -60,21 +97,22 @@ else
                             }
                             @if (s.CanRequestReplacement)
                             {
-                                <form method="post" asp-page-handler="RequestReplacement" class="d-inline">
+                                <form method="post" asp-page-handler="RequestReplacement" class="d-flex gap-1 flex-wrap">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
-                                    <input type="text" name="CompensationReason" class="form-control form-control-sm d-inline w-auto" placeholder="@T["Reason (optional)"]" style="max-width:180px" />
+                                    <input type="text" name="CompensationReason" class="form-control form-control-sm w-auto"
+                                           placeholder="@T["Reason (optional)"]" aria-label="@T["Reason (optional)"]" style="max-width:180px" />
                                     <button type="submit" class="btn btn-sm btn-outline-warning">@T["Request replacement"]</button>
                                 </form>
                             }
                         </td>
                     </tr>
                 }
+                @if (Model.MySessions.Count == 0)
+                {
+                    <tr><td colspan="5" class="text-muted">@T["No enrolled sessions in this window."]</td></tr>
+                }
             </tbody>
         </table>
-        @if (Model.MySessions.Count == 0)
-        {
-            <p class="text-muted">@T["No enrolled sessions in this window."]</p>
-        }
     </div>
 
     @if (!Model.NoLevelAssigned)
@@ -82,12 +120,15 @@ else
         <h2 class="h4">@T["Available sessions for your level"]</h2>
         <div class="table-responsive mb-4">
             <table class="table table-sm table-striped">
-                <thead><tr><th>@T["Starts"]</th><th>@T["Course and level"]</th><th>@T["Seats booked / capacity"]</th><th></th></tr></thead>
+                <thead><tr><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Seats booked / capacity"]</th><th>@T["Actions"]</th></tr></thead>
                 <tbody>
                     @foreach (var s in Model.AvailableSessions)
                     {
                         <tr>
-                            <td>@s.StartsAtUtc (@s.ScheduleTimeZone)</td>
+                            <td>
+                                @T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone)
+                                <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
+                            </td>
                             <td>@s.CourseName / @s.LevelCode</td>
                             <td>@s.SeatsRemaining / @s.Capacity</td>
                             <td>
@@ -98,12 +139,12 @@ else
                             </td>
                         </tr>
                     }
+                    @if (Model.AvailableSessions.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted">@T["No available sessions for your level in the next 30 days."]</td></tr>
+                    }
                 </tbody>
             </table>
-            @if (Model.AvailableSessions.Count == 0)
-            {
-                <p class="text-muted">@T["No available sessions for your level in the next 30 days."]</p>
-            }
         </div>
     }
 
@@ -115,13 +156,13 @@ else
                 @foreach (var r in Model.MyCompensationRequests)
                 {
                     <tr>
-                        <td>@r.OriginalSessionStartsAtUtc</td>
-                        <td>@(r.Reason ?? "—")</td>
+                        <td>@T.SessionMoment(r.OriginalSessionStartsAtUtc, r.OriginalSessionTimeZone)</td>
+                        <td>@(r.Reason ?? T["Not specified"].Value)</td>
                         <td>@T["CompensationRequestStatus." + r.Status]</td>
                         <td>
                             @if (r.Status == MVTeaches.Domain.Scheduling.CompensationRequestStatus.Approved && r.ReplacementStartsAtUtc is not null)
                             {
-                                @r.ReplacementStartsAtUtc
+                                @T.SessionMoment(r.ReplacementStartsAtUtc, r.ReplacementTimeZone)
                             }
                             else if (r.Status == MVTeaches.Domain.Scheduling.CompensationRequestStatus.Rejected)
                             {
@@ -134,11 +175,11 @@ else
                         </td>
                     </tr>
                 }
+                @if (Model.MyCompensationRequests.Count == 0)
+                {
+                    <tr><td colspan="4" class="text-muted">@T["No replacement requests yet."]</td></tr>
+                }
             </tbody>
         </table>
-        @if (Model.MyCompensationRequests.Count == 0)
-        {
-            <p class="text-muted">@T["No replacement requests yet."]</p>
-        }
     </div>
 }

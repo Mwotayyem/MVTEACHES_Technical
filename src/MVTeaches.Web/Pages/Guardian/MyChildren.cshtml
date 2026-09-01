@@ -1,45 +1,90 @@
 @page
 @model MVTeaches.Web.Pages.Guardian.MyChildrenModel
-@using NodaTime
+@using MVTeaches.Domain.People
 @{
     ViewData["Title"] = T["My Children"].Value;
+}
+
+@functions {
+    string StudentStatusClass(StudentStatus status) => status switch
+    {
+        StudentStatus.Active => "app-status is-success",
+        StudentStatus.PendingVerification or StudentStatus.PendingLevel => "app-status is-warning",
+        StudentStatus.PaymentBlocked or StudentStatus.Suspended => "app-status is-danger",
+        _ => "app-status is-muted",
+    };
 }
 
 <h1>@T["My Children"]</h1>
 
 @if (Model.NoGuardianProfileLinked)
 {
-    <div class="alert alert-warning">@T["Your account has the Guardian role but no linked guardian profile yet — ask an admin to link you to your children on /Admin/Students."]</div>
+    <div class="alert alert-warning" role="alert">@T["Your account has the Guardian role but no linked guardian profile yet — ask an admin to link you to your children on /Admin/Students."]</div>
 }
 else
 {
     @if (Model.StatusMessage is not null)
     {
-        <div class="alert alert-success">@Model.StatusMessage</div>
+        <div class="alert alert-success" role="status">@Model.StatusMessage</div>
     }
     @if (Model.ErrorMessage is not null)
     {
-        <div class="alert alert-danger">@Model.ErrorMessage</div>
+        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
     }
 
+    <h2 class="h4">@T["Children"]</h2>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4">
+        @foreach (var child in Model.Children)
+        {
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h5">@child.FullName</h3>
+                        <dl class="row small mb-0">
+                            <dt class="col-6">@T["Student number"]</dt>
+                            <dd class="col-6"><span class="app-ref">@child.StudentId</span></dd>
+                            <dt class="col-6">@T["Current level"]</dt>
+                            <dd class="col-6">@(child.LevelCode ?? T["Not specified"].Value)</dd>
+                            <dt class="col-6">@T["Status"]</dt>
+                            <dd class="col-6"><span class="@StudentStatusClass(child.Status)">@T["StudentStatus." + child.Status]</span></dd>
+                            <dt class="col-6">@T["Sessions in this window"]</dt>
+                            <dd class="col-6">@child.UpcomingSessionCount</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (Model.Children.Count == 0)
+        {
+            <div class="col-12">
+                <div class="app-empty">
+                    <strong>@T["No children linked to your account yet."]</strong>
+                    <span>@T["Ask the centre to link your children to your account."]</span>
+                </div>
+            </div>
+        }
+    </div>
+
+    <h2 class="h4">@T["Sessions"]</h2>
     <p class="text-muted">@T["Yesterday through the next 7 days. Press Join once the session has started — the child's full attendance for that session is recorded immediately; pressing again does nothing extra."]</p>
 
     <div class="table-responsive">
         <table class="table table-sm table-striped">
-            <thead><tr><th>@T["Child"]</th><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Status"]</th><th></th></tr></thead>
+            <thead><tr><th>@T["Child"]</th><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Status"]</th><th>@T["Actions"]</th></tr></thead>
             <tbody>
                 @foreach (var s in Model.UpcomingSessions)
                 {
-                    var zone = DateTimeZoneProviders.Tzdb[s.ScheduleTimeZone];
-                    var local = s.StartsAtUtc.InZone(zone);
                     <tr>
                         <td>@s.StudentName</td>
-                        <td>@local.ToString("yyyy-MM-dd HH:mm", null) (@s.ScheduleTimeZone)</td>
+                        <td>
+                            @T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone)
+                            <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
+                        </td>
                         <td>@s.CourseName / @s.LevelCode</td>
                         <td>
                             @if (s.AlreadyPresent)
                             {
-                                <span class="badge bg-success">@T["Present"]</span>
+                                <span class="app-status is-success">@T["Present"]</span>
                             }
                             else
                             {

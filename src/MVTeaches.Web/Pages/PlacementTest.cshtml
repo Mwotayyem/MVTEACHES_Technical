@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.PlacementTestModel
 @using MVTeaches.Application.Placement
 @{
@@ -108,7 +108,7 @@ else
                 @if (Model.MostRecentResult is not null)
                 {
                     <div class="alert alert-info">
-                        @T["Most recent result:"] <strong>@T["{0} points", Model.MostRecentResult.Score]</strong> — @T["level"] <strong>@Model.MostRecentResult.LevelCode</strong>.
+                        @T["Most recent result:"] <strong>@T["{0} points", Model.MostRecentResult.Score]</strong> — @T["Level"] <strong>@Model.MostRecentResult.LevelCode</strong>.
                         @T["Package purchases are restricted to this level."]
                     </div>
                 }

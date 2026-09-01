@@ -21,8 +21,8 @@ else
                     <div class="card">
                         <div class="card-body">
                             <h6 class="card-subtitle mb-2 text-muted">@t.Currency</h6>
-                            <p class="mb-1"><strong>@T["Paid:"]</strong> @t.Paid.ToString("0.00")</p>
-                            <p class="mb-0"><strong>@T["Pending (verified, not yet paid):"]</strong> @t.Pending.ToString("0.00")</p>
+                            <p class="mb-1"><strong>@T["Paid:"]</strong> @T.Money(t.Paid, t.Currency)</p>
+                            <p class="mb-0"><strong>@T["Pending (verified, not yet paid):"]</strong> @T.Money(t.Pending, t.Currency)</p>
                         </div>
                     </div>
                 </div>
@@ -47,12 +47,12 @@ else
                 @foreach (var l in Model.Lines)
                 {
                     <tr>
-                        <td>@l.SessionStartsAtUtc</td>
+                        <td>@T.DateTimeUtc(l.SessionStartsAtUtc)</td>
                         <td>@l.CourseName / @l.LevelCode</td>
-                        <td>@l.Minutes</td>
-                        <td>@l.RateAmount.ToString("0.00") @l.Currency</td>
-                        <td>@l.Amount.ToString("0.00") @l.Currency</td>
-                        <td>@l.PeriodStart – @l.PeriodEnd</td>
+                        <td>@T.Minutes(l.Minutes)</td>
+                        <td>@T.Money(l.RateAmount, l.Currency)</td>
+                        <td>@T.Money(l.Amount, l.Currency)</td>
+                        <td>@T.Date(l.PeriodStart) — @T.Date(l.PeriodEnd)</td>
                         <td>@T["PayrollPeriodStatus." + l.PeriodStatus]</td>
                     </tr>
                 }

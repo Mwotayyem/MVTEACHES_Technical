@@ -38,12 +38,13 @@ else
             <tbody>
                 @foreach (var s in Model.Sessions)
                 {
-                    var zone = DateTimeZoneProviders.Tzdb[s.ScheduleTimeZone];
-                    var local = s.StartsAtUtc.InZone(zone);
                     <tr>
-                        <td>@local.ToString("yyyy-MM-dd HH:mm", null) (@s.ScheduleTimeZone)</td>
+                        <td>
+                            @T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone)
+                            <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
+                        </td>
                         <td>@s.CourseName / @s.LevelCode</td>
-                        <td>@s.DurationMinutes</td>
+                        <td>@T.Minutes(s.DurationMinutes)</td>
                         <td>@T["ClassSessionStatus." + s.Status]</td>
                         <td>
                             @if (s.MeetingStatus is null)
