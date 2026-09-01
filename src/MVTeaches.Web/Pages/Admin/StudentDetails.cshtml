@@ -54,7 +54,12 @@
         <div class="app-profile-identity">
             <span class="app-avatar" aria-hidden="true">@(string.IsNullOrWhiteSpace(student.FullName) ? "?" : student.FullName.Trim()[..1])</span>
             <div>
-                <h1>@student.FullName</h1>
+                @* An admin arriving here from a list of screens that all look
+                   alike needs to know in one glance WHOSE file this is. The
+                   name is the loudest thing in the band, and the badge above
+                   it says what kind of record it belongs to. *@
+                <span class="app-profile-kicker">@T["Student file"]</span>
+                <h1 class="app-profile-name">@student.FullName</h1>
                 <p class="app-profile-meta">
                     <span class="@StudentStatusClass(student.Status)">@T["StudentStatus." + student.Status]</span>
                     @if (Model.CurrentLevelCode is not null)
@@ -246,9 +251,9 @@
                         data-bs-target="#panel-notes" type="button" role="tab" aria-controls="panel-notes"
                         aria-selected="@(tab == "notes" ? "true" : "false")">
                     @T["Written record"]
-                    @if (Model.Notes.Count > 0)
+                    @if (Model.Notes.Count + Model.WrittenNotes.Count > 0)
                     {
-                        <span class="app-tab-count">@Model.Notes.Count</span>
+                        <span class="app-tab-count">@(Model.Notes.Count + Model.WrittenNotes.Count)</span>
                     }
                 </button>
             </li>
@@ -565,6 +570,53 @@
             @* ---- Written record --------------------------------------- *@
             <div class="tab-pane fade @PaneClass("notes", tab)" id="panel-notes" role="tabpanel"
                  aria-labelledby="tab-notes" tabindex="0">
+                @* Two different things, kept apart on purpose. Above: notes the
+                   centre writes deliberately. Below: the reasons the system
+                   already collected while somebody did something else. Merging
+                   them would make it impossible to tell which is which. *@
+                <h2 class="h5">@T["Notes"]</h2>
+                <p class="text-muted small">@T["The centre's own working notes on this student. Internal — no student or guardian screen shows these. Notes are never edited or deleted; correct one by writing another."]</p>
+
+                <form method="post" asp-page-handler="AddNote" asp-route-id="@student.Id" class="row g-2 align-items-start mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewNote.Category">@T["Kind of note"]</label>
+                        <select asp-for="NewNote.Category" class="form-select">
+                            @foreach (var value in Enum.GetValues<MVTeaches.Domain.People.StudentNoteCategory>())
+                            {
+                                <option value="@value">@T["StudentNoteCategory." + value]</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label" asp-for="NewNote.Text">@T["Note"]<span class="app-required">*</span></label>
+                        <textarea asp-for="NewNote.Text" class="form-control" rows="2"
+                                  placeholder="@T["What happened, what was agreed, what to watch for…"]"></textarea>
+                        <span asp-validation-for="NewNote.Text" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label d-none d-md-block">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100">@T["Add the note"]</button>
+                    </div>
+                </form>
+
+                <ol class="app-timeline mb-4">
+                    @foreach (var n in Model.WrittenNotes)
+                    {
+                        <li>
+                            <span class="app-timeline-when">@T.DateUtc(n.CreatedAtUtc)</span>
+                            <span class="app-timeline-source">@T["StudentNoteCategory." + n.Category] · @n.AuthorName</span>
+                            <p>@n.Text</p>
+                        </li>
+                    }
+                </ol>
+                @if (Model.WrittenNotes.Count == 0)
+                {
+                    <div class="app-empty mb-4">
+                        <strong>@T["No notes written yet."]</strong>
+                        <span>@T["Use the box above. These stay inside the centre."]</span>
+                    </div>
+                }
+
                 <h2 class="h5">@T["What people wrote about this student"]</h2>
                 <p class="text-muted small">@T["Every reason typed by an admin or a teacher while doing something to this student's record — a level change, a package, a make-up, a rejected payment. Newest first."]</p>
                 <ol class="app-timeline">
@@ -581,7 +633,7 @@
                 {
                     <div class="app-empty">
                         <strong>@T["Nothing has been written about this student yet."]</strong>
-                        <span>@T["This list fills itself from the reasons typed elsewhere; there is no free-text note field on a student today."]</span>
+                        <span>@T["This list fills itself from the reasons typed elsewhere. Free-text notes are the box above."]</span>
                     </div>
                 }
             </div>

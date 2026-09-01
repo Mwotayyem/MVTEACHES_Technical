@@ -42,6 +42,10 @@ public class MvTeachesDbContext : IdentityDbContext<ApplicationUser, Application
     public DbSet<AgeGroup> AgeGroups => Set<AgeGroup>();
     public DbSet<PricingPlan> PricingPlans => Set<PricingPlan>();
 
+    /// <summary>Owner decision 2026-09-01: offer posters the admin publishes
+    /// to students. Advertising only - no purchase path reads this.</summary>
+    public DbSet<PromotionalPoster> PromotionalPosters => Set<PromotionalPoster>();
+
     // People
     public DbSet<Guardian> Guardians => Set<Guardian>();
     public DbSet<Student> Students => Set<Student>();
@@ -51,6 +55,10 @@ public class MvTeachesDbContext : IdentityDbContext<ApplicationUser, Application
     /// permitted to publish sessions for.</summary>
     public DbSet<TeacherLevelAssignment> TeacherLevelAssignments => Set<TeacherLevelAssignment>();
     public DbSet<Guardianship> Guardianships => Set<Guardianship>();
+
+    /// <summary>Owner decision 2026-09-01: the centre's own working notes on
+    /// a student. Internal to the admin screens.</summary>
+    public DbSet<StudentNote> StudentNotes => Set<StudentNote>();
 
     // Placement
     public DbSet<PlacementInterview> PlacementInterviews => Set<PlacementInterview>();

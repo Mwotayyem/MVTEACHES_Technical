@@ -16,6 +16,37 @@
     <div class="alert alert-danger">@Model.ErrorMessage</div>
 }
 
+@* Offer posters (owner decision 2026-09-01). Shown above everything else and
+   outside every branch below, because a student who has not taken the
+   placement test yet still deserves to see what the centre is offering. They
+   are pictures and words only - nothing here is clickable into a purchase,
+   and the packages a student may actually buy are still decided entirely by
+   the eligibility rules further down. *@
+@if (Model.Posters.Count > 0)
+{
+    <section class="app-offer-rail" aria-label="@T["Current offers"]">
+        @foreach (var poster in Model.Posters)
+        {
+            <article class="app-poster app-poster-offer">
+                @if (poster.HasImage)
+                {
+                    <div class="app-poster-image">
+                        <img src="@Url.Page("/Files/PosterImage", new { posterId = poster.Id })?v=@poster.ImageFileId"
+                             alt="@poster.Title" loading="lazy" />
+                    </div>
+                }
+                <div class="app-poster-body">
+                    <h3>@poster.Title</h3>
+                    @if (!string.IsNullOrWhiteSpace(poster.Details))
+                    {
+                        <p class="app-poster-note">@poster.Details</p>
+                    }
+                </div>
+            </article>
+        }
+    </section>
+}
+
 @if (Model.NoProfileLinked)
 {
     <div class="alert alert-warning">@T["Your account has no linked profile yet — ask an admin to create one for you."]</div>
@@ -111,7 +142,23 @@ else
 
     @if (Model.UnpaidDraftSubscriptions.Count > 0)
     {
-        <h2>@T["Choose a payment method"]</h2>
+        @* A package that was paid short is finished HERE, on the same package,
+           not by buying another one. The backend already worked this way -
+           RequestOwnPaymentAsync asks for the remaining owed amount, not the
+           full price - but the screen said "choose a payment method" either
+           way, so a payer who had already transferred most of it had no reason
+           to believe this was the right place to finish. It now says which of
+           the two situations each package is in, and how much is left. *@
+        <h2 id="finish-paying">
+            @if (Model.UnpaidDraftSubscriptions.Any(d => d.ConfirmedReceived > 0))
+            {
+                @T["Finish paying for your package"]
+            }
+            else
+            {
+                @T["Choose a payment method"]
+            }
+        </h2>
         @if (Model.ActiveMethods.Count == 0)
         {
             <div class="alert alert-warning">@T["No payment methods are currently available — please contact the centre."]</div>
@@ -120,23 +167,26 @@ else
         {
             @foreach (var s in Model.UnpaidDraftSubscriptions)
             {
+                var paidPercent = s.Price <= 0m ? 0 : (int)Math.Round(Math.Clamp(s.ConfirmedReceived / s.Price * 100m, 0m, 100m));
                 <div class="card mb-3">
                     <div class="card-body">
                         <h5 class="card-title">@T["Package request"] — @T.Money(s.Price, s.Currency)</h5>
                         <dl class="row small mb-2">
                             <dt class="col-sm-3">@T["Package price"]</dt>
                             <dd class="col-sm-9">@T.Money(s.Price, s.Currency)</dd>
-                            @if (s.ConfirmedReceived > 0)
-                            {
-                                <dt class="col-sm-3">@T["Confirmed received"]</dt>
-                                <dd class="col-sm-9">@T.Money(s.ConfirmedReceived, s.Currency)</dd>
-                                <dt class="col-sm-3">@T["Remaining owed"]</dt>
-                                <dd class="col-sm-9 fw-bold">@T.Money(s.RemainingOwed, s.Currency)</dd>
-                            }
+                            <dt class="col-sm-3">@T["Confirmed received"]</dt>
+                            <dd class="col-sm-9">@T.Money(s.ConfirmedReceived, s.Currency)</dd>
+                            <dt class="col-sm-3">@T["Remaining owed"]</dt>
+                            <dd class="col-sm-9 fw-bold">@T.Money(s.RemainingOwed, s.Currency)</dd>
                         </dl>
+                        <div class="app-meter mb-2" role="img"
+                             aria-label="@T["{0}% of the billed amount has been paid.", paidPercent]">
+                            <span class="app-meter-fill @(s.RemainingOwed <= 0m ? "is-success" : "is-warning")" style="width:@(paidPercent)%"></span>
+                        </div>
+                        <p class="small text-muted">@T["A package stays inactive until the whole price is confirmed. Paying part of it is recorded, but it does not start the package."]</p>
                         @if (s.ConfirmedReceived > 0)
                         {
-                            <div class="alert alert-warning small">@T["Your earlier transfer arrived short of the full price — this is normal after bank/transfer fees. Send the remaining amount below to activate the package."]</div>
+                            <div class="alert alert-warning small">@T["Your earlier transfer arrived short of the full price — this is normal after bank/transfer fees. Send the remaining amount below to activate the package. Do not request a new package."]</div>
                         }
                         <form method="post" asp-page-handler="RequestPayment" class="row g-2">
                             <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />

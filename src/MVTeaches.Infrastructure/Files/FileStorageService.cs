@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MVTeaches.Application.Files;
@@ -115,6 +115,29 @@ public class FileStorageService : IFileStorageService
 
         var stream = File.OpenRead(fullPath);
         return new OpenedDocument(stream, record.ContentType, record.OriginalFileName);
+    }
+
+    public async Task<bool> DeleteAsync(long documentId, CancellationToken cancellationToken)
+    {
+        var record = await _db.Files.FirstOrDefaultAsync(f => f.Id == documentId, cancellationToken);
+        if (record is null)
+        {
+            return false;
+        }
+
+        // Bytes first, row second. If the delete of the file throws, the row
+        // survives and the document is still readable - which is the safe way
+        // round. A missing file on disk is not an error here: the row is the
+        // thing that makes the document reachable, and it is going away.
+        var fullPath = Path.Combine(_storagePath, record.ObjectKey.ToString("N"));
+        if (File.Exists(fullPath))
+        {
+            File.Delete(fullPath);
+        }
+
+        _db.Files.Remove(record);
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     private static FilePurpose ParsePurpose(string purpose) =>

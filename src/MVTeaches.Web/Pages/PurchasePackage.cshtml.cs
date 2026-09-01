@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -73,6 +73,12 @@ public class PurchasePackageModel : PageModel
     }
 
     public record ChildOption(long StudentId, string FullName);
+
+    /// <summary>An offer poster the centre published (owner decision
+    /// 2026-09-01). Advertising only - it grants nothing and prices nothing.
+    /// The purchase list below is still built purely from the pricing plans
+    /// published for this student's own level.</summary>
+    public record PosterRow(long Id, string Title, string? Details, bool HasImage, long? ImageFileId);
     public record PlanRow(long Id, string CourseName, string LevelCode, SessionType SessionType,
         int SessionsCount, int MinutesTotal, decimal Amount, string Currency, int ValidityDays);
 
@@ -97,6 +103,11 @@ public class PurchasePackageModel : PageModel
     public bool NeedsPlacementTest { get; set; }
     public string? CurrentLevelCode { get; set; }
     public IReadOnlyList<PlanRow> EligiblePlans { get; set; } = Array.Empty<PlanRow>();
+
+    /// <summary>Active posters, in the order the admin chose. Loaded before
+    /// the placement-test gate so a student who cannot buy anything yet still
+    /// sees what the centre is offering.</summary>
+    public IReadOnlyList<PosterRow> Posters { get; set; } = Array.Empty<PosterRow>();
 
     /// <summary>Draft subscriptions with no Payment request against them yet
     /// — a payer picks a payment method for one of these next.</summary>
@@ -258,6 +269,14 @@ public class PurchasePackageModel : PageModel
         // Cash is deliberately excluded — see class remarks.
         ActiveMethods = (await _methods.ListActiveAsync(HttpContext.RequestAborted))
             .Where(m => m.Type != PaymentMethod.Cash).ToList();
+
+        Posters = (await _db.PromotionalPosters.AsNoTracking()
+                .Where(poster => poster.IsActive)
+                .OrderBy(poster => poster.SortOrder).ThenBy(poster => poster.Id)
+                .ToListAsync())
+            .Select(poster => new PosterRow(poster.Id, poster.Title, poster.Details,
+                poster.ImageFileId is not null, poster.ImageFileId))
+            .ToList();
 
         if (IsGuardian)
         {

@@ -1,0 +1,221 @@
+@page
+@model MVTeaches.Web.Pages.Admin.PostersModel
+@{
+    ViewData["Title"] = T["Offer posters"].Value;
+}
+
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Offer posters"]</span>
+</nav>
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Offer posters"]</h1>
+        <p class="text-muted">@T["What a student sees on the packages screen above the price list. A poster advertises an offer — it does not sell one, set a price, or change who may buy what."]</p>
+    </div>
+</div>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title h5">@(Model.Input.Id is null ? T["New poster"] : T["Edit this poster"])</h2>
+                <form method="post" asp-page-handler="Save" enctype="multipart/form-data">
+                    <input type="hidden" asp-for="Input.Id" />
+
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Input.Title">@T["Title"]<span class="app-required">*</span></label>
+                        <input asp-for="Input.Title" class="form-control" data-mv-poster-title />
+                        <span asp-validation-for="Input.Title" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Input.Details">@T["Details shown under the image"]</label>
+                        <textarea asp-for="Input.Details" class="form-control" rows="4" data-mv-poster-details></textarea>
+                        <div class="form-text">@T["Write it the way you would say it to a parent. This is the text the student reads under the picture."]</div>
+                        <span asp-validation-for="Input.Details" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Input.Image">@T["Image"]</label>
+                        <input asp-for="Input.Image" type="file" accept="image/jpeg,image/png" class="form-control" />
+                        <div class="form-text">
+                            @T["JPEG or PNG. Uploading a new image replaces the current one — the old file is deleted, not kept."]
+                            @if (Model.Input.Id is not null)
+                            {
+                                <text> @T["Leave this empty to keep the image the poster already has."]</text>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label" asp-for="Input.SortOrder">@T["Display order"]</label>
+                            <input asp-for="Input.SortOrder" type="number" min="0" max="999" class="form-control" />
+                            <div class="form-text">@T["Lowest first."]</div>
+                        </div>
+                        <div class="col-6 d-flex align-items-center">
+                            <div class="form-check mt-4">
+                                <input asp-for="Input.IsActive" class="form-check-input" />
+                                <label class="form-check-label" asp-for="Input.IsActive">@T["Visible to students"]</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Input.LevelId">@T["Level (optional)"]</label>
+                        <select asp-for="Input.LevelId" class="form-select">
+                            <option value="">@T["Not tied to a level"]</option>
+                            @foreach (var level in Model.Levels)
+                            {
+                                <option value="@level.Id">@level.Code</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Input.PricingPlanId">@T["Package (optional)"]</label>
+                        <select asp-for="Input.PricingPlanId" class="form-select">
+                            <option value="">@T["Not tied to a package"]</option>
+                            @foreach (var plan in Model.Plans)
+                            {
+                                <option value="@plan.Id">@Model.PlanLabel(plan)</option>
+                            }
+                        </select>
+                        <div class="form-text">@T["Tying a poster to a level or package only decides where it is shown. It grants nothing and changes no price."]</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">@(Model.Input.Id is null ? T["Create the poster"] : T["Save changes"])</button>
+                    @if (Model.Input.Id is not null)
+                    {
+                        <a class="btn btn-outline-secondary" asp-page="/Admin/Posters">@T["Cancel"]</a>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        @* What the student will actually see, built from the same markup the
+           student screen uses, so the admin is not guessing. *@
+        <h2 class="h5">@T["What the student will see"]</h2>
+        <div class="app-poster-rail mb-4">
+            <article class="app-poster">
+                <div class="app-poster-image">
+                    @if (Model.Input.Id is not null && Model.Posters.FirstOrDefault(p => p.Id == Model.Input.Id)?.ImageFileId is long imageId)
+                    {
+                        <img src="@Url.Page("/Files/PosterImage", new { posterId = Model.Input.Id })?v=@imageId" alt="" />
+                    }
+                    else
+                    {
+                        <span class="app-poster-placeholder">@T["No image yet"]</span>
+                    }
+                </div>
+                <div class="app-poster-body">
+                    <h3 data-mv-poster-preview-title>@(string.IsNullOrWhiteSpace(Model.Input.Title) ? T["Title"].Value : Model.Input.Title)</h3>
+                    <p class="app-poster-note" data-mv-poster-preview-details>@Model.Input.Details</p>
+                </div>
+            </article>
+        </div>
+
+        <h2 class="h5">@T["All posters"]</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>@T["Display order"]</th>
+                        <th>@T["Title"]</th>
+                        <th>@T["Image"]</th>
+                        <th>@T["Shown for"]</th>
+                        <th>@T["Status"]</th>
+                        <th class="text-end">@T["Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var poster in Model.Posters)
+                    {
+                        <tr>
+                            <td>@poster.SortOrder</td>
+                            <td>
+                                <strong>@poster.Title</strong>
+                                @if (!string.IsNullOrWhiteSpace(poster.Details))
+                                {
+                                    <div class="text-muted small">@poster.Details</div>
+                                }
+                            </td>
+                            <td>
+                                @if (poster.ImageFileId is not null)
+                                {
+                                    <img class="app-poster-thumb" src="@Url.Page("/Files/PosterImage", new { posterId = poster.Id })?v=@poster.ImageFileId" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">@T["No image yet"]</span>
+                                }
+                            </td>
+                            <td class="small">
+                                @(poster.LevelCode ?? T["Every level"].Value)
+                                @if (poster.PlanLabel is not null)
+                                {
+                                    <div class="text-muted">@poster.PlanLabel</div>
+                                }
+                            </td>
+                            <td>
+                                @if (poster.IsActive)
+                                {
+                                    <span class="app-status is-success">@T["Visible to students"]</span>
+                                }
+                                else
+                                {
+                                    <span class="app-status is-muted">@T["Hidden"]</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="app-row-actions">
+                                    <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Posters" asp-route-editId="@poster.Id">@T["Edit"]</a>
+                                    <form method="post" asp-page-handler="Toggle" class="d-inline">
+                                        <input type="hidden" name="posterId" value="@poster.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                            @(poster.IsActive ? T["Hide"] : T["Show"])
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Posters.Count == 0)
+                    {
+                        <tr><td colspan="6">
+                            <div class="app-empty">
+                                <strong>@T["No posters yet."]</strong>
+                                <span>@T["Create one on the left. Nothing is shown to students until a poster is marked visible."]</span>
+                            </div>
+                        </td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,4 +1,4 @@
-using NodaTime;
+﻿using NodaTime;
 
 namespace MVTeaches.Domain.Files;
 
@@ -12,6 +12,12 @@ public enum FilePurpose
     Certificate,
     StudentDocument,
     TeacherDocument,
+
+    /// <summary>Owner decision 2026-09-01: the image on an offer poster. Not
+    /// a student document and not personal data - it is centre marketing
+    /// material, and it has no owning student.</summary>
+    PromotionalPoster,
+
     Other,
 }
 

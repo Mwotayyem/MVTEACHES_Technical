@@ -1,4 +1,4 @@
-namespace MVTeaches.Application.Files;
+﻿namespace MVTeaches.Application.Files;
 
 public enum SaveUploadOutcome
 {
@@ -41,4 +41,11 @@ public interface IFileStorageService
     /// responsible for their own authorization check (this service has no
     /// notion of who is allowed to see which document) before ever calling this.</summary>
     Task<OpenedDocument?> OpenAsync(long documentId, CancellationToken cancellationToken);
+
+    /// <summary>Removes the bytes and the metadata row for one document.
+    /// Added for owner decision 2026-09-01: replacing a poster image must
+    /// replace it, not pile up every version ever uploaded. Returns false
+    /// when there was no such document. Callers do their own authorization
+    /// first, exactly as with <see cref="OpenAsync"/>.</summary>
+    Task<bool> DeleteAsync(long documentId, CancellationToken cancellationToken);
 }

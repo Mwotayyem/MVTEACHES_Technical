@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -27,11 +29,16 @@ public class StudentDetailsModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly IEntitlementBalanceQuery _balances;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly NodaTime.IClock _clock;
 
-    public StudentDetailsModel(MvTeachesDbContext db, IEntitlementBalanceQuery balances)
+    public StudentDetailsModel(MvTeachesDbContext db, IEntitlementBalanceQuery balances,
+        UserManager<ApplicationUser> userManager, NodaTime.IClock clock)
     {
         _db = db;
         _balances = balances;
+        _userManager = userManager;
+        _clock = clock;
     }
 
     public record GuardianRow(long GuardianId, string FullName, GuardianRelationship Relationship, bool IsPrimary, bool CanPay);
@@ -74,6 +81,17 @@ public class StudentDetailsModel : PageModel
     /// extended, when a make-up was asked for or refused, when a payment was
     /// rejected. Every line is something a person actually wrote.</summary>
     public record NoteRow(NodaTime.Instant AtUtc, string Source, string Text);
+
+    /// <summary>A note somebody at the centre actually sat down and wrote
+    /// about this student (owner decision 2026-09-01), as opposed to
+    /// <see cref="NoteRow"/> above, which is the reason text the system
+    /// already collected as a side effect of other actions. Both are shown,
+    /// separately, because they answer different questions.
+    ///
+    /// Internal to the admin. No student-facing or guardian-facing screen
+    /// reads these.</summary>
+    public record WrittenNoteRow(long Id, StudentNoteCategory Category, string Text,
+        string AuthorName, NodaTime.Instant CreatedAtUtc);
     public record PaymentRow(long Id, decimal Amount, string Currency, PaymentMethod Method, PaymentStatus Status,
         string ReferenceCode, NodaTime.Instant CreatedAtUtc);
     public record CertificateRow(string CertificateNumber, string LevelCode, CertificateStatus Status, NodaTime.Instant IssuedAtUtc);
@@ -105,6 +123,22 @@ public class StudentDetailsModel : PageModel
 
     public IReadOnlyList<CompensationRow> Compensations { get; set; } = Array.Empty<CompensationRow>();
     public IReadOnlyList<NoteRow> Notes { get; set; } = Array.Empty<NoteRow>();
+
+    public IReadOnlyList<WrittenNoteRow> WrittenNotes { get; set; } = Array.Empty<WrittenNoteRow>();
+
+    [BindProperty]
+    public NewNoteInput NewNote { get; set; } = new();
+
+    public string? StatusMessage { get; set; }
+
+    public class NewNoteInput
+    {
+        public StudentNoteCategory Category { get; set; } = StudentNoteCategory.Learning;
+
+        [Required(ErrorMessage = "Write the note first.")]
+        [StringLength(2000)]
+        public string Text { get; set; } = string.Empty;
+    }
 
     /// <summary>One line per currency this student has been billed or has paid
     /// in — see <see cref="MoneyLine"/> for why these are never added up.</summary>
@@ -140,7 +174,36 @@ public class StudentDetailsModel : PageModel
     public bool HasPendingPayment { get; set; }
     public bool HasDraftSubscription { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(long id)
+    /// <summary>Adds one note. Notes are append-only: there is no edit and no
+    /// delete, so the record of what the centre believed, and when, stays
+    /// honest. A note that turns out to be wrong is answered with another
+    /// note. Nothing here touches money, levels, packages or attendance.</summary>
+    public async Task<IActionResult> OnPostAddNoteAsync(long id)
+    {
+        ModelState.Clear();
+        if (!TryValidateModel(NewNote, nameof(NewNote)))
+        {
+            return await LoadPageAsync(id);
+        }
+
+        var student = await _db.Students.FirstOrDefaultAsync(s => s.Id == id);
+        if (student is null)
+        {
+            return NotFound();
+        }
+
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var author = await _userManager.GetUserAsync(User);
+        _db.StudentNotes.Add(new StudentNote(id, NewNote.Category, NewNote.Text, actingUserId,
+            author?.Email ?? string.Empty, _clock.GetCurrentInstant()));
+        await _db.SaveChangesAsync(HttpContext.RequestAborted);
+
+        return RedirectToPage(new { id, tab = "notes" });
+    }
+
+    public async Task<IActionResult> OnGetAsync(long id) => await LoadPageAsync(id);
+
+    private async Task<IActionResult> LoadPageAsync(long id)
     {
         Student = await _db.Students.FirstOrDefaultAsync(s => s.Id == id);
         if (Student is null)
@@ -314,6 +377,13 @@ public class StudentDetailsModel : PageModel
             notes.Add(new NoteRow(pay.CreatedAtUtc, "PaymentRejected", pay.RejectionReason!));
         }
         Notes = notes.OrderByDescending(n => n.AtUtc).ToList();
+
+        WrittenNotes = (await _db.StudentNotes.AsNoTracking()
+                .Where(note => note.StudentId == id)
+                .OrderByDescending(note => note.CreatedAtUtc).ThenByDescending(note => note.Id)
+                .ToListAsync())
+            .Select(note => new WrittenNoteRow(note.Id, note.Category, note.Text, note.AuthorName, note.CreatedAtUtc))
+            .ToList();
 
         var certificates = await _db.Certificates.Where(c => c.StudentId == id).OrderByDescending(c => c.Id).ToListAsync();
         Certificates = certificates.Select(c => new CertificateRow(c.CertificateNumber,
