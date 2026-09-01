@@ -313,6 +313,18 @@ public class AssistedRegistrationModel : PageModel
 
     public async Task<IActionResult> OnPostRecordManualPaymentAsync(long studentId, long subscriptionId, decimal amount, string currency, PaymentMethod method, long? paymentMethodConfigId)
     {
+        // This handler's own fields are plain parameters, not a [BindProperty]
+        // Input class, so there is nothing of its own to re-validate — but
+        // ASP.NET Core still binds AND validates every OTHER [BindProperty]
+        // model on the page (NewGuardian/NewStudent/Link/Purchase) on every
+        // POST, regardless of which handler is invoked. Without clearing that
+        // leftover state, submitting this step-5 payment form showed every
+        // required-field error from steps 2-4's empty forms ("Enter an email
+        // address", "Choose a country", "Choose the guardian" ...) even though
+        // none of those forms were touched. Same class of bug as every other
+        // handler on this page — see OnPostRegisterGuardianAsync's own remarks.
+        ModelState.Clear();
+
         var request = new RecordPaymentRequest(studentId, subscriptionId, PayerUserId: null,
             new Money(amount, currency), method, ProofFileId: null, paymentMethodConfigId);
         var result = await _payments.RecordManualPaymentAsync(request, HttpContext.RequestAborted);
@@ -325,6 +337,20 @@ public class AssistedRegistrationModel : PageModel
 
     public async Task<IActionResult> OnPostSubmitTransferAsync()
     {
+        // Same fix as OnPostRecordManualPaymentAsync above: clear the OTHER
+        // bound models' leftover validation errors first, then validate only
+        // Transfer's own fields (today just PaymentId, always populated from
+        // the hidden field, but this keeps the handler correct if a required
+        // field is ever added to TransferInput).
+        ModelState.Clear();
+        if (!TryValidateModel(Transfer, nameof(Transfer)))
+        {
+            var paymentForReload = await _db.Payments.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == Transfer.PaymentId, HttpContext.RequestAborted);
+            await LoadAsync(paymentForReload?.StudentId, null);
+            return Page();
+        }
+
         var actingUserId = GetCurrentUserId();
         long? receiptFileId = null;
 
@@ -357,8 +383,11 @@ public class AssistedRegistrationModel : PageModel
         var attachResult = await _payments.AttachTransferDetailsAsync(Transfer.PaymentId, actingUserId, isAdminInitiated: true,
             Transfer.PayerDisplayName, transferDate, Transfer.BankReferenceNumber, receiptFileId, HttpContext.RequestAborted);
 
+        // Used to name the raw path "/Admin/Payments" — an internal route
+        // shown to the reader, exactly the kind of technical text the rest
+        // of this pass removes elsewhere.
         StatusMessage = attachResult.Outcome == AttachTransferDetailsOutcome.Attached
-            ? _localizer["Transfer details recorded — awaiting confirmation on /Admin/Payments once the money is seen in the account."].Value
+            ? _localizer["Transfer details recorded. An admin will confirm it on the payments screen once the money is seen in the account."].Value
             : null;
         ErrorMessage = attachResult.Outcome switch
         {
