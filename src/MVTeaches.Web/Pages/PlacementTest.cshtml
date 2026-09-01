@@ -23,11 +23,14 @@
 else if (Model.IsGuardian && Model.SelectedStudentId is null)
 {
     <p class="text-muted">@T["Choose which child to take the placement test for. Each child's attempt, result, and level are completely separate."]</p>
-    <ul class="list-group">
+    <ul class="list-group app-choice-list">
         @foreach (var c in Model.Children)
         {
-            <li class="list-group-item">
-                <a asp-page="/PlacementTest" asp-route-studentId="@c.StudentId">@c.FullName</a>
+            <li class="list-group-item list-group-item-action p-0">
+                <a asp-page="/PlacementTest" asp-route-studentId="@c.StudentId" class="app-choice-link">
+                    <span>@c.FullName</span>
+                    <span class="app-choice-arrow" aria-hidden="true">&#8250;</span>
+                </a>
             </li>
         }
     </ul>
