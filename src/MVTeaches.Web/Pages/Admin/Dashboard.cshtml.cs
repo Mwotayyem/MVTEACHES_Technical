@@ -9,6 +9,8 @@ using MVTeaches.Domain.Scheduling;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Application.Ledger;
+using MVTeaches.Web.Display;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -31,11 +33,16 @@ public class DashboardModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly IClock _clock;
+    private readonly IEntitlementBalanceQuery _balances;
+    private readonly SessionRosterReader _rosters;
 
-    public DashboardModel(MvTeachesDbContext db, IClock clock)
+    public DashboardModel(MvTeachesDbContext db, IClock clock, IEntitlementBalanceQuery balances,
+        SessionRosterReader rosters)
     {
         _db = db;
         _clock = clock;
+        _balances = balances;
+        _rosters = rosters;
     }
 
     public int ActiveStudents { get; set; }
@@ -43,6 +50,29 @@ public class DashboardModel : PageModel
     public int SessionsToday { get; set; }
     public int OpenPayrollPeriods { get; set; }
     public int UnresolvedScheduleConflicts { get; set; }
+
+    /// <summary>Packages actually running, and weekly classes actually
+    /// producing sessions - the size of what the centre is delivering right
+    /// now, which a head-count of students does not answer.</summary>
+    public int RunningPackages { get; set; }
+    public int RunningWeeklyClasses { get; set; }
+
+    /// <summary>Money for ONE currency. Never summed across currencies: D-53
+    /// forbids converting between them automatically, so two currencies show
+    /// as two lines rather than one invented total.</summary>
+    public record MoneyLine(string Currency, decimal PaidThisMonth, decimal Outstanding);
+
+    public IReadOnlyList<MoneyLine> Money { get; set; } = Array.Empty<MoneyLine>();
+
+    /// <summary>How many students sit in each state, using exactly the same
+    /// classification the register shows on each row (StudentLifecycle), so a
+    /// number here can never disagree with the badges over there.</summary>
+    public IReadOnlyDictionary<StudentLifecycleState, int> StudentStates { get; set; } =
+        new Dictionary<StudentLifecycleState, int>();
+
+    public int StudentsNeedingAttention => StudentStates
+        .Where(pair => StudentLifecycle.NeedsAttention(pair.Key))
+        .Sum(pair => pair.Value);
 
     // "Waiting for an admin" — each one is a queue with a screen that clears it.
     public int PaymentsAwaitingConfirmation { get; set; }
@@ -55,10 +85,14 @@ public class DashboardModel : PageModel
     /// <summary>The next lessons the centre will actually run — the thing an
     /// admin looks for first in the morning, and something a page of counts
     /// alone could never answer.</summary>
-    public record UpcomingSessionRow(NodaTime.Instant StartsAtUtc, string? TimeZoneId, string TeacherName,
+    public record UpcomingSessionRow(long Id, NodaTime.Instant StartsAtUtc, string? TimeZoneId, string TeacherName,
         string LevelCode, int SeatsTaken, int Capacity);
 
     public IReadOnlyList<UpcomingSessionRow> UpcomingSessions { get; set; } = Array.Empty<UpcomingSessionRow>();
+
+    /// <summary>Who is in each of those lessons. Read-only.</summary>
+    public IReadOnlyDictionary<long, SessionRoster> Rosters { get; set; } =
+        new Dictionary<long, SessionRoster>();
 
     /// <summary>One bucket per day for the coming week: how many sessions are
     /// scheduled that day. Drawn as plain CSS bars — no charting library is
@@ -98,6 +132,92 @@ public class DashboardModel : PageModel
                              && !_db.StudentLevels.Any(l => l.StudentId == s.Id && l.IsCurrent));
         PackagesAwaitingPayment = await _db.Subscriptions.CountAsync(s => s.Status == SubscriptionStatus.Draft);
 
+        RunningPackages = await _db.Subscriptions.CountAsync(sub => sub.Status == SubscriptionStatus.Active);
+        RunningWeeklyClasses = await _db.RecurringSchedules
+            .CountAsync(r => r.Status == RecurringScheduleStatus.Active);
+
+        // --- money -------------------------------------------------------
+        // "This month" is the current UTC calendar month, the same
+        // simplification "today" already makes above. Paid means CONFIRMED and
+        // uses the received amount - the money that actually arrived, not the
+        // amount that was asked for.
+        var monthStart = new LocalDate(now.InUtc().Date.Year, now.InUtc().Date.Month, 1)
+            .AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
+        var confirmedPayments = await _db.Payments
+            .Where(pay => pay.Status == PaymentStatus.Confirmed)
+            .ToListAsync();
+        var billableSubscriptions = await _db.Subscriptions
+            .Where(sub => sub.Status == SubscriptionStatus.Draft || sub.Status == SubscriptionStatus.Active)
+            .ToListAsync();
+
+        var paidThisMonth = confirmedPayments
+            .Where(pay => pay.ConfirmedAtUtc is not null && pay.ConfirmedAtUtc >= monthStart)
+            .GroupBy(pay => pay.ReceivedCurrency ?? pay.Amount.Currency)
+            .ToDictionary(g => g.Key, g => g.Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount));
+        var billedAll = billableSubscriptions
+            .GroupBy(sub => sub.Price.Currency)
+            .ToDictionary(g => g.Key, g => g.Sum(sub => sub.Price.Amount));
+        var paidAll = confirmedPayments
+            .GroupBy(pay => pay.ReceivedCurrency ?? pay.Amount.Currency)
+            .ToDictionary(g => g.Key, g => g.Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount));
+
+        Money = paidThisMonth.Keys.Union(billedAll.Keys).Union(paidAll.Keys)
+            .OrderBy(currency => currency)
+            .Select(currency => new MoneyLine(currency,
+                paidThisMonth.GetValueOrDefault(currency),
+                Math.Max(0m, billedAll.GetValueOrDefault(currency) - paidAll.GetValueOrDefault(currency))))
+            .ToList();
+
+        // --- where every student stands ----------------------------------
+        var allStudents = await _db.Students.ToListAsync();
+        var allSubscriptions = await _db.Subscriptions.ToListAsync();
+        var balanceBySubscription = await _balances.GetSubscriptionBalancesAsync(
+            allSubscriptions.Select(sub => sub.Id).ToList(), HttpContext.RequestAborted);
+        var pendingPaymentStudentIds = (await _db.Payments
+                .Where(pay => pay.Status == PaymentStatus.Pending)
+                .Select(pay => pay.StudentId).Distinct().ToListAsync())
+            .ToHashSet();
+        var attendedStudentIds = (await _db.AttendanceRecords
+                .Where(a => a.IsPresent).Select(a => a.StudentId).Distinct().ToListAsync())
+            .ToHashSet();
+        var activeEnrollments = await _db.SessionEnrollments
+            .Where(e => e.State == EnrollmentState.Active).ToListAsync();
+        var futureSessions = await _db.ClassSessions
+            .Where(cs => cs.StartsAtUtc > now && cs.Status != ClassSessionStatus.Cancelled)
+            .ToDictionaryAsync(cs => cs.Id);
+
+        var subscriptionsByStudent = allSubscriptions.GroupBy(sub => sub.StudentId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var upcomingByStudent = activeEnrollments
+            .Where(e => futureSessions.ContainsKey(e.SessionId))
+            .GroupBy(e => e.StudentId)
+            .ToDictionary(g => g.Key, g => g.Select(e => futureSessions[e.SessionId])
+                .OrderBy(cs => cs.StartsAtUtc).ToList());
+
+        StudentStates = allStudents
+            .Select(student =>
+            {
+                var subs = subscriptionsByStudent.GetValueOrDefault(student.Id, new List<Subscription>());
+                var running = subs.FirstOrDefault(sub => sub.Status == SubscriptionStatus.Active);
+                var upcoming = upcomingByStudent.GetValueOrDefault(student.Id, new List<ClassSession>());
+                var nextLesson = upcoming.FirstOrDefault();
+                return StudentLifecycle.Classify(new StudentLifecycleFacts(
+                    student.Status,
+                    pendingPaymentStudentIds.Contains(student.Id),
+                    subs.Any(sub => sub.Status == SubscriptionStatus.Draft),
+                    running is not null,
+                    subs.Count > 0,
+                    subs.Where(sub => sub.Status == SubscriptionStatus.Active)
+                        .Sum(sub => balanceBySubscription.GetValueOrDefault(sub.Id)),
+                    attendedStudentIds.Contains(student.Id),
+                    upcoming.Count,
+                    nextLesson?.DurationMinutes,
+                    running?.ExpiresOn,
+                    nextLesson is null ? null : nextLesson.StartsAtUtc.InUtc().Date));
+            })
+            .GroupBy(state => state)
+            .ToDictionary(g => g.Key, g => g.Count());
+
         // The week ahead, from now: the sessions themselves for the list, and a
         // per-day count for the bars. Same table, same live read as everything
         // else on this page.
@@ -114,10 +234,13 @@ public class DashboardModel : PageModel
         UpcomingSessions = weekSessions
             .Where(s => s.StartsAtUtc >= now)
             .Take(6)
-            .Select(s => new UpcomingSessionRow(s.StartsAtUtc, s.ScheduleTimeZone,
+            .Select(s => new UpcomingSessionRow(s.Id, s.StartsAtUtc, s.ScheduleTimeZone,
                 teacherNames.GetValueOrDefault(s.TeacherId, string.Empty),
                 levelCodes.GetValueOrDefault(s.LevelId, "?"), s.SeatsTaken, s.Capacity))
             .ToList();
+
+        Rosters = await _rosters.ReadAsync(
+            UpcomingSessions.Select(session => session.Id).ToList(), HttpContext.RequestAborted);
 
         var firstDay = todayStartUtc.InUtc().Date;
         var countsByDay = weekSessions

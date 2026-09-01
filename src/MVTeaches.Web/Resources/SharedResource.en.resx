@@ -1701,4 +1701,154 @@
   <data name="Enrol them into a weekly class, with this student already chosen." xml:space="preserve">
     <value>Enrol them into a weekly class, with this student already chosen.</value>
   </data>
+  <data name="StudentLifecycleState.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="StudentLifecycleState.StartingSoon" xml:space="preserve">
+    <value>Starting soon</value>
+  </data>
+  <data name="StudentLifecycleState.PaymentDue" xml:space="preserve">
+    <value>Payment due</value>
+  </data>
+  <data name="StudentLifecycleState.EndingSoon" xml:space="preserve">
+    <value>Ending soon</value>
+  </data>
+  <data name="StudentLifecycleState.Completed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="StudentLifecycleState.Inactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Filter by where the student stands" xml:space="preserve">
+    <value>Filter by where the student stands</value>
+  </data>
+  <data name="Everyone" xml:space="preserve">
+    <value>Everyone</value>
+  </data>
+  <data name="No package" xml:space="preserve">
+    <value>No package</value>
+  </data>
+  <data name="Runs" xml:space="preserve">
+    <value>Runs</value>
+  </data>
+  <data name="No student is in that state right now." xml:space="preserve">
+    <value>No student is in that state right now.</value>
+  </data>
+  <data name="Paid this month" xml:space="preserve">
+    <value>Paid this month</value>
+  </data>
+  <data name="Confirmed as received since the first of this month." xml:space="preserve">
+    <value>Confirmed as received since the first of this month.</value>
+  </data>
+  <data name="Outstanding" xml:space="preserve">
+    <value>Outstanding</value>
+  </data>
+  <data name="Billed on running and unpaid packages, minus everything confirmed." xml:space="preserve">
+    <value>Billed on running and unpaid packages, minus everything confirmed.</value>
+  </data>
+  <data name="Running packages" xml:space="preserve">
+    <value>Running packages</value>
+  </data>
+  <data name="{0} weekly class(es) are producing sessions." xml:space="preserve">
+    <value>{0} weekly class(es) are producing sessions.</value>
+  </data>
+  <data name="Where the students stand" xml:space="preserve">
+    <value>Where the students stand</value>
+  </data>
+  <data name="The same states shown on each row of the register — click one to see exactly those students." xml:space="preserve">
+    <value>The same states shown on each row of the register — click one to see exactly those students.</value>
+  </data>
+  <data name="{0} student(s) need attention." xml:space="preserve">
+    <value>{0} student(s) need attention.</value>
+  </data>
+  <data name="Either their money is not settled, or what is left will not cover the lesson they are already booked into." xml:space="preserve">
+    <value>Either their money is not settled, or what is left will not cover the lesson they are already booked into.</value>
+  </data>
+  <data name="Open the register" xml:space="preserve">
+    <value>Open the register</value>
+  </data>
+  <data name="How an online lesson actually runs" xml:space="preserve">
+    <value>How an online lesson actually runs</value>
+  </data>
+  <data name="Is there a meeting link?" xml:space="preserve">
+    <value>Is there a meeting link?</value>
+  </data>
+  <data name="The teacher does not paste one in. The meeting is created inside the teacher's own connected Zoom or Google account when they press Start session, and the link is handed out from there. A teacher with no connected account cannot be assigned an online lesson at all." xml:space="preserve">
+    <value>The teacher does not paste one in. The meeting is created inside the teacher's own connected Zoom or Google account when they press Start session, and the link is handed out from there. A teacher with no connected account cannot be assigned an online lesson at all.</value>
+  </data>
+  <data name="Did the lesson happen?" xml:space="preserve">
+    <value>Did the lesson happen?</value>
+  </data>
+  <data name="The session's own status answers this — scheduled, completed, or cancelled by the centre." xml:space="preserve">
+    <value>The session's own status answers this — scheduled, completed, or cancelled by the centre.</value>
+  </data>
+  <data name="Was attendance recorded?" xml:space="preserve">
+    <value>Was attendance recorded?</value>
+  </data>
+  <data name="Automatically, and never by hand: a student counts as present the moment they press Join, and that press is what consumes their balance. If the lesson ends and they never joined, the system records the absence itself shortly afterwards. Neither Zoom nor Google Meet reports attendance back here, so nothing is read from the meeting." xml:space="preserve">
+    <value>Automatically, and never by hand: a student counts as present the moment they press Join, and that press is what consumes their balance. If the lesson ends and they never joined, the system records the absence itself shortly afterwards. Neither Zoom nor Google Meet reports attendance back here, so nothing is read from the meeting.</value>
+  </data>
+  <data name="Does it count towards pay?" xml:space="preserve">
+    <value>Does it count towards pay?</value>
+  </data>
+  <data name="Only after two separate steps: the teacher declares the minutes they delivered once the lesson has ended, and an admin then verifies that declaration. Verified deliveries are what a payroll period picks up." xml:space="preserve">
+    <value>Only after two separate steps: the teacher declares the minutes they delivered once the lesson has ended, and an admin then verifies that declaration. Verified deliveries are what a payroll period picks up.</value>
+  </data>
+  <data name="Attendance and pay are deliberately two separate records. A student being absent does not reduce what the teacher declared, and verifying a delivery does not touch anybody's balance." xml:space="preserve">
+    <value>Attendance and pay are deliberately two separate records. A student being absent does not reduce what the teacher declared, and verifying a delivery does not touch anybody's balance.</value>
+  </data>
+  <data name="Students in this lesson" xml:space="preserve">
+    <value>Students in this lesson</value>
+  </data>
+  <data name="Nobody is enrolled in this lesson yet." xml:space="preserve">
+    <value>Nobody is enrolled in this lesson yet.</value>
+  </data>
+  <data name="Enrol students into it from the schedule screen." xml:space="preserve">
+    <value>Enrol students into it from the schedule screen.</value>
+  </data>
+  <data name="See the students" xml:space="preserve">
+    <value>See the students</value>
+  </data>
+  <data name="A student counts as present the moment they press Join, and that press is what consumes their balance. If the lesson ends and they never joined, the system records the absence itself shortly afterwards." xml:space="preserve">
+    <value>A student counts as present the moment they press Join, and that press is what consumes their balance. If the lesson ends and they never joined, the system records the absence itself shortly afterwards.</value>
+  </data>
+  <data name="A lesson still showing as not recorded is one that has not ended yet, or one the system has not finished closing — it is not an absence." xml:space="preserve">
+    <value>A lesson still showing as not recorded is one that has not ended yet, or one the system has not finished closing — it is not an absence.</value>
+  </data>
+  <data name="Both forms below are already set to this student. Pick the one that matches what happened." xml:space="preserve">
+    <value>Both forms below are already set to this student. Pick the one that matches what happened.</value>
+  </data>
+  <data name="Hello {guardian}, this is MVTEACHES. {student}'s lesson has been moved from {from} to {to}. Nothing is deducted from the package because of this change. See you then." xml:space="preserve">
+    <value>Hello {guardian}, this is MVTEACHES. {student}'s lesson has been moved from {from} to {to}. Nothing is deducted from the package because of this change. See you then.</value>
+  </data>
+  <data name="Message to send" xml:space="preserve">
+    <value>Message to send</value>
+  </data>
+  <data name="Who will be told:" xml:space="preserve">
+    <value>Who will be told:</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically." xml:space="preserve">
+    <value>Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically.</value>
+  </data>
+  <data name="Each lesson" xml:space="preserve">
+    <value>Each lesson</value>
+  </data>
+  <data name="Valid for" xml:space="preserve">
+    <value>Valid for</value>
+  </data>
+  <data name="{0} day(s)" xml:space="preserve">
+    <value>{0} day(s)</value>
+  </data>
+  <data name="Requesting it does not charge you. The centre confirms your payment first, and only then does the package activate." xml:space="preserve">
+    <value>Requesting it does not charge you. The centre confirms your payment first, and only then does the package activate.</value>
+  </data>
+  <data name="Which one should I connect?" xml:space="preserve">
+    <value>Which one should I connect?</value>
+  </data>
+  <data name="Either one works today, and you can connect both and choose which is used for new lessons. Where the centre is heading: Zoom will be the default for teachers who already pay for a Zoom subscription, and Google Meet stays the alternative — for shorter lessons, and for anyone who does not have Zoom. Nothing changes for you until the centre says so." xml:space="preserve">
+    <value>Either one works today, and you can connect both and choose which is used for new lessons. Where the centre is heading: Zoom will be the default for teachers who already pay for a Zoom subscription, and Google Meet stays the alternative — for shorter lessons, and for anyone who does not have Zoom. Nothing changes for you until the centre says so.</value>
+  </data>
 </root>

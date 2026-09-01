@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.DashboardModel
 @{
     ViewData["Title"] = T["Dashboard"].Value;
@@ -47,6 +47,67 @@ else
                 <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payroll">@T["Check delivered lessons"] (@Model.DeliveriesAwaitingVerification)</a>
             }
         </div>
+    </div>
+}
+
+@* The money and the shape of the student body - the two questions a head
+   count of "active students" never answered. Every figure is counted live
+   from the same tables the screens below it use, per currency, and never
+   summed across currencies (D-53). *@
+<h2 class="h4">@T["Money"]</h2>
+<div class="app-stat-grid">
+    @foreach (var money in Model.Money)
+    {
+        <div class="app-stat">
+            <span class="app-stat-label">@T["Paid this month"] (@money.Currency)</span>
+            <strong class="app-stat-value">@T.Money(money.PaidThisMonth, money.Currency)</strong>
+            <span class="app-stat-note">@T["Confirmed as received since the first of this month."]</span>
+        </div>
+        <div class="app-stat @(money.Outstanding > 0m ? "is-attention" : null)">
+            <span class="app-stat-label">@T["Outstanding"] (@money.Currency)</span>
+            <strong class="app-stat-value @(money.Outstanding > 0m ? "is-bad" : "is-good")">@T.Money(money.Outstanding, money.Currency)</strong>
+            <span class="app-stat-note">@T["Billed on running and unpaid packages, minus everything confirmed."]</span>
+        </div>
+    }
+    @if (Model.Money.Count == 0)
+    {
+        <div class="app-stat">
+            <span class="app-stat-label">@T["Money"]</span>
+            <strong class="app-stat-value is-text is-empty">—</strong>
+            <span class="app-stat-note">@T["Nothing has been billed or paid yet."]</span>
+        </div>
+    }
+    <div class="app-stat">
+        <span class="app-stat-label">@T["Running packages"]</span>
+        <strong class="app-stat-value">@Model.RunningPackages</strong>
+        <span class="app-stat-note">@T["{0} weekly class(es) are producing sessions.", Model.RunningWeeklyClasses]</span>
+    </div>
+</div>
+
+<h2 class="h4">@T["Where the students stand"]</h2>
+<p class="text-muted small">@T["The same states shown on each row of the register — click one to see exactly those students."]</p>
+<div class="app-state-chips mb-4">
+    @foreach (var state in new[]
+    {
+        MVTeaches.Web.Display.StudentLifecycleState.Active,
+        MVTeaches.Web.Display.StudentLifecycleState.StartingSoon,
+        MVTeaches.Web.Display.StudentLifecycleState.PaymentDue,
+        MVTeaches.Web.Display.StudentLifecycleState.EndingSoon,
+        MVTeaches.Web.Display.StudentLifecycleState.Completed,
+        MVTeaches.Web.Display.StudentLifecycleState.Inactive,
+    })
+    {
+        <a class="app-state-chip is-@state.ToString().ToLowerInvariant()" asp-page="/Admin/Students" asp-route-state="@state">
+            @T["StudentLifecycleState." + state] <span>@Model.StudentStates.GetValueOrDefault(state)</span>
+        </a>
+    }
+</div>
+@if (Model.StudentsNeedingAttention > 0)
+{
+    <div class="alert alert-warning" role="status">
+        <strong>@T["{0} student(s) need attention.", Model.StudentsNeedingAttention]</strong>
+        @T["Either their money is not settled, or what is left will not cover the lesson they are already booked into."]
+        <a class="btn btn-sm btn-outline-secondary ms-2" asp-page="/Admin/Students" asp-route-state="PaymentDue">@T["Open the register"]</a>
     </div>
 }
 
@@ -149,6 +210,8 @@ else
                         {
                             <span class="app-status is-warning">@T["Full"]</span>
                         }
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" data-bs-target="#roster-@s.Id">@T["See the students"]</button>
                     </span>
                 </div>
             }
@@ -208,3 +271,5 @@ else
         </a>
     </div>
 </div>
+
+<partial name="_SessionRosterModals" model="Model.Rosters" />

@@ -2041,3 +2041,388 @@ a.app-kpi:hover {
   background: var(--mv-primary-soft);
   color: var(--mv-primary-strong);
 }
+
+/* --- Student register: a visual list, not a spreadsheet -----------------
+   Same rows the table had, each carrying the answer to "and how are they
+   doing?" so the admin does not have to open every profile to find out. */
+.app-state-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.app-state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--mv-border);
+  background: var(--mv-surface);
+  color: var(--mv-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.app-state-chip > span {
+  min-width: 1.4rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--mv-surface-muted);
+  color: var(--mv-text);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.app-state-chip:hover,
+.app-state-chip:focus-visible {
+  color: var(--mv-text);
+  border-color: var(--mv-muted);
+}
+
+/* The chip carries its state's own colour on the left edge only - six fully
+   coloured pills would compete with the badges on the cards below. */
+.app-state-chip.is-active { border-inline-start: 3px solid var(--mv-success); }
+.app-state-chip.is-startingsoon { border-inline-start: 3px solid var(--mv-primary); }
+.app-state-chip.is-paymentdue { border-inline-start: 3px solid var(--mv-danger); }
+.app-state-chip.is-endingsoon { border-inline-start: 3px solid var(--mv-warning); }
+.app-state-chip.is-completed { border-inline-start: 3px solid var(--mv-accent); }
+.app-state-chip.is-inactive { border-inline-start: 3px solid var(--mv-muted); }
+
+.app-state-chip.is-on {
+  background: var(--mv-primary-soft);
+  border-color: var(--mv-primary);
+  color: var(--mv-primary-strong);
+}
+
+.app-student-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: 0.85rem;
+}
+
+.app-student-card {
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius);
+  box-shadow: var(--mv-shadow-xs);
+  padding: 0.95rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.app-student-card.needs-attention {
+  border-inline-start: 3px solid var(--mv-warning);
+}
+
+.app-student-card > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.app-student-name {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--mv-text);
+  text-decoration: none;
+}
+
+.app-student-name:hover,
+.app-student-name:focus-visible {
+  color: var(--mv-primary-strong);
+  text-decoration: underline;
+}
+
+.app-student-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.app-student-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.app-student-metric-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--mv-muted);
+}
+
+.app-student-metric-head > strong {
+  color: var(--mv-text);
+  font-weight: 700;
+}
+
+.app-student-metric-note {
+  font-size: 0.8rem;
+}
+
+.app-student-metric-note.is-bad {
+  color: var(--mv-danger);
+  font-weight: 700;
+}
+
+.app-student-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.3rem 0.75rem;
+  margin: 0;
+}
+
+.app-student-facts dt {
+  font-size: 0.72rem;
+  color: var(--mv-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.app-student-facts dd {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.app-student-card > footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 0.35rem;
+}
+
+/* The search box's empty state and the "no students at all" state both live
+   inside the grid, so they must span it rather than sit in one column. */
+.app-student-grid > .app-empty {
+  grid-column: 1 / -1;
+}
+
+/* --- Numbered flow inside a guide box ----------------------------------- */
+.app-flow {
+  list-style: none;
+  counter-reset: mv-flow;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.app-flow > li {
+  counter-increment: mv-flow;
+  display: grid;
+  gap: 0.15rem;
+  padding-inline-start: 2.1rem;
+  position: relative;
+}
+
+.app-flow > li::before {
+  content: counter(mv-flow);
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.05rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--mv-primary-soft);
+  color: var(--mv-primary-strong);
+  font-size: 0.8rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+.app-flow > li > span {
+  color: var(--mv-muted);
+  font-size: 0.9rem;
+}
+
+/* --- Package posters ----------------------------------------------------
+   A tall card per package rather than a row in a price list. The "face" is
+   a CSS gradient carrying the level code - deliberately not an uploaded
+   image: adding a real picture per package needs a new column and a file
+   store, which is a decision for the owner, not something to slip in here.
+
+   The rail scrolls sideways on narrow screens with the cards snapping into
+   place, so the coverflow feel costs no library and no JavaScript. */
+.app-poster-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(16rem, 20rem);
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+  /* The rail is the only thing that scrolls sideways; the page never does. */
+  overscroll-behavior-x: contain;
+}
+
+@media (min-width: 62rem) {
+  /* With room, stop being a rail and just be a grid - nobody should have to
+     scroll to discover a package that would have fit on screen. */
+  .app-poster-rail {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    grid-auto-columns: auto;
+    overflow-x: visible;
+  }
+}
+
+.app-poster {
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-lg);
+  box-shadow: var(--mv-shadow-sm);
+  overflow: hidden;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.app-poster:hover,
+.app-poster:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--mv-shadow);
+}
+
+.app-poster-face {
+  position: relative;
+  min-height: 8.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  padding: 1rem 1.15rem;
+  color: #fff;
+  background:
+    radial-gradient(14rem 9rem at 85% 10%, rgba(255, 255, 255, 0.22), transparent 65%),
+    linear-gradient(135deg, var(--mv-primary-strong), var(--mv-accent));
+}
+
+.app-poster-level {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.app-poster-kind {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+}
+
+.app-poster-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.15rem 1.15rem;
+  flex: 1 1 auto;
+}
+
+.app-poster-body h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.app-poster-price {
+  margin: 0;
+}
+
+.app-poster-price > strong {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--mv-primary-strong);
+}
+
+.app-poster-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem 0.75rem;
+  margin: 0;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--mv-border);
+  border-bottom: 1px solid var(--mv-border);
+}
+
+.app-poster-facts dt {
+  font-size: 0.72rem;
+  color: var(--mv-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.app-poster-facts dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.app-poster-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--mv-muted);
+}
+
+/* The lift is decoration; anyone who asked for less motion keeps the card
+   still. (The global reduced-motion block already zeroes the duration; this
+   removes the displacement itself.) */
+@media (prefers-reduced-motion: reduce) {
+  .app-poster:hover,
+  .app-poster:focus-within {
+    transform: none;
+  }
+}
+
+/* --- A message the admin sends by hand ----------------------------------
+   Styled as a draft, not as a send button, so nobody reads it as "the
+   system will notify them". Nothing here sends anything. */
+.app-draft {
+  background: var(--mv-surface-muted);
+  border: 1px dashed var(--mv-border);
+  border-radius: var(--mv-radius-sm);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.app-draft-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.app-draft textarea {
+  background: var(--mv-surface);
+  font-size: 0.92rem;
+  resize: vertical;
+}
+
+.app-draft-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--mv-muted);
+}

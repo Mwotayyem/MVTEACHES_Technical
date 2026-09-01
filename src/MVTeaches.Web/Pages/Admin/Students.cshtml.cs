@@ -10,7 +10,12 @@ using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Resources;
+using MVTeaches.Application.Ledger;
+using MVTeaches.Domain.Payments;
+using MVTeaches.Domain.Subscriptions;
+using MVTeaches.Domain.Scheduling;
 using NodaTime;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -38,20 +43,57 @@ public class StudentsModel : PageModel
     private readonly IStudentAdmissionService _admissions;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly IEntitlementBalanceQuery _balances;
+    private readonly IClock _clock;
 
     public StudentsModel(MvTeachesDbContext db, IStudentAdmissionService admissions, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer)
+        IStringLocalizer<SharedResource> localizer, IEntitlementBalanceQuery balances, IClock clock)
     {
         _db = db;
         _admissions = admissions;
         _userManager = userManager;
         _localizer = localizer;
+        _balances = balances;
+        _clock = clock;
     }
 
+    /// <summary>One line of the register. Everything after GuardianNames is
+    /// there so the list can be READ instead of opened: what they are on, how
+    /// far through it they are, what is still owed, and when it ends. All of
+    /// it is derived from rows already loaded below - no stored summary.</summary>
     public record StudentRow(long Id, string FullName, string CountryName, StudentStatus Status,
-        string? CurrentLevelCode, IReadOnlyList<string> GuardianNames);
+        string? CurrentLevelCode, IReadOnlyList<string> GuardianNames,
+        StudentLifecycleState State, string? PackageName, string? Currency,
+        decimal Billed, decimal Paid, int RemainingMinutes, int PurchasedMinutes,
+        LocalDate? StartsOn, LocalDate? ExpiresOn, int UpcomingLessonCount)
+    {
+        public decimal Outstanding => Math.Max(0m, Billed - Paid);
+
+        public int PaidPercent => Billed <= 0m ? 100
+            : (int)Math.Round(Math.Clamp((double)(Paid / Billed) * 100d, 0d, 100d));
+
+        public int UsedPercent => PurchasedMinutes <= 0 ? 0
+            : (int)Math.Round(Math.Clamp((PurchasedMinutes - RemainingMinutes) * 100d / PurchasedMinutes, 0d, 100d));
+
+        public bool NeedsAttention => StudentLifecycle.NeedsAttention(State);
+    }
 
     public IReadOnlyList<StudentRow> Students { get; set; } = Array.Empty<StudentRow>();
+
+    /// <summary>How many students sit in each state, for the filter chips.
+    /// Counted from <see cref="Students"/> itself so a chip can never claim a
+    /// number the list below does not show.</summary>
+    public IReadOnlyDictionary<StudentLifecycleState, int> StateCounts { get; set; } =
+        new Dictionary<StudentLifecycleState, int>();
+
+    /// <summary>Display filter only - it hides rows, it changes nothing.</summary>
+    [BindProperty(SupportsGet = true, Name = "state")]
+    public string? StateFilter { get; set; }
+
+    public IReadOnlyList<StudentRow> VisibleStudents =>
+        Enum.TryParse<StudentLifecycleState>(StateFilter, ignoreCase: true, out var wanted)
+            ? Students.Where(s => s.State == wanted).ToList()
+            : Students;
     // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Guardian namespace.
     public IReadOnlyList<MVTeaches.Domain.People.Guardian> Guardians { get; set; } = Array.Empty<MVTeaches.Domain.People.Guardian>();
     public IReadOnlyList<Country> Countries { get; set; } = Array.Empty<Country>();
@@ -296,13 +338,110 @@ public class StudentsModel : PageModel
             .GroupBy(g => g.StudentId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(x => guardianNamesByGuardianId.GetValueOrDefault(x.GuardianId, "?")).ToList());
 
-        Students = students.Select(s => new StudentRow(
-            s.Id,
-            s.FullName,
-            countryByI.GetValueOrDefault(s.CountryId, _localizer["Not specified"].Value),
-            s.Status,
-            currentLevelByStudent.TryGetValue(s.Id, out var levelId) ? levelByI.GetValueOrDefault(levelId) : null,
-            guardianNamesByStudent.GetValueOrDefault(s.Id, Array.Empty<string>()))).ToList();
+        // --- everything the register needs to be readable, in bulk reads ----
+        var studentIds = students.Select(s => s.Id).ToList();
+        var courseNames = await _db.Courses.ToDictionaryAsync(c => c.Id, c => c.NameEn);
+
+        var subscriptions = await _db.Subscriptions
+            .Where(sub => studentIds.Contains(sub.StudentId))
+            .ToListAsync();
+        // One read for every balance, using the same SUM(delta_minutes) the
+        // single-subscription path uses (D-36) - never a stored counter.
+        var balanceBySubscription = await _balances.GetSubscriptionBalancesAsync(
+            subscriptions.Select(sub => sub.Id).ToList(), HttpContext.RequestAborted);
+
+        var payments = await _db.Payments
+            .Where(pay => studentIds.Contains(pay.StudentId))
+            .ToListAsync();
+
+        var now = _clock.GetCurrentInstant();
+        var enrollments = await _db.SessionEnrollments
+            .Where(e => studentIds.Contains(e.StudentId) && e.State == EnrollmentState.Active)
+            .ToListAsync();
+        var enrolledSessionIds = enrollments.Select(e => e.SessionId).Distinct().ToList();
+        var sessionsById = await _db.ClassSessions
+            .Where(cs => enrolledSessionIds.Contains(cs.Id))
+            .ToDictionaryAsync(cs => cs.Id);
+        var attendedStudentIds = (await _db.AttendanceRecords
+                .Where(a => studentIds.Contains(a.StudentId) && a.IsPresent)
+                .Select(a => a.StudentId)
+                .Distinct()
+                .ToListAsync())
+            .ToHashSet();
+
+        var subscriptionsByStudent = subscriptions.GroupBy(sub => sub.StudentId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var paymentsByStudent = payments.GroupBy(pay => pay.StudentId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var enrollmentsByStudent = enrollments.GroupBy(e => e.StudentId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        Students = students.Select(s =>
+        {
+            var subs = subscriptionsByStudent.GetValueOrDefault(s.Id, new List<Subscription>());
+            var pays = paymentsByStudent.GetValueOrDefault(s.Id, new List<Payment>());
+            var running = subs.FirstOrDefault(sub => sub.Status == SubscriptionStatus.Active);
+
+            // The lessons still ahead of this student, soonest first.
+            var upcoming = enrollmentsByStudent.GetValueOrDefault(s.Id, new List<SessionEnrollment>())
+                .Select(e => sessionsById.GetValueOrDefault(e.SessionId))
+                .Where(cs => cs is not null && cs.StartsAtUtc > now && cs.Status != ClassSessionStatus.Cancelled)
+                .Select(cs => cs!)
+                .OrderBy(cs => cs.StartsAtUtc)
+                .ToList();
+            var nextLesson = upcoming.FirstOrDefault();
+
+            // Money is reported in ONE currency - the running package's, or the
+            // newest package's. D-53 forbids adding two currencies together, so a
+            // second currency is shown on the profile, never folded in here.
+            var currency = (running ?? subs.FirstOrDefault())?.Price.Currency;
+            var billed = currency is null ? 0m : subs
+                .Where(sub => sub.Price.Currency == currency
+                              && sub.Status is SubscriptionStatus.Draft or SubscriptionStatus.Active)
+                .Sum(sub => sub.Price.Amount);
+            var paid = currency is null ? 0m : pays
+                .Where(pay => pay.Status == PaymentStatus.Confirmed
+                              && (pay.ReceivedCurrency ?? pay.Amount.Currency) == currency)
+                .Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount);
+
+            var remainingMinutes = subs.Where(sub => sub.Status == SubscriptionStatus.Active)
+                .Sum(sub => balanceBySubscription.GetValueOrDefault(sub.Id));
+            var purchasedMinutes = subs.Where(sub => sub.Status == SubscriptionStatus.Active)
+                .Sum(sub => sub.MinutesTotal);
+
+            var state = StudentLifecycle.Classify(new StudentLifecycleFacts(
+                s.Status,
+                pays.Any(pay => pay.Status == PaymentStatus.Pending),
+                subs.Any(sub => sub.Status == SubscriptionStatus.Draft),
+                running is not null,
+                subs.Count > 0,
+                remainingMinutes,
+                attendedStudentIds.Contains(s.Id),
+                upcoming.Count,
+                nextLesson?.DurationMinutes,
+                running?.ExpiresOn,
+                nextLesson is null ? null : nextLesson.StartsAtUtc.InUtc().Date));
+
+            return new StudentRow(
+                s.Id,
+                s.FullName,
+                countryByI.GetValueOrDefault(s.CountryId, _localizer["Not specified"].Value),
+                s.Status,
+                currentLevelByStudent.TryGetValue(s.Id, out var levelId) ? levelByI.GetValueOrDefault(levelId) : null,
+                guardianNamesByStudent.GetValueOrDefault(s.Id, Array.Empty<string>()),
+                state,
+                running is null ? null : $"{courseNames.GetValueOrDefault(running.CourseId, "?")} / {levelByI.GetValueOrDefault(running.LevelId, "?")}",
+                currency,
+                billed,
+                paid,
+                remainingMinutes,
+                purchasedMinutes,
+                running?.StartsOn,
+                running?.ExpiresOn,
+                upcoming.Count);
+        }).ToList();
+
+        StateCounts = Students.GroupBy(row => row.State).ToDictionary(g => g.Key, g => g.Count());
 
         FocusStudentName = FocusStudentId is null
             ? null

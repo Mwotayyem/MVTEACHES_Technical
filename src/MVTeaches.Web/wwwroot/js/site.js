@@ -11,11 +11,18 @@
     // of leaving a silently empty table.
     function wireTableFilters() {
         document.querySelectorAll("[data-mv-filter]").forEach(function (input) {
-            var table = document.querySelector(input.getAttribute("data-mv-filter"));
-            if (!table) { return; }
+            var target = document.querySelector(input.getAttribute("data-mv-filter"));
+            if (!target) { return; }
 
-            var body = table.tBodies[0];
-            if (!body) { return; }
+            // The same search box now also serves lists that are NOT tables -
+            // the student register is a grid of cards, and re-implementing this
+            // for it would have meant two search behaviours to keep in step. A
+            // table filters its first tbody's rows; anything else filters the
+            // elements inside it marked data-mv-filter-item.
+            var container = target.tBodies && target.tBodies[0] ? target.tBodies[0] : target;
+            function items() {
+                return container.rows || container.querySelectorAll("[data-mv-filter-item]");
+            }
 
             var counter = input.getAttribute("data-mv-filter-count")
                 ? document.querySelector(input.getAttribute("data-mv-filter-count"))
@@ -25,14 +32,14 @@
                 var term = input.value.trim().toLowerCase();
                 var shown = 0;
 
-                Array.prototype.forEach.call(body.rows, function (row) {
+                Array.prototype.forEach.call(items(), function (row) {
                     if (row.dataset.mvFilterEmpty === "true") { return; }
                     var match = term === "" || row.textContent.toLowerCase().indexOf(term) !== -1;
                     row.hidden = !match;
                     if (match) { shown++; }
                 });
 
-                var emptyRow = body.querySelector('[data-mv-filter-empty="true"]');
+                var emptyRow = container.querySelector('[data-mv-filter-empty="true"]');
                 if (emptyRow) {
                     emptyRow.hidden = !(shown === 0 && term !== "");
                 }
@@ -221,6 +228,32 @@
         });
     }
 
+    // Rebuild an <option> from a snapshot WITHOUT losing any of its data-*
+    // attributes. Callers below re-create options in order to filter a list;
+    // anything chained off those options (a level match, a message draft) reads
+    // them by attribute, so dropping one silently changes what the page says.
+    // Copying a hand-picked list of attributes across meant each new attribute
+    // had to remember to be added here - data-level-name was lost that way once,
+    // and data-when a second time, which put a teacher's name and a session
+    // status into a message meant for a parent. Snapshot them all instead.
+    function snapshotOption(option) {
+        var data = {};
+        Array.prototype.forEach.call(option.attributes, function (attribute) {
+            if (attribute.name.indexOf("data-") === 0) { data[attribute.name] = attribute.value; }
+        });
+        return { value: option.value, text: option.text, data: data };
+    }
+
+    function restoreOption(item) {
+        var option = document.createElement("option");
+        option.value = item.value;
+        option.text = item.text;
+        Object.keys(item.data).forEach(function (name) {
+            option.setAttribute(name, item.data[name]);
+        });
+        return option;
+    }
+
     // An optional data-* selector: absent, empty, or simply not on the page
     // must all mean "no such note", never a thrown selector error.
     function optionalTarget(selector) {
@@ -254,13 +287,9 @@
             var noteEmpty = optionalTarget(select.getAttribute("data-mv-note-empty"));
 
             var original = Array.prototype.map.call(select.options, function (option) {
-                return {
-                    value: option.value,
-                    text: option.text,
-                    level: option.getAttribute("data-level") || "",
-                    levelName: option.getAttribute("data-level-name") || "",
-                    students: (option.getAttribute("data-students") || "").split(",").filter(Boolean)
-                };
+                var item = snapshotOption(option);
+                item.students = (option.getAttribute("data-students") || "").split(",").filter(Boolean);
+                return item;
             });
 
             function apply() {
@@ -276,13 +305,7 @@
                     var keep = isPlaceholder || (studentId !== "" && item.students.indexOf(studentId) !== -1);
                     if (!keep) { return; }
                     if (!isPlaceholder) { kept++; }
-                    var option = document.createElement("option");
-                    option.value = item.value;
-                    option.text = item.text;
-                    option.setAttribute("data-students", item.students.join(","));
-                    if (item.level) { option.setAttribute("data-level", item.level); }
-                    if (item.levelName) { option.setAttribute("data-level-name", item.levelName); }
-                    select.add(option);
+                    select.add(restoreOption(item));
                 });
 
                 select.value = previous;
@@ -319,11 +342,9 @@
             var noteLabel = note ? note.querySelector("[data-mv-level-name]") : null;
 
             var original = Array.prototype.map.call(select.options, function (option) {
-                return {
-                    value: option.value,
-                    text: option.text,
-                    level: option.getAttribute("data-level") || ""
-                };
+                var item = snapshotOption(option);
+                item.level = option.getAttribute("data-level") || "";
+                return item;
             });
 
             function apply() {
@@ -336,11 +357,7 @@
                 original.forEach(function (item) {
                     var keep = item.value === "" || level === "" || item.level === level;
                     if (!keep) { return; }
-                    var option = document.createElement("option");
-                    option.value = item.value;
-                    option.text = item.text;
-                    if (item.level) { option.setAttribute("data-level", item.level); }
-                    select.add(option);
+                    select.add(restoreOption(item));
                 });
 
                 select.value = previous;
@@ -569,6 +586,108 @@
         });
     }
 
+    // --- Draft the message a human will send by hand ------------------------
+    // <div data-mv-message data-mv-message-student="#sel" data-mv-message-from="#sel"
+    //      data-mv-message-to="#sel" data-mv-message-template="... {guardian} {student} {from} {to} ...">
+    //
+    // Deliberately NOT an integration. Nothing is sent, nothing is stored, and
+    // no number or address is read: this fills a textarea from three <select>
+    // values already on the page so the admin can copy it into whatever they
+    // actually use. WhatsApp is not connected and no credential exists.
+    function wireMessageDrafts() {
+        document.querySelectorAll("[data-mv-message]").forEach(function (box) {
+            var studentSelect = optionalTarget(box.getAttribute("data-mv-message-student"));
+            var fromSelect = optionalTarget(box.getAttribute("data-mv-message-from"));
+            var toSelect = optionalTarget(box.getAttribute("data-mv-message-to"));
+            var output = box.querySelector("[data-mv-message-text]");
+            var who = box.querySelector("[data-mv-message-who]");
+            var copyButton = box.querySelector("[data-mv-message-copy]");
+            var template = box.getAttribute("data-mv-message-template") || "";
+            var fallback = box.getAttribute("data-mv-message-fallback") || "";
+            if (!output) { return; }
+
+            function chosen(select) {
+                if (!select || select.selectedIndex < 0) { return null; }
+                var option = select.options[select.selectedIndex];
+                return option && option.value ? option : null;
+            }
+
+            function render() {
+                var student = chosen(studentSelect);
+                var from = chosen(fromSelect);
+                var to = chosen(toSelect);
+
+                var studentName = student ? student.text.trim() : "";
+                var guardian = (student && student.getAttribute("data-guardian")) || "";
+                // The moment alone, not the whole option label (which also
+                // carries level, teacher and status - none of it the family's
+                // business in a message about a time change).
+                var fromWhen = from ? (from.getAttribute("data-when") || from.text.trim()) : "";
+                var toWhen = to ? (to.getAttribute("data-when") || to.text.trim()) : "";
+
+                if (who) {
+                    who.textContent = guardian
+                        ? guardian + (studentName ? " (" + studentName + ")" : "")
+                        : (studentName || "—");
+                }
+
+                // Until all three are picked the draft would be a sentence with
+                // holes in it, which is worse than an empty box.
+                if (!student || !from || !to) {
+                    output.value = "";
+                    if (copyButton) { copyButton.disabled = true; }
+                    return;
+                }
+
+                output.value = template
+                    .replace("{guardian}", guardian || fallback)
+                    .replace("{student}", studentName)
+                    .replace("{from}", fromWhen)
+                    .replace("{to}", toWhen);
+                if (copyButton) { copyButton.disabled = false; }
+            }
+
+            [studentSelect, fromSelect, toSelect].forEach(function (select) {
+                if (select) { select.addEventListener("change", render); }
+            });
+
+            if (copyButton) {
+                copyButton.addEventListener("click", function () {
+                    if (!output.value) { return; }
+                    var done = function () {
+                        var was = copyButton.textContent;
+                        copyButton.textContent = T_copied();
+                        window.setTimeout(function () { copyButton.textContent = was; }, 1600);
+                    };
+                    // navigator.clipboard needs a secure context and can be
+                    // refused; the old selection path is the fallback, never a
+                    // silent failure.
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(output.value).then(done, function () {
+                            output.removeAttribute("readonly");
+                            output.select();
+                            try { document.execCommand("copy"); done(); } catch (e) { /* leave it selected */ }
+                            output.setAttribute("readonly", "readonly");
+                        });
+                    } else {
+                        output.removeAttribute("readonly");
+                        output.select();
+                        try { document.execCommand("copy"); done(); } catch (e) { /* leave it selected */ }
+                        output.setAttribute("readonly", "readonly");
+                    }
+                });
+            }
+
+            render();
+        });
+    }
+
+    function T_copied() {
+        return (document.documentElement.getAttribute("lang") || "").indexOf("ar") === 0
+            ? "تم النسخ"
+            : "Copied";
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         wireTableFilters();
         wireSelectFilters();
@@ -580,6 +699,7 @@
         wireStepProgress();
         wireConfirmations();
         wireFileModals();
+        wireMessageDrafts();
         focusFirstInvalidField();
     });
 })();
