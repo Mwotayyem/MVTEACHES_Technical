@@ -1,17 +1,78 @@
 @page "{id:long}"
 @model MVTeaches.Web.Pages.Admin.StudentDetailsModel
+@using MVTeaches.Domain.People
+@using MVTeaches.Domain.Payments
+@using MVTeaches.Domain.Subscriptions
 @{
-    ViewData["Title"] = T["Student"].Value;
+    ViewData["Title"] = Model.Student?.FullName ?? T["Student"].Value;
+}
+
+@functions {
+    string StudentStatusClass(StudentStatus status) => status switch
+    {
+        StudentStatus.Active => "app-status is-success",
+        StudentStatus.PendingVerification or StudentStatus.PendingLevel => "app-status is-warning",
+        StudentStatus.PaymentBlocked or StudentStatus.Suspended => "app-status is-danger",
+        _ => "app-status is-muted",
+    };
+
+    string SubscriptionStatusClass(SubscriptionStatus status) => status switch
+    {
+        SubscriptionStatus.Active => "app-status is-success",
+        SubscriptionStatus.Draft => "app-status is-warning",
+        SubscriptionStatus.Cancelled or SubscriptionStatus.Expired => "app-status is-danger",
+        _ => "app-status is-muted",
+    };
+
+    string PaymentStatusClass(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Confirmed => "app-status is-success",
+        PaymentStatus.Pending => "app-status is-warning",
+        PaymentStatus.Rejected or PaymentStatus.Failed => "app-status is-danger",
+        _ => "app-status is-muted",
+    };
 }
 
 @if (Model.Student is { } student)
 {
-    <h1>@student.FullName</h1>
-    <p class="text-muted">#@student.Id — @Model.CountryName — @T["StudentStatus." + student.Status] — @T["born"] @student.DateOfBirth.ToString("yyyy-MM-dd", null)</p>
+    <div class="app-page-head">
+        <div>
+            <h1>@student.FullName</h1>
+            <p class="text-muted">@Model.CountryName · @T["born"] @T.Date(student.DateOfBirth)</p>
+        </div>
+        <div class="app-page-actions">
+            <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["Back to students"]</a>
+            <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>
+            <a class="btn btn-primary btn-sm" asp-page="/Admin/Subscriptions" asp-route-studentId="@student.Id">@T["Subscriptions"]</a>
+        </div>
+    </div>
+
+    <dl class="app-summary">
+        <div>
+            <dt>@T["Status"]</dt>
+            <dd><span class="@StudentStatusClass(student.Status)">@T["StudentStatus." + student.Status]</span></dd>
+        </div>
+        <div>
+            <dt>@T["Current level"]</dt>
+            <dd>@(Model.CurrentLevelCode ?? T["Not specified"].Value)</dd>
+        </div>
+        <div>
+            <dt>@T["Remaining on active packages"]</dt>
+            <dd>@T.Minutes(Model.RemainingMinutesOnActivePackages)</dd>
+        </div>
+        <div>
+            <dt>@T["Primary guardian"]</dt>
+            <dd>@(Model.PrimaryGuardianName ?? T["Not specified"].Value)</dd>
+        </div>
+        <div>
+            <dt>@T["Has own login"]</dt>
+            <dd>@(student.UserId is not null ? T["Yes"].Value : T["No"].Value)</dd>
+        </div>
+    </dl>
 
     <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <h2>@T["Guardians"]</h2>
+            <h2 class="h4">@T["Guardians"]</h2>
             <div class="table-responsive">
                 <table class="table table-sm table-striped">
                     <thead><tr><th>@T["Name"]</th><th>@T["Relationship"]</th><th>@T["Primary"]</th><th>@T["Can pay"]</th></tr></thead>
@@ -21,8 +82,8 @@
                             <tr>
                                 <td>@g.FullName</td>
                                 <td>@T["GuardianRelationship." + g.Relationship]</td>
-                                <td>@(g.IsPrimary ? T["Yes"] : "")</td>
-                                <td>@(g.CanPay ? T["Yes"] : T["No"])</td>
+                                <td>@(g.IsPrimary ? T["Yes"].Value : "—")</td>
+                                <td>@(g.CanPay ? T["Yes"].Value : T["No"].Value)</td>
                             </tr>
                         }
                         @if (Model.Guardians.Count == 0)
@@ -35,7 +96,7 @@
         </div>
 
         <div class="col-md-6">
-            <h2>@T["Level history"]</h2>
+            <h2 class="h4">@T["Level history"]</h2>
             <div class="table-responsive">
                 <table class="table table-sm table-striped">
                     <thead><tr><th>@T["Level"]</th><th>@T["Source"]</th><th>@T["Current"]</th><th>@T["Since"]</th></tr></thead>
@@ -45,8 +106,8 @@
                             <tr>
                                 <td>@l.LevelCode</td>
                                 <td>@T["LevelAssignmentSource." + l.Source]@(l.Reason is not null ? $" — {l.Reason}" : "")</td>
-                                <td>@(l.IsCurrent ? "✅" : "")</td>
-                                <td>@l.EffectiveFromUtc.ToString("yyyy-MM-dd", null)</td>
+                                <td>@(l.IsCurrent ? T["Yes"].Value : "—")</td>
+                                <td>@T.DateUtc(l.EffectiveFromUtc)</td>
                             </tr>
                         }
                         @if (Model.LevelHistory.Count == 0)
@@ -59,32 +120,36 @@
         </div>
     </div>
 
-    <h2>@T["Subscriptions"]</h2>
+    <h2 class="h4">@T["Subscriptions"]</h2>
     <div class="table-responsive mb-4">
         <table class="table table-sm table-striped">
-            <thead><tr><th>#</th><th>@T["Course/Level"]</th><th>@T["Price"]</th><th>@T["Status"]</th><th>@T["Origin"]</th><th>@T["Balance (min)"]</th><th>@T["Expires"]</th></tr></thead>
+            <thead><tr><th>@T["Course/Level"]</th><th>@T["Price"]</th><th>@T["Status"]</th><th>@T["Origin"]</th><th>@T["Remaining"]</th><th>@T["Expires"]</th></tr></thead>
             <tbody>
                 @foreach (var s in Model.Subscriptions)
                 {
                     <tr>
-                        <td>@s.Id</td>
                         <td>@s.CourseName / @s.LevelCode</td>
-                        <td>@s.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</td>
-                        <td>@T["SubscriptionStatus." + s.Status]</td>
+                        <td>@T.Money(s.Price, s.Currency)</td>
+                        <td><span class="@SubscriptionStatusClass(s.Status)">@T["SubscriptionStatus." + s.Status]</span></td>
                         <td>@T["SubscriptionOrigin." + s.Origin]</td>
-                        <td>@s.BalanceMinutes</td>
-                        <td>@s.ExpiresOn.ToString("yyyy-MM-dd", null)</td>
+                        <td>@T.Minutes(s.BalanceMinutes)</td>
+                        <td>@T.Date(s.ExpiresOn)</td>
                     </tr>
                 }
                 @if (Model.Subscriptions.Count == 0)
                 {
-                    <tr><td colspan="7" class="text-muted">@T["No subscriptions yet — see"] <a asp-page="/Admin/Subscriptions">/Admin/Subscriptions</a>.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-muted">
+                            @T["No subscriptions yet — see"]
+                            <a asp-page="/Admin/Subscriptions" asp-route-studentId="@student.Id">@T["Subscriptions"]</a>.
+                        </td>
+                    </tr>
                 }
             </tbody>
         </table>
     </div>
 
-    <h2>@T["Payment history"]</h2>
+    <h2 class="h4">@T["Payment history"]</h2>
     <div class="table-responsive mb-4">
         <table class="table table-sm table-striped">
             <thead><tr><th>@T["Ref"]</th><th>@T["Amount"]</th><th>@T["Method"]</th><th>@T["Status"]</th><th>@T["Date"]</th></tr></thead>
@@ -92,22 +157,27 @@
                 @foreach (var p in Model.Payments)
                 {
                     <tr>
-                        <td>@p.ReferenceCode</td>
-                        <td>@p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</td>
+                        <td><span class="app-ref">@p.ReferenceCode</span></td>
+                        <td>@T.Money(p.Amount, p.Currency)</td>
                         <td>@T["PaymentMethod." + p.Method]</td>
-                        <td>@T["PaymentStatus." + p.Status]</td>
-                        <td>@p.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm", null)</td>
+                        <td><span class="@PaymentStatusClass(p.Status)">@T["PaymentStatus." + p.Status]</span></td>
+                        <td>@T.DateTimeUtc(p.CreatedAtUtc)</td>
                     </tr>
                 }
                 @if (Model.Payments.Count == 0)
                 {
-                    <tr><td colspan="5" class="text-muted">@T["No payments recorded — see"] <a asp-page="/Admin/Payments">/Admin/Payments</a>.</td></tr>
+                    <tr>
+                        <td colspan="5" class="text-muted">
+                            @T["No payments recorded — see"]
+                            <a asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>.
+                        </td>
+                    </tr>
                 }
             </tbody>
         </table>
     </div>
 
-    <h2>@T["Certificates"]</h2>
+    <h2 class="h4">@T["Certificates"]</h2>
     <div class="table-responsive">
         <table class="table table-sm table-striped">
             <thead><tr><th>@T["Number"]</th><th>@T["Level"]</th><th>@T["Status"]</th><th>@T["Issued"]</th></tr></thead>
@@ -115,10 +185,10 @@
                 @foreach (var c in Model.Certificates)
                 {
                     <tr>
-                        <td>@c.CertificateNumber</td>
+                        <td><span class="app-ref">@c.CertificateNumber</span></td>
                         <td>@c.LevelCode</td>
                         <td>@T["CertificateStatus." + c.Status]</td>
-                        <td>@c.IssuedAtUtc.ToString("yyyy-MM-dd", null)</td>
+                        <td>@T.DateUtc(c.IssuedAtUtc)</td>
                     </tr>
                 }
                 @if (Model.Certificates.Count == 0)

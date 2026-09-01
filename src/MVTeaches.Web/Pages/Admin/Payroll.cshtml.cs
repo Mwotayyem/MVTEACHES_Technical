@@ -12,6 +12,7 @@ using MVTeaches.Domain.Payroll;
 using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -41,8 +42,9 @@ public class PayrollModel : PageModel
         _localizer = localizer;
     }
 
-    public record DeclaredRow(long SessionId, string TeacherName, int DeclaredMinutes, string? Note);
-    public record PeriodRow(long Id, int CountryId, LocalDate Start, LocalDate End, PayrollPeriodStatus Status, int LineCount, decimal TotalAmount);
+    public record DeclaredRow(long SessionId, string TeacherName, string SessionLabel, int DeclaredMinutes, string? Note);
+    public record PeriodRow(long Id, string CountryName, string CurrencyCode, LocalDate Start, LocalDate End,
+        PayrollPeriodStatus Status, int LineCount, decimal TotalAmount);
 
     public IReadOnlyList<DeclaredRow> DeclaredDeliveries { get; set; } = Array.Empty<DeclaredRow>();
     public IReadOnlyList<PeriodRow> Periods { get; set; } = Array.Empty<PeriodRow>();
@@ -57,16 +59,23 @@ public class PayrollModel : PageModel
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
+    public bool IsArabic => System.Globalization.CultureInfo.CurrentUICulture
+        .TwoLetterISOLanguageName.Equals("ar", StringComparison.OrdinalIgnoreCase);
+
     public class OpenPeriodInput
     {
+        // All three are nullable so [Required] actually fires. Left as
+        // non-nullable value types, an empty form posted CountryId 0 and a
+        // period running 0001-01-01 → 0001-01-01, which is exactly the
+        // "01/01/0001" an admin was seeing in the period list.
         [Required]
-        public int CountryId { get; set; }
+        public int? CountryId { get; set; }
 
         [Required]
-        public DateOnly Start { get; set; }
+        public DateOnly? Start { get; set; }
 
         [Required]
-        public DateOnly End { get; set; }
+        public DateOnly? End { get; set; }
     }
 
     public async Task OnGetAsync() => await LoadAsync();
@@ -129,12 +138,14 @@ public class PayrollModel : PageModel
             return Page();
         }
 
-        var start = new LocalDate(NewPeriod.Start.Year, NewPeriod.Start.Month, NewPeriod.Start.Day);
-        var end = new LocalDate(NewPeriod.End.Year, NewPeriod.End.Month, NewPeriod.End.Day);
+        var startDate = NewPeriod.Start!.Value;
+        var endDate = NewPeriod.End!.Value;
+        var start = new LocalDate(startDate.Year, startDate.Month, startDate.Day);
+        var end = new LocalDate(endDate.Year, endDate.Month, endDate.Day);
 
         try
         {
-            await _payroll.OpenPeriodAsync(NewPeriod.CountryId, start, end, HttpContext.RequestAborted);
+            await _payroll.OpenPeriodAsync(NewPeriod.CountryId!.Value, start, end, HttpContext.RequestAborted);
             StatusMessage = _localizer["Payroll period opened."].Value;
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
@@ -236,18 +247,42 @@ public class PayrollModel : PageModel
             .OrderBy(d => d.DeclaredAtUtc)
             .ToListAsync();
         var teacherNames = await _db.Teachers.ToDictionaryAsync(t => t.Id, t => t.FullName);
-        DeclaredDeliveries = declared.Select(d => new DeclaredRow(
-            d.SessionId, teacherNames.GetValueOrDefault(d.TeacherId, $"#{d.TeacherId}"), d.DeclaredMinutes ?? 0, d.TeacherNote)).ToList();
+
+        // A declared delivery used to be listed as a bare "#57" — the admin
+        // verifying it needs to see which lesson that actually was.
+        var declaredSessionIds = declared.Select(d => d.SessionId).Distinct().ToList();
+        var declaredSessions = await _db.ClassSessions
+            .Where(s => declaredSessionIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => new { s.StartsAtUtc, s.ScheduleTimeZone, s.LevelId });
+        var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
+
+        DeclaredDeliveries = declared.Select(d =>
+        {
+            var session = declaredSessions.GetValueOrDefault(d.SessionId);
+            var label = session is null
+                ? _localizer.NotSpecified()
+                : $"{_localizer.SessionOption(session.StartsAtUtc, session.ScheduleTimeZone)} · {levelCodes.GetValueOrDefault(session.LevelId, "?")}";
+            return new DeclaredRow(d.SessionId, teacherNames.GetValueOrDefault(d.TeacherId, string.Empty), label,
+                d.DeclaredMinutes ?? 0, d.TeacherNote);
+        }).ToList();
 
         var periods = await _db.PayrollPeriods.OrderByDescending(p => p.Id).ToListAsync();
         var linesByPeriod = await _db.PayrollLines
             .GroupBy(l => l.PeriodId)
             .Select(g => new { PeriodId = g.Key, Count = g.Count(), Total = g.Sum(l => l.Amount) })
             .ToDictionaryAsync(g => g.PeriodId, g => (g.Count, g.Total));
+        // The list header says "Country" — so it must show the country, not the
+        // row id that used to sit under it.
+        var countryById = await _db.Countries.ToDictionaryAsync(c => c.Id, c => new { c.NameEn, c.NameAr, c.CurrencyCode });
         Periods = periods.Select(p =>
         {
             var (count, total) = linesByPeriod.GetValueOrDefault(p.Id, (0, 0m));
-            return new PeriodRow(p.Id, p.CountryId, p.PeriodStart, p.PeriodEnd, p.Status, count, total);
+            var country = countryById.GetValueOrDefault(p.CountryId);
+            var countryName = country is null
+                ? _localizer.NotSpecified()
+                : (IsArabic ? country.NameAr : country.NameEn);
+            return new PeriodRow(p.Id, countryName, country?.CurrencyCode ?? string.Empty,
+                p.PeriodStart, p.PeriodEnd, p.Status, count, total);
         }).ToList();
     }
 }

@@ -87,10 +87,17 @@ public class TeachersModel : PageModel
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
+    /// <summary>Currency codes from the configured countries, home market
+    /// first — the pay-rate form picks one instead of typing it.</summary>
+    public IReadOnlyList<string> Currencies { get; set; } = Array.Empty<string>();
+
+    // Ids and dates are nullable so [Required] actually fires on an untouched
+    // picker; on a non-nullable value type the empty post binds to 0 /
+    // 0001-01-01 and passes validation silently.
     public class LevelGrantInput
     {
-        [Required] public long TeacherId { get; set; }
-        [Required] public int LevelId { get; set; }
+        [Required] public long? TeacherId { get; set; }
+        [Required] public int? LevelId { get; set; }
     }
 
     public class RegisterTeacherInput
@@ -110,7 +117,7 @@ public class TeachersModel : PageModel
 
     public class CreateRateInput
     {
-        [Required] public long TeacherId { get; set; }
+        [Required] public long? TeacherId { get; set; }
 
         /// <summary>§9.2's most-specific-wins rule: blank means "applies to
         /// every course/level/age-group" at that dimension.</summary>
@@ -121,7 +128,7 @@ public class TeachersModel : PageModel
         [Required, Range(0, double.MaxValue)] public decimal Amount { get; set; }
         [Required, StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
         [Required] public RateUnit Unit { get; set; }
-        [Required] public DateOnly EffectiveFrom { get; set; }
+        [Required] public DateOnly? EffectiveFrom { get; set; }
     }
 
     public async Task OnGetAsync() => await LoadAsync();
@@ -160,12 +167,13 @@ public class TeachersModel : PageModel
             return Page();
         }
 
-        var effectiveFrom = new LocalDate(NewRate.EffectiveFrom.Year, NewRate.EffectiveFrom.Month, NewRate.EffectiveFrom.Day);
+        var from = NewRate.EffectiveFrom!.Value;
+        var effectiveFrom = new LocalDate(from.Year, from.Month, from.Day);
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
 
         try
         {
-            await _rates.CreateRateAsync(NewRate.TeacherId, NewRate.CourseId, NewRate.LevelId, NewRate.AgeGroupId,
+            await _rates.CreateRateAsync(NewRate.TeacherId!.Value, NewRate.CourseId, NewRate.LevelId, NewRate.AgeGroupId,
                 new Money(NewRate.Amount, NewRate.Currency), NewRate.Unit, effectiveFrom, actingUserId, HttpContext.RequestAborted);
             StatusMessage = _localizer["Rate created."].Value;
         }
@@ -194,7 +202,8 @@ public class TeachersModel : PageModel
         }
 
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
-        var outcome = await _levelAuthorization.GrantAsync(LevelGrant.TeacherId, LevelGrant.LevelId, actingUserId, HttpContext.RequestAborted);
+        var outcome = await _levelAuthorization.GrantAsync(LevelGrant.TeacherId!.Value, LevelGrant.LevelId!.Value,
+            actingUserId, HttpContext.RequestAborted);
         ErrorMessage = outcome switch
         {
             TeacherLevelGrantOutcome.Granted => null,
@@ -250,7 +259,17 @@ public class TeachersModel : PageModel
 
     private async Task LoadAsync()
     {
-        Teachers = await _db.Teachers.OrderByDescending(t => t.Id).ToListAsync();
+        Teachers = await _db.Teachers.OrderBy(t => t.FullName).ToListAsync();
+
+        // Home market first (countries are seeded in that order), so the pay
+        // rate defaults to the currency this centre pays in without a code
+        // being written into the page.
+        Currencies = (await _db.Countries.Where(c => c.IsActive)
+                .OrderBy(c => c.Id)
+                .Select(c => c.CurrencyCode)
+                .ToListAsync())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         var readyTeacherIds = (await _db.TeacherMeetingConnections
             .Where(c => c.Status == MVTeaches.Domain.Integrations.ProviderConnectionStatus.Connected)
@@ -269,7 +288,7 @@ public class TeachersModel : PageModel
         var ageGroupCodes = AgeGroups.ToDictionary(a => a.Id, a => a.Code);
 
         var rates = await _db.TeacherRates.OrderByDescending(r => r.Id).ToListAsync();
-        Rates = rates.Select(r => new RateRow(r.Id, teacherNames.GetValueOrDefault(r.TeacherId, $"#{r.TeacherId}"),
+        Rates = rates.Select(r => new RateRow(r.Id, teacherNames.GetValueOrDefault(r.TeacherId, string.Empty),
             r.CourseId.HasValue ? courseNames.GetValueOrDefault(r.CourseId.Value) : null,
             r.LevelId.HasValue ? levelCodes.GetValueOrDefault(r.LevelId.Value) : null,
             r.AgeGroupId.HasValue ? ageGroupCodes.GetValueOrDefault(r.AgeGroupId.Value) : null,

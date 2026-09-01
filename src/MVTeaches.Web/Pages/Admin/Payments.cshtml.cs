@@ -49,17 +49,31 @@ public class PaymentsModel : PageModel
         _localizer = localizer;
     }
 
-    public record PaymentRow(long Id, string StudentName, decimal Amount, string Currency, PaymentMethod Method,
+    public record PaymentRow(long Id, long StudentId, string StudentName, decimal Amount, string Currency, PaymentMethod Method,
         PaymentStatus Status, string ReferenceCode, string? RejectionReason, string? PayerDisplayName,
         NodaTime.LocalDate? TransferDate, string? BankReferenceNumber, bool HasReceipt, bool HasSubmittedTransferDetails,
         decimal? ReceivedAmount, string? ReceivedCurrency);
 
-    public record DraftSubscriptionRow(long Id, string StudentName, decimal Price, string Currency, decimal ConfirmedReceived, decimal RemainingOwed);
+    public record DraftSubscriptionRow(long Id, string StudentName, string LevelCode, decimal Price, string Currency,
+        decimal ConfirmedReceived, decimal RemainingOwed);
 
     public IReadOnlyList<PaymentRow> PendingPayments { get; set; } = Array.Empty<PaymentRow>();
     public IReadOnlyList<PaymentRow> RecentPayments { get; set; } = Array.Empty<PaymentRow>();
     // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Student namespace.
     public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
+
+    /// <summary>Currency codes actually configured for the active countries —
+    /// so an admin picks JOD from a list instead of typing three letters that
+    /// nothing would have corrected.</summary>
+    public IReadOnlyList<string> Currencies { get; set; } = Array.Empty<string>();
+
+    /// <summary>Set when the admin arrived here from one student's row, so the
+    /// page shows that student's money only and says whose it is. Read-only
+    /// narrowing of the same lists — never a different query.</summary>
+    [BindProperty(SupportsGet = true, Name = "studentId")]
+    public long? FilterStudentId { get; set; }
+
+    public string? FilterStudentName { get; set; }
 
     /// <summary>Draft subscriptions awaiting their activating payment (D-38) —
     /// see /Admin/Subscriptions, which is where these get created.</summary>
@@ -76,8 +90,12 @@ public class PaymentsModel : PageModel
 
     public class RecordInput
     {
+        // Nullable so [Required] actually fires when the picker is left alone:
+        // on a non-nullable long an untouched <select> posts "", the binding
+        // error is wiped by ModelState.Clear() below, and [Required] then
+        // passes on the defaulted 0. Same fix as Teacher/PublishSlots.cshtml.cs.
         [Required]
-        public long StudentId { get; set; }
+        public long? StudentId { get; set; }
 
         /// <summary>Optional — ties this payment to a Draft subscription so
         /// confirming it can activate that subscription and post the Purchase
@@ -109,7 +127,7 @@ public class PaymentsModel : PageModel
             return Page();
         }
 
-        var request = new RecordPaymentRequest(NewPayment.StudentId, NewPayment.SubscriptionId, PayerUserId: null,
+        var request = new RecordPaymentRequest(NewPayment.StudentId!.Value, NewPayment.SubscriptionId, PayerUserId: null,
             new Money(NewPayment.Amount, NewPayment.Currency), NewPayment.Method, ProofFileId: null);
         var result = await _payments.RecordManualPaymentAsync(request, HttpContext.RequestAborted);
         StatusMessage = _localizer["Payment recorded — reference {0}, awaiting confirmation.", result.ReferenceCode].Value;
@@ -171,39 +189,71 @@ public class PaymentsModel : PageModel
 
     private async Task LoadAsync()
     {
-        Students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
-        var studentNames = Students.ToDictionary(s => s.Id, s => s.FullName);
+        Students = await _db.Students.OrderBy(s => s.FullName).Take(200).ToListAsync();
+
+        // Ordered by the country rows themselves (the home market is seeded
+        // first), so the first option is the currency this centre actually
+        // bills in — a default that comes from configured data, not from a
+        // currency code written into the page.
+        Currencies = (await _db.Countries.Where(c => c.IsActive)
+                .OrderBy(c => c.Id)
+                .Select(c => c.CurrencyCode)
+                .ToListAsync())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         var drafts = await _db.Subscriptions
             .Where(s => s.Status == SubscriptionStatus.Draft)
+            .Where(s => FilterStudentId == null || s.StudentId == FilterStudentId)
             .OrderByDescending(s => s.Id)
             .Take(100)
             .ToListAsync();
+
+        var pending = await _db.Payments
+            .Where(p => p.Status == PaymentStatus.Pending)
+            .Where(p => FilterStudentId == null || p.StudentId == FilterStudentId)
+            .OrderBy(p => p.CreatedAtUtc)
+            .ToListAsync();
+
+        var recent = await _db.Payments
+            .Where(p => p.Status != PaymentStatus.Pending)
+            .Where(p => FilterStudentId == null || p.StudentId == FilterStudentId)
+            .OrderByDescending(p => p.Id)
+            .Take(50)
+            .ToListAsync();
+
+        // Resolve every name this page will actually print, rather than only the
+        // ones that happen to fall inside the 200-row picker window — a payment
+        // used to show as "#41" whenever its student sorted outside it.
+        var neededStudentIds = drafts.Select(s => s.StudentId)
+            .Concat(pending.Select(p => p.StudentId))
+            .Concat(recent.Select(p => p.StudentId))
+            .Concat(FilterStudentId is null ? Array.Empty<long>() : new[] { FilterStudentId.Value })
+            .Distinct()
+            .ToList();
+        var studentNames = await _db.Students
+            .Where(s => neededStudentIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.FullName);
+
+        FilterStudentName = FilterStudentId is null ? null : studentNames.GetValueOrDefault(FilterStudentId.Value);
+
+        var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
         var draftRows = new List<DraftSubscriptionRow>();
         foreach (var s in drafts)
         {
             var funding = await _payments.GetSubscriptionFundingStatusAsync(s.Id, HttpContext.RequestAborted);
-            draftRows.Add(new DraftSubscriptionRow(s.Id, studentNames.GetValueOrDefault(s.StudentId, $"#{s.StudentId}"),
+            draftRows.Add(new DraftSubscriptionRow(s.Id, studentNames.GetValueOrDefault(s.StudentId, string.Empty),
+                levelCodes.GetValueOrDefault(s.LevelId, "—"),
                 funding.Price.Amount, funding.Price.Currency, funding.ConfirmedReceived, funding.RemainingOwed.Amount));
         }
         DraftSubscriptions = draftRows;
 
-        var pending = await _db.Payments
-            .Where(p => p.Status == PaymentStatus.Pending)
-            .OrderBy(p => p.CreatedAtUtc)
-            .ToListAsync();
         PendingPayments = pending.Select(p => ToRow(p, studentNames)).ToList();
-
-        var recent = await _db.Payments
-            .Where(p => p.Status != PaymentStatus.Pending)
-            .OrderByDescending(p => p.Id)
-            .Take(50)
-            .ToListAsync();
         RecentPayments = recent.Select(p => ToRow(p, studentNames)).ToList();
     }
 
     private static PaymentRow ToRow(Payment p, IReadOnlyDictionary<long, string> studentNames) =>
-        new(p.Id, studentNames.GetValueOrDefault(p.StudentId, $"#{p.StudentId}"), p.Amount.Amount, p.Amount.Currency,
+        new(p.Id, p.StudentId, studentNames.GetValueOrDefault(p.StudentId, string.Empty), p.Amount.Amount, p.Amount.Currency,
             p.Method, p.Status, p.ReferenceCode, p.RejectionReason, p.PayerDisplayName, p.TransferDate,
             p.ProviderTransactionId, p.ProofFileId is not null, p.HasSubmittedTransferDetails, p.ReceivedAmount, p.ReceivedCurrency);
 }

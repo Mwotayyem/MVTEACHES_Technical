@@ -1,61 +1,101 @@
 @page
 @model MVTeaches.Web.Pages.Admin.CompensationRequestsModel
+@using MVTeaches.Domain.Scheduling
 @{
     ViewData["Title"] = T["Compensation Requests"].Value;
 }
 
-<h1>@T["Compensation Requests"]</h1>
-<p class="text-muted">@T["Student-submitted requests for a missed (no-show) session. Approving links exactly one specific future session — the original absence and its consumption are never touched."]</p>
+@functions {
+    string StatusClass(CompensationRequestStatus status) => status switch
+    {
+        CompensationRequestStatus.Approved => "app-status is-success",
+        CompensationRequestStatus.Pending => "app-status is-warning",
+        CompensationRequestStatus.Rejected => "app-status is-danger",
+        _ => "app-status is-muted",
+    };
+}
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Compensation Requests"]</h1>
+        <p class="text-muted">@T["Student-submitted requests for a missed (no-show) session. Approving links exactly one specific future session — the original absence and its consumption are never touched."]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/RescheduleSessions">@T["Reschedule / Compensation"]</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Schedules">@T["Schedules"]</a>
+    </div>
+</div>
 
 @if (Model.StatusMessage is not null)
 {
-    <div class="alert alert-success">@Model.StatusMessage</div>
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
 }
 @if (Model.ErrorMessage is not null)
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
 }
 
-<h2 class="h4">@T["Pending"]</h2>
-<div class="table-responsive mb-4">
-    <table class="table table-sm table-striped">
-        <thead><tr><th>@T["Student"]</th><th>@T["Level"]</th><th>@T["Missed session"]</th><th>@T["Reason"]</th><th>@T["Requested"]</th><th>@T["Approve"]</th><th>@T["Reject"]</th></tr></thead>
-        <tbody>
-            @foreach (var r in Model.PendingRequests)
-            {
-                <tr>
-                    <td>@r.StudentName</td>
-                    <td>@r.LevelCode</td>
-                    <td>#@r.OriginalSessionId — @r.OriginalSessionStartsAtUtc</td>
-                    <td>@(r.Reason ?? "—")</td>
-                    <td>@r.RequestedAtUtc</td>
-                    <td>
-                        <form method="post" asp-page-handler="Approve" class="d-flex gap-1">
+<h2 class="h4">@T["Pending"] <span class="app-status @(Model.PendingRequests.Count > 0 ? "is-warning" : "is-muted")">@Model.PendingRequests.Count</span></h2>
+<div class="mb-4">
+    @foreach (var r in Model.PendingRequests)
+    {
+        <div class="card mb-2">
+            <div class="card-body">
+                <h3 class="card-title h5 d-flex flex-wrap gap-2 align-items-center">
+                    <a asp-page="/Admin/StudentDetails" asp-route-id="@r.StudentId">@r.StudentName</a>
+                    <span class="app-status is-info">@r.LevelCode</span>
+                </h3>
+                <dl class="row small mb-3">
+                    <dt class="col-sm-3">@T["Missed session"]</dt>
+                    <dd class="col-sm-9">@T.SessionMoment(r.OriginalSessionStartsAtUtc, r.OriginalSessionTimeZone) (@DisplayFormat.ZoneLabel(r.OriginalSessionTimeZone))</dd>
+                    <dt class="col-sm-3">@T["Reason"]</dt>
+                    <dd class="col-sm-9">@(r.Reason ?? T["Not specified"].Value)</dd>
+                    <dt class="col-sm-3">@T["Requested"]</dt>
+                    <dd class="col-sm-9">@T.DateTimeUtc(r.RequestedAtUtc)</dd>
+                </dl>
+
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <form method="post" asp-page-handler="Approve" class="d-flex gap-2 flex-wrap align-items-end">
                             <input type="hidden" name="requestId" value="@r.RequestId" />
-                            <select name="replacementSessionId" class="form-select form-select-sm">
-                                <option value="">-- @T["select"] --</option>
-                                @foreach (var opt in r.CandidateReplacementSessions)
+                            <div class="flex-grow-1">
+                                <label class="form-label small mb-0" for="replacement-@r.RequestId">@T["Replacement session"]</label>
+                                <select id="replacement-@r.RequestId" name="replacementSessionId" class="form-select form-select-sm">
+                                    <option value="">@T["Select placeholder"]</option>
+                                    @foreach (var opt in r.CandidateReplacementSessions)
+                                    {
+                                        <option value="@opt.Id">@opt.Label</option>
+                                    }
+                                </select>
+                                @if (r.CandidateReplacementSessions.Count == 0)
                                 {
-                                    <option value="@opt.Id">@opt.Label</option>
+                                    <div class="form-text text-warning">@T["No future session at this level has a free seat yet — publish one first."]</div>
                                 }
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-primary">@T["Approve"]</button>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary"
+                                    data-mv-confirm="@T["Approve this replacement session for the student?"]">@T["Approve"]</button>
                         </form>
-                    </td>
-                    <td>
-                        <form method="post" asp-page-handler="Reject">
+                    </div>
+                    <div class="col-lg-5">
+                        <form method="post" asp-page-handler="Reject" class="d-flex gap-2 flex-wrap align-items-end">
                             <input type="hidden" name="requestId" value="@r.RequestId" />
-                            <input type="text" name="RejectReason" class="form-control form-control-sm mb-1" placeholder="@T["Reason"]" />
+                            <div class="flex-grow-1">
+                                <label class="form-label small mb-0" for="reject-@r.RequestId">@T["Reason the student will read"]</label>
+                                <input type="text" id="reject-@r.RequestId" name="RejectReason" class="form-control form-control-sm" />
+                            </div>
                             <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
                         </form>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
     @if (Model.PendingRequests.Count == 0)
     {
-        <p class="text-muted">@T["No pending requests."]</p>
+        <div class="app-empty">
+            <strong>@T["No pending requests."]</strong>
+            <span>@T["A request appears here after a student is recorded as a no-show and asks for a make-up lesson."]</span>
+        </div>
     }
 </div>
 
@@ -67,24 +107,24 @@
             @foreach (var r in Model.RecentlyResolved)
             {
                 <tr>
-                    <td>@r.StudentName</td>
-                    <td>@T["CompensationRequestStatus." + r.Status]</td>
+                    <td><a asp-page="/Admin/StudentDetails" asp-route-id="@r.StudentId">@r.StudentName</a></td>
+                    <td><span class="@StatusClass(r.Status)">@T["CompensationRequestStatus." + r.Status]</span></td>
                     <td>
-                        @if (r.Status == MVTeaches.Domain.Scheduling.CompensationRequestStatus.Approved)
+                        @if (r.Status == CompensationRequestStatus.Approved)
                         {
-                            @r.ReplacementStartsAtUtc
+                            @T.SessionMoment(r.ReplacementStartsAtUtc, r.ReplacementTimeZone)
                         }
                         else
                         {
-                            @r.RejectionReason
+                            @(r.RejectionReason ?? T["Not specified"].Value)
                         }
                     </td>
                 </tr>
             }
+            @if (Model.RecentlyResolved.Count == 0)
+            {
+                <tr><td colspan="3" class="text-muted">@T["Nothing resolved yet."]</td></tr>
+            }
         </tbody>
     </table>
-    @if (Model.RecentlyResolved.Count == 0)
-    {
-        <p class="text-muted">@T["Nothing resolved yet."]</p>
-    }
 </div>

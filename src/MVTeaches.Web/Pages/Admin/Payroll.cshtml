@@ -5,40 +5,68 @@
     ViewData["Title"] = T["Payroll"].Value;
 }
 
-<h1>@T["Payroll"]</h1>
-<p class="text-muted">@T["The payroll cycle: declare → verify → aggregate → review → approve → pay → close. Whoever declared a delivery cannot also verify it."]</p>
+@functions {
+    string PeriodStatusClass(PayrollPeriodStatus status) => status switch
+    {
+        PayrollPeriodStatus.Paid or PayrollPeriodStatus.Approved => "app-status is-success",
+        PayrollPeriodStatus.Open or PayrollPeriodStatus.Review => "app-status is-warning",
+        _ => "app-status is-muted",
+    };
+}
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Payroll"]</h1>
+        <p class="text-muted">@T["The payroll cycle: declare → verify → aggregate → review → approve → pay → close. Whoever declared a delivery cannot also verify it."]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Teachers">@T["Teachers"]</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/FinancialReport">@T["Financial Report"]</a>
+    </div>
+</div>
 
 @if (Model.StatusMessage is not null)
 {
-    <div class="alert alert-success">@Model.StatusMessage</div>
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
 }
 @if (Model.ErrorMessage is not null)
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
 }
 
-<h2>@T["Declared, awaiting verification"] (@Model.DeclaredDeliveries.Count)</h2>
+<h2>@T["Declared, awaiting verification"] <span class="app-status @(Model.DeclaredDeliveries.Count > 0 ? "is-warning" : "is-muted")">@Model.DeclaredDeliveries.Count</span></h2>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>@T["Session"]</th><th>@T["Teacher"]</th><th>@T["Declared minutes"]</th><th>@T["Note"]</th><th></th></tr></thead>
+        <thead><tr><th>@T["Session"]</th><th>@T["Teacher"]</th><th>@T["Declared minutes"]</th><th>@T["Note"]</th><th>@T["Actions"]</th></tr></thead>
         <tbody>
             @foreach (var d in Model.DeclaredDeliveries)
             {
                 <tr>
-                    <td>#@d.SessionId</td>
+                    <td>@d.SessionLabel</td>
                     <td>@d.TeacherName</td>
-                    <td>@d.DeclaredMinutes</td>
-                    <td>@d.Note</td>
-                    <td class="d-flex gap-2">
-                        <form method="post" asp-page-handler="Verify">
-                            <input type="hidden" name="sessionId" value="@d.SessionId" />
-                            <button type="submit" class="btn btn-sm btn-success">@T["Verify"]</button>
-                        </form>
-                        <form method="post" asp-page-handler="Reject" class="d-flex gap-1">
-                            <input type="hidden" name="sessionId" value="@d.SessionId" />
-                            <input type="text" name="RejectReason" class="form-control form-control-sm" placeholder="@T["Reason"]" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
-                        </form>
+                    <td>@T.Minutes(d.DeclaredMinutes)</td>
+                    <td>@(string.IsNullOrWhiteSpace(d.Note) ? T["Not specified"].Value : d.Note)</td>
+                    <td>
+                        <div class="d-flex gap-2 flex-wrap align-items-center">
+                            <form method="post" asp-page-handler="Verify">
+                                <input type="hidden" name="sessionId" value="@d.SessionId" />
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        data-mv-confirm="@T["Verify this delivery so it can be paid?"]">@T["Verify"]</button>
+                            </form>
+                            <form method="post" asp-page-handler="Reject" class="d-flex gap-1">
+                                <input type="hidden" name="sessionId" value="@d.SessionId" />
+                                <input type="text" name="RejectReason" class="form-control form-control-sm"
+                                       placeholder="@T["Reason the teacher will read"]" aria-label="@T["Reason the teacher will read"]" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
             }
@@ -52,28 +80,32 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">@T["Open a payroll period"]</h5>
-        <form method="post" asp-page-handler="OpenPeriod" class="row g-2 align-items-end">
-            <div class="col-auto">
+        <h2 class="card-title h5">@T["Open a payroll period"]</h2>
+        <p class="text-muted small">@T["One period per country and date range. Verified deliveries inside the range are what gets aggregated into it."]</p>
+        <form method="post" asp-page-handler="OpenPeriod" class="row g-3 align-items-start">
+            <div class="col-md-4">
                 <label class="form-label" asp-for="NewPeriod.CountryId">@T["Country"]</label>
                 <select asp-for="NewPeriod.CountryId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var country in Model.Countries)
                     {
-                        <option value="@country.Id">@country.NameEn</option>
+                        <option value="@country.Id">@(Model.IsArabic ? country.NameAr : country.NameEn) (@country.CurrencyCode)</option>
                     }
                 </select>
+                <span asp-validation-for="NewPeriod.CountryId" class="text-danger small"></span>
             </div>
-            <div class="col-auto">
+            <div class="col-md-3">
                 <label class="form-label" asp-for="NewPeriod.Start">@T["Start"]</label>
                 <input asp-for="NewPeriod.Start" type="date" class="form-control" />
+                <span asp-validation-for="NewPeriod.Start" class="text-danger small"></span>
             </div>
-            <div class="col-auto">
+            <div class="col-md-3">
                 <label class="form-label" asp-for="NewPeriod.End">@T["End"]</label>
                 <input asp-for="NewPeriod.End" type="date" class="form-control" />
+                <span asp-validation-for="NewPeriod.End" class="text-danger small"></span>
             </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary">@T["Open period"]</button>
+            <div class="col-md-2 align-self-end">
+                <button type="submit" class="btn btn-primary w-100">@T["Open period"]</button>
             </div>
         </form>
     </div>
@@ -82,17 +114,16 @@
 <h2>@T["Periods"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>@T["Country"]</th><th>@T["Range"]</th><th>@T["Status"]</th><th>@T["Lines"]</th><th>@T["Total"]</th><th></th></tr></thead>
+        <thead><tr><th>@T["Country"]</th><th>@T["Range"]</th><th>@T["Status"]</th><th>@T["Lines"]</th><th>@T["Total"]</th><th>@T["Actions"]</th></tr></thead>
         <tbody>
             @foreach (var p in Model.Periods)
             {
                 <tr>
-                    <td>@p.Id</td>
-                    <td>@p.CountryId</td>
-                    <td>@p.Start.ToString("yyyy-MM-dd", null) — @p.End.ToString("yyyy-MM-dd", null)</td>
-                    <td>@T["PayrollPeriodStatus." + p.Status]</td>
+                    <td>@p.CountryName</td>
+                    <td>@T.Date(p.Start) — @T.Date(p.End)</td>
+                    <td><span class="@PeriodStatusClass(p.Status)">@T["PayrollPeriodStatus." + p.Status]</span></td>
                     <td>@p.LineCount</td>
-                    <td>@p.TotalAmount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture)</td>
+                    <td>@T.Money(p.TotalAmount, p.CurrencyCode)</td>
                     <td class="d-flex gap-2 flex-wrap">
                         @if (p.Status == PayrollPeriodStatus.Open)
                         {
@@ -109,25 +140,32 @@
                         {
                             <form method="post" asp-page-handler="Approve">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-success">@T["Approve"]</button>
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        data-mv-confirm="@T["Approve and lock this period? Its lines can no longer change."]">@T["Approve"]</button>
                             </form>
                         }
                         @if (p.Status == PayrollPeriodStatus.Approved)
                         {
                             <form method="post" asp-page-handler="MarkPaid">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-success">@T["Mark paid"]</button>
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        data-mv-confirm="@T["Mark this period as paid?"]">@T["Mark paid"]</button>
                             </form>
                         }
                         @if (p.Status == PayrollPeriodStatus.Paid)
                         {
                             <form method="post" asp-page-handler="Close">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">@T["Close"]</button>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                        data-mv-confirm="@T["Close this period for good?"]">@T["Close"]</button>
                             </form>
                         }
                     </td>
                 </tr>
+            }
+            @if (Model.Periods.Count == 0)
+            {
+                <tr><td colspan="6" class="text-muted">@T["No payroll period opened yet."]</td></tr>
             }
         </tbody>
     </table>

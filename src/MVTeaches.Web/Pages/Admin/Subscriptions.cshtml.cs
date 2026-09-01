@@ -49,7 +49,7 @@ public class SubscriptionsModel : PageModel
     public record PlanRow(long Id, string CountryName, string CourseName, string? LevelCode, SessionType SessionType,
         int SessionsCount, int MinutesTotal, decimal Amount, string Currency, int ValidityDays);
 
-    public record SubscriptionRow(long Id, string StudentName, string CourseName, string LevelCode,
+    public record SubscriptionRow(long Id, long StudentId, string StudentName, string CourseName, string LevelCode,
         decimal Price, string Currency, SubscriptionStatus Status, SubscriptionOrigin Origin, int BalanceMinutes,
         LocalDate ExpiresOn);
 
@@ -60,6 +60,17 @@ public class SubscriptionsModel : PageModel
     public IReadOnlyList<Country> Countries { get; set; } = Array.Empty<Country>();
     public IReadOnlyList<Course> Courses { get; set; } = Array.Empty<Course>();
     public IReadOnlyList<Level> Levels { get; set; } = Array.Empty<Level>();
+
+    /// <summary>Currency codes taken from the configured countries, home market
+    /// first — so the admin picks one instead of typing three letters.</summary>
+    public IReadOnlyList<string> Currencies { get; set; } = Array.Empty<string>();
+
+    /// <summary>Set when the admin arrived from one student's row; narrows the
+    /// subscription list to that student and says whose it is.</summary>
+    [BindProperty(SupportsGet = true, Name = "studentId")]
+    public long? FilterStudentId { get; set; }
+
+    public string? FilterStudentName { get; set; }
 
     [BindProperty]
     public CreatePlanInput NewPlan { get; set; } = new();
@@ -79,10 +90,14 @@ public class SubscriptionsModel : PageModel
     public string DisplayCourse(Course course) => IsArabic ? course.NameAr : course.NameEn;
     public string DisplayLevel(Level level) => IsArabic ? level.NameAr : level.NameEn;
 
+    // Every picked id below is nullable on purpose: with a non-nullable long an
+    // untouched <select> posts "", ModelState.Clear() drops the binding error,
+    // and [Required] then passes on the defaulted 0 — the service ends up called
+    // with student id 0. Same fix already documented in Teacher/PublishSlots.
     public class CreatePlanInput
     {
-        [Required] public int CountryId { get; set; }
-        [Required] public long CourseId { get; set; }
+        [Required] public int? CountryId { get; set; }
+        [Required] public long? CourseId { get; set; }
         public int? LevelId { get; set; }
         [Required] public SessionType SessionType { get; set; }
         [Required, Range(1, int.MaxValue)] public int SessionsCount { get; set; }
@@ -94,17 +109,17 @@ public class SubscriptionsModel : PageModel
 
     public class PurchaseInput
     {
-        [Required] public long StudentId { get; set; }
-        [Required] public long PricingPlanId { get; set; }
+        [Required] public long? StudentId { get; set; }
+        [Required] public long? PricingPlanId { get; set; }
         [Required] public SubscriptionOrigin Origin { get; set; } = SubscriptionOrigin.GuardianPurchase;
     }
 
     public class GrantInput
     {
-        [Required] public long StudentId { get; set; }
-        [Required] public int CountryId { get; set; }
-        [Required] public long CourseId { get; set; }
-        [Required] public int LevelId { get; set; }
+        [Required] public long? StudentId { get; set; }
+        [Required] public int? CountryId { get; set; }
+        [Required] public long? CourseId { get; set; }
+        [Required] public int? LevelId { get; set; }
         [Required] public SessionType SessionType { get; set; }
         [Required, Range(1, int.MaxValue)] public int SessionsCount { get; set; }
         [Required, Range(1, int.MaxValue)] public int MinutesTotal { get; set; }
@@ -125,7 +140,7 @@ public class SubscriptionsModel : PageModel
 
         var actingUserId = GetCurrentUserId();
         var today = LocalDate.FromDateTime(DateTime.UtcNow);
-        await _subscriptions.CreatePricingPlanAsync(NewPlan.CountryId, NewPlan.CourseId, NewPlan.LevelId, null,
+        await _subscriptions.CreatePricingPlanAsync(NewPlan.CountryId!.Value, NewPlan.CourseId!.Value, NewPlan.LevelId, null,
             NewPlan.SessionType, NewPlan.SessionsCount, NewPlan.MinutesTotal, new Money(NewPlan.Amount, NewPlan.Currency),
             NewPlan.ValidityDays, today, actingUserId, HttpContext.RequestAborted);
 
@@ -144,7 +159,7 @@ public class SubscriptionsModel : PageModel
         }
 
         var actingUserId = GetCurrentUserId();
-        var result = await _subscriptions.PurchaseFromPlanAsync(Purchase.StudentId, Purchase.PricingPlanId,
+        var result = await _subscriptions.PurchaseFromPlanAsync(Purchase.StudentId!.Value, Purchase.PricingPlanId!.Value,
             actingUserId, Purchase.Origin, isAdminInitiated: true, HttpContext.RequestAborted);
 
         // Owner decision 2026-08-30 rule 4: "Manual payments must use the same
@@ -179,9 +194,9 @@ public class SubscriptionsModel : PageModel
         }
 
         var actingUserId = GetCurrentUserId();
-        var result = await _subscriptions.GrantAdminSubscriptionAsync(Grant.StudentId, Grant.CountryId, Grant.CourseId,
-            Grant.LevelId, Grant.SessionType, Grant.SessionsCount, Grant.MinutesTotal, Grant.ValidityDays, actingUserId, Grant.Reason,
-            HttpContext.RequestAborted);
+        var result = await _subscriptions.GrantAdminSubscriptionAsync(Grant.StudentId!.Value, Grant.CountryId!.Value,
+            Grant.CourseId!.Value, Grant.LevelId!.Value, Grant.SessionType, Grant.SessionsCount, Grant.MinutesTotal,
+            Grant.ValidityDays, actingUserId, Grant.Reason, HttpContext.RequestAborted);
 
         StatusMessage = _localizer["Subscription granted and activated immediately.", result.SubscriptionId];
         await LoadAsync();
@@ -195,7 +210,17 @@ public class SubscriptionsModel : PageModel
         Countries = await _db.Countries.Where(c => c.IsActive).OrderBy(c => c.NameEn).ToListAsync();
         Courses = await _db.Courses.Where(c => c.IsActive).OrderBy(c => c.NameEn).ToListAsync();
         Levels = await _db.Levels.Where(l => l.IsActive).OrderBy(l => l.SortOrder).ToListAsync();
-        Students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
+        Students = await _db.Students.OrderBy(s => s.FullName).Take(200).ToListAsync();
+
+        // Home market first (countries are seeded in that order), so the default
+        // selection is the currency this centre bills in without any code being
+        // written into the page.
+        Currencies = (await _db.Countries.Where(c => c.IsActive)
+                .OrderBy(c => c.Id)
+                .Select(c => c.CurrencyCode)
+                .ToListAsync())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         var countryByI = Countries.ToDictionary(c => c.Id, DisplayCountry);
         var courseByI = Courses.ToDictionary(c => c.Id, DisplayCourse);
@@ -207,12 +232,29 @@ public class SubscriptionsModel : PageModel
             courseByI.GetValueOrDefault(p.CourseId, "?"), p.LevelId.HasValue ? levelByI.GetValueOrDefault(p.LevelId.Value) : null,
             p.SessionType, p.SessionsCount, p.MinutesTotal, p.Amount.Amount, p.Amount.Currency, p.ValidityDays)).ToList();
 
-        var subs = await _db.Subscriptions.OrderByDescending(s => s.Id).Take(50).ToListAsync();
+        var subs = await _db.Subscriptions
+            .Where(s => FilterStudentId == null || s.StudentId == FilterStudentId)
+            .OrderByDescending(s => s.Id)
+            .Take(50)
+            .ToListAsync();
+
+        // Names for exactly the rows being printed — the 200-row picker window
+        // is not a reliable name source once a school has more students than it.
+        var neededStudentIds = subs.Select(s => s.StudentId)
+            .Concat(FilterStudentId is null ? Array.Empty<long>() : new[] { FilterStudentId.Value })
+            .Distinct()
+            .ToList();
+        var namesForRows = await _db.Students
+            .Where(s => neededStudentIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.FullName);
+        FilterStudentName = FilterStudentId is null ? null : namesForRows.GetValueOrDefault(FilterStudentId.Value);
+
         var rows = new List<SubscriptionRow>();
         foreach (var s in subs)
         {
             var balance = await _balances.GetSubscriptionBalanceAsync(s.Id, HttpContext.RequestAborted);
-            rows.Add(new SubscriptionRow(s.Id, studentByI.GetValueOrDefault(s.StudentId, $"#{s.StudentId}"),
+            rows.Add(new SubscriptionRow(s.Id, s.StudentId,
+                namesForRows.GetValueOrDefault(s.StudentId) ?? studentByI.GetValueOrDefault(s.StudentId, string.Empty),
                 courseByI.GetValueOrDefault(s.CourseId, "?"), levelByI.GetValueOrDefault(s.LevelId, "?"),
                 s.Price.Amount, s.Price.Currency, s.Status, s.Origin, balance, s.ExpiresOn));
         }

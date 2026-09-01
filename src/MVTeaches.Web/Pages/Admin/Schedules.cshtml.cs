@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -63,7 +63,7 @@ public class SchedulesModel : PageModel
     /// <summary>An upcoming, still-cancellable session — the admin needs to see
     /// a real session Id to act on it; nothing before this page ever surfaced one.</summary>
     public record SessionRow(long Id, string TeacherName, string CourseName, string LevelCode,
-        Instant StartsAtUtc, int SeatsTaken, int Capacity, ClassSessionStatus Status);
+        Instant StartsAtUtc, string ScheduleTimeZone, int SeatsTaken, int Capacity, ClassSessionStatus Status);
 
     public IReadOnlyList<ScheduleRow> Schedules { get; set; } = Array.Empty<ScheduleRow>();
     public IReadOnlyList<SessionRow> UpcomingSessions { get; set; } = Array.Empty<SessionRow>();
@@ -95,41 +95,45 @@ public class SchedulesModel : PageModel
     /// here so the admin doesn't pick one and get a bare rejection.</summary>
     public IReadOnlySet<long> TeachersNotReadyForOnlineSessions { get; set; } = new HashSet<long>();
 
+    // Ids/dates are nullable so [Required] actually fires on an untouched
+    // picker: on a non-nullable value type the empty post binds to 0 (or
+    // 0001-01-01), ModelState.Clear() drops the binding error, and the service
+    // is called with an id nobody chose.
     public class ReassignInput
     {
-        [Required] public long SessionId { get; set; }
-        [Required] public long NewTeacherId { get; set; }
+        [Required] public long? SessionId { get; set; }
+        [Required] public long? NewTeacherId { get; set; }
     }
 
     public class EnrollInput
     {
-        [Required] public long RecurringScheduleId { get; set; }
-        [Required] public long StudentId { get; set; }
+        [Required] public long? RecurringScheduleId { get; set; }
+        [Required] public long? StudentId { get; set; }
     }
 
     public class CancelInput
     {
-        [Required] public long SessionId { get; set; }
+        [Required] public long? SessionId { get; set; }
         [Required] public string Reason { get; set; } = string.Empty;
         public long? ReplacementSessionId { get; set; }
     }
 
     public class CreateScheduleInput
     {
-        [Required] public int CountryId { get; set; }
-        [Required] public long CourseId { get; set; }
-        [Required] public int LevelId { get; set; }
-        [Required] public int AgeGroupId { get; set; }
-        [Required] public long TeacherId { get; set; }
+        [Required] public int? CountryId { get; set; }
+        [Required] public long? CourseId { get; set; }
+        [Required] public int? LevelId { get; set; }
+        [Required] public int? AgeGroupId { get; set; }
+        [Required] public long? TeacherId { get; set; }
 
         /// <summary>ISO day numbers (1=Monday..7=Sunday) — bound from a set of checkboxes.</summary>
         [Required, MinLength(1)]
         public List<int> DaysOfWeek { get; set; } = new();
 
-        [Required] public TimeOnly StartLocal { get; set; }
+        [Required] public TimeOnly? StartLocal { get; set; }
         [Required, Range(1, 480)] public int DurationMinutes { get; set; } = 60;
         [Required] public string TimeZoneId { get; set; } = string.Empty;
-        [Required] public DateOnly StartsOn { get; set; }
+        [Required] public DateOnly? StartsOn { get; set; }
         [Required, Range(1, 10)] public int Capacity { get; set; } = 4;
     }
 
@@ -145,14 +149,16 @@ public class SchedulesModel : PageModel
         }
 
         var days = NewSchedule.DaysOfWeek.Select(d => (IsoDayOfWeek)d).ToList();
-        var startLocal = new LocalTime(NewSchedule.StartLocal.Hour, NewSchedule.StartLocal.Minute);
-        var startsOn = new LocalDate(NewSchedule.StartsOn.Year, NewSchedule.StartsOn.Month, NewSchedule.StartsOn.Day);
+        var startLocalTime = NewSchedule.StartLocal!.Value;
+        var startsOnDate = NewSchedule.StartsOn!.Value;
+        var startLocal = new LocalTime(startLocalTime.Hour, startLocalTime.Minute);
+        var startsOn = new LocalDate(startsOnDate.Year, startsOnDate.Month, startsOnDate.Day);
 
         try
         {
             var actingUserId = long.Parse(_userManager.GetUserId(User)!);
-            await _schedules.CreateAsync(NewSchedule.CountryId, NewSchedule.CourseId, NewSchedule.LevelId,
-                NewSchedule.AgeGroupId, NewSchedule.TeacherId, days, startLocal, NewSchedule.DurationMinutes,
+            await _schedules.CreateAsync(NewSchedule.CountryId!.Value, NewSchedule.CourseId!.Value, NewSchedule.LevelId!.Value,
+                NewSchedule.AgeGroupId!.Value, NewSchedule.TeacherId!.Value, days, startLocal, NewSchedule.DurationMinutes,
                 NewSchedule.TimeZoneId, startsOn, NewSchedule.Capacity, actingUserId, HttpContext.RequestAborted);
             StatusMessage = _localizer["Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual \"Trigger now\" on /hangfire)."].Value;
         }
@@ -175,7 +181,7 @@ public class SchedulesModel : PageModel
         }
 
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
-        var count = await _enrollments.EnrollInUpcomingSessionsAsync(Enroll.RecurringScheduleId, Enroll.StudentId,
+        var count = await _enrollments.EnrollInUpcomingSessionsAsync(Enroll.RecurringScheduleId!.Value, Enroll.StudentId!.Value,
             actingUserId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Enrolled the student into {0} upcoming session(s) generated from this schedule.", count].Value;
 
@@ -193,7 +199,7 @@ public class SchedulesModel : PageModel
         }
 
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
-        var result = await _cancellations.CancelAsync(Cancel.SessionId, Cancel.Reason, actingUserId,
+        var result = await _cancellations.CancelAsync(Cancel.SessionId!.Value, Cancel.Reason, actingUserId,
             Cancel.ReplacementSessionId, HttpContext.RequestAborted);
 
         switch (result.Outcome)
@@ -241,7 +247,7 @@ public class SchedulesModel : PageModel
         }
 
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
-        var result = await _meetings.ReassignTeacherAsync(Reassign.SessionId, Reassign.NewTeacherId, actingUserId,
+        var result = await _meetings.ReassignTeacherAsync(Reassign.SessionId!.Value, Reassign.NewTeacherId!.Value, actingUserId,
             HttpContext.RequestAborted);
 
         if (result.Outcome == TeacherReassignmentOutcome.Reassigned)
@@ -305,7 +311,7 @@ public class SchedulesModel : PageModel
         var ageGroupCodes = AgeGroups.ToDictionary(a => a.Id, a => a.Code);
 
         var schedules = await _db.RecurringSchedules.OrderByDescending(s => s.Id).ToListAsync();
-        Schedules = schedules.Select(s => new ScheduleRow(s.Id, teacherNames.GetValueOrDefault(s.TeacherId, $"#{s.TeacherId}"),
+        Schedules = schedules.Select(s => new ScheduleRow(s.Id, teacherNames.GetValueOrDefault(s.TeacherId, string.Empty),
             courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
             ageGroupCodes.GetValueOrDefault(s.AgeGroupId, "?"),
             string.Join(",", s.DaysOfWeek.Select(d => _localizer["DayOfWeek." + d].Value)),
@@ -317,8 +323,8 @@ public class SchedulesModel : PageModel
             .Where(s => s.Status == ClassSessionStatus.Scheduled && s.StartsAtUtc >= now && s.StartsAtUtc <= horizon)
             .OrderBy(s => s.StartsAtUtc)
             .ToListAsync();
-        UpcomingSessions = sessions.Select(s => new SessionRow(s.Id, teacherNames.GetValueOrDefault(s.TeacherId, $"#{s.TeacherId}"),
+        UpcomingSessions = sessions.Select(s => new SessionRow(s.Id, teacherNames.GetValueOrDefault(s.TeacherId, string.Empty),
             courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
-            s.StartsAtUtc, s.SeatsTaken, s.Capacity, s.Status)).ToList();
+            s.StartsAtUtc, s.ScheduleTimeZone, s.SeatsTaken, s.Capacity, s.Status)).ToList();
     }
 }

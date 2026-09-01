@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.SchedulesModel
 @using MVTeaches.Domain.Scheduling
 @using NodaTime
@@ -25,7 +25,7 @@
             <div class="col-md-3">
                 <label class="form-label" asp-for="NewSchedule.CountryId">@T["Country"]</label>
                 <select asp-for="NewSchedule.CountryId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var c in Model.Countries)
                     {
                         <option value="@c.Id">@c.NameEn</option>
@@ -35,7 +35,7 @@
             <div class="col-md-3">
                 <label class="form-label" asp-for="NewSchedule.CourseId">@T["Course"]</label>
                 <select asp-for="NewSchedule.CourseId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var c in Model.Courses)
                     {
                         <option value="@c.Id">@c.NameEn</option>
@@ -45,7 +45,7 @@
             <div class="col-md-3">
                 <label class="form-label" asp-for="NewSchedule.LevelId">@T["Level"]</label>
                 <select asp-for="NewSchedule.LevelId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var l in Model.Levels)
                     {
                         <option value="@l.Id">@l.Code</option>
@@ -55,7 +55,7 @@
             <div class="col-md-3">
                 <label class="form-label" asp-for="NewSchedule.AgeGroupId">@T["Age group"]</label>
                 <select asp-for="NewSchedule.AgeGroupId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var a in Model.AgeGroups)
                     {
                         <option value="@a.Id">@a.Code</option>
@@ -69,7 +69,7 @@
                    RecurringScheduleService rejects it server-side regardless —
                    this list is only the friendly path. *@
                 <select asp-for="NewSchedule.TeacherId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var t in Model.Teachers.Where(t => !Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)))
                     {
                         <option value="@t.Id">@t.FullName</option>
@@ -106,7 +106,7 @@
             <div class="col-md-3">
                 <label class="form-label" asp-for="NewSchedule.TimeZoneId">@T["Time zone"]</label>
                 <select asp-for="NewSchedule.TimeZoneId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var tz in Model.TimeZoneIds)
                     {
                         <option value="@tz">@tz</option>
@@ -136,20 +136,20 @@
             <div class="col-md-4">
                 <label class="form-label" asp-for="Enroll.RecurringScheduleId">@T["Schedule"]</label>
                 <select asp-for="Enroll.RecurringScheduleId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Schedules)
                     {
-                        <option value="@s.Id">#@s.Id @s.CourseName/@s.LevelCode — @s.TeacherName (@s.Days @s.StartLocal)</option>
+                        <option value="@s.Id">@s.CourseName / @s.LevelCode — @s.TeacherName (@s.Days @s.StartLocal)</option>
                     }
                 </select>
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="Enroll.StudentId">@T["Student"]</label>
                 <select asp-for="Enroll.StudentId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
-                        <option value="@s.Id">@s.FullName (#@s.Id)</option>
+                        <option value="@s.Id">@s.FullName</option>
                     }
                 </select>
             </div>
@@ -168,10 +168,10 @@
             <div class="col-md-3">
                 <label class="form-label" asp-for="Cancel.SessionId">@T["Session"]</label>
                 <select asp-for="Cancel.SessionId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.UpcomingSessions)
                     {
-                        <option value="@s.Id">#@s.Id @s.CourseName/@s.LevelCode — @s.TeacherName (@s.StartsAtUtc)</option>
+                        <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
                     }
                 </select>
             </div>
@@ -182,10 +182,10 @@
             <div class="col-md-3">
                 <label class="form-label" asp-for="Cancel.ReplacementSessionId">@T["Replacement session (optional)"]</label>
                 <select asp-for="Cancel.ReplacementSessionId" class="form-select">
-                    <option value="">-- @T["none"] --</option>
+                    <option value="">@T["None"]</option>
                     @foreach (var s in Model.UpcomingSessions)
                     {
-                        <option value="@s.Id">#@s.Id @s.CourseName/@s.LevelCode — @s.TeacherName (@s.StartsAtUtc)</option>
+                        <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
                     }
                 </select>
             </div>
@@ -206,17 +206,17 @@
             <div class="col-md-5">
                 <label class="form-label" asp-for="Reassign.SessionId">@T["Session"]</label>
                 <select asp-for="Reassign.SessionId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.UpcomingSessions)
                     {
-                        <option value="@s.Id">#@s.Id @s.CourseName/@s.LevelCode — @s.TeacherName (@s.StartsAtUtc)</option>
+                        <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
                     }
                 </select>
             </div>
             <div class="col-md-5">
                 <label class="form-label" asp-for="Reassign.NewTeacherId">@T["New teacher"]</label>
                 <select asp-for="Reassign.NewTeacherId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var t in Model.Teachers.Where(t => !Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)))
                     {
                         <option value="@t.Id">@t.FullName</option>
@@ -240,15 +240,17 @@
 <h2>@T["Upcoming sessions (next 14 days)"]</h2>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>@T["Teacher"]</th><th>@T["Course/Level"]</th><th>@T["Starts (UTC)"]</th><th>@T["Seats"]</th><th>@T["Status"]</th></tr></thead>
+        <thead><tr><th>@T["Teacher"]</th><th>@T["Course/Level"]</th><th>@T["When"]</th><th>@T["Seats"]</th><th>@T["Status"]</th></tr></thead>
         <tbody>
             @foreach (var s in Model.UpcomingSessions)
             {
                 <tr>
-                    <td>@s.Id</td>
                     <td>@s.TeacherName</td>
                     <td>@s.CourseName / @s.LevelCode</td>
-                    <td>@s.StartsAtUtc</td>
+                    <td>
+                        @T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone)
+                        <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
+                    </td>
                     <td>@s.SeatsTaken / @s.Capacity</td>
                     <td>@T["ClassSessionStatus." + s.Status]</td>
                 </tr>

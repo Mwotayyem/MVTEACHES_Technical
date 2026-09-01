@@ -4,52 +4,75 @@
     ViewData["Title"] = T["Reschedule / Compensation"].Value;
 }
 
-<h1>@T["Reschedule and compensation"]</h1>
-<p class="text-muted">@T["Two distinct cases — pick the one that matches what actually happened. This does not use a spendable makeup-credit balance; every compensation here is tied to one specific real replacement lesson."]</p>
+<div class="app-page-head">
+    <div>
+        <h1>@T["Reschedule and compensation"]</h1>
+        <p class="text-muted">@T["Two distinct cases — pick the one that matches what actually happened. This does not use a spendable makeup-credit balance; every compensation here is tied to one specific real replacement lesson."]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/CompensationRequests">@T["Compensation Requests"]</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Schedules">@T["Schedules"]</a>
+    </div>
+</div>
 
 @if (Model.StatusMessage is not null)
 {
-    <div class="alert alert-success">@Model.StatusMessage</div>
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
 }
 @if (Model.ErrorMessage is not null)
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
 }
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">@T["1. Reschedule an unattended lesson"]</h5>
+        <h2 class="card-title h5">@T["1. Reschedule an unattended lesson"]</h2>
         <p class="text-muted small">@T["The student never pressed Join — nothing was consumed, their balance is already untouched. This just moves that specific lesson-hour to a new session."]</p>
-        <form method="post" asp-page-handler="Reschedule" class="row g-2">
+        <form method="post" asp-page-handler="Reschedule" class="row g-3">
             <div class="col-md-4">
                 <label class="form-label" asp-for="Reschedule.StudentId">@T["Student"]</label>
-                <select asp-for="Reschedule.StudentId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#rescheduleStudent"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="Reschedule.StudentId" id="rescheduleStudent" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
-                        <option value="@s.Id">@s.FullName (#@s.Id)</option>
+                        <option value="@s.Id">@s.FullName</option>
                     }
                 </select>
+                <span asp-validation-for="Reschedule.StudentId" class="text-danger small"></span>
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="Reschedule.OriginalSessionId">@T["Original (missed) session"]</label>
-                <select asp-for="Reschedule.OriginalSessionId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                <select asp-for="Reschedule.OriginalSessionId" class="form-select" data-mv-sessions-of="#rescheduleStudent">
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Sessions)
                     {
-                        <option value="@s.Id">@s.Label</option>
+                        <option value="@s.Id" data-students="@s.EnrolledStudentIds">@s.Label</option>
                     }
                 </select>
+                <div class="form-text">@T["Narrows to the sessions that student is enrolled in once you pick a name."]</div>
+                <span asp-validation-for="Reschedule.OriginalSessionId" class="text-danger small"></span>
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="Reschedule.ReplacementSessionId">@T["New session"]</label>
-                <select asp-for="Reschedule.ReplacementSessionId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#rescheduleReplacement"
+                       placeholder="@T["Search sessions…"]" aria-label="@T["Search sessions…"]" />
+                <select asp-for="Reschedule.ReplacementSessionId" id="rescheduleReplacement" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Sessions)
                     {
                         <option value="@s.Id">@s.Label</option>
                     }
                 </select>
+                <span asp-validation-for="Reschedule.ReplacementSessionId" class="text-danger small"></span>
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-primary">@T["Reschedule"]</button>
@@ -60,41 +83,51 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">@T["2. Approve a replacement lesson"]</h5>
+        <h2 class="card-title h5">@T["2. Approve a replacement lesson"]</h2>
         <p class="text-muted small">@T["The student DID press Join, and the session then failed for reasons outside their control. Their original attendance and consumption stay untouched forever. Approve exactly one specific replacement session — the student's Join on it will not deduct their balance again."]</p>
-        <form method="post" asp-page-handler="Approve" class="row g-2">
+        <form method="post" asp-page-handler="Approve" class="row g-3">
             <div class="col-md-4">
                 <label class="form-label" asp-for="Approve.StudentId">@T["Student"]</label>
-                <select asp-for="Approve.StudentId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#approveStudent"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="Approve.StudentId" id="approveStudent" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
-                        <option value="@s.Id">@s.FullName (#@s.Id)</option>
+                        <option value="@s.Id">@s.FullName</option>
                     }
                 </select>
+                <span asp-validation-for="Approve.StudentId" class="text-danger small"></span>
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="Approve.OriginalSessionId">@T["Original (affected) session"]</label>
-                <select asp-for="Approve.OriginalSessionId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                <select asp-for="Approve.OriginalSessionId" class="form-select" data-mv-sessions-of="#approveStudent">
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Sessions)
                     {
-                        <option value="@s.Id">@s.Label</option>
+                        <option value="@s.Id" data-students="@s.EnrolledStudentIds">@s.Label</option>
                     }
                 </select>
+                <div class="form-text">@T["Narrows to the sessions that student is enrolled in once you pick a name."]</div>
+                <span asp-validation-for="Approve.OriginalSessionId" class="text-danger small"></span>
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="Approve.ReplacementSessionId">@T["Replacement session"]</label>
-                <select asp-for="Approve.ReplacementSessionId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#approveReplacement"
+                       placeholder="@T["Search sessions…"]" aria-label="@T["Search sessions…"]" />
+                <select asp-for="Approve.ReplacementSessionId" id="approveReplacement" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Sessions)
                     {
                         <option value="@s.Id">@s.Label</option>
                     }
                 </select>
+                <div class="form-text">@T["Must be a future session at the same level."]</div>
+                <span asp-validation-for="Approve.ReplacementSessionId" class="text-danger small"></span>
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary">@T["Approve replacement"]</button>
+                <button type="submit" class="btn btn-primary"
+                        data-mv-confirm="@T["Approve this replacement session for the student?"]">@T["Approve replacement"]</button>
             </div>
         </form>
     </div>

@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.AssistedRegistrationModel
 @using MVTeaches.Domain.Catalog
 @using MVTeaches.Domain.Payments
@@ -42,7 +42,7 @@
                         {
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>@g.FullName @(g.Email is not null ? $"({g.Email})" : "")</span>
-                                <span class="badge bg-secondary">#@g.Id</span>
+                                
                             </li>
                         }
                     </ul>
@@ -149,7 +149,7 @@
 
 @if (Model.SelectedStudentId is not null)
 {
-    <h2>@Model.SelectedStudentName (#@Model.SelectedStudentId)</h2>
+    <h2>@Model.SelectedStudentName</h2>
     <p class="text-muted">@T["Guardians"]: @(Model.SelectedStudentGuardianNames.Count > 0 ? string.Join(", ", Model.SelectedStudentGuardianNames) : T["None"].Value)</p>
 
     @if (!Model.SelectedStudentHasLevel)
@@ -180,7 +180,7 @@
                                 <h5 class="card-title">@p.CourseName — @p.LevelCode</h5>
                                 <p class="card-text">
                                     @T["SessionType." + p.SessionType] · @p.SessionsCount @T["Sessions"] · @p.MinutesTotal @T["Minutes"]<br />
-                                    <strong>@p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</strong>
+                                    <strong>@T.Money(p.Amount, p.Currency)</strong>
                                 </p>
                                 <form method="post" asp-page-handler="Purchase">
                                     <input type="hidden" name="Purchase.StudentId" value="@Model.SelectedStudentId" />
@@ -202,16 +202,16 @@
         {
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">@T["Package request"] #@d.Id</h5>
+                    <h5 class="card-title">@T["Package request"] — @T.Money(d.Price, d.Currency)</h5>
                     <dl class="row small mb-2">
                         <dt class="col-sm-3">@T["Package price"]</dt>
-                        <dd class="col-sm-9">@d.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @d.Currency</dd>
+                        <dd class="col-sm-9">@T.Money(d.Price, d.Currency)</dd>
                         @if (d.ConfirmedReceived > 0)
                         {
                             <dt class="col-sm-3">@T["Confirmed received"]</dt>
-                            <dd class="col-sm-9">@d.ConfirmedReceived.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @d.Currency</dd>
+                            <dd class="col-sm-9">@T.Money(d.ConfirmedReceived, d.Currency)</dd>
                             <dt class="col-sm-3">@T["Remaining owed"]</dt>
-                            <dd class="col-sm-9 fw-bold">@d.RemainingOwed.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @d.Currency</dd>
+                            <dd class="col-sm-9 fw-bold">@T.Money(d.RemainingOwed, d.Currency)</dd>
                         }
                     </dl>
                     @if (d.ConfirmedReceived > 0)
@@ -227,7 +227,7 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label small mb-0">@T["Currency"]</label>
-                            <input type="text" name="currency" value="@d.Currency" class="form-control form-control-sm" />
+                            <input type="text" name="currency" value="@d.Currency" class="form-control form-control-sm" readonly aria-readonly="true" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small mb-0">@T["Method type"]</label>
@@ -277,10 +277,10 @@
                         <tr>
                             <td>@p.ReferenceCode</td>
                             <td>
-                                @p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency
+                                @T.Money(p.Amount, p.Currency)
                                 @if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount < p.Amount)
                                 {
-                                    <br /><span class="badge bg-warning text-dark">@T["Remaining owed"]: @((p.Amount - p.ReceivedAmount.Value).ToString("N3", System.Globalization.CultureInfo.InvariantCulture)) @p.Currency</span>
+                                    <br /><span class="app-status is-warning">@T["Remaining owed"]: @T.Money(p.Amount - p.ReceivedAmount.Value, p.Currency)</span>
                                 }
                             </td>
                             <td>@T["PaymentMethod." + p.Method]</td>

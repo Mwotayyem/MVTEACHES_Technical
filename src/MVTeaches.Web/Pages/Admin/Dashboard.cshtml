@@ -4,52 +4,108 @@
     ViewData["Title"] = T["Dashboard"].Value;
 }
 
-<h1>@T["Dashboard"]</h1>
-<p class="text-muted">@T["Live counts, read directly from the database — nothing here is cached or precomputed."]</p>
+<div class="app-page-head">
+    <div>
+        <h1>@T["Dashboard"]</h1>
+        <p class="text-muted">@T["Live counts, read directly from the database — nothing here is cached or precomputed."]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["Students"]</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Schedules">@T["Schedules"]</a>
+        <a class="btn btn-primary btn-sm" asp-page="/Admin/AssistedRegistration">@T["Assisted Registration"]</a>
+    </div>
+</div>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
+<h2 class="h4">@T["Waiting for you"] @if (Model.TotalWaiting > 0) { <span class="app-status is-warning">@Model.TotalWaiting</span> }</h2>
+<p class="text-muted small">@T["Everything below is a queue: open it and the number goes down. An empty row means nothing is waiting."]</p>
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3 mb-4">
     <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">@T["Active students"]</h5>
-                <p class="card-text display-6">@Model.ActiveStudents</p>
-            </div>
-        </div>
+        <a class="app-kpi @(Model.PaymentsAwaitingConfirmation > 0 ? "is-attention" : "")" asp-page="/Admin/Payments">
+            <span class="app-kpi-label">@T["Payments awaiting confirmation"]</span>
+            <span class="app-kpi-value">@Model.PaymentsAwaitingConfirmation</span>
+            <span class="app-kpi-hint">@T["Confirm the money actually arrived, then the package activates."]</span>
+        </a>
     </div>
     <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">@T["Active teachers"]</h5>
-                <p class="card-text display-6">@Model.ActiveTeachers</p>
-            </div>
-        </div>
+        <a class="app-kpi @(Model.PackagesAwaitingPayment > 0 ? "is-attention" : "")" asp-page="/Admin/Payments">
+            <span class="app-kpi-label">@T["Packages awaiting payment"]</span>
+            <span class="app-kpi-value">@Model.PackagesAwaitingPayment</span>
+            <span class="app-kpi-hint">@T["Purchased but still a draft — inactive until its payment is confirmed."]</span>
+        </a>
     </div>
     <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">@T["Sessions today (UTC)"]</h5>
-                <p class="card-text display-6">@Model.SessionsToday</p>
-            </div>
-        </div>
+        <a class="app-kpi @(Model.ReplacementRequestsAwaitingReview > 0 ? "is-attention" : "")" asp-page="/Admin/CompensationRequests">
+            <span class="app-kpi-label">@T["Replacement requests to review"]</span>
+            <span class="app-kpi-value">@Model.ReplacementRequestsAwaitingReview</span>
+            <span class="app-kpi-hint">@T["A student asked for a make-up lesson after a no-show."]</span>
+        </a>
     </div>
     <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">@T["Open payroll periods"]</h5>
-                <p class="card-text display-6">@Model.OpenPayrollPeriods</p>
-            </div>
-        </div>
+        <a class="app-kpi @(Model.DeliveriesAwaitingVerification > 0 ? "is-attention" : "")" asp-page="/Admin/Payroll">
+            <span class="app-kpi-label">@T["Teacher deliveries to verify"]</span>
+            <span class="app-kpi-value">@Model.DeliveriesAwaitingVerification</span>
+            <span class="app-kpi-hint">@T["A teacher declared a delivered session; a different admin must verify it."]</span>
+        </a>
     </div>
     <div class="col">
-        <div class="card @(Model.UnresolvedScheduleConflicts > 0 ? "border-warning" : "")">
-            <div class="card-body">
-                <h5 class="card-title">@T["Unresolved schedule conflicts"]</h5>
-                <p class="card-text display-6">@Model.UnresolvedScheduleConflicts</p>
-                @if (Model.UnresolvedScheduleConflicts > 0)
-                {
-                    <p class="card-text text-warning small">@T["A teacher-overlap or time-off collision the schedule generator could not resolve on its own."]</p>
-                }
-            </div>
-        </div>
+        <a class="app-kpi @(Model.StudentsAwaitingVerification > 0 ? "is-attention" : "")" asp-page="/Admin/Students">
+            <span class="app-kpi-label">@T["Students awaiting verification"]</span>
+            <span class="app-kpi-value">@Model.StudentsAwaitingVerification</span>
+            <span class="app-kpi-hint">@T["Registered but not yet marked verified."]</span>
+        </a>
+    </div>
+    <div class="col">
+        <a class="app-kpi @(Model.StudentsWithoutLevel > 0 ? "is-attention" : "")" asp-page="/Admin/Students">
+            <span class="app-kpi-label">@T["Students with no level yet"]</span>
+            <span class="app-kpi-value">@Model.StudentsWithoutLevel</span>
+            <span class="app-kpi-hint">@T["No package can be purchased until a level is assigned."]</span>
+        </a>
+    </div>
+</div>
+
+<h2 class="h4">@T["The school right now"]</h2>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+    <div class="col">
+        <a class="app-kpi" asp-page="/Admin/Students">
+            <span class="app-kpi-label">@T["Active students"]</span>
+            <span class="app-kpi-value">@Model.ActiveStudents</span>
+            <span class="app-kpi-hint">@T["Verified, with a level assigned."]</span>
+        </a>
+    </div>
+    <div class="col">
+        <a class="app-kpi" asp-page="/Admin/Teachers">
+            <span class="app-kpi-label">@T["Active teachers"]</span>
+            <span class="app-kpi-value">@Model.ActiveTeachers</span>
+            <span class="app-kpi-hint">@T["Available to be scheduled."]</span>
+        </a>
+    </div>
+    <div class="col">
+        <a class="app-kpi" asp-page="/Admin/Schedules">
+            <span class="app-kpi-label">@T["Sessions today"]</span>
+            <span class="app-kpi-value">@Model.SessionsToday</span>
+            <span class="app-kpi-hint">@T["Counted over the UTC calendar day."]</span>
+        </a>
+    </div>
+    <div class="col">
+        <a class="app-kpi" asp-page="/Admin/Payroll">
+            <span class="app-kpi-label">@T["Open payroll periods"]</span>
+            <span class="app-kpi-value">@Model.OpenPayrollPeriods</span>
+            <span class="app-kpi-hint">@T["Still accepting verified deliveries."]</span>
+        </a>
+    </div>
+    <div class="col">
+        <a class="app-kpi @(Model.UnresolvedScheduleConflicts > 0 ? "is-attention" : "")" asp-page="/Admin/Schedules">
+            <span class="app-kpi-label">@T["Unresolved schedule conflicts"]</span>
+            <span class="app-kpi-value">@Model.UnresolvedScheduleConflicts</span>
+            <span class="app-kpi-hint">@T["A teacher-overlap or time-off collision the schedule generator could not resolve on its own."]</span>
+        </a>
+    </div>
+    <div class="col">
+        <a class="app-kpi" asp-page="/Admin/FinancialReport">
+            <span class="app-kpi-label">@T["Financial Report"]</span>
+            <span class="app-kpi-value">→</span>
+            <span class="app-kpi-hint">@T["Confirmed income, expenses, and payroll for a period."]</span>
+        </a>
     </div>
 </div>

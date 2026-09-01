@@ -22,6 +22,14 @@ namespace MVTeaches.Web.Pages.Admin;
 /// what staff already collect over the phone, driving the exact same Student/
 /// Guardian/Guardianship/StudentLevel domain state machines. Deliberately no
 /// edit/delete yet — only the forward moves the state machines themselves allow.
+///
+/// UI pass: every id the admin used to type by hand is now a named picker, and
+/// the required ids/dates are nullable so [Required] actually fires. Before
+/// this, an untouched &lt;select&gt; posted an empty string, ModelState.Clear()
+/// wiped the binding error, [Required] passed on a non-nullable long that had
+/// defaulted to 0, and the service was called with student id 0 (or a date of
+/// birth of 0001-01-01). Same fix and same reasoning as the one already
+/// documented in Teacher/PublishSlots.cshtml.cs.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
 public class StudentsModel : PageModel
@@ -64,6 +72,15 @@ public class StudentsModel : PageModel
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
+    /// <summary>A picker label: the student's own name plus what an admin needs
+    /// to tell two similar names apart — never the internal row id.</summary>
+    public string PickerLabel(StudentRow student)
+    {
+        var level = student.CurrentLevelCode ?? _localizer["No level"].Value;
+        var status = _localizer["StudentStatus." + student.Status].Value;
+        return $"{student.FullName} — {level} — {status}";
+    }
+
     public class RegisterGuardianInput
     {
         [Required, EmailAddress]
@@ -79,13 +96,13 @@ public class StudentsModel : PageModel
     public class RegisterStudentInput
     {
         [Required]
-        public int CountryId { get; set; }
+        public int? CountryId { get; set; }
 
         [Required]
         public string FullName { get; set; } = string.Empty;
 
         [Required]
-        public DateOnly DateOfBirth { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
 
         [EmailAddress]
         public string? LoginEmail { get; set; }
@@ -97,10 +114,10 @@ public class StudentsModel : PageModel
     public class LinkGuardianInput
     {
         [Required]
-        public long GuardianId { get; set; }
+        public long? GuardianId { get; set; }
 
         [Required]
-        public long StudentId { get; set; }
+        public long? StudentId { get; set; }
 
         [Required]
         public GuardianRelationship Relationship { get; set; }
@@ -111,10 +128,10 @@ public class StudentsModel : PageModel
     public class AssignLevelInput
     {
         [Required]
-        public long StudentId { get; set; }
+        public long? StudentId { get; set; }
 
         [Required]
-        public int LevelId { get; set; }
+        public int? LevelId { get; set; }
 
         [Required]
         public string Reason { get; set; } = string.Empty;
@@ -159,8 +176,9 @@ public class StudentsModel : PageModel
             return Page();
         }
 
-        var dob = new LocalDate(NewStudent.DateOfBirth.Year, NewStudent.DateOfBirth.Month, NewStudent.DateOfBirth.Day);
-        var result = await _admissions.RegisterStudentAsync(NewStudent.CountryId, NewStudent.FullName, dob,
+        var dateOfBirth = NewStudent.DateOfBirth!.Value;
+        var dob = new LocalDate(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day);
+        var result = await _admissions.RegisterStudentAsync(NewStudent.CountryId!.Value, NewStudent.FullName, dob,
             NewStudent.LoginEmail, NewStudent.LoginPassword, HttpContext.RequestAborted);
 
         if (result.Outcome == RegisterStudentOutcome.LoginFailed)
@@ -186,7 +204,8 @@ public class StudentsModel : PageModel
         }
 
         var actingUserId = GetCurrentUserId();
-        var result = await _admissions.LinkGuardianAsync(Link.GuardianId, Link.StudentId, Link.Relationship, Link.IsPrimary, actingUserId, HttpContext.RequestAborted);
+        var result = await _admissions.LinkGuardianAsync(Link.GuardianId!.Value, Link.StudentId!.Value, Link.Relationship,
+            Link.IsPrimary, actingUserId, HttpContext.RequestAborted);
 
         ErrorMessage = result.Outcome switch
         {
@@ -221,7 +240,8 @@ public class StudentsModel : PageModel
         }
 
         var actingUserId = GetCurrentUserId();
-        await _admissions.AssignLevelAsync(LevelAssignment.StudentId, LevelAssignment.LevelId, actingUserId, LevelAssignment.Reason, HttpContext.RequestAborted);
+        await _admissions.AssignLevelAsync(LevelAssignment.StudentId!.Value, LevelAssignment.LevelId!.Value, actingUserId,
+            LevelAssignment.Reason, HttpContext.RequestAborted);
         StatusMessage = _localizer["Level assigned."].Value;
         await LoadAsync();
         return Page();

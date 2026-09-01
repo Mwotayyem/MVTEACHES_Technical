@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.FinancialReportModel
 @{
     ViewData["Title"] = T["Financial Report"].Value;
@@ -30,7 +30,7 @@
 
 @if (Model.Report is { } report)
 {
-    <p class="text-muted">@T["{0} to {1} — cash-basis (confirmed payments by confirmation date), live from the database, nothing cached.", report.PeriodStart.ToString("yyyy-MM-dd", null), report.PeriodEnd.ToString("yyyy-MM-dd", null)]</p>
+    <p class="text-muted">@T["{0} to {1} — cash-basis (confirmed payments by confirmation date), live from the database, nothing cached.", T.Date(report.PeriodStart), T.Date(report.PeriodEnd)]</p>
 
     <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
         <div class="col">
@@ -46,7 +46,7 @@
                         <ul class="list-unstyled mb-0">
                             @foreach (var line in report.RevenueByCurrency)
                             {
-                                <li>@line.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @line.Currency</li>
+                                <li>@T.Money(line.Amount, line.Currency)</li>
                             }
                         </ul>
                     }
@@ -66,7 +66,7 @@
                         <ul class="list-unstyled mb-0">
                             @foreach (var line in report.PayrollCostByCurrency)
                             {
-                                <li>@line.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @line.Currency</li>
+                                <li>@T.Money(line.Amount, line.Currency)</li>
                             }
                         </ul>
                     }
@@ -117,7 +117,7 @@
                         <ul class="list-unstyled mb-0">
                             @foreach (var line in report.NetProfitByCurrency)
                             {
-                                <li class="@(line.Amount < 0 ? "text-danger" : "")">@line.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @line.Currency</li>
+                                <li class="@(line.Amount < 0 ? "text-danger" : "")">@T.Money(line.Amount, line.Currency)</li>
                             }
                         </ul>
                     }
@@ -129,7 +129,7 @@
     @if (Model.PreviousPeriodReport is { } previous)
     {
         <h2>@T["Month-over-month comparison"]</h2>
-        <p class="text-muted small">@T["Compared against the immediately preceding period of the same length ({0} to {1}).", previous.PeriodStart.ToString("yyyy-MM-dd", null), previous.PeriodEnd.ToString("yyyy-MM-dd", null)]</p>
+        <p class="text-muted small">@T["Compared against the immediately preceding period of the same length ({0} to {1}).", T.Date(previous.PeriodStart), T.Date(previous.PeriodEnd)]</p>
         <div class="table-responsive mb-4">
             <table class="table table-sm table-striped">
                 <thead><tr><th>@T["Currency"]</th><th>@T["Revenue (this period)"]</th><th>@T["Revenue (previous)"]</th><th>@T["Net profit (this period)"]</th><th>@T["Net profit (previous)"]</th></tr></thead>
@@ -145,10 +145,10 @@
                     {
                         <tr>
                             <td>@currency</td>
-                            <td>@(report.RevenueByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) ?? "0.000")</td>
-                            <td>@(previous.RevenueByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) ?? "0.000")</td>
-                            <td>@(report.NetProfitByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) ?? "0.000")</td>
-                            <td>@(previous.NetProfitByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) ?? "0.000")</td>
+                            <td>@T.Money(report.RevenueByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount ?? 0m, currency)</td>
+                            <td>@T.Money(previous.RevenueByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount ?? 0m, currency)</td>
+                            <td>@T.Money(report.NetProfitByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount ?? 0m, currency)</td>
+                            <td>@T.Money(previous.NetProfitByCurrency.FirstOrDefault(c => c.Currency == currency)?.Amount ?? 0m, currency)</td>
                         </tr>
                     }
                 </tbody>
@@ -170,8 +170,15 @@
             }
             <form method="post" asp-page-handler="RecordExpense" class="row g-2">
                 <div class="col-md-2">
-                    <label class="form-label" asp-for="NewExpense.CountryId">@T["Country Id"]</label>
-                    <input asp-for="NewExpense.CountryId" class="form-control" />
+                    <label class="form-label" asp-for="NewExpense.CountryId">@T["Country"]</label>
+                    <select asp-for="NewExpense.CountryId" class="form-select">
+                        <option value="">@T["Select placeholder"]</option>
+                        @foreach (var country in Model.Countries)
+                        {
+                            <option value="@country.Id">@Model.DisplayCountry(country)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NewExpense.CountryId" class="text-danger small"></span>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" asp-for="NewExpense.Category">@T["Category"]</label>
@@ -183,11 +190,18 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label" asp-for="NewExpense.Currency">@T["Currency"]</label>
-                    <input asp-for="NewExpense.Currency" class="form-control" placeholder="JOD" />
+                    <select asp-for="NewExpense.Currency" class="form-select">
+                        @foreach (var code in Model.Currencies)
+                        {
+                            <option value="@code">@code</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NewExpense.Currency" class="text-danger small"></span>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" asp-for="NewExpense.IncurredOn">@T["Incurred on"]</label>
                     <input asp-for="NewExpense.IncurredOn" type="date" class="form-control" />
+                    <span asp-validation-for="NewExpense.IncurredOn" class="text-danger small"></span>
                 </div>
                 <div class="col-md-8">
                     <label class="form-label" asp-for="NewExpense.Note">@T["Note (optional)"]</label>
@@ -208,11 +222,15 @@
                 @foreach (var e in Model.Expenses)
                 {
                     <tr>
-                        <td>@e.IncurredOn.ToString("yyyy-MM-dd", null)</td>
+                        <td>@T.Date(e.IncurredOn)</td>
                         <td>@e.Category</td>
-                        <td>@e.Amount.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @e.Amount.Currency</td>
+                        <td>@T.Money(e.Amount.Amount, e.Amount.Currency)</td>
                         <td>@e.Note</td>
                     </tr>
+                }
+                @if (Model.Expenses.Count == 0)
+                {
+                    <tr><td colspan="4" class="text-muted">@T["No operating expense recorded in this range."]</td></tr>
                 }
             </tbody>
         </table>

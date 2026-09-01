@@ -8,6 +8,7 @@ using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -41,13 +42,13 @@ public class CompensationRequestsModel : PageModel
     }
 
     public record PendingRequestRow(long RequestId, long StudentId, string StudentName, string LevelCode,
-        long OriginalSessionId, Instant OriginalSessionStartsAtUtc, string? Reason, Instant RequestedAtUtc,
-        IReadOnlyList<SessionOption> CandidateReplacementSessions);
+        long OriginalSessionId, Instant OriginalSessionStartsAtUtc, string OriginalSessionTimeZone, string? Reason,
+        Instant RequestedAtUtc, IReadOnlyList<SessionOption> CandidateReplacementSessions);
 
     public record SessionOption(long Id, string Label);
 
-    public record ResolvedRequestRow(long RequestId, string StudentName, CompensationRequestStatus Status,
-        Instant? ReplacementStartsAtUtc, string? RejectionReason);
+    public record ResolvedRequestRow(long RequestId, long StudentId, string StudentName, CompensationRequestStatus Status,
+        Instant? ReplacementStartsAtUtc, string? ReplacementTimeZone, string? RejectionReason);
 
     public IReadOnlyList<PendingRequestRow> PendingRequests { get; set; } = Array.Empty<PendingRequestRow>();
     public IReadOnlyList<ResolvedRequestRow> RecentlyResolved { get; set; } = Array.Empty<ResolvedRequestRow>();
@@ -134,7 +135,8 @@ public class CompensationRequestsModel : PageModel
                 .Take(50)
                 .ToListAsync();
             candidatesByLevel[levelId] = sessions
-                .Select(s => new SessionOption(s.Id, $"#{s.Id} — {s.StartsAtUtc} ({s.Capacity - s.SeatsTaken} seats left)"))
+                .Select(s => new SessionOption(s.Id,
+                    $"{_localizer.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone)} — {_localizer["{0} seats left", s.Capacity - s.SeatsTaken].Value}"))
                 .ToList();
         }
 
@@ -142,8 +144,9 @@ public class CompensationRequestsModel : PageModel
         {
             var original = originalSessions.GetValueOrDefault(r.OriginalSessionId);
             var levelId = original?.LevelId ?? 0;
-            return new PendingRequestRow(r.Id, r.StudentId, students.GetValueOrDefault(r.StudentId, $"#{r.StudentId}"),
+            return new PendingRequestRow(r.Id, r.StudentId, students.GetValueOrDefault(r.StudentId, string.Empty),
                 levelCodes.GetValueOrDefault(levelId, "?"), r.OriginalSessionId, original?.StartsAtUtc ?? default,
+                original?.ScheduleTimeZone ?? string.Empty,
                 r.Reason, r.RequestedAtUtc, candidatesByLevel.GetValueOrDefault(levelId, new List<SessionOption>()));
         }).ToList();
 
@@ -155,11 +158,17 @@ public class CompensationRequestsModel : PageModel
         var resolvedStudentIds = resolved.Select(r => r.StudentId).Distinct().ToList();
         var resolvedStudents = await _db.Students.Where(s => resolvedStudentIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, s => s.FullName);
         var replacementIds = resolved.Where(r => r.ReplacementSessionId.HasValue).Select(r => r.ReplacementSessionId!.Value).ToList();
-        var replacementStarts = await _db.ClassSessions.Where(s => replacementIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, s => s.StartsAtUtc);
+        var replacements = await _db.ClassSessions.Where(s => replacementIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => new { s.StartsAtUtc, s.ScheduleTimeZone });
 
-        RecentlyResolved = resolved.Select(r => new ResolvedRequestRow(
-            r.Id, resolvedStudents.GetValueOrDefault(r.StudentId, $"#{r.StudentId}"), r.Status,
-            r.ReplacementSessionId.HasValue ? replacementStarts.GetValueOrDefault(r.ReplacementSessionId.Value) : null,
-            r.RejectionReason)).ToList();
+        RecentlyResolved = resolved.Select(r =>
+        {
+            var replacement = r.ReplacementSessionId.HasValue
+                ? replacements.GetValueOrDefault(r.ReplacementSessionId.Value)
+                : null;
+            return new ResolvedRequestRow(
+                r.Id, r.StudentId, resolvedStudents.GetValueOrDefault(r.StudentId, string.Empty), r.Status,
+                replacement?.StartsAtUtc, replacement?.ScheduleTimeZone, r.RejectionReason);
+        }).ToList();
     }
 }

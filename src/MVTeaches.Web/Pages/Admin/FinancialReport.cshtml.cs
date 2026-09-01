@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -27,14 +27,17 @@ public class FinancialReportModel : PageModel
     private readonly IOperatingExpenseService _expenses;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly MVTeaches.Infrastructure.Persistence.MvTeachesDbContext _db;
 
     public FinancialReportModel(IFinancialReportService reports, IOperatingExpenseService expenses,
-        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer,
+        MVTeaches.Infrastructure.Persistence.MvTeachesDbContext db)
     {
         _reports = reports;
         _expenses = expenses;
         _userManager = userManager;
         _localizer = localizer;
+        _db = db;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -53,6 +56,18 @@ public class FinancialReportModel : PageModel
 
     public IReadOnlyList<OperatingExpense> Expenses { get; set; } = Array.Empty<OperatingExpense>();
 
+    /// <summary>The expense form used to ask for a raw "Country Id" and a
+    /// typed currency code; both are now picked from configured data.</summary>
+    public IReadOnlyList<MVTeaches.Domain.Catalog.Country> Countries { get; set; } =
+        Array.Empty<MVTeaches.Domain.Catalog.Country>();
+
+    public IReadOnlyList<string> Currencies { get; set; } = Array.Empty<string>();
+
+    public bool IsArabic => System.Globalization.CultureInfo.CurrentUICulture
+        .TwoLetterISOLanguageName.Equals("ar", StringComparison.OrdinalIgnoreCase);
+
+    public string DisplayCountry(MVTeaches.Domain.Catalog.Country country) => IsArabic ? country.NameAr : country.NameEn;
+
     [BindProperty]
     public NewExpenseInput NewExpense { get; set; } = new();
 
@@ -61,11 +76,13 @@ public class FinancialReportModel : PageModel
 
     public class NewExpenseInput
     {
-        [Required] public int CountryId { get; set; }
+        // Nullable so [Required] actually fires — a non-nullable int/DateOnly
+        // silently passes validation as 0 / 0001-01-01.
+        [Required] public int? CountryId { get; set; }
         [Required] public string Category { get; set; } = string.Empty;
         [Required, Range(0.001, double.MaxValue)] public decimal Amount { get; set; }
         [Required, StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
-        [Required] public DateOnly IncurredOn { get; set; }
+        [Required] public DateOnly? IncurredOn { get; set; }
         public string? Note { get; set; }
     }
 
@@ -81,8 +98,9 @@ public class FinancialReportModel : PageModel
         }
 
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
-        var incurredOn = new LocalDate(NewExpense.IncurredOn.Year, NewExpense.IncurredOn.Month, NewExpense.IncurredOn.Day);
-        var result = await _expenses.RecordAsync(NewExpense.CountryId, NewExpense.Category,
+        var incurred = NewExpense.IncurredOn!.Value;
+        var incurredOn = new LocalDate(incurred.Year, incurred.Month, incurred.Day);
+        var result = await _expenses.RecordAsync(NewExpense.CountryId!.Value, NewExpense.Category,
             new Money(NewExpense.Amount, NewExpense.Currency), incurredOn, NewExpense.Note, actingUserId, HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome == RecordExpenseOutcome.Recorded ? _localizer["Expense recorded."].Value : null;
@@ -99,6 +117,10 @@ public class FinancialReportModel : PageModel
 
     private async Task LoadAsync()
     {
+        Countries = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            _db.Countries.Where(c => c.IsActive).OrderBy(c => c.Id));
+        Currencies = Countries.Select(c => c.CurrencyCode).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
         if (From == default || To == default)
         {
             // Default to the current UTC calendar month on first load.

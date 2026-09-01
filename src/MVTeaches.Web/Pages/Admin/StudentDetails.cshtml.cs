@@ -43,6 +43,14 @@ public class StudentDetailsModel : PageModel
     // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Student namespace.
     public MVTeaches.Domain.People.Student? Student { get; set; }
     public string? CountryName { get; set; }
+
+    /// <summary>Header facts an admin asks for first, all derived from the rows
+    /// already loaded below — no stored summary, no new field.</summary>
+    public string? CurrentLevelCode { get; set; }
+
+    public int RemainingMinutesOnActivePackages { get; set; }
+
+    public string? PrimaryGuardianName { get; set; }
     public IReadOnlyList<GuardianRow> Guardians { get; set; } = Array.Empty<GuardianRow>();
     public IReadOnlyList<LevelHistoryRow> LevelHistory { get; set; } = Array.Empty<LevelHistoryRow>();
     public IReadOnlyList<SubscriptionRow> Subscriptions { get; set; } = Array.Empty<SubscriptionRow>();
@@ -83,6 +91,13 @@ public class StudentDetailsModel : PageModel
                 sub.Origin, balance, sub.ExpiresOn));
         }
         Subscriptions = subRows;
+
+        CurrentLevelCode = LevelHistory.FirstOrDefault(l => l.IsCurrent)?.LevelCode;
+        RemainingMinutesOnActivePackages = subRows
+            .Where(s => s.Status == SubscriptionStatus.Active)
+            .Sum(s => s.BalanceMinutes);
+        PrimaryGuardianName = Guardians.FirstOrDefault(g => g.IsPrimary)?.FullName
+                              ?? Guardians.FirstOrDefault()?.FullName;
 
         var payments = await _db.Payments.Where(p => p.StudentId == id).OrderByDescending(p => p.Id).ToListAsync();
         Payments = payments.Select(p => new PaymentRow(p.Id, p.Amount.Amount, p.Amount.Currency, p.Method, p.Status,

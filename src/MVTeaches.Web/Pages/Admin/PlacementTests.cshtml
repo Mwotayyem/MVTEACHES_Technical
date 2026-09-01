@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.PlacementTestsModel
 @using MVTeaches.Domain.Placement
 @{
@@ -80,7 +80,7 @@
 
 @if (Model.EditingVersion is not null)
 {
-    <h2>@T["Editing:"] @Model.EditingVersion.Title (#@Model.EditingVersion.Id, @T["PlacementTestStatus." + Model.EditingVersion.Status])</h2>
+    <h2>@T["Editing:"] @Model.EditingVersion.Title <span class="app-status is-info">@T["PlacementTestStatus." + Model.EditingVersion.Status]</span></h2>
 
     @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
     {
@@ -239,7 +239,7 @@
                 <tr>
                     <td>@r.Id</td>
                     <td>@Model.StudentNamesById.GetValueOrDefault(r.StudentId, $"#{r.StudentId}")</td>
-                    <td>@r.RequestedAtUtc.ToString()</td>
+                    <td>@T.DateTimeUtc(r.RequestedAtUtc)</td>
                     <td>
                         <form method="post" asp-page-handler="ApproveRetake" class="d-inline">
                             <input type="hidden" name="retakeRequestId" value="@r.Id" />

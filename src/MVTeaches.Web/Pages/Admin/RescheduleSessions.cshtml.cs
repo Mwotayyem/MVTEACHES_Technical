@@ -9,6 +9,7 @@ using MVTeaches.Application.Scheduling;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -50,7 +51,11 @@ public class RescheduleSessionsModel : PageModel
         _localizer = localizer;
     }
 
-    public record SessionOption(long Id, string Label);
+    /// <summary><paramref name="EnrolledStudentIds"/> lets the page narrow the
+    /// "original session" list to the sessions the picked student is actually
+    /// enrolled in — the same list, filtered client-side, never a different
+    /// query and never a rule about what may be chosen.</summary>
+    public record SessionOption(long Id, string Label, string EnrolledStudentIds);
 
     public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
     public IReadOnlyList<SessionOption> Sessions { get; set; } = Array.Empty<SessionOption>();
@@ -64,18 +69,21 @@ public class RescheduleSessionsModel : PageModel
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
+    // Nullable so [Required] actually fires on an untouched picker: on a
+    // non-nullable long the empty post binds to 0, ModelState.Clear() drops the
+    // binding error, and the service is called with session id 0.
     public class RescheduleInput
     {
-        [Required] public long StudentId { get; set; }
-        [Required] public long OriginalSessionId { get; set; }
-        [Required] public long ReplacementSessionId { get; set; }
+        [Required] public long? StudentId { get; set; }
+        [Required] public long? OriginalSessionId { get; set; }
+        [Required] public long? ReplacementSessionId { get; set; }
     }
 
     public class ApproveInput
     {
-        [Required] public long StudentId { get; set; }
-        [Required] public long OriginalSessionId { get; set; }
-        [Required] public long ReplacementSessionId { get; set; }
+        [Required] public long? StudentId { get; set; }
+        [Required] public long? OriginalSessionId { get; set; }
+        [Required] public long? ReplacementSessionId { get; set; }
     }
 
     public async Task OnGetAsync() => await LoadAsync();
@@ -91,7 +99,8 @@ public class RescheduleSessionsModel : PageModel
 
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
         var result = await _enrollments.RescheduleUnattendedEnrollmentAsync(
-            Reschedule.OriginalSessionId, Reschedule.ReplacementSessionId, Reschedule.StudentId, actingUserId, HttpContext.RequestAborted);
+            Reschedule.OriginalSessionId!.Value, Reschedule.ReplacementSessionId!.Value, Reschedule.StudentId!.Value,
+            actingUserId, HttpContext.RequestAborted);
 
         if (result.Outcome == RescheduleOutcome.Rescheduled)
         {
@@ -126,7 +135,8 @@ public class RescheduleSessionsModel : PageModel
 
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
         var result = await _enrollments.ApproveReplacementLessonAsync(
-            Approve.OriginalSessionId, Approve.ReplacementSessionId, Approve.StudentId, actingUserId, HttpContext.RequestAborted);
+            Approve.OriginalSessionId!.Value, Approve.ReplacementSessionId!.Value, Approve.StudentId!.Value,
+            actingUserId, HttpContext.RequestAborted);
 
         if (result.Outcome == ApproveReplacementOutcome.Approved)
         {
@@ -155,7 +165,7 @@ public class RescheduleSessionsModel : PageModel
 
     private async Task LoadAsync()
     {
-        Students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
+        Students = await _db.Students.OrderBy(s => s.FullName).Take(200).ToListAsync();
 
         var now = _clock.GetCurrentInstant();
         var window = now.Minus(Duration.FromDays(30));
@@ -164,6 +174,26 @@ public class RescheduleSessionsModel : PageModel
             .OrderByDescending(s => s.StartsAtUtc)
             .Take(200)
             .ToListAsync();
-        Sessions = sessions.Select(s => new SessionOption(s.Id, $"#{s.Id} — {s.StartsAtUtc} ({s.Status})")).ToList();
+
+        var sessionIds = sessions.Select(s => s.Id).ToList();
+        var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
+        var teacherNames = await _db.Teachers.ToDictionaryAsync(t => t.Id, t => t.FullName);
+        var enrolledBySession = (await _db.SessionEnrollments
+                .Where(e => sessionIds.Contains(e.SessionId) && e.State == EnrollmentState.Active)
+                .Select(e => new { e.SessionId, e.StudentId })
+                .ToListAsync())
+            .GroupBy(e => e.SessionId)
+            .ToDictionary(g => g.Key, g => string.Join(",", g.Select(e => e.StudentId).Distinct()));
+
+        Sessions = sessions.Select(s => new SessionOption(
+            s.Id,
+            string.Join(" · ", new[]
+            {
+                _localizer.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone),
+                levelCodes.GetValueOrDefault(s.LevelId, "?"),
+                teacherNames.GetValueOrDefault(s.TeacherId, string.Empty),
+                _localizer["ClassSessionStatus." + s.Status].Value,
+            }.Where(part => !string.IsNullOrWhiteSpace(part))),
+            enrolledBySession.GetValueOrDefault(s.Id, string.Empty))).ToList();
     }
 }

@@ -11,10 +11,35 @@
     string SessionTypeLabel(SessionType value) => T[$"SessionType.{value}"].Value;
     string OriginLabel(SubscriptionOrigin value) => T[$"SubscriptionOrigin.{value}"].Value;
     string StatusLabel(SubscriptionStatus value) => T[$"SubscriptionStatus.{value}"].Value;
+
+    string StatusClass(SubscriptionStatus value) => value switch
+    {
+        SubscriptionStatus.Active => "app-status is-success",
+        SubscriptionStatus.Draft => "app-status is-warning",
+        SubscriptionStatus.Cancelled or SubscriptionStatus.Expired => "app-status is-danger",
+        _ => "app-status is-muted",
+    };
 }
 
-<h1>@T["Pricing plans and subscriptions"]</h1>
-<p class="text-muted">@T["Subscriptions page intro"] <a asp-page="/Admin/Payments">@T["Payments"]</a>.</p>
+<div class="app-page-head">
+    <div>
+        <h1>@T["Pricing plans and subscriptions"]</h1>
+        <p class="text-muted">@T["Subscriptions page intro"] <a asp-page="/Admin/Payments">@T["Payments"]</a>.</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["Students"]</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Payments">@T["Payments"]</a>
+    </div>
+</div>
+
+@if (Model.FilterStudentId is not null)
+{
+    <div class="alert alert-info d-flex flex-wrap gap-2 align-items-center" role="status">
+        <span>@T["Showing only:"] <strong>@(Model.FilterStudentName ?? T["Not specified"].Value)</strong></span>
+        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Subscriptions">@T["Show everyone"]</a>
+        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/StudentDetails" asp-route-id="@Model.FilterStudentId">@T["Open student profile"]</a>
+    </div>
+}
 
 @if (Model.StatusMessage is not null)
 {
@@ -24,13 +49,22 @@
 {
     <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
 }
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
+}
 
 <div class="row g-4 mb-4">
-    <div class="col-md-6">
+    <div class="col-lg-6">
         <div class="card h-100">
             <div class="card-body">
                 <h2 class="card-title h5">@T["Create a pricing plan"]</h2>
+                <p class="text-muted small">@T["A plan is the published price list a package is bought from."]</p>
                 <form method="post" asp-page-handler="CreatePlan">
+                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
                     <div class="row g-2">
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.CountryId">@T["Country"]</label>
@@ -41,6 +75,7 @@
                                     <option value="@c.Id">@Model.DisplayCountry(c) (@c.CurrencyCode)</option>
                                 }
                             </select>
+                            <span asp-validation-for="NewPlan.CountryId" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.CourseId">@T["Course"]</label>
@@ -51,6 +86,7 @@
                                     <option value="@c.Id">@Model.DisplayCourse(c)</option>
                                 }
                             </select>
+                            <span asp-validation-for="NewPlan.CourseId" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.LevelId">@T["Level optional"]</label>
@@ -73,23 +109,35 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.SessionsCount">@T["Sessions"]</label>
-                            <input asp-for="NewPlan.SessionsCount" class="form-control" />
+                            <input asp-for="NewPlan.SessionsCount" class="form-control" inputmode="numeric" />
+                            <span asp-validation-for="NewPlan.SessionsCount" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.MinutesTotal">@T["Minutes total"]</label>
-                            <input asp-for="NewPlan.MinutesTotal" class="form-control" />
+                            <input asp-for="NewPlan.MinutesTotal" class="form-control" inputmode="numeric" />
+                            <div class="form-text">@T["Total teaching minutes the package buys."]</div>
+                            <span asp-validation-for="NewPlan.MinutesTotal" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.Amount">@T["Amount"]</label>
-                            <input asp-for="NewPlan.Amount" class="form-control" />
+                            <input asp-for="NewPlan.Amount" class="form-control" inputmode="decimal" />
+                            <span asp-validation-for="NewPlan.Amount" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.Currency">@T["Currency"]</label>
-                            <input asp-for="NewPlan.Currency" class="form-control" placeholder="JOD" />
+                            <select asp-for="NewPlan.Currency" class="form-select">
+                                @foreach (var code in Model.Currencies)
+                                {
+                                    <option value="@code">@code</option>
+                                }
+                            </select>
+                            <span asp-validation-for="NewPlan.Currency" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.ValidityDays">@T["Validity days"]</label>
-                            <input asp-for="NewPlan.ValidityDays" class="form-control" />
+                            <input asp-for="NewPlan.ValidityDays" class="form-control" inputmode="numeric" />
+                            <div class="form-text">@T["How long the package stays usable after it activates."]</div>
+                            <span asp-validation-for="NewPlan.ValidityDays" class="text-danger small"></span>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary mt-3">@T["Create plan"]</button>
@@ -98,35 +146,43 @@
         </div>
     </div>
 
-    <div class="col-md-6 d-flex flex-column gap-4">
+    <div class="col-lg-6 d-flex flex-column gap-4">
         <div class="card">
             <div class="card-body">
                 <h2 class="card-title h5">@T["Purchase a subscription from a plan"]</h2>
+                <p class="text-muted small">@T["Creates a draft package. It activates only when its payment is confirmed."]</p>
                 <form method="post" asp-page-handler="Purchase" class="row g-2">
-                    <div class="col-6">
+                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
+                    <div class="col-md-6">
                         <label class="form-label" asp-for="Purchase.StudentId">@T["Student"]</label>
-                        <select asp-for="Purchase.StudentId" class="form-select">
+                        <input type="search" class="form-control mb-1" data-mv-select-filter="#purchaseStudent"
+                               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                        <select asp-for="Purchase.StudentId" id="purchaseStudent" class="form-select">
                             <option value="">@T["Select placeholder"]</option>
                             @foreach (var s in Model.Students)
                             {
-                                <option value="@s.Id">@s.FullName (#@s.Id)</option>
+                                <option value="@s.Id">@s.FullName</option>
                             }
                         </select>
+                        <span asp-validation-for="Purchase.StudentId" class="text-danger small"></span>
                     </div>
-                    <div class="col-6">
+                    <div class="col-md-6">
                         <label class="form-label" asp-for="Purchase.PricingPlanId">@T["Plan"]</label>
-                        <select asp-for="Purchase.PricingPlanId" class="form-select">
+                        <input type="search" class="form-control mb-1" data-mv-select-filter="#purchasePlan"
+                               placeholder="@T["Search plans…"]" aria-label="@T["Search plans…"]" />
+                        <select asp-for="Purchase.PricingPlanId" id="purchasePlan" class="form-select">
                             <option value="">@T["Select placeholder"]</option>
                             @foreach (var p in Model.Plans)
                             {
-                                <option value="@p.Id">#@p.Id @p.CourseName @(p.LevelCode ?? Label("Any level")) - @p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</option>
+                                <option value="@p.Id">@p.CourseName · @(p.LevelCode ?? Label("Any level")) · @SessionTypeLabel(p.SessionType) · @p.SessionsCount @T["Sessions"] · @T.Money(p.Amount, p.Currency)</option>
                             }
                         </select>
+                        <span asp-validation-for="Purchase.PricingPlanId" class="text-danger small"></span>
                     </div>
                     @* Owner decision 2026-08-30 rule 4: the level is always the plan's own
                        level, matched server-side against the student's current level — there
                        is no field here for an admin to pick a different one. *@
-                    <div class="col-6">
+                    <div class="col-md-6">
                         <label class="form-label" asp-for="Purchase.Origin">@T["Origin"]</label>
                         <select asp-for="Purchase.Origin" class="form-select">
                             <option value="@SubscriptionOrigin.GuardianPurchase">@OriginLabel(SubscriptionOrigin.GuardianPurchase)</option>
@@ -143,18 +199,23 @@
         <div class="card">
             <div class="card-body">
                 <h2 class="card-title h5">@T["Grant a subscription free"]</h2>
+                <p class="text-muted small">@T["Activates immediately with no payment. The reason is kept on the record."]</p>
                 <form method="post" asp-page-handler="Grant" class="row g-2">
-                    <div class="col-6">
+                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
+                    <div class="col-md-6">
                         <label class="form-label" asp-for="Grant.StudentId">@T["Student"]</label>
-                        <select asp-for="Grant.StudentId" class="form-select">
+                        <input type="search" class="form-control mb-1" data-mv-select-filter="#grantStudent"
+                               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                        <select asp-for="Grant.StudentId" id="grantStudent" class="form-select">
                             <option value="">@T["Select placeholder"]</option>
                             @foreach (var s in Model.Students)
                             {
-                                <option value="@s.Id">@s.FullName (#@s.Id)</option>
+                                <option value="@s.Id">@s.FullName</option>
                             }
                         </select>
+                        <span asp-validation-for="Grant.StudentId" class="text-danger small"></span>
                     </div>
-                    <div class="col-6">
+                    <div class="col-md-6">
                         <label class="form-label" asp-for="Grant.CountryId">@T["Country"]</label>
                         <select asp-for="Grant.CountryId" class="form-select">
                             <option value="">@T["Select placeholder"]</option>
@@ -163,8 +224,9 @@
                                 <option value="@c.Id">@Model.DisplayCountry(c)</option>
                             }
                         </select>
+                        <span asp-validation-for="Grant.CountryId" class="text-danger small"></span>
                     </div>
-                    <div class="col-6">
+                    <div class="col-md-6">
                         <label class="form-label" asp-for="Grant.CourseId">@T["Course"]</label>
                         <select asp-for="Grant.CourseId" class="form-select">
                             <option value="">@T["Select placeholder"]</option>
@@ -173,8 +235,9 @@
                                 <option value="@c.Id">@Model.DisplayCourse(c)</option>
                             }
                         </select>
+                        <span asp-validation-for="Grant.CourseId" class="text-danger small"></span>
                     </div>
-                    <div class="col-6">
+                    <div class="col-md-6">
                         <label class="form-label" asp-for="Grant.LevelId">@T["Level"]</label>
                         <select asp-for="Grant.LevelId" class="form-select">
                             <option value="">@T["Select placeholder"]</option>
@@ -183,32 +246,35 @@
                                 <option value="@l.Id">@l.Code - @Model.DisplayLevel(l)</option>
                             }
                         </select>
+                        <span asp-validation-for="Grant.LevelId" class="text-danger small"></span>
                     </div>
-                    <div class="col-6">
+                    <div class="col-md-6">
                         <label class="form-label" asp-for="Grant.SessionType">@T["Session type"]</label>
                         <select asp-for="Grant.SessionType" class="form-select">
                             <option value="@SessionType.Group">@SessionTypeLabel(SessionType.Group)</option>
                             <option value="@SessionType.Private">@SessionTypeLabel(SessionType.Private)</option>
                         </select>
                     </div>
-                    <div class="col-4">
+                    <div class="col-md-2">
                         <label class="form-label" asp-for="Grant.SessionsCount">@T["Sessions"]</label>
-                        <input asp-for="Grant.SessionsCount" class="form-control" />
+                        <input asp-for="Grant.SessionsCount" class="form-control" inputmode="numeric" />
                     </div>
-                    <div class="col-4">
+                    <div class="col-md-2">
                         <label class="form-label" asp-for="Grant.MinutesTotal">@T["Minutes"]</label>
-                        <input asp-for="Grant.MinutesTotal" class="form-control" />
+                        <input asp-for="Grant.MinutesTotal" class="form-control" inputmode="numeric" />
                     </div>
-                    <div class="col-4">
+                    <div class="col-md-2">
                         <label class="form-label" asp-for="Grant.ValidityDays">@T["Validity days"]</label>
-                        <input asp-for="Grant.ValidityDays" class="form-control" />
+                        <input asp-for="Grant.ValidityDays" class="form-control" inputmode="numeric" />
                     </div>
                     <div class="col-12">
                         <label class="form-label" asp-for="Grant.Reason">@T["Reason mandatory"]</label>
                         <input asp-for="Grant.Reason" class="form-control" />
+                        <span asp-validation-for="Grant.Reason" class="text-danger small"></span>
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="btn btn-warning">@T["Grant free"]</button>
+                        <button type="submit" class="btn btn-warning"
+                                data-mv-confirm="@T["Grant this package for free, with no payment?"]">@T["Grant free"]</button>
                     </div>
                 </form>
             </div>
@@ -217,45 +283,72 @@
 </div>
 
 <h2>@T["Active plans"]</h2>
+<div class="app-toolbar">
+    <div class="app-search">
+        <input type="search" class="form-control" data-mv-filter="#plansTable"
+               placeholder="@T["Search plans…"]" aria-label="@T["Search plans…"]" />
+    </div>
+</div>
 <div class="table-responsive mb-4">
-    <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>@T["Country"]</th><th>@T["Course"]</th><th>@T["Level"]</th><th>@T["Type"]</th><th>@T["Sessions"]</th><th>@T["Minutes"]</th><th>@T["Price"]</th><th>@T["Validity"]</th></tr></thead>
+    <table class="table table-sm table-striped" id="plansTable">
+        <thead><tr><th>@T["Country"]</th><th>@T["Course"]</th><th>@T["Level"]</th><th>@T["Type"]</th><th>@T["Sessions"]</th><th>@T["Minutes"]</th><th>@T["Price"]</th><th>@T["Validity"]</th></tr></thead>
         <tbody>
             @foreach (var p in Model.Plans)
             {
                 <tr>
-                    <td>@p.Id</td>
                     <td>@p.CountryName</td>
                     <td>@p.CourseName</td>
                     <td>@(p.LevelCode ?? Label("Any level"))</td>
                     <td>@SessionTypeLabel(p.SessionType)</td>
                     <td>@p.SessionsCount</td>
-                    <td>@p.MinutesTotal</td>
-                    <td>@p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</td>
+                    <td>@T.Minutes(p.MinutesTotal)</td>
+                    <td>@T.Money(p.Amount, p.Currency)</td>
                     <td>@T["Days format", p.ValidityDays]</td>
                 </tr>
+            }
+            <tr data-mv-filter-empty="true" hidden>
+                <td colspan="8" class="text-muted">@T["No plan matches this search."]</td>
+            </tr>
+            @if (Model.Plans.Count == 0)
+            {
+                <tr><td colspan="8" class="text-muted">@T["No pricing plan yet — create the first one above."]</td></tr>
             }
         </tbody>
     </table>
 </div>
 
 <h2>@T["Recent subscriptions"]</h2>
+<div class="app-toolbar">
+    <div class="app-search">
+        <input type="search" class="form-control" data-mv-filter="#subscriptionsTable"
+               placeholder="@T["Search by student, level, or status…"]" aria-label="@T["Search by student, level, or status…"]" />
+    </div>
+</div>
 <div class="table-responsive">
-    <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>@T["Student"]</th><th>@T["Course and level"]</th><th>@T["Price"]</th><th>@T["Status"]</th><th>@T["Origin"]</th><th>@T["Balance minutes"]</th><th>@T["Expires"]</th></tr></thead>
+    <table class="table table-sm table-striped" id="subscriptionsTable">
+        <thead><tr><th>@T["Student"]</th><th>@T["Course and level"]</th><th>@T["Price"]</th><th>@T["Status"]</th><th>@T["Origin"]</th><th>@T["Remaining"]</th><th>@T["Expires"]</th><th>@T["Actions"]</th></tr></thead>
         <tbody>
             @foreach (var s in Model.RecentSubscriptions)
             {
                 <tr>
-                    <td>@s.Id</td>
-                    <td>@s.StudentName</td>
+                    <td><a asp-page="/Admin/StudentDetails" asp-route-id="@s.StudentId">@s.StudentName</a></td>
                     <td>@s.CourseName / @s.LevelCode</td>
-                    <td>@s.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @s.Currency</td>
-                    <td>@StatusLabel(s.Status)</td>
+                    <td>@T.Money(s.Price, s.Currency)</td>
+                    <td><span class="@StatusClass(s.Status)">@StatusLabel(s.Status)</span></td>
                     <td>@OriginLabel(s.Origin)</td>
-                    <td>@s.BalanceMinutes</td>
-                    <td>@s.ExpiresOn.ToString("yyyy-MM-dd", null)</td>
+                    <td>@T.Minutes(s.BalanceMinutes)</td>
+                    <td>@T.Date(s.ExpiresOn)</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments" asp-route-studentId="@s.StudentId">@T["Payments"]</a>
+                    </td>
                 </tr>
+            }
+            <tr data-mv-filter-empty="true" hidden>
+                <td colspan="8" class="text-muted">@T["No subscription matches this search."]</td>
+            </tr>
+            @if (Model.RecentSubscriptions.Count == 0)
+            {
+                <tr><td colspan="8" class="text-muted">@T["No subscriptions yet."]</td></tr>
             }
         </tbody>
     </table>

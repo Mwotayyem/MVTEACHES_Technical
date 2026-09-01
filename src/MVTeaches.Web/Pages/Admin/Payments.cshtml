@@ -7,57 +7,102 @@
 
 @functions {
     string Label(string key) => T[key].Value;
+
+    string StatusClass(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Confirmed => "app-status is-success",
+        PaymentStatus.Pending => "app-status is-warning",
+        PaymentStatus.Rejected or PaymentStatus.Failed => "app-status is-danger",
+        _ => "app-status is-muted",
+    };
 }
 
-<h1>@T["Payments"]</h1>
-<p class="text-muted">@T["Payments page intro"]</p>
+<div class="app-page-head">
+    <div>
+        <h1>@T["Payments"]</h1>
+        <p class="text-muted">@T["Payments page intro"]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Subscriptions">@T["Subscriptions"]</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/PaymentMethods">@T["Payment Methods"]</a>
+    </div>
+</div>
+
+@if (Model.FilterStudentId is not null)
+{
+    <div class="alert alert-info d-flex flex-wrap gap-2 align-items-center" role="status">
+        <span>@T["Showing only:"] <strong>@(Model.FilterStudentName ?? T["Not specified"].Value)</strong></span>
+        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments">@T["Show everyone"]</a>
+        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/StudentDetails" asp-route-id="@Model.FilterStudentId">@T["Open student profile"]</a>
+    </div>
+}
 
 @if (Model.StatusMessage is not null)
 {
-    <div class="alert alert-success">@Model.StatusMessage</div>
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
 }
 @if (Model.ErrorMessage is not null)
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
 }
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">@T["Record a manual package and payment"]</h5>
+        <h2 class="card-title h5">@T["Record a manual package and payment"]</h2>
         <p class="text-muted small mb-2">@T["Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package."]</p>
-        <form method="post" asp-page-handler="Record" class="row g-2 align-items-end">
-            <div class="col-auto">
+        <form method="post" asp-page-handler="Record" class="row g-3 align-items-start">
+            <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
+            <div class="col-md-4">
                 <label class="form-label" asp-for="NewPayment.StudentId">@T["Student"]</label>
-                <select asp-for="NewPayment.StudentId" class="form-select">
-                    <option value="">-- @T["select"] --</option>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#paymentStudent"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="NewPayment.StudentId" id="paymentStudent" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
                     @foreach (var student in Model.Students)
                     {
-                        <option value="@student.Id">@student.FullName (#@student.Id)</option>
+                        <option value="@student.Id">@student.FullName</option>
                     }
                 </select>
+                <span asp-validation-for="NewPayment.StudentId" class="text-danger small"></span>
             </div>
-            <div class="col-auto">
+            <div class="col-md-4">
                 <label class="form-label" asp-for="NewPayment.SubscriptionId">@T["Subscription (optional)"]</label>
                 <select asp-for="NewPayment.SubscriptionId" class="form-select">
-                    <option value="">-- @T["None"] --</option>
+                    <option value="">@T["None"]</option>
                     @foreach (var d in Model.DraftSubscriptions)
                     {
+                        var price = T.Money(d.Price, d.Currency);
                         var optionLabel = d.ConfirmedReceived > 0
-                            ? $"#{d.Id} {d.StudentName} — {Label("Package price")}: {d.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture)} {d.Currency} ({Label("Remaining owed")}: {d.RemainingOwed.ToString("N3", System.Globalization.CultureInfo.InvariantCulture)} {d.Currency})"
-                            : $"#{d.Id} {d.StudentName} — {d.Price.ToString("N3", System.Globalization.CultureInfo.InvariantCulture)} {d.Currency}";
+                            ? $"{d.StudentName} · {d.LevelCode} · {Label("Package price")}: {price} ({Label("Remaining owed")}: {T.Money(d.RemainingOwed, d.Currency)})"
+                            : $"{d.StudentName} · {d.LevelCode} · {price}";
                         <option value="@d.Id">@optionLabel</option>
                     }
                 </select>
+                <div class="form-text">@T["Attach the payment to the package it pays for — confirming it then activates that package."]</div>
             </div>
-            <div class="col-auto">
+            <div class="col-md-2">
                 <label class="form-label" asp-for="NewPayment.Amount">@T["Amount"]</label>
-                <input asp-for="NewPayment.Amount" class="form-control" />
+                <input asp-for="NewPayment.Amount" class="form-control" inputmode="decimal" />
+                <span asp-validation-for="NewPayment.Amount" class="text-danger small"></span>
             </div>
-            <div class="col-auto">
+            <div class="col-md-2">
                 <label class="form-label" asp-for="NewPayment.Currency">@T["Currency"]</label>
-                <input asp-for="NewPayment.Currency" class="form-control" placeholder="JOD" style="width:6rem" />
+                <select asp-for="NewPayment.Currency" class="form-select">
+                    @foreach (var code in Model.Currencies)
+                    {
+                        <option value="@code">@code</option>
+                    }
+                </select>
+                <span asp-validation-for="NewPayment.Currency" class="text-danger small"></span>
             </div>
-            <div class="col-auto">
+            <div class="col-md-3">
                 <label class="form-label" asp-for="NewPayment.Method">@T["Method type"]</label>
                 <select asp-for="NewPayment.Method" class="form-select">
                     @foreach (var value in Enum.GetValues<PaymentMethod>())
@@ -66,69 +111,86 @@
                     }
                 </select>
             </div>
-            <div class="col-auto">
+            <div class="col-12">
                 <button type="submit" class="btn btn-primary">@T["Record"]</button>
             </div>
         </form>
     </div>
 </div>
 
-<h2>@T["Awaiting confirmation"] (@Model.PendingPayments.Count)</h2>
+<h2>@T["Awaiting confirmation"] <span class="app-status @(Model.PendingPayments.Count > 0 ? "is-warning" : "is-muted")">@Model.PendingPayments.Count</span></h2>
 <div class="mb-4">
     @foreach (var p in Model.PendingPayments)
     {
         <div class="card mb-2">
             <div class="card-body">
-                <h5 class="card-title">
-                    @p.ReferenceCode — @p.StudentName — @p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency
-                    (@T["PaymentMethod." + p.Method])
-                </h5>
-                <p class="mb-1">
+                <h3 class="card-title h5 d-flex flex-wrap gap-2 align-items-center">
+                    <span class="app-ref">@p.ReferenceCode</span>
+                    <span>@p.StudentName</span>
+                    <span>@T.Money(p.Amount, p.Currency)</span>
+                    <span class="text-muted fw-normal">(@T["PaymentMethod." + p.Method])</span>
+                </h3>
+                <p class="mb-2">
                     @if (p.HasSubmittedTransferDetails)
                     {
-                        <span class="badge bg-info text-dark">@T["Under review"]</span>
+                        <span class="app-status is-info">@T["Under review"]</span>
                     }
                     else
                     {
-                        <span class="badge bg-warning text-dark">@T["Awaiting transfer"]</span>
+                        <span class="app-status is-warning">@T["Awaiting transfer"]</span>
                     }
                 </p>
                 @if (p.HasSubmittedTransferDetails)
                 {
                     <dl class="row small mb-2">
-                        <dt class="col-sm-2">@T["Payer name"]</dt><dd class="col-sm-4">@(p.PayerDisplayName ?? "—")</dd>
-                        <dt class="col-sm-2">@T["Transfer date"]</dt><dd class="col-sm-4">@(p.TransferDate?.ToString() ?? "—")</dd>
-                        <dt class="col-sm-2">@T["Bank reference number"]</dt><dd class="col-sm-4">@(p.BankReferenceNumber ?? "—")</dd>
-                        <dt class="col-sm-2">@T["Receipt"]</dt>
-                        <dd class="col-sm-4">
+                        <dt class="col-sm-3">@T["Payer name"]</dt><dd class="col-sm-3">@(p.PayerDisplayName ?? T["Not specified"].Value)</dd>
+                        <dt class="col-sm-3">@T["Transfer date"]</dt><dd class="col-sm-3">@T.Date(p.TransferDate)</dd>
+                        <dt class="col-sm-3">@T["Bank reference number"]</dt><dd class="col-sm-3">@(p.BankReferenceNumber ?? T["Not specified"].Value)</dd>
+                        <dt class="col-sm-3">@T["Receipt"]</dt>
+                        <dd class="col-sm-3">
                             @if (p.HasReceipt)
                             {
-                                <a asp-page="/Files/Receipt" asp-route-paymentId="@p.Id" target="_blank">@T["View receipt"]</a>
+                                <a asp-page="/Files/Receipt" asp-route-paymentId="@p.Id" target="_blank" rel="noopener">@T["View receipt"]</a>
                             }
                             else
                             {
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">@T["Not specified"]</span>
                             }
                         </dd>
                     </dl>
                 }
                 <form method="post" asp-page-handler="Confirm" class="row g-2 align-items-end mb-2">
+                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
                     <input type="hidden" name="paymentId" value="@p.Id" />
                     <div class="col-auto">
-                        <label class="form-label small mb-0">@T["Actually received amount (if different)"]</label>
-                        <input type="number" step="0.001" name="receivedAmount" class="form-control form-control-sm" style="width:8rem" />
+                        <label class="form-label small mb-0" for="received-@p.Id">@T["Actually received amount (if different)"]</label>
+                        <input type="number" step="0.001" id="received-@p.Id" name="receivedAmount" class="form-control form-control-sm" style="width:9rem" />
                     </div>
                     <div class="col-auto">
-                        <label class="form-label small mb-0">@T["Actually received currency (if different)"]</label>
-                        <input type="text" name="receivedCurrency" class="form-control form-control-sm" style="width:6rem" placeholder="@p.Currency" />
+                        <label class="form-label small mb-0" for="receivedCurrency-@p.Id">@T["Actually received currency (if different)"]</label>
+                        <select id="receivedCurrency-@p.Id" name="receivedCurrency" class="form-select form-select-sm" style="width:8rem">
+                            <option value="">@p.Currency</option>
+                            @foreach (var code in Model.Currencies)
+                            {
+                                <option value="@code">@code</option>
+                            }
+                        </select>
                     </div>
                     <div class="col-auto">
-                        <button type="submit" class="btn btn-sm btn-success">@T["Confirm receipt of the amount and activate the package"]</button>
+                        <button type="submit" class="btn btn-sm btn-success"
+                                data-mv-confirm="@T["Confirm that this amount really arrived in the account?"]">
+                            @T["Confirm receipt of the amount and activate the package"]
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-text">@T["Leave both blank when the full requested amount arrived as requested."]</div>
                     </div>
                 </form>
-                <form method="post" asp-page-handler="Reject" class="d-flex gap-1">
+                <form method="post" asp-page-handler="Reject" class="d-flex gap-1 flex-wrap">
+                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
                     <input type="hidden" name="paymentId" value="@p.Id" />
-                    <input type="text" name="RejectReason" class="form-control form-control-sm" placeholder="@T["Reason"]" />
+                    <input type="text" name="RejectReason" class="form-control form-control-sm" style="max-width:22rem"
+                           placeholder="@T["Reason the payer will read"]" aria-label="@T["Reason the payer will read"]" />
                     <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject / request correction"]</button>
                 </form>
             </div>
@@ -136,13 +198,22 @@
     }
     @if (Model.PendingPayments.Count == 0)
     {
-        <p class="text-muted">@T["Nothing awaiting confirmation."]</p>
+        <div class="app-empty">
+            <strong>@T["Nothing awaiting confirmation."]</strong>
+            <span>@T["New transfers reported by students and guardians appear here."]</span>
+        </div>
     }
 </div>
 
 <h2>@T["Recent history"]</h2>
+<div class="app-toolbar">
+    <div class="app-search">
+        <input type="search" class="form-control" data-mv-filter="#paymentsTable"
+               placeholder="@T["Search by student, reference, or status…"]" aria-label="@T["Search by student, reference, or status…"]" />
+    </div>
+</div>
 <div class="table-responsive">
-    <table class="table table-sm table-striped">
+    <table class="table table-sm table-striped" id="paymentsTable">
         <thead>
             <tr><th>@T["Reference"]</th><th>@T["Student"]</th><th>@T["Amount"]</th><th>@T["Received"]</th><th>@T["Method type"]</th><th>@T["Status"]</th><th>@T["Note"]</th></tr>
         </thead>
@@ -150,20 +221,27 @@
             @foreach (var p in Model.RecentPayments)
             {
                 <tr>
-                    <td>@p.ReferenceCode</td>
-                    <td>@p.StudentName</td>
-                    <td>@p.Amount.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) @p.Currency</td>
+                    <td><span class="app-ref">@p.ReferenceCode</span></td>
+                    <td><a asp-page="/Admin/StudentDetails" asp-route-id="@p.StudentId">@p.StudentName</a></td>
+                    <td>@T.Money(p.Amount, p.Currency)</td>
                     <td>
-                        @(p.ReceivedAmount is not null ? p.ReceivedAmount.Value.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) + " " + p.ReceivedCurrency : "—")
+                        @(p.ReceivedAmount is not null ? T.Money(p.ReceivedAmount.Value, p.ReceivedCurrency) : T["Not specified"].Value)
                         @if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount < p.Amount)
                         {
-                            <span class="badge bg-warning text-dark">@T["Remaining owed"]: @((p.Amount - p.ReceivedAmount.Value).ToString("N3", System.Globalization.CultureInfo.InvariantCulture)) @p.Currency</span>
+                            <span class="app-status is-warning">@T["Remaining owed"]: @T.Money(p.Amount - p.ReceivedAmount.Value, p.Currency)</span>
                         }
                     </td>
                     <td>@T["PaymentMethod." + p.Method]</td>
-                    <td>@T["PaymentStatus." + p.Status]</td>
+                    <td><span class="@StatusClass(p.Status)">@T["PaymentStatus." + p.Status]</span></td>
                     <td>@p.RejectionReason</td>
                 </tr>
+            }
+            <tr data-mv-filter-empty="true" hidden>
+                <td colspan="7" class="text-muted">@T["No payment matches this search — try part of the student's name or the reference."]</td>
+            </tr>
+            @if (Model.RecentPayments.Count == 0)
+            {
+                <tr><td colspan="7" class="text-muted">@T["No payments recorded yet."]</td></tr>
             }
         </tbody>
     </table>
