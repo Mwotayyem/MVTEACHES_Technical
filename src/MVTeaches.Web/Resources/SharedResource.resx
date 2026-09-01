@@ -1851,4 +1851,313 @@
   <data name="Either one works today, and you can connect both and choose which is used for new lessons. Where the centre is heading: Zoom will be the default for teachers who already pay for a Zoom subscription, and Google Meet stays the alternative — for shorter lessons, and for anyone who does not have Zoom. Nothing changes for you until the centre says so." xml:space="preserve">
     <value>Either one works today, and you can connect both and choose which is used for new lessons. Where the centre is heading: Zoom will be the default for teachers who already pay for a Zoom subscription, and Google Meet stays the alternative — for shorter lessons, and for anyone who does not have Zoom. Nothing changes for you until the centre says so.</value>
   </data>
+  <data name="Level and package" xml:space="preserve">
+    <value>Level and package</value>
+  </data>
+  <data name="Where they stand" xml:space="preserve">
+    <value>Where they stand</value>
+  </data>
+  <data name="Next step" xml:space="preserve">
+    <value>Next step</value>
+  </data>
+  <data name="of" xml:space="preserve">
+    <value>of</value>
+  </data>
+  <data name="Fully paid." xml:space="preserve">
+    <value>Fully paid.</value>
+  </data>
+  <data name="No guardian linked" xml:space="preserve">
+    <value>No guardian linked</value>
+  </data>
+  <data name="Confirm the registration details with the family." xml:space="preserve">
+    <value>Confirm the registration details with the family.</value>
+  </data>
+  <data name="Set the level so packages can be bought." xml:space="preserve">
+    <value>Set the level so packages can be bought.</value>
+  </data>
+  <data name="Collect or confirm the outstanding amount." xml:space="preserve">
+    <value>Collect or confirm the outstanding amount.</value>
+  </data>
+  <data name="Talk to the family about renewing." xml:space="preserve">
+    <value>Talk to the family about renewing.</value>
+  </data>
+  <data name="Link a guardian so somebody can be reached." xml:space="preserve">
+    <value>Link a guardian so somebody can be reached.</value>
+  </data>
+  <data name="Nothing needed right now." xml:space="preserve">
+    <value>Nothing needed right now.</value>
+  </data>
+  <data name="The centre has contacted the family and checked the name, phone number and date of birth. This does not assign a level and does not touch any payment." xml:space="preserve">
+    <value>The centre has contacted the family and checked the name, phone number and date of birth. This does not assign a level and does not touch any payment.</value>
+  </data>
+  <data name="Confirm this student's registration details are correct?" xml:space="preserve">
+    <value>Confirm this student's registration details are correct?</value>
+  </data>
+  <data name="Confirm registration details" xml:space="preserve">
+    <value>Confirm registration details</value>
+  </data>
+  <data name="Student file" xml:space="preserve">
+    <value>Student file</value>
+  </data>
+  <data name="Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="The centre's own working notes on this student. Internal — no student or guardian screen shows these. Notes are never edited or deleted; correct one by writing another." xml:space="preserve">
+    <value>The centre's own working notes on this student. Internal — no student or guardian screen shows these. Notes are never edited or deleted; correct one by writing another.</value>
+  </data>
+  <data name="Kind of note" xml:space="preserve">
+    <value>Kind of note</value>
+  </data>
+  <data name="What happened, what was agreed, what to watch for…" xml:space="preserve">
+    <value>What happened, what was agreed, what to watch for…</value>
+  </data>
+  <data name="Add the note" xml:space="preserve">
+    <value>Add the note</value>
+  </data>
+  <data name="No notes written yet." xml:space="preserve">
+    <value>No notes written yet.</value>
+  </data>
+  <data name="Use the box above. These stay inside the centre." xml:space="preserve">
+    <value>Use the box above. These stay inside the centre.</value>
+  </data>
+  <data name="This list fills itself from the reasons typed elsewhere. Free-text notes are the box above." xml:space="preserve">
+    <value>This list fills itself from the reasons typed elsewhere. Free-text notes are the box above.</value>
+  </data>
+  <data name="StudentNoteCategory.Learning" xml:space="preserve">
+    <value>Learning</value>
+  </data>
+  <data name="StudentNoteCategory.Financial" xml:space="preserve">
+    <value>Financial</value>
+  </data>
+  <data name="StudentNoteCategory.Contact" xml:space="preserve">
+    <value>Contact</value>
+  </data>
+  <data name="StudentNoteCategory.Behaviour" xml:space="preserve">
+    <value>Behaviour</value>
+  </data>
+  <data name="StudentNoteCategory.Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Enrolled / seats" xml:space="preserve">
+    <value>Enrolled / seats</value>
+  </data>
+  <data name="students enrolled" xml:space="preserve">
+    <value>students enrolled</value>
+  </data>
+  <data name="Nobody is enrolled yet" xml:space="preserve">
+    <value>Nobody is enrolled yet</value>
+  </data>
+  <data name="You are already booked" xml:space="preserve">
+    <value>You are already booked</value>
+  </data>
+  <data name="Your remaining balance may not cover this lesson." xml:space="preserve">
+    <value>Your remaining balance may not cover this lesson.</value>
+  </data>
+  <data name="It is already in your list above." xml:space="preserve">
+    <value>It is already in your list above.</value>
+  </data>
+  <data name="No seat left in this lesson." xml:space="preserve">
+    <value>No seat left in this lesson.</value>
+  </data>
+  <data name="They never joined — move the lesson" xml:space="preserve">
+    <value>They never joined — move the lesson</value>
+  </data>
+  <data name="They joined and it failed — give a make-up" xml:space="preserve">
+    <value>They joined and it failed — give a make-up</value>
+  </data>
+  <data name="Hello {student}, this is MVTEACHES. Your lesson has been moved from {from} to {to}. Nothing is deducted from your package because of this change. See you then." xml:space="preserve">
+    <value>Hello {student}, this is MVTEACHES. Your lesson has been moved from {from} to {to}. Nothing is deducted from your package because of this change. See you then.</value>
+  </data>
+  <data name="This student has no guardian linked and no sign-in of their own, so there is nobody for this message to be addressed to. Link a guardian on the students screen, or contact the family by whatever number the centre has on file." xml:space="preserve">
+    <value>This student has no guardian linked and no sign-in of their own, so there is nobody for this message to be addressed to. Link a guardian on the students screen, or contact the family by whatever number the centre has on file.</value>
+  </data>
+  <data name="Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically. WhatsApp is not connected." xml:space="preserve">
+    <value>Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically. WhatsApp is not connected.</value>
+  </data>
+  <data name="Current package" xml:space="preserve">
+    <value>Current package</value>
+  </data>
+  <data name="Used" xml:space="preserve">
+    <value>Used</value>
+  </data>
+  <data name="Lessons attended" xml:space="preserve">
+    <value>Lessons attended</value>
+  </data>
+  <data name="A transfer is under review - please wait for the centre to confirm it." xml:space="preserve">
+    <value>A transfer is under review - please wait for the centre to confirm it.</value>
+  </data>
+  <data name="The package activates once the full amount is confirmed." xml:space="preserve">
+    <value>The package activates once the full amount is confirmed.</value>
+  </data>
+  <data name="You still have an amount to complete on your current package." xml:space="preserve">
+    <value>You still have an amount to complete on your current package.</value>
+  </data>
+  <data name="Do not buy a new package - finish paying this one. Send only the remaining amount and upload the receipt for it." xml:space="preserve">
+    <value>Do not buy a new package - finish paying this one. Send only the remaining amount and upload the receipt for it.</value>
+  </data>
+  <data name="Complete the remaining amount" xml:space="preserve">
+    <value>Complete the remaining amount</value>
+  </data>
+  <data name="Your transfer is being reviewed." xml:space="preserve">
+    <value>Your transfer is being reviewed.</value>
+  </data>
+  <data name="The centre confirms the money first, and only then does the package activate. You do not need to send anything again." xml:space="preserve">
+    <value>The centre confirms the money first, and only then does the package activate. You do not need to send anything again.</value>
+  </data>
+  <data name="See my payment requests" xml:space="preserve">
+    <value>See my payment requests</value>
+  </data>
+  <data name="Current offers" xml:space="preserve">
+    <value>Current offers</value>
+  </data>
+  <data name="Finish paying for your package" xml:space="preserve">
+    <value>Finish paying for your package</value>
+  </data>
+  <data name="A package stays inactive until the whole price is confirmed. Paying part of it is recorded, but it does not start the package." xml:space="preserve">
+    <value>A package stays inactive until the whole price is confirmed. Paying part of it is recorded, but it does not start the package.</value>
+  </data>
+  <data name="Your earlier transfer arrived short of the full price — this is normal after bank/transfer fees. Send the remaining amount below to activate the package. Do not request a new package." xml:space="preserve">
+    <value>Your earlier transfer arrived short of the full price — this is normal after bank/transfer fees. Send the remaining amount below to activate the package. Do not request a new package.</value>
+  </data>
+  <data name="Offer posters" xml:space="preserve">
+    <value>Offer posters</value>
+  </data>
+  <data name="What a student sees on the packages screen above the price list. A poster advertises an offer — it does not sell one, set a price, or change who may buy what." xml:space="preserve">
+    <value>What a student sees on the packages screen above the price list. A poster advertises an offer — it does not sell one, set a price, or change who may buy what.</value>
+  </data>
+  <data name="New poster" xml:space="preserve">
+    <value>New poster</value>
+  </data>
+  <data name="Edit this poster" xml:space="preserve">
+    <value>Edit this poster</value>
+  </data>
+  <data name="Details shown under the image" xml:space="preserve">
+    <value>Details shown under the image</value>
+  </data>
+  <data name="Write it the way you would say it to a parent. This is the text the student reads under the picture." xml:space="preserve">
+    <value>Write it the way you would say it to a parent. This is the text the student reads under the picture.</value>
+  </data>
+  <data name="Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="JPEG or PNG. Uploading a new image replaces the current one — the old file is deleted, not kept." xml:space="preserve">
+    <value>JPEG or PNG. Uploading a new image replaces the current one — the old file is deleted, not kept.</value>
+  </data>
+  <data name="Leave this empty to keep the image the poster already has." xml:space="preserve">
+    <value>Leave this empty to keep the image the poster already has.</value>
+  </data>
+  <data name="Display order" xml:space="preserve">
+    <value>Display order</value>
+  </data>
+  <data name="Lowest first." xml:space="preserve">
+    <value>Lowest first.</value>
+  </data>
+  <data name="Visible to students" xml:space="preserve">
+    <value>Visible to students</value>
+  </data>
+  <data name="Level (optional)" xml:space="preserve">
+    <value>Level (optional)</value>
+  </data>
+  <data name="Not tied to a level" xml:space="preserve">
+    <value>Not tied to a level</value>
+  </data>
+  <data name="Package (optional)" xml:space="preserve">
+    <value>Package (optional)</value>
+  </data>
+  <data name="Not tied to a package" xml:space="preserve">
+    <value>Not tied to a package</value>
+  </data>
+  <data name="Tying a poster to a level or package only decides where it is shown. It grants nothing and changes no price." xml:space="preserve">
+    <value>Tying a poster to a level or package only decides where it is shown. It grants nothing and changes no price.</value>
+  </data>
+  <data name="Create the poster" xml:space="preserve">
+    <value>Create the poster</value>
+  </data>
+  <data name="Save changes" xml:space="preserve">
+    <value>Save changes</value>
+  </data>
+  <data name="What the student will see" xml:space="preserve">
+    <value>What the student will see</value>
+  </data>
+  <data name="No image yet" xml:space="preserve">
+    <value>No image yet</value>
+  </data>
+  <data name="All posters" xml:space="preserve">
+    <value>All posters</value>
+  </data>
+  <data name="Shown for" xml:space="preserve">
+    <value>Shown for</value>
+  </data>
+  <data name="Every level" xml:space="preserve">
+    <value>Every level</value>
+  </data>
+  <data name="Hidden" xml:space="preserve">
+    <value>Hidden</value>
+  </data>
+  <data name="Hide" xml:space="preserve">
+    <value>Hide</value>
+  </data>
+  <data name="Show" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="No posters yet." xml:space="preserve">
+    <value>No posters yet.</value>
+  </data>
+  <data name="Create one on the left. Nothing is shown to students until a poster is marked visible." xml:space="preserve">
+    <value>Create one on the left. Nothing is shown to students until a poster is marked visible.</value>
+  </data>
+  <data name="That poster no longer exists." xml:space="preserve">
+    <value>That poster no longer exists.</value>
+  </data>
+  <data name="The image must be a JPEG or PNG file." xml:space="preserve">
+    <value>The image must be a JPEG or PNG file.</value>
+  </data>
+  <data name="The image file is too large." xml:space="preserve">
+    <value>The image file is too large.</value>
+  </data>
+  <data name="The image could not be uploaded." xml:space="preserve">
+    <value>The image could not be uploaded.</value>
+  </data>
+  <data name="Poster created." xml:space="preserve">
+    <value>Poster created.</value>
+  </data>
+  <data name="Poster updated." xml:space="preserve">
+    <value>Poster updated.</value>
+  </data>
+  <data name="The poster is now visible to students." xml:space="preserve">
+    <value>The poster is now visible to students.</value>
+  </data>
+  <data name="The poster is hidden from students." xml:space="preserve">
+    <value>The poster is hidden from students.</value>
+  </data>
+  <data name="Give the poster a title." xml:space="preserve">
+    <value>Give the poster a title.</value>
+  </data>
+  <data name="Write the note first." xml:space="preserve">
+    <value>Write the note first.</value>
+  </data>
+  <data name="English, taught live, with the hours you paid for tracked to the minute." xml:space="preserve">
+    <value>English, taught live, with the hours you paid for tracked to the minute.</value>
+  </data>
+  <data name="Your lessons, your level, and what is left of your package — on one screen." xml:space="preserve">
+    <value>Your lessons, your level, and what is left of your package — on one screen.</value>
+  </data>
+  <data name="Join a lesson from the same place you booked it." xml:space="preserve">
+    <value>Join a lesson from the same place you booked it.</value>
+  </data>
+  <data name="Every payment you send is checked by the centre before anything activates." xml:space="preserve">
+    <value>Every payment you send is checked by the centre before anything activates.</value>
+  </data>
+  <data name="No account yet?" xml:space="preserve">
+    <value>No account yet?</value>
+  </data>
+  <data name="Accounts are opened by the centre. Contact MVTEACHES and the team will register you and send you your sign-in details." xml:space="preserve">
+    <value>Accounts are opened by the centre. Contact MVTEACHES and the team will register you and send you your sign-in details.</value>
+  </data>
+  <data name="Seats available" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Free seats: {0}" xml:space="preserve">
+    <value>Free seats: {0}</value>
+  </data>
 </root>

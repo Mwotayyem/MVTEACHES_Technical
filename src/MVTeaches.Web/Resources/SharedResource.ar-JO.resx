@@ -1851,4 +1851,313 @@
   <data name="Either one works today, and you can connect both and choose which is used for new lessons. Where the centre is heading: Zoom will be the default for teachers who already pay for a Zoom subscription, and Google Meet stays the alternative — for shorter lessons, and for anyone who does not have Zoom. Nothing changes for you until the centre says so." xml:space="preserve">
     <value>كلاهما يعمل اليوم، ويمكنك ربط الاثنين واختيار أيهما يُستخدم للحصص الجديدة. أما وجهة المركز فهي: Zoom سيكون الخيار الافتراضي للمعلمين المشتركين بزوم أصلًا، ويبقى Google Meet البديل — للحصص الأقصر، ولمن ليس لديه اشتراك زوم. ولا يتغير عليك شيء حتى يقرّر المركز ذلك.</value>
   </data>
+  <data name="Level and package" xml:space="preserve">
+    <value>المستوى والباقة</value>
+  </data>
+  <data name="Where they stand" xml:space="preserve">
+    <value>الحالة</value>
+  </data>
+  <data name="Next step" xml:space="preserve">
+    <value>الخطوة التالية</value>
+  </data>
+  <data name="of" xml:space="preserve">
+    <value>من</value>
+  </data>
+  <data name="Fully paid." xml:space="preserve">
+    <value>مدفوعة بالكامل.</value>
+  </data>
+  <data name="No guardian linked" xml:space="preserve">
+    <value>لا يوجد ولي أمر مرتبط</value>
+  </data>
+  <data name="Confirm the registration details with the family." xml:space="preserve">
+    <value>أكّد بيانات التسجيل مع الأسرة.</value>
+  </data>
+  <data name="Set the level so packages can be bought." xml:space="preserve">
+    <value>حدّد المستوى حتى يمكن شراء الباقات.</value>
+  </data>
+  <data name="Collect or confirm the outstanding amount." xml:space="preserve">
+    <value>حصّل المبلغ المتبقي أو أكّد استلامه.</value>
+  </data>
+  <data name="Talk to the family about renewing." xml:space="preserve">
+    <value>تحدّث مع الأسرة بخصوص التجديد.</value>
+  </data>
+  <data name="Link a guardian so somebody can be reached." xml:space="preserve">
+    <value>اربط ولي أمر حتى يكون هناك من يمكن التواصل معه.</value>
+  </data>
+  <data name="Nothing needed right now." xml:space="preserve">
+    <value>لا يوجد إجراء مطلوب الآن.</value>
+  </data>
+  <data name="The centre has contacted the family and checked the name, phone number and date of birth. This does not assign a level and does not touch any payment." xml:space="preserve">
+    <value>المركز تواصل مع الأسرة وتحقّق من الاسم ورقم الهاتف وتاريخ الميلاد. هذا الإجراء لا يحدّد المستوى ولا يمسّ أي دفعة.</value>
+  </data>
+  <data name="Confirm this student's registration details are correct?" xml:space="preserve">
+    <value>تأكيد أن بيانات تسجيل هذا الطالب صحيحة؟</value>
+  </data>
+  <data name="Confirm registration details" xml:space="preserve">
+    <value>تأكيد بيانات التسجيل</value>
+  </data>
+  <data name="Student file" xml:space="preserve">
+    <value>ملف طالب</value>
+  </data>
+  <data name="Notes" xml:space="preserve">
+    <value>ملاحظات</value>
+  </data>
+  <data name="The centre's own working notes on this student. Internal — no student or guardian screen shows these. Notes are never edited or deleted; correct one by writing another." xml:space="preserve">
+    <value>ملاحظات المركز الداخلية عن هذا الطالب. داخلية فقط — لا تظهر في أي شاشة للطالب أو ولي الأمر. الملاحظات لا تُعدَّل ولا تُحذف؛ لتصحيح ملاحظة اكتب ملاحظة جديدة.</value>
+  </data>
+  <data name="Kind of note" xml:space="preserve">
+    <value>نوع الملاحظة</value>
+  </data>
+  <data name="What happened, what was agreed, what to watch for…" xml:space="preserve">
+    <value>ماذا حدث، وما الذي اتُّفق عليه، وما الذي يجب الانتباه له…</value>
+  </data>
+  <data name="Add the note" xml:space="preserve">
+    <value>أضف الملاحظة</value>
+  </data>
+  <data name="No notes written yet." xml:space="preserve">
+    <value>لم تُكتب أي ملاحظة بعد.</value>
+  </data>
+  <data name="Use the box above. These stay inside the centre." xml:space="preserve">
+    <value>استخدم الحقل أعلاه. هذه الملاحظات تبقى داخل المركز.</value>
+  </data>
+  <data name="This list fills itself from the reasons typed elsewhere. Free-text notes are the box above." xml:space="preserve">
+    <value>هذه القائمة تُبنى تلقائيًا من الأسباب المكتوبة في شاشات أخرى. أما الملاحظات الحرة فمكانها الحقل أعلاه.</value>
+  </data>
+  <data name="StudentNoteCategory.Learning" xml:space="preserve">
+    <value>تعليمية</value>
+  </data>
+  <data name="StudentNoteCategory.Financial" xml:space="preserve">
+    <value>مالية</value>
+  </data>
+  <data name="StudentNoteCategory.Contact" xml:space="preserve">
+    <value>تواصل</value>
+  </data>
+  <data name="StudentNoteCategory.Behaviour" xml:space="preserve">
+    <value>سلوكية</value>
+  </data>
+  <data name="StudentNoteCategory.Other" xml:space="preserve">
+    <value>أخرى</value>
+  </data>
+  <data name="Enrolled / seats" xml:space="preserve">
+    <value>المسجّلون / المقاعد</value>
+  </data>
+  <data name="students enrolled" xml:space="preserve">
+    <value>طالب مسجّل</value>
+  </data>
+  <data name="Nobody is enrolled yet" xml:space="preserve">
+    <value>لا يوجد طلاب مسجّلون بعد</value>
+  </data>
+  <data name="You are already booked" xml:space="preserve">
+    <value>أنت مسجّل بالفعل</value>
+  </data>
+  <data name="Your remaining balance may not cover this lesson." xml:space="preserve">
+    <value>قد لا يكفي رصيدك المتبقي لتغطية هذه الحصة.</value>
+  </data>
+  <data name="It is already in your list above." xml:space="preserve">
+    <value>هي موجودة في قائمتك أعلاه.</value>
+  </data>
+  <data name="No seat left in this lesson." xml:space="preserve">
+    <value>لا يوجد مقعد شاغر في هذه الحصة.</value>
+  </data>
+  <data name="They never joined — move the lesson" xml:space="preserve">
+    <value>لم ينضم إطلاقًا — انقل الحصة</value>
+  </data>
+  <data name="They joined and it failed — give a make-up" xml:space="preserve">
+    <value>انضم وفشلت الحصة — امنحه حصة تعويضية</value>
+  </data>
+  <data name="Hello {student}, this is MVTEACHES. Your lesson has been moved from {from} to {to}. Nothing is deducted from your package because of this change. See you then." xml:space="preserve">
+    <value>مرحبًا {student}، معك MVTEACHES. تم نقل حصتك من {from} إلى {to}. لن يُخصم أي شيء من باقتك بسبب هذا التغيير. نراك حينها.</value>
+  </data>
+  <data name="This student has no guardian linked and no sign-in of their own, so there is nobody for this message to be addressed to. Link a guardian on the students screen, or contact the family by whatever number the centre has on file." xml:space="preserve">
+    <value>هذا الطالب لا يوجد له ولي أمر مرتبط ولا حساب دخول خاص به، فلا توجد جهة تُوجَّه إليها هذه الرسالة. اربط ولي أمر من شاشة الطلاب، أو تواصل مع الأسرة على الرقم المسجّل لدى المركز.</value>
+  </data>
+  <data name="Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically. WhatsApp is not connected." xml:space="preserve">
+    <value>انسخها وأرسلها بنفسك — هذه الشاشة لا ترسل شيئًا، ونقل الحصة لا يرسل رسالة لأحد تلقائيًا. واتساب غير مربوط.</value>
+  </data>
+  <data name="Current package" xml:space="preserve">
+    <value>الباقة الحالية</value>
+  </data>
+  <data name="Used" xml:space="preserve">
+    <value>المستخدم</value>
+  </data>
+  <data name="Lessons attended" xml:space="preserve">
+    <value>الحصص التي حضرها</value>
+  </data>
+  <data name="A transfer is under review - please wait for the centre to confirm it." xml:space="preserve">
+    <value>هناك حوالة قيد المراجعة — يُرجى انتظار تأكيد المركز لها.</value>
+  </data>
+  <data name="The package activates once the full amount is confirmed." xml:space="preserve">
+    <value>تُفعَّل الباقة بمجرد تأكيد استلام المبلغ كاملًا.</value>
+  </data>
+  <data name="You still have an amount to complete on your current package." xml:space="preserve">
+    <value>لا يزال عليك مبلغ لإكماله على باقتك الحالية.</value>
+  </data>
+  <data name="Do not buy a new package - finish paying this one. Send only the remaining amount and upload the receipt for it." xml:space="preserve">
+    <value>لا تشترِ باقة جديدة — أكمل دفع هذه الباقة. أرسل المبلغ المتبقي فقط وارفع إيصاله.</value>
+  </data>
+  <data name="Complete the remaining amount" xml:space="preserve">
+    <value>إكمال المبلغ المتبقي</value>
+  </data>
+  <data name="Your transfer is being reviewed." xml:space="preserve">
+    <value>حوالتك قيد المراجعة.</value>
+  </data>
+  <data name="The centre confirms the money first, and only then does the package activate. You do not need to send anything again." xml:space="preserve">
+    <value>يؤكّد المركز استلام المبلغ أولًا، وعندها فقط تُفعَّل الباقة. لا حاجة لإرسال أي شيء مرة أخرى.</value>
+  </data>
+  <data name="See my payment requests" xml:space="preserve">
+    <value>عرض طلبات الدفع الخاصة بي</value>
+  </data>
+  <data name="Current offers" xml:space="preserve">
+    <value>العروض الحالية</value>
+  </data>
+  <data name="Finish paying for your package" xml:space="preserve">
+    <value>أكمل دفع قيمة باقتك</value>
+  </data>
+  <data name="A package stays inactive until the whole price is confirmed. Paying part of it is recorded, but it does not start the package." xml:space="preserve">
+    <value>تبقى الباقة غير مفعّلة حتى يتم تأكيد كامل قيمتها. دفع جزء منها يُسجَّل، لكنه لا يبدأ الباقة.</value>
+  </data>
+  <data name="Your earlier transfer arrived short of the full price — this is normal after bank/transfer fees. Send the remaining amount below to activate the package. Do not request a new package." xml:space="preserve">
+    <value>وصلت حوالتك السابقة أقل من السعر الكامل — وهذا طبيعي بعد خصم رسوم الحوالة. أرسل المبلغ المتبقي أدناه لتفعيل الباقة. لا تطلب باقة جديدة.</value>
+  </data>
+  <data name="Offer posters" xml:space="preserve">
+    <value>بوسترات العروض</value>
+  </data>
+  <data name="What a student sees on the packages screen above the price list. A poster advertises an offer — it does not sell one, set a price, or change who may buy what." xml:space="preserve">
+    <value>ما يراه الطالب في شاشة الباقات أعلى قائمة الأسعار. البوستر يُعلن عن عرض — ولا يبيعه، ولا يحدّد سعرًا، ولا يغيّر من يحق له الشراء.</value>
+  </data>
+  <data name="New poster" xml:space="preserve">
+    <value>بوستر جديد</value>
+  </data>
+  <data name="Edit this poster" xml:space="preserve">
+    <value>تعديل هذا البوستر</value>
+  </data>
+  <data name="Details shown under the image" xml:space="preserve">
+    <value>التفاصيل التي تظهر أسفل الصورة</value>
+  </data>
+  <data name="Write it the way you would say it to a parent. This is the text the student reads under the picture." xml:space="preserve">
+    <value>اكتبها كما تقولها لوليّ أمر. هذا هو النص الذي يقرأه الطالب تحت الصورة.</value>
+  </data>
+  <data name="Image" xml:space="preserve">
+    <value>الصورة</value>
+  </data>
+  <data name="JPEG or PNG. Uploading a new image replaces the current one — the old file is deleted, not kept." xml:space="preserve">
+    <value>JPEG أو PNG. رفع صورة جديدة يستبدل الصورة الحالية — ويُحذف الملف القديم ولا يُحتفظ به.</value>
+  </data>
+  <data name="Leave this empty to keep the image the poster already has." xml:space="preserve">
+    <value>اتركه فارغًا للإبقاء على الصورة الموجودة حاليًا في البوستر.</value>
+  </data>
+  <data name="Display order" xml:space="preserve">
+    <value>ترتيب العرض</value>
+  </data>
+  <data name="Lowest first." xml:space="preserve">
+    <value>الأصغر أولًا.</value>
+  </data>
+  <data name="Visible to students" xml:space="preserve">
+    <value>ظاهر للطلاب</value>
+  </data>
+  <data name="Level (optional)" xml:space="preserve">
+    <value>المستوى (اختياري)</value>
+  </data>
+  <data name="Not tied to a level" xml:space="preserve">
+    <value>غير مرتبط بمستوى</value>
+  </data>
+  <data name="Package (optional)" xml:space="preserve">
+    <value>الباقة (اختياري)</value>
+  </data>
+  <data name="Not tied to a package" xml:space="preserve">
+    <value>غير مرتبط بباقة</value>
+  </data>
+  <data name="Tying a poster to a level or package only decides where it is shown. It grants nothing and changes no price." xml:space="preserve">
+    <value>ربط البوستر بمستوى أو بباقة يحدّد مكان ظهوره فقط. لا يمنح أي صلاحية ولا يغيّر أي سعر.</value>
+  </data>
+  <data name="Create the poster" xml:space="preserve">
+    <value>إنشاء البوستر</value>
+  </data>
+  <data name="Save changes" xml:space="preserve">
+    <value>حفظ التعديلات</value>
+  </data>
+  <data name="What the student will see" xml:space="preserve">
+    <value>ما سيراه الطالب</value>
+  </data>
+  <data name="No image yet" xml:space="preserve">
+    <value>لا توجد صورة بعد</value>
+  </data>
+  <data name="All posters" xml:space="preserve">
+    <value>جميع البوسترات</value>
+  </data>
+  <data name="Shown for" xml:space="preserve">
+    <value>يظهر لـ</value>
+  </data>
+  <data name="Every level" xml:space="preserve">
+    <value>كل المستويات</value>
+  </data>
+  <data name="Hidden" xml:space="preserve">
+    <value>مخفي</value>
+  </data>
+  <data name="Hide" xml:space="preserve">
+    <value>إخفاء</value>
+  </data>
+  <data name="Show" xml:space="preserve">
+    <value>إظهار</value>
+  </data>
+  <data name="No posters yet." xml:space="preserve">
+    <value>لا توجد بوسترات بعد.</value>
+  </data>
+  <data name="Create one on the left. Nothing is shown to students until a poster is marked visible." xml:space="preserve">
+    <value>أنشئ واحدًا من النموذج على اليسار. لا يظهر شيء للطلاب حتى يُعلَّم البوستر بأنه ظاهر.</value>
+  </data>
+  <data name="That poster no longer exists." xml:space="preserve">
+    <value>هذا البوستر لم يعد موجودًا.</value>
+  </data>
+  <data name="The image must be a JPEG or PNG file." xml:space="preserve">
+    <value>يجب أن تكون الصورة بصيغة JPEG أو PNG.</value>
+  </data>
+  <data name="The image file is too large." xml:space="preserve">
+    <value>حجم ملف الصورة كبير جدًا.</value>
+  </data>
+  <data name="The image could not be uploaded." xml:space="preserve">
+    <value>تعذّر رفع الصورة.</value>
+  </data>
+  <data name="Poster created." xml:space="preserve">
+    <value>تم إنشاء البوستر.</value>
+  </data>
+  <data name="Poster updated." xml:space="preserve">
+    <value>تم تحديث البوستر.</value>
+  </data>
+  <data name="The poster is now visible to students." xml:space="preserve">
+    <value>أصبح البوستر ظاهرًا للطلاب الآن.</value>
+  </data>
+  <data name="The poster is hidden from students." xml:space="preserve">
+    <value>تم إخفاء البوستر عن الطلاب.</value>
+  </data>
+  <data name="Give the poster a title." xml:space="preserve">
+    <value>أعطِ البوستر عنوانًا.</value>
+  </data>
+  <data name="Write the note first." xml:space="preserve">
+    <value>اكتب نص الملاحظة أولًا.</value>
+  </data>
+  <data name="English, taught live, with the hours you paid for tracked to the minute." xml:space="preserve">
+    <value>لغة إنجليزية بحصص مباشرة، والساعات التي دفعت ثمنها محسوبة بالدقيقة.</value>
+  </data>
+  <data name="Your lessons, your level, and what is left of your package — on one screen." xml:space="preserve">
+    <value>حصصك ومستواك وما تبقّى من باقتك — في شاشة واحدة.</value>
+  </data>
+  <data name="Join a lesson from the same place you booked it." xml:space="preserve">
+    <value>انضم إلى الحصة من المكان نفسه الذي حجزتها منه.</value>
+  </data>
+  <data name="Every payment you send is checked by the centre before anything activates." xml:space="preserve">
+    <value>كل دفعة ترسلها يتحقّق منها المركز قبل تفعيل أي شيء.</value>
+  </data>
+  <data name="No account yet?" xml:space="preserve">
+    <value>لا تملك حسابًا بعد؟</value>
+  </data>
+  <data name="Accounts are opened by the centre. Contact MVTEACHES and the team will register you and send you your sign-in details." xml:space="preserve">
+    <value>الحسابات يفتحها المركز. تواصل مع MVTEACHES وسيقوم الفريق بتسجيلك وإرسال بيانات الدخول إليك.</value>
+  </data>
+  <data name="Seats available" xml:space="preserve">
+    <value>متاحة</value>
+  </data>
+  <data name="Free seats: {0}" xml:space="preserve">
+    <value>المقاعد الشاغرة: {0}</value>
+  </data>
 </root>

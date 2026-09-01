@@ -27,10 +27,21 @@ public static class DisplayFormat
     private static readonly HashSet<string> ThreeDecimalCurrencies =
         new(StringComparer.OrdinalIgnoreCase) { "JOD", "KWD", "BHD", "OMR", "TND", "IQD", "LYD" };
 
-    private const string DateFormat = "d MMMM yyyy";
-    private const string DayAndDateFormat = "dddd d MMMM yyyy";
+    /// <summary>Owner decision 2026-09-01: every date shown anywhere in the
+    /// product is numeric and unambiguous — 01/09/2026, never "1 September
+    /// 2026" or "1 أيلول 2026". Month names read differently in Arabic
+    /// depending on which naming a reader grew up with (أيلول vs سبتمبر),
+    /// and a centre reading a date off a screen to a parent on the phone
+    /// needs one form only. Changing these two constants changes every
+    /// screen at once, because nothing in Pages/ formats a date itself.
+    ///
+    /// Storage is untouched — this is the display format and nothing else.
+    /// The weekday name stays on the session formats, because "which day of
+    /// the week" is the thing a parent actually asks about a lesson.</summary>
+    private const string DateFormat = "dd/MM/yyyy";
+    private const string DayAndDateFormat = "dddd dd/MM/yyyy";
     private const string TimeFormat = "h:mm tt";
-    private const string ShortDayFormat = "ddd d";
+    private const string ShortDayFormat = "dd/MM";
 
     /// <summary>The single wording used everywhere a value is genuinely absent —
     /// so a missing date never reaches a user as "01/01/0001" again.</summary>
