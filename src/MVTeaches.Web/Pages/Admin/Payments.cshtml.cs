@@ -54,8 +54,13 @@ public class PaymentsModel : PageModel
         NodaTime.LocalDate? TransferDate, string? BankReferenceNumber, bool HasReceipt, bool HasSubmittedTransferDetails,
         decimal? ReceivedAmount, string? ReceivedCurrency);
 
-    public record DraftSubscriptionRow(long Id, string StudentName, string LevelCode, decimal Price, string Currency,
-        decimal ConfirmedReceived, decimal RemainingOwed);
+    /// <summary><paramref name="StudentId"/> is what lets the picker below
+    /// show only the chosen student's own unpaid packages. Before it, the list
+    /// offered every student's draft at once, so an admin recording Zaid's
+    /// payment could see — and pick — Heba's package. The server has always
+    /// validated the pair; this stops the wrong pair being offered at all.</summary>
+    public record DraftSubscriptionRow(long Id, long StudentId, string StudentName, string LevelCode, decimal Price,
+        string Currency, decimal ConfirmedReceived, decimal RemainingOwed);
 
     public IReadOnlyList<PaymentRow> PendingPayments { get; set; } = Array.Empty<PaymentRow>();
     public IReadOnlyList<PaymentRow> RecentPayments { get; set; } = Array.Empty<PaymentRow>();
@@ -242,7 +247,7 @@ public class PaymentsModel : PageModel
         foreach (var s in drafts)
         {
             var funding = await _payments.GetSubscriptionFundingStatusAsync(s.Id, HttpContext.RequestAborted);
-            draftRows.Add(new DraftSubscriptionRow(s.Id, studentNames.GetValueOrDefault(s.StudentId, string.Empty),
+            draftRows.Add(new DraftSubscriptionRow(s.Id, s.StudentId, studentNames.GetValueOrDefault(s.StudentId, string.Empty),
                 levelCodes.GetValueOrDefault(s.LevelId, "—"),
                 funding.Price.Amount, funding.Price.Currency, funding.ConfirmedReceived, funding.RemainingOwed.Amount));
         }

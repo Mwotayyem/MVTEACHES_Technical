@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.PaymentsModel
 @using MVTeaches.Domain.Payments
 @{
@@ -17,6 +17,12 @@
     };
 }
 
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Payments"]</span>
+</nav>
+
 <div class="app-page-head">
     <div>
         <h1>@T["Payments"]</h1>
@@ -26,6 +32,16 @@
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Subscriptions">@T["Subscriptions"]</a>
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/PaymentMethods">@T["Payment Methods"]</a>
     </div>
+</div>
+
+<div class="app-guide">
+    <p class="app-guide-title">@T["What do I do on this screen?"]</p>
+    <ol>
+        <li>@T["A family sends money outside the platform — cash, CliQ, or a bank transfer. There is no online card payment here."]</li>
+        <li>@T["The transfer is recorded against the student, either by the family themselves or by you on this screen."]</li>
+        <li>@T["You check the real bank or CliQ account, and only then confirm that the amount actually arrived. Confirming is what activates the package."]</li>
+    </ol>
+    <p><span class="app-guide-next">@T["Start here:"]</span> @T["the Awaiting confirmation list below — those are the ones with somebody waiting."]</p>
 </div>
 
 @if (Model.FilterStudentId is not null)
@@ -73,19 +89,24 @@
                 <span asp-validation-for="NewPayment.StudentId" class="text-danger small"></span>
             </div>
             <div class="col-md-4">
-                <label class="form-label" asp-for="NewPayment.SubscriptionId">@T["Subscription (optional)"]</label>
-                <select asp-for="NewPayment.SubscriptionId" class="form-select">
-                    <option value="">@T["None"]</option>
+                <label class="form-label" asp-for="NewPayment.SubscriptionId">@T["Which package is this paying for?"]</label>
+                <select asp-for="NewPayment.SubscriptionId" id="paymentSubscription" class="form-select"
+                        data-mv-options-of="#paymentStudent" data-mv-options-empty="#noDraftsForStudent">
+                    <option value="">@T["Not paying for a package — just record the money"]</option>
                     @foreach (var d in Model.DraftSubscriptions)
                     {
                         var price = T.Money(d.Price, d.Currency);
                         var optionLabel = d.ConfirmedReceived > 0
-                            ? $"{d.StudentName} · {d.LevelCode} · {Label("Package price")}: {price} ({Label("Remaining owed")}: {T.Money(d.RemainingOwed, d.Currency)})"
-                            : $"{d.StudentName} · {d.LevelCode} · {price}";
-                        <option value="@d.Id">@optionLabel</option>
+                            ? $"{d.LevelCode} · {Label("Package price")}: {price} ({Label("Remaining owed")}: {T.Money(d.RemainingOwed, d.Currency)})"
+                            : $"{d.LevelCode} · {price}";
+                        <option value="@d.Id" data-owner="@d.StudentId">@optionLabel</option>
                     }
                 </select>
-                <div class="form-text">@T["Attach the payment to the package it pays for — confirming it then activates that package."]</div>
+                <div class="form-text">@T["Only this student's own unpaid packages are listed. Attach the payment to the one it pays for — confirming it then activates that package."]</div>
+                <div class="form-text text-warning" id="noDraftsForStudent" hidden>
+                    @T["This student has no unpaid package. Either they already paid for everything, or the package has not been chosen yet — do that on the packages screen first."]
+                </div>
+                <div class="form-text">@T["Leave it on the first option for money that is not buying a package: a correction, a refund reversal, or a deposit to hold a seat."]</div>
             </div>
             <div class="col-md-2">
                 <label class="form-label" asp-for="NewPayment.Amount">@T["Amount"]</label>
@@ -119,6 +140,7 @@
 </div>
 
 <h2>@T["Awaiting confirmation"] <span class="app-status @(Model.PendingPayments.Count > 0 ? "is-warning" : "is-muted")">@Model.PendingPayments.Count</span></h2>
+<p class="text-muted small">@T["Check the centre's real account first. Confirming here says the money is in the account — it is not an acknowledgement that a receipt was uploaded."]</p>
 <div class="mb-4">
     @foreach (var p in Model.PendingPayments)
     {
