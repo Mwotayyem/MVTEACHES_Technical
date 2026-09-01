@@ -986,3 +986,480 @@ a.app-kpi:hover {
     transform: none !important;
   }
 }
+
+/* ===================================================================
+   Second UI/UX pass — the pieces the first pass left missing.
+
+   Everything below is presentation for markup that already exists or
+   is added in the same pass: a numbered step rail for the screens that
+   are genuinely a sequence, a plain-language guide panel so every
+   screen answers "what do I do now?", quick-action tiles on the student
+   profile, a dependent-field group for the payment-method form, and a
+   dependency-free bar chart for the dashboard. No library, no
+   framework, no business rule.
+   =================================================================== */
+
+/* --- restraint pass on the base ------------------------------------
+   Every card lifting on hover reads as a template, not a product. A
+   card that is not a link should not pretend to be one. */
+.card:hover {
+  transform: none;
+  box-shadow: var(--mv-shadow-sm);
+}
+
+.card {
+  border-radius: var(--mv-radius);
+}
+
+.card-header {
+  background: #fff;
+  border-bottom: 1px solid var(--mv-border);
+}
+
+.table thead th {
+  text-transform: none;
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  color: var(--mv-muted);
+  font-weight: 700;
+}
+
+.table tbody tr:hover {
+  background: var(--mv-surface-muted);
+}
+
+.table td,
+.table th {
+  padding: 0.8rem 0.9rem;
+}
+
+/* --- sidebar: real icons, quieter groups --------------------------- */
+.app-nav-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 1.15rem;
+  border-radius: 0;
+  background: none;
+  color: var(--mv-muted);
+  opacity: 1;
+}
+
+.app-nav-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app-nav-link:hover .app-nav-icon,
+.app-nav-link.active .app-nav-icon {
+  color: var(--mv-primary);
+  background: none;
+}
+
+.app-nav-link.active {
+  background: var(--mv-primary-soft);
+}
+
+.app-nav-group:first-child {
+  margin-block-start: 0;
+}
+
+/* --- breadcrumb ---------------------------------------------------- */
+.app-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-block-end: 0.5rem;
+  color: var(--mv-muted);
+  font-size: 0.85rem;
+}
+
+.app-crumbs a {
+  color: var(--mv-muted);
+  text-decoration: none;
+}
+
+.app-crumbs a:hover {
+  color: var(--mv-primary);
+  text-decoration: underline;
+}
+
+.app-crumbs .app-crumb-sep {
+  opacity: 0.5;
+}
+
+/* --- "what is this screen, and what do I do now?" ------------------
+   One calm panel per screen, in the words the reader uses. Never a
+   technical message, never a stack of alerts. */
+.app-guide {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.1rem 1.25rem;
+  margin-block-end: 1.5rem;
+  border: 1px solid var(--mv-border);
+  border-inline-start: 3px solid var(--mv-primary);
+  border-radius: var(--mv-radius);
+  background: linear-gradient(180deg, var(--mv-primary-soft), #fff 65%);
+}
+
+.app-guide h2,
+.app-guide .app-guide-title {
+  margin: 0;
+  color: var(--mv-primary-strong);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.app-guide p {
+  max-width: 78ch;
+  margin: 0;
+  color: var(--mv-text);
+  font-size: 0.94rem;
+}
+
+.app-guide ul,
+.app-guide ol {
+  max-width: 78ch;
+  margin: 0;
+  padding-inline-start: 1.15rem;
+  color: var(--mv-text);
+  font-size: 0.94rem;
+}
+
+.app-guide li + li {
+  margin-block-start: 0.25rem;
+}
+
+.app-guide-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 800;
+  color: var(--mv-primary-strong);
+}
+
+/* --- numbered steps ------------------------------------------------
+   For the screens that really are a sequence (assisted registration,
+   reschedule, payroll). Not decoration: each step says what it is for
+   and which ones are already done. */
+.app-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: mv-step;
+}
+
+.app-steps > li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm);
+  background: #fff;
+  color: var(--mv-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.app-steps > li::before {
+  counter-increment: mv-step;
+  content: counter(mv-step);
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 1.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  background: var(--mv-surface-muted);
+  color: var(--mv-muted);
+  font-weight: 800;
+}
+
+.app-steps > li.is-current {
+  border-color: var(--mv-primary);
+  background: var(--mv-primary-soft);
+  color: var(--mv-primary-strong);
+}
+
+.app-steps > li.is-current::before {
+  background: var(--mv-primary);
+  color: #fff;
+}
+
+.app-steps > li.is-done {
+  border-color: #bfe6cd;
+  background: var(--mv-success-soft);
+  color: var(--mv-success);
+}
+
+.app-steps > li.is-done::before {
+  content: "\2713";
+  background: var(--mv-success);
+  color: #fff;
+}
+
+.app-step-label {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-step-hint {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* --- one step of a single-page sequence ---------------------------- */
+.app-step-panel {
+  position: relative;
+  padding: 1.35rem;
+  margin-block-end: 1.25rem;
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius);
+  background: #fff;
+  box-shadow: var(--mv-shadow-xs);
+}
+
+.app-step-panel > h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-block: 0 0.35rem;
+  color: var(--mv-primary-strong);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.app-step-badge {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 1.9rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--mv-primary);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.app-step-panel.is-done .app-step-badge {
+  background: var(--mv-success);
+}
+
+.app-step-panel.is-waiting {
+  background: var(--mv-surface-muted);
+}
+
+.app-step-panel.is-waiting .app-step-badge {
+  background: var(--mv-border);
+  color: var(--mv-muted);
+}
+
+.app-step-panel > p.app-step-lead {
+  max-width: 78ch;
+  margin-block-end: 1rem;
+  color: var(--mv-muted);
+  font-size: 0.92rem;
+}
+
+/* --- quick actions on a profile ------------------------------------ */
+.app-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.65rem;
+  margin-block-end: 1.5rem;
+}
+
+.app-quick-action {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm);
+  background: #fff;
+  color: var(--mv-text);
+  text-decoration: none;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.app-quick-action:hover {
+  border-color: var(--mv-primary);
+  background: var(--mv-primary-soft);
+  color: var(--mv-primary-strong);
+}
+
+.app-quick-action strong {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.app-quick-action span {
+  color: var(--mv-muted);
+  font-size: 0.8rem;
+}
+
+.app-quick-action:hover span {
+  color: var(--mv-primary-strong);
+}
+
+/* --- required-field marker ----------------------------------------- */
+.app-required {
+  color: var(--mv-danger);
+  font-weight: 800;
+  margin-inline-start: 0.15rem;
+}
+
+.form-text {
+  color: var(--mv-muted);
+  font-size: 0.82rem;
+}
+
+/* --- dependent fields (payment-method form) ------------------------ */
+[data-mv-when] {
+  transition: opacity 120ms ease;
+}
+
+/* --- a dependency-free bar chart -----------------------------------
+   Height comes from --mv-bar (0..1) set inline per bar; no library,
+   no canvas, and the same numbers are printed as text beside each bar
+   so the chart is never the only way to read them. */
+.app-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 9rem;
+  padding: 0.75rem 0.5rem 0;
+  border-radius: var(--mv-radius-sm);
+  background: linear-gradient(180deg, var(--mv-surface-muted), #fff);
+}
+
+.app-chart-col {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+  height: 100%;
+}
+
+.app-chart-bar {
+  width: 100%;
+  max-width: 2.75rem;
+  min-height: 0.25rem;
+  height: calc(var(--mv-bar, 0) * 100%);
+  border-radius: 0.35rem 0.35rem 0 0;
+  background: linear-gradient(180deg, var(--mv-primary), var(--mv-primary-strong));
+}
+
+.app-chart-col.is-empty .app-chart-bar {
+  background: var(--mv-border);
+}
+
+.app-chart-value {
+  color: var(--mv-primary-strong);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.app-chart-axis {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem 0;
+}
+
+.app-chart-axis > span {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mv-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- a compact "what happens next" line under a form --------------- */
+.app-outcome {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--mv-radius-sm);
+  background: var(--mv-surface-muted);
+  color: var(--mv-text);
+  font-size: 0.86rem;
+}
+
+.app-outcome::before {
+  content: "\2192";
+  color: var(--mv-primary);
+  font-weight: 800;
+}
+
+[dir="rtl"] .app-outcome::before {
+  content: "\2190";
+}
+
+/* --- upcoming-session rows on the dashboard ------------------------ */
+.app-feed {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.app-feed-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm);
+  background: #fff;
+}
+
+.app-feed-when {
+  min-width: 12rem;
+  color: var(--mv-primary-strong);
+  font-weight: 800;
+}
+
+.app-feed-what {
+  flex: 1 1 12rem;
+  min-width: 0;
+  color: var(--mv-text);
+}
+
+.app-feed-meta {
+  color: var(--mv-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 575.98px) {
+  .app-steps > li {
+    flex: 1 1 100%;
+  }
+
+  .app-feed-when {
+    min-width: 100%;
+  }
+}

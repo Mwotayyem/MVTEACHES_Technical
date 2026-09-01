@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.Extensions.Localization;
 using MVTeaches.Web.Resources;
 using NodaTime;
@@ -30,6 +30,7 @@ public static class DisplayFormat
     private const string DateFormat = "d MMMM yyyy";
     private const string DayAndDateFormat = "dddd d MMMM yyyy";
     private const string TimeFormat = "h:mm tt";
+    private const string ShortDayFormat = "ddd d";
 
     /// <summary>The single wording used everywhere a value is genuinely absent —
     /// so a missing date never reaches a user as "01/01/0001" again.</summary>
@@ -40,6 +41,11 @@ public static class DisplayFormat
 
     public static string Date(this IStringLocalizer<SharedResource> t, LocalDate? date) =>
         date is null ? t.NotSpecified() : t.Date(date.Value);
+
+    /// <summary>A short day label for a chart axis — the weekday name plus the
+    /// day number, in the reader's own language and calendar formatting.</summary>
+    public static string ShortDay(this IStringLocalizer<SharedResource> t, LocalDate date) =>
+        date.ToDateTimeUnspecified().ToString(ShortDayFormat, Culture);
 
     public static string Date(this IStringLocalizer<SharedResource> t, DateOnly? date) =>
         date is null || date.Value.Year <= 1

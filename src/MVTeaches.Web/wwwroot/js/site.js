@@ -148,10 +148,165 @@
         });
     }
 
+
+    // --- Show only the fields that belong to the chosen kind ----------------
+    // A container carries data-mv-when-source="#typeSelect"; each field group
+    // inside carries data-mv-when="CliQ BankTransfer" (a space-separated list
+    // of the values it belongs to). Picking Cash hides the CliQ/IBAN fields
+    // instead of leaving the admin to guess which ones matter. Progressive
+    // enhancement only: with JavaScript off every field is simply visible, and
+    // the server still decides what a method needs.
+    function wireDependentFields() {
+        document.querySelectorAll("[data-mv-when-source]").forEach(function (scope) {
+            var source = document.querySelector(scope.getAttribute("data-mv-when-source"));
+            if (!source) { return; }
+
+            var groups = scope.querySelectorAll("[data-mv-when]");
+
+            function apply() {
+                var value = source.value;
+                groups.forEach(function (group) {
+                    var allowed = group.getAttribute("data-mv-when").split(/\s+/).filter(Boolean);
+                    group.hidden = allowed.indexOf(value) === -1;
+                });
+            }
+
+            source.addEventListener("change", apply);
+            apply();
+        });
+    }
+
+    // --- Keep a dependent list to the chosen owner --------------------------
+    // <select data-mv-options-of="#studentSelect"> whose options carry
+    // data-owner="7": picking a student leaves only that student's own rows.
+    // An element with data-mv-options-empty explains an empty result rather
+    // than presenting a list containing nothing but the placeholder.
+    function wireOwnedOptions() {
+        document.querySelectorAll("[data-mv-options-of]").forEach(function (select) {
+            var owner = document.querySelector(select.getAttribute("data-mv-options-of"));
+            if (!owner) { return; }
+
+            var emptyNote = select.getAttribute("data-mv-options-empty")
+                ? document.querySelector(select.getAttribute("data-mv-options-empty"))
+                : null;
+
+            var original = Array.prototype.map.call(select.options, function (option) {
+                return {
+                    value: option.value,
+                    text: option.text,
+                    owner: option.getAttribute("data-owner") || ""
+                };
+            });
+
+            function ownerKey() {
+                // The source select may identify its owner by something other
+                // than its own value — a student option can carry
+                // data-owner-key="3" (their level) so a plan list filters by
+                // level rather than by student id.
+                var option = owner.options ? owner.options[owner.selectedIndex] : null;
+                if (option && option.hasAttribute("data-owner-key")) {
+                    return owner.value === "" ? "" : option.getAttribute("data-owner-key");
+                }
+                return owner.value;
+            }
+
+            function apply() {
+                var ownerId = ownerKey();
+                var previous = select.value;
+                var kept = 0;
+                select.innerHTML = "";
+
+                original.forEach(function (item) {
+                    var isPlaceholder = item.value === "";
+                    var keep = isPlaceholder || ownerId === "" || item.owner === ownerId;
+                    if (!keep) { return; }
+                    var option = document.createElement("option");
+                    option.value = item.value;
+                    option.text = item.text;
+                    if (item.owner) { option.setAttribute("data-owner", item.owner); }
+                    select.add(option);
+                    if (!isPlaceholder) { kept++; }
+                });
+
+                select.value = previous;
+                if (select.selectedIndex === -1) { select.selectedIndex = 0; }
+
+                if (emptyNote) {
+                    emptyNote.hidden = !(ownerId !== "" && kept === 0);
+                }
+            }
+
+            owner.addEventListener("change", apply);
+            apply();
+        });
+    }
+
+    // --- Echo a chosen option back to the reader ----------------------------
+    // <span data-mv-echo="#studentSelect" data-mv-echo-empty="—"> prints the
+    // selected option's own label, so a review step can restate the choices in
+    // words rather than making the admin scroll back up to re-read them.
+    function wireEchoes() {
+        document.querySelectorAll("[data-mv-echo]").forEach(function (target) {
+            var source = document.querySelector(target.getAttribute("data-mv-echo"));
+            if (!source) { return; }
+
+            var placeholder = target.getAttribute("data-mv-echo-empty") || "";
+
+            function apply() {
+                var option = source.options ? source.options[source.selectedIndex] : null;
+                target.textContent = (source.value && option) ? option.text : placeholder;
+            }
+
+            source.addEventListener("change", apply);
+            apply();
+        });
+    }
+
+    // --- Mark a step as done once its own answer is given -------------------
+    // <select data-mv-step="1"> inside an .app-step-panel: the panel turns
+    // green and the matching entry in the .app-steps rail follows it, so the
+    // sequence shows how far along it is. Display only.
+    function wireStepProgress() {
+        var rail = document.querySelector("[data-mv-step-rail]");
+        var panels = document.querySelectorAll(".app-step-panel[data-mv-step-panel]");
+        if (panels.length === 0) { return; }
+
+        function apply() {
+            panels.forEach(function (panel) {
+                var fields = panel.querySelectorAll("[data-mv-step-field]");
+                var answered = fields.length > 0;
+                fields.forEach(function (field) {
+                    if (!field.value) { answered = false; }
+                });
+                panel.classList.toggle("is-done", answered);
+
+                if (!rail) { return; }
+                var index = panel.getAttribute("data-mv-step-panel");
+                var entry = rail.querySelector('[data-mv-step-entry="' + index + '"]');
+                if (entry) {
+                    entry.classList.toggle("is-done", answered);
+                    entry.classList.toggle("is-current", !answered);
+                }
+            });
+        }
+
+        panels.forEach(function (panel) {
+            panel.querySelectorAll("[data-mv-step-field]").forEach(function (field) {
+                field.addEventListener("change", apply);
+                field.addEventListener("input", apply);
+            });
+        });
+        apply();
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         wireTableFilters();
         wireSelectFilters();
         wireSessionNarrowing();
+        wireDependentFields();
+        wireOwnedOptions();
+        wireEchoes();
+        wireStepProgress();
         wireConfirmations();
         focusFirstInvalidField();
     });

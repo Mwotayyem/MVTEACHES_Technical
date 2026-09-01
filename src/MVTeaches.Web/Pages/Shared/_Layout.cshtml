@@ -1,4 +1,4 @@
-@using System.Globalization
+﻿@using System.Globalization
 @using Microsoft.Extensions.Localization
 @using MVTeaches.Web.Resources
 @inject IStringLocalizer<SharedResource> T
@@ -12,6 +12,44 @@
 
     bool IsCurrent(string page) => string.Equals(currentPage, page, StringComparison.OrdinalIgnoreCase);
     string NavClass(string page) => IsCurrent(page) ? "app-nav-link active" : "app-nav-link";
+}
+@functions {
+    // Inline, single-colour line icons for the sidebar. Deliberately hand-written
+    // paths rather than an icon package: the nav has one icon per entry and
+    // adding a dependency for 20 glyphs is not worth the weight (see CLAUDE.md
+    // on new libraries). Every icon is aria-hidden — the link text is the label.
+    static readonly IReadOnlyDictionary<string, string> NavIconPaths = new Dictionary<string, string>
+    {
+        ["grid"] = "<rect x='3' y='3' width='7' height='7' rx='1.5'/><rect x='14' y='3' width='7' height='7' rx='1.5'/><rect x='3' y='14' width='7' height='7' rx='1.5'/><rect x='14' y='14' width='7' height='7' rx='1.5'/>",
+        ["users"] = "<path d='M16 19v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V19'/><circle cx='9' cy='7' r='3'/><path d='M22 19v-1.5a4 4 0 0 0-3-3.87'/><path d='M16 4.13a4 4 0 0 1 0 5.74'/>",
+        ["user-plus"] = "<path d='M15 19v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V19'/><circle cx='8.5' cy='7' r='3'/><path d='M19 8v6'/><path d='M22 11h-6'/>",
+        ["academic"] = "<path d='M3 9l9-4 9 4-9 4-9-4z'/><path d='M7 11v4.5c0 1.1 2.2 2.5 5 2.5s5-1.4 5-2.5V11'/><path d='M21 9v5'/>",
+        ["clipboard"] = "<rect x='6' y='4' width='12' height='17' rx='2'/><path d='M9 4V3h6v1'/><path d='M9 12l2 2 4-4'/>",
+        ["package"] = "<path d='M12 3l8 4v10l-8 4-8-4V7l8-4z'/><path d='M4 7l8 4 8-4'/><path d='M12 11v10'/>",
+        ["card"] = "<rect x='2.5' y='5' width='19' height='14' rx='2.5'/><path d='M2.5 10h19'/><path d='M6.5 15h3'/>",
+        ["wallet"] = "<path d='M3 7.5A2.5 2.5 0 0 1 5.5 5H18a2 2 0 0 1 2 2v1'/><rect x='3' y='7.5' width='18' height='11.5' rx='2.5'/><circle cx='16.5' cy='13' r='1.2'/>",
+        ["calendar"] = "<rect x='3' y='5' width='18' height='16' rx='2.5'/><path d='M3 10h18'/><path d='M8 3v4'/><path d='M16 3v4'/>",
+        ["refresh"] = "<path d='M20 11a8 8 0 0 0-14-4.5L3 9'/><path d='M4 13a8 8 0 0 0 14 4.5L21 15'/><path d='M3 5v4h4'/><path d='M21 19v-4h-4'/>",
+        ["inbox"] = "<path d='M3 13h5l1.5 3h5L16 13h5'/><path d='M4.5 5.5h15l1.5 7.5v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4z'/>",
+        ["banknote"] = "<rect x='2.5' y='6' width='19' height='12' rx='2.5'/><circle cx='12' cy='12' r='2.5'/><path d='M6 10v4'/><path d='M18 10v4'/>",
+        ["chart"] = "<path d='M4 20V4'/><path d='M4 20h16'/><rect x='7.5' y='12' width='3' height='5' rx='1'/><rect x='13' y='8' width='3' height='9' rx='1'/>",
+        ["award"] = "<circle cx='12' cy='9' r='5'/><path d='M8.5 13.5L7 21l5-2.5L17 21l-1.5-7.5'/>",
+        ["video"] = "<rect x='2.5' y='6' width='13' height='12' rx='2.5'/><path d='M15.5 10.5L21.5 7v10l-6-3.5'/>",
+        ["clock"] = "<circle cx='12' cy='12' r='8.5'/><path d='M12 7.5V12l3 1.75'/>",
+        ["receipt"] = "<path d='M6 3h12v18l-3-1.5L12 21l-3-1.5L6 21z'/><path d='M9.5 8h5'/><path d='M9.5 12h5'/>",
+        ["link"] = "<path d='M10 13.5a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 1 0-5-5l-1 1'/><path d='M14 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 1 0 5 5l1-1'/>",
+        ["cart"] = "<circle cx='9.5' cy='19' r='1.4'/><circle cx='17' cy='19' r='1.4'/><path d='M2.5 4h2.2l2.3 11h11l2-8H6'/>",
+        ["shield"] = "<path d='M12 3l7.5 3v5.5c0 4.5-3.2 7.7-7.5 9.2-4.3-1.5-7.5-4.7-7.5-9.2V6z'/><path d='M9.5 12l2 2 3.5-3.5'/>",
+        ["home"] = "<path d='M4 10.5L12 4l8 6.5'/><path d='M6 9.5V20h12V9.5'/><path d='M10 20v-5h4v5'/>",
+        ["dot"] = "<circle cx='12' cy='12' r='4'/>",
+    };
+
+    Microsoft.AspNetCore.Html.IHtmlContent NavIcon(string name)
+    {
+        var path = NavIconPaths.TryGetValue(name, out var found) ? found : NavIconPaths["dot"];
+        return new Microsoft.AspNetCore.Html.HtmlString(
+            "<span class=\"app-nav-icon\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" focusable=\"false\">" + path + "</svg></span>");
+    }
 }
 <!DOCTYPE html>
 <html lang="@culture" dir="@(isRtl ? "rtl" : "ltr")">
@@ -79,52 +117,52 @@
                     @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
                     {
                         <div class="app-nav-group">@T["Overview"]</div>
-                        <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard"><span class="app-nav-icon" aria-hidden="true"></span>@T["Dashboard"]</a>
+                        <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
                         <div class="app-nav-group">@T["Students and Guardians"]</div>
-                        <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students"><span class="app-nav-icon" aria-hidden="true"></span>@T["Students"]</a>
-                        <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration"><span class="app-nav-icon" aria-hidden="true"></span>@T["Assisted Registration"]</a>
+                        <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@NavIcon("users")@T["Students"]</a>
+                        <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
                         <div class="app-nav-group">@T["Teachers"]</div>
-                        <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers"><span class="app-nav-icon" aria-hidden="true"></span>@T["Teachers"]</a>
+                        <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
                         <div class="app-nav-group">@T["Placement"]</div>
-                        <a class="@NavClass("/Admin/PlacementTests")" asp-page="/Admin/PlacementTests"><span class="app-nav-icon" aria-hidden="true"></span>@T["Placement Tests"]</a>
+                        <a class="@NavClass("/Admin/PlacementTests")" asp-page="/Admin/PlacementTests">@NavIcon("clipboard")@T["Placement Tests"]</a>
                         <div class="app-nav-group">@T["Packages and Payments"]</div>
-                        <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions"><span class="app-nav-icon" aria-hidden="true"></span>@T["Subscriptions"]</a>
-                        <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments"><span class="app-nav-icon" aria-hidden="true"></span>@T["Payments"]</a>
-                        <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods"><span class="app-nav-icon" aria-hidden="true"></span>@T["Payment Methods"]</a>
+                        <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@NavIcon("package")@T["Subscriptions"]</a>
+                        <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@NavIcon("card")@T["Payments"]</a>
+                        <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
                         <div class="app-nav-group">@T["Scheduling and Attendance"]</div>
-                        <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules"><span class="app-nav-icon" aria-hidden="true"></span>@T["Schedules"]</a>
-                        <a class="@NavClass("/Admin/RescheduleSessions")" asp-page="/Admin/RescheduleSessions"><span class="app-nav-icon" aria-hidden="true"></span>@T["Reschedule / Compensation"]</a>
-                        <a class="@NavClass("/Admin/CompensationRequests")" asp-page="/Admin/CompensationRequests"><span class="app-nav-icon" aria-hidden="true"></span>@T["Compensation Requests"]</a>
+                        <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
+                        <a class="@NavClass("/Admin/RescheduleSessions")" asp-page="/Admin/RescheduleSessions">@NavIcon("refresh")@T["Reschedule / Compensation"]</a>
+                        <a class="@NavClass("/Admin/CompensationRequests")" asp-page="/Admin/CompensationRequests">@NavIcon("inbox")@T["Compensation Requests"]</a>
                         <div class="app-nav-group">@T["Payroll and Expenses"]</div>
-                        <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll"><span class="app-nav-icon" aria-hidden="true"></span>@T["Payroll"]</a>
-                        <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport"><span class="app-nav-icon" aria-hidden="true"></span>@T["Financial Report"]</a>
+                        <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
+                        <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport">@NavIcon("chart")@T["Financial Report"]</a>
                         <div class="app-nav-group">@T["Certificates"]</div>
-                        <a class="@NavClass("/Admin/Certificates")" asp-page="/Admin/Certificates"><span class="app-nav-icon" aria-hidden="true"></span>@T["Certificates"]</a>
+                        <a class="@NavClass("/Admin/Certificates")" asp-page="/Admin/Certificates">@NavIcon("award")@T["Certificates"]</a>
                     }
                     @if (User.IsInRole(RoleNames.Teacher))
                     {
                         <div class="app-nav-group">@T["Teacher workspace"]</div>
-                        <a class="@NavClass("/Teacher/MySessions")" asp-page="/Teacher/MySessions"><span class="app-nav-icon" aria-hidden="true"></span>@T["My Sessions"]</a>
-                        <a class="@NavClass("/Teacher/PublishSlots")" asp-page="/Teacher/PublishSlots"><span class="app-nav-icon" aria-hidden="true"></span>@T["Publish Slots"]</a>
-                        <a class="@NavClass("/Teacher/MyPayHistory")" asp-page="/Teacher/MyPayHistory"><span class="app-nav-icon" aria-hidden="true"></span>@T["My Pay History"]</a>
-                        <a class="@NavClass("/Teacher/Connections")" asp-page="/Teacher/Connections"><span class="app-nav-icon" aria-hidden="true"></span>@T["Connections"]</a>
+                        <a class="@NavClass("/Teacher/MySessions")" asp-page="/Teacher/MySessions">@NavIcon("video")@T["My Sessions"]</a>
+                        <a class="@NavClass("/Teacher/PublishSlots")" asp-page="/Teacher/PublishSlots">@NavIcon("clock")@T["Publish Slots"]</a>
+                        <a class="@NavClass("/Teacher/MyPayHistory")" asp-page="/Teacher/MyPayHistory">@NavIcon("receipt")@T["My Pay History"]</a>
+                        <a class="@NavClass("/Teacher/Connections")" asp-page="/Teacher/Connections">@NavIcon("link")@T["Connections"]</a>
                     }
                     @if (User.IsInRole(RoleNames.Guardian))
                     {
                         <div class="app-nav-group">@T["Guardian workspace"]</div>
-                        <a class="@NavClass("/Guardian/MyChildren")" asp-page="/Guardian/MyChildren"><span class="app-nav-icon" aria-hidden="true"></span>@T["My Children"]</a>
-                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest"><span class="app-nav-icon" aria-hidden="true"></span>@T["Placement Test"]</a>
-                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage"><span class="app-nav-icon" aria-hidden="true"></span>@T["Purchase Package"]</a>
+                        <a class="@NavClass("/Guardian/MyChildren")" asp-page="/Guardian/MyChildren">@NavIcon("users")@T["My Children"]</a>
+                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest">@NavIcon("clipboard")@T["Placement Test"]</a>
+                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage">@NavIcon("cart")@T["Purchase Package"]</a>
                     }
                     @if (User.IsInRole(RoleNames.Student))
                     {
                         <div class="app-nav-group">@T["Student workspace"]</div>
-                        <a class="@NavClass("/Student/MySessions")" asp-page="/Student/MySessions"><span class="app-nav-icon" aria-hidden="true"></span>@T["My Sessions"]</a>
-                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest"><span class="app-nav-icon" aria-hidden="true"></span>@T["Placement Test"]</a>
-                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage"><span class="app-nav-icon" aria-hidden="true"></span>@T["Purchase Package"]</a>
+                        <a class="@NavClass("/Student/MySessions")" asp-page="/Student/MySessions">@NavIcon("video")@T["My Sessions"]</a>
+                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest">@NavIcon("clipboard")@T["Placement Test"]</a>
+                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage">@NavIcon("cart")@T["Purchase Package"]</a>
                     }
                     <div class="app-nav-group">@T["System"]</div>
-                    <a class="@NavClass("/Privacy")" asp-page="/Privacy"><span class="app-nav-icon" aria-hidden="true"></span>@T["Privacy"]</a>
+                    <a class="@NavClass("/Privacy")" asp-page="/Privacy">@NavIcon("shield")@T["Privacy"]</a>
                 </nav>
             </aside>
         }
@@ -136,40 +174,40 @@
             </div>
             <div class="offcanvas-body">
                 <nav class="app-nav">
-                    <a class="@NavClass("/Index")" asp-page="/Index"><span class="app-nav-icon" aria-hidden="true"></span>@T["Home"]</a>
+                    <a class="@NavClass("/Index")" asp-page="/Index">@NavIcon("home")@T["Home"]</a>
                     @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
                     {
-                        <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
-                        <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@T["Students"]</a>
-                        <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@T["Assisted Registration"]</a>
-                        <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@T["Teachers"]</a>
-                        <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@T["Schedules"]</a>
-                        <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@T["Subscriptions"]</a>
-                        <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@T["Payments"]</a>
-                        <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@T["Payment Methods"]</a>
-                        <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@T["Payroll"]</a>
+                        <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
+                        <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@NavIcon("users")@T["Students"]</a>
+                        <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
+                        <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
+                        <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
+                        <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@NavIcon("package")@T["Subscriptions"]</a>
+                        <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@NavIcon("card")@T["Payments"]</a>
+                        <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
+                        <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
                     }
                     @if (User.IsInRole(RoleNames.Teacher))
                     {
-                        <a class="@NavClass("/Teacher/MySessions")" asp-page="/Teacher/MySessions">@T["My Sessions"]</a>
-                        <a class="@NavClass("/Teacher/PublishSlots")" asp-page="/Teacher/PublishSlots">@T["Publish Slots"]</a>
-                        <a class="@NavClass("/Teacher/MyPayHistory")" asp-page="/Teacher/MyPayHistory">@T["My Pay History"]</a>
-                        <a class="@NavClass("/Teacher/Connections")" asp-page="/Teacher/Connections">@T["Connections"]</a>
+                        <a class="@NavClass("/Teacher/MySessions")" asp-page="/Teacher/MySessions">@NavIcon("video")@T["My Sessions"]</a>
+                        <a class="@NavClass("/Teacher/PublishSlots")" asp-page="/Teacher/PublishSlots">@NavIcon("clock")@T["Publish Slots"]</a>
+                        <a class="@NavClass("/Teacher/MyPayHistory")" asp-page="/Teacher/MyPayHistory">@NavIcon("receipt")@T["My Pay History"]</a>
+                        <a class="@NavClass("/Teacher/Connections")" asp-page="/Teacher/Connections">@NavIcon("link")@T["Connections"]</a>
                     }
                     @if (User.IsInRole(RoleNames.Guardian))
                     {
-                        <a class="@NavClass("/Guardian/MyChildren")" asp-page="/Guardian/MyChildren">@T["My Children"]</a>
+                        <a class="@NavClass("/Guardian/MyChildren")" asp-page="/Guardian/MyChildren">@NavIcon("users")@T["My Children"]</a>
                     }
                     @if (User.IsInRole(RoleNames.Student))
                     {
-                        <a class="@NavClass("/Student/MySessions")" asp-page="/Student/MySessions">@T["My Sessions"]</a>
+                        <a class="@NavClass("/Student/MySessions")" asp-page="/Student/MySessions">@NavIcon("video")@T["My Sessions"]</a>
                     }
                     @if (User.IsInRole(RoleNames.Guardian) || User.IsInRole(RoleNames.Student))
                     {
-                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest">@T["Placement Test"]</a>
-                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage">@T["Purchase Package"]</a>
+                        <a class="@NavClass("/PlacementTest")" asp-page="/PlacementTest">@NavIcon("clipboard")@T["Placement Test"]</a>
+                        <a class="@NavClass("/PurchasePackage")" asp-page="/PurchasePackage">@NavIcon("cart")@T["Purchase Package"]</a>
                     }
-                    <a class="@NavClass("/Privacy")" asp-page="/Privacy">@T["Privacy"]</a>
+                    <a class="@NavClass("/Privacy")" asp-page="/Privacy">@NavIcon("shield")@T["Privacy"]</a>
                 </nav>
             </div>
         </div>
