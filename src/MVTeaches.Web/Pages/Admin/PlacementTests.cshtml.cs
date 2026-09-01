@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -56,6 +56,18 @@ public class PlacementTestsModel : PageModel
         new Dictionary<long, IReadOnlyList<PlacementAnswerChoice>>();
     public IReadOnlyList<PlacementScoreRange> EditingScoreRanges { get; set; } = Array.Empty<PlacementScoreRange>();
 
+    /// <summary>Set when the admin pressed Edit on one question or one score
+    /// range: the form above opens holding that row's real content instead of
+    /// silently starting a new one. Correcting a typo used to mean deleting
+    /// the question and typing the whole thing again.</summary>
+    public long? EditingQuestionId { get; set; }
+    public long? EditingScoreRangeId { get; set; }
+
+    /// <summary>Levels a score range may still be mapped to, by id, for the
+    /// list under the ranges table.</summary>
+    public string LevelCode(int levelId) => Levels.FirstOrDefault(l => l.Id == levelId)?.Code
+        ?? _localizer["A level that is no longer active"].Value;
+
     [BindProperty]
     public NewVersionInput NewVersion { get; set; } = new();
 
@@ -77,28 +89,98 @@ public class PlacementTestsModel : PageModel
     public class NewQuestionInput
     {
         [Required] public long TestVersionId { get; set; }
-        [Required] public string Text { get; set; } = string.Empty;
-        [Required, Range(1, int.MaxValue)] public int Points { get; set; } = 1;
-        [Required, Range(0, int.MaxValue)] public int SortOrder { get; set; }
+
+        /// <summary>When set, this post is a correction to that existing
+        /// question rather than a new one. See OnPostAddQuestionAsync for how
+        /// the replacement is ordered so a failure can never lose the
+        /// original.</summary>
+        public long? QuestionId { get; set; }
+
+        [Required(ErrorMessage = "Write the question.")] public string Text { get; set; } = string.Empty;
+        [Required, Range(1, int.MaxValue, ErrorMessage = "How many points is this question worth?")] public int Points { get; set; } = 1;
+        [Range(0, int.MaxValue)] public int SortOrder { get; set; }
 
         // A fixed 4-choice shape keeps the admin form simple — the domain
         // itself has no limit on choice count, this is just this page's UI.
-        [Required] public string Choice1Text { get; set; } = string.Empty;
-        [Required] public string Choice2Text { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Write the first answer.")] public string Choice1Text { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Write the second answer.")] public string Choice2Text { get; set; } = string.Empty;
         public string? Choice3Text { get; set; }
         public string? Choice4Text { get; set; }
+
+        /// <summary>Which answer is the right one. The admin marks it with a
+        /// radio button beside the answer itself — this is just how that
+        /// choice reaches the server.</summary>
         [Required, Range(1, 4)] public int CorrectChoiceNumber { get; set; } = 1;
     }
 
     public class NewScoreRangeInput
     {
         [Required] public long TestVersionId { get; set; }
-        [Required] public int MinScore { get; set; }
-        [Required] public int MaxScore { get; set; }
-        [Required] public int LevelId { get; set; }
+
+        /// <summary>Set when correcting an existing band rather than adding one.</summary>
+        public long? ScoreRangeId { get; set; }
+
+        [Required(ErrorMessage = "Enter the lowest score in this band."), Range(0, int.MaxValue, ErrorMessage = "Enter the lowest score in this band.")]
+        public int? MinScore { get; set; }
+
+        [Required(ErrorMessage = "Enter the highest score in this band."), Range(0, int.MaxValue, ErrorMessage = "Enter the highest score in this band.")]
+        public int? MaxScore { get; set; }
+
+        [Required(ErrorMessage = "Choose a level.")] public int? LevelId { get; set; }
     }
 
-    public async Task OnGetAsync(long? versionId) => await LoadAsync(versionId);
+    public async Task OnGetAsync(long? versionId, long? editQuestionId, long? editRangeId)
+    {
+        await LoadAsync(versionId);
+        await PrefillForEditAsync(editQuestionId, editRangeId);
+    }
+
+    /// <summary>Loads the real content of the row being corrected into the form
+    /// above it. Purely reading what is already on screen — nothing is written
+    /// until the admin presses save.</summary>
+    private async Task PrefillForEditAsync(long? editQuestionId, long? editRangeId)
+    {
+        if (editQuestionId is not null && EditingVersion is not null)
+        {
+            var question = EditingQuestions.FirstOrDefault(q => q.Id == editQuestionId.Value);
+            if (question is not null)
+            {
+                EditingQuestionId = question.Id;
+                NewQuestion.TestVersionId = EditingVersion.Id;
+                NewQuestion.QuestionId = question.Id;
+                NewQuestion.Text = question.Text;
+                NewQuestion.Points = question.Points;
+                NewQuestion.SortOrder = question.SortOrder;
+
+                var choices = await _admin.GetChoicesAsync(question.Id, HttpContext.RequestAborted);
+                var ordered = choices.OrderBy(c => c.SortOrder).ToList();
+                NewQuestion.Choice1Text = ordered.ElementAtOrDefault(0)?.Text ?? string.Empty;
+                NewQuestion.Choice2Text = ordered.ElementAtOrDefault(1)?.Text ?? string.Empty;
+                NewQuestion.Choice3Text = ordered.ElementAtOrDefault(2)?.Text;
+                NewQuestion.Choice4Text = ordered.ElementAtOrDefault(3)?.Text;
+                var correctIndex = ordered.FindIndex(c => c.IsCorrect);
+                NewQuestion.CorrectChoiceNumber = correctIndex >= 0 ? correctIndex + 1 : 1;
+            }
+        }
+
+        if (editRangeId is not null && EditingVersion is not null)
+        {
+            var range = EditingScoreRanges.FirstOrDefault(r => r.Id == editRangeId.Value);
+            if (range is not null)
+            {
+                EditingScoreRangeId = range.Id;
+                NewScoreRange.TestVersionId = EditingVersion.Id;
+                NewScoreRange.ScoreRangeId = range.Id;
+                NewScoreRange.MinScore = range.MinScore;
+                NewScoreRange.MaxScore = range.MaxScore;
+                NewScoreRange.LevelId = range.LevelId;
+            }
+        }
+    }
+
+    /// <summary>The next unused position, so the admin never has to invent a
+    /// sort order for a new question.</summary>
+    public int NextSortOrder => EditingQuestions.Count == 0 ? 1 : EditingQuestions.Max(q => q.SortOrder) + 1;
 
     public async Task<IActionResult> OnPostCreateVersionAsync()
     {
@@ -142,9 +224,25 @@ public class PlacementTestsModel : PageModel
 
         try
         {
+            // A correction is expressed with the two operations this screen
+            // already has, and deliberately in this order: write the corrected
+            // question FIRST, and only remove the old one once that succeeded.
+            // If anything is refused, the admin still has their original
+            // question. Only a draft version can reach either call, and a draft
+            // has no attempts against it, so nothing else can be looking at the
+            // question while it is replaced.
             await _admin.AddQuestionAsync(NewQuestion.TestVersionId, NewQuestion.Text, NewQuestion.Points,
                 choices, NewQuestion.SortOrder, HttpContext.RequestAborted);
-            StatusMessage = _localizer["Question added."].Value;
+
+            if (NewQuestion.QuestionId is not null)
+            {
+                await _admin.RemoveQuestionAsync(NewQuestion.QuestionId.Value, HttpContext.RequestAborted);
+                StatusMessage = _localizer["Question updated."].Value;
+            }
+            else
+            {
+                StatusMessage = _localizer["Question added."].Value;
+            }
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
@@ -172,11 +270,29 @@ public class PlacementTestsModel : PageModel
             return Page();
         }
 
+        if (NewScoreRange.MaxScore < NewScoreRange.MinScore)
+        {
+            ModelState.AddModelError("NewScoreRange.MaxScore",
+                _localizer["The highest score cannot be smaller than the lowest one."].Value);
+            await LoadAsync(NewScoreRange.TestVersionId);
+            return Page();
+        }
+
         try
         {
-            await _admin.AddScoreRangeAsync(NewScoreRange.TestVersionId, NewScoreRange.MinScore,
-                NewScoreRange.MaxScore, NewScoreRange.LevelId, HttpContext.RequestAborted);
-            StatusMessage = _localizer["Score range added."].Value;
+            // Same replace-then-remove ordering as a question correction above.
+            await _admin.AddScoreRangeAsync(NewScoreRange.TestVersionId, NewScoreRange.MinScore!.Value,
+                NewScoreRange.MaxScore!.Value, NewScoreRange.LevelId!.Value, HttpContext.RequestAborted);
+
+            if (NewScoreRange.ScoreRangeId is not null)
+            {
+                await _admin.RemoveScoreRangeAsync(NewScoreRange.ScoreRangeId.Value, HttpContext.RequestAborted);
+                StatusMessage = _localizer["Score band updated."].Value;
+            }
+            else
+            {
+                StatusMessage = _localizer["Score band added."].Value;
+            }
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {

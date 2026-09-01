@@ -1,24 +1,58 @@
-﻿@page
+@page
 @model MVTeaches.Web.Pages.Admin.PlacementTestsModel
 @using MVTeaches.Domain.Placement
 @{
     ViewData["Title"] = T["Placement Tests"].Value;
+    var editingQuestion = Model.EditingQuestionId is not null;
+    var editingRange = Model.EditingScoreRangeId is not null;
 }
 
-<h1>@T["Placement Tests"]</h1>
-<p class="text-muted">@T["This content is entirely admin-authored; nothing here is invented by the system. A version cannot be published unless its score ranges fully cover every possible score with no gaps or overlaps."]</p>
+@functions {
+    string VersionStatusClass(PlacementTestStatus status) => status switch
+    {
+        PlacementTestStatus.Published => "app-status is-success",
+        PlacementTestStatus.Draft => "app-status is-warning",
+        _ => "app-status is-muted",
+    };
+}
+
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Placement Tests"]</span>
+</nav>
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Placement Tests"]</h1>
+        <p class="text-muted">@T["The test a new student sits to find out which level they belong in. Every question and every answer here is written by the centre — the system invents nothing."]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["Students"]</a>
+    </div>
+</div>
+
+<div class="app-guide">
+    <p class="app-guide-title">@T["How a test goes live"]</p>
+    <ol>
+        <li>@T["Create a draft and write its questions. A draft can be changed as much as you like."]</li>
+        <li>@T["Say which score gets which level — the bands must cover every possible score, with no gap and no overlap."]</li>
+        <li>@T["Publish it. From then on its questions are frozen, because students' results have to stay comparable."]</li>
+        <li>@T["Make it the active one. Only one test is active at a time, and it is the one new students sit."]</li>
+    </ol>
+</div>
 
 @if (Model.StatusMessage is not null)
 {
-    <div class="alert alert-success">@Model.StatusMessage</div>
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
 }
 @if (Model.ErrorMessage is not null)
 {
-    <div class="alert alert-danger">
+    <div class="alert alert-danger" role="alert">
         @Model.ErrorMessage
         @if (Model.ValidationErrors.Count > 0)
         {
-            <ul class="mb-0">
+            <ul class="mb-0 mt-2">
                 @foreach (var e in Model.ValidationErrors)
                 {
                     <li>@e</li>
@@ -27,50 +61,83 @@
         }
     </div>
 }
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
+}
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">@T["Create a new draft version"]</h5>
-        <form method="post" asp-page-handler="CreateVersion" class="row g-2">
+        <h2 class="card-title h5">@T["Start a new draft test"]</h2>
+        <form method="post" asp-page-handler="CreateVersion" class="row g-2 align-items-end">
             <div class="col-md-8">
-                <label class="form-label" asp-for="NewVersion.Title">@T["Title"]</label>
+                <label class="form-label" asp-for="NewVersion.Title">@T["Name it so you can tell versions apart"]<span class="app-required">*</span></label>
                 <input asp-for="NewVersion.Title" class="form-control" placeholder="@T["e.g. English Placement v3"]" />
+                <span asp-validation-for="NewVersion.Title" class="text-danger small"></span>
             </div>
-            <div class="col-md-4 d-flex align-items-end">
+            <div class="col-md-4">
                 <button type="submit" class="btn btn-primary">@T["Create draft"]</button>
             </div>
         </form>
     </div>
 </div>
 
-<h2>@T["Versions"]</h2>
+<h2>@T["Tests"]</h2>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>@T["Title"]</th><th>@T["Status"]</th><th>@T["Active"]</th><th></th></tr></thead>
+        <thead><tr><th>@T["Title"]</th><th>@T["Status"]</th><th>@T["In use"]</th><th>@T["Actions"]</th></tr></thead>
         <tbody>
             @foreach (var v in Model.Versions)
             {
                 <tr class="@(Model.EditingVersionId == v.Id ? "table-active" : "")">
-                    <td>@v.Id</td>
                     <td>@v.Title</td>
-                    <td>@T["PlacementTestStatus." + v.Status]</td>
-                    <td>@(v.IsActive ? T["Yes"] : "")</td>
+                    <td><span class="@VersionStatusClass(v.Status)">@T["PlacementTestStatus." + v.Status]</span></td>
                     <td>
-                        <a asp-page="/Admin/PlacementTests" asp-route-versionId="@v.Id" class="btn btn-sm btn-outline-primary">@T["Edit"]</a>
-                        @if (v.Status == PlacementTestStatus.Draft)
+                        @if (v.IsActive)
                         {
-                            <form method="post" asp-page-handler="Publish" class="d-inline">
-                                <input type="hidden" name="versionId" value="@v.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-success">@T["Publish"]</button>
-                            </form>
+                            <span class="app-status is-success">@T["This is the test students sit"]</span>
                         }
-                        @if (v.Status == PlacementTestStatus.Published && !v.IsActive)
+                        else
                         {
-                            <form method="post" asp-page-handler="Activate" class="d-inline">
-                                <input type="hidden" name="versionId" value="@v.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-warning">@T["Activate"]</button>
-                            </form>
+                            <span class="text-muted">—</span>
                         }
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <a asp-page="/Admin/PlacementTests" asp-route-versionId="@v.Id" class="btn btn-sm btn-outline-primary">
+                                @(v.Status == PlacementTestStatus.Draft ? T["Open and edit"].Value : T["Open"].Value)
+                            </a>
+                            @if (v.Status == PlacementTestStatus.Draft)
+                            {
+                                <form method="post" asp-page-handler="Publish" class="d-inline">
+                                    <input type="hidden" name="versionId" value="@v.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success"
+                                            data-mv-confirm="@T["Publish this test? Its questions can never be changed again."]">@T["Publish"]</button>
+                                </form>
+                            }
+                            @if (v.Status == PlacementTestStatus.Published && !v.IsActive)
+                            {
+                                <form method="post" asp-page-handler="Activate" class="d-inline">
+                                    <input type="hidden" name="versionId" value="@v.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-warning"
+                                            data-mv-confirm="@T["Make this the test new students sit from now on?"]">@T["Make it the active one"]</button>
+                                </form>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (Model.Versions.Count == 0)
+            {
+                <tr>
+                    <td colspan="4">
+                        <div class="app-empty">
+                            <strong>@T["No test exists yet."]</strong>
+                            <span>@T["Until one is published and active, no student can be placed by test — their level has to be set by hand."]</span>
+                        </div>
                     </td>
                 </tr>
             }
@@ -80,119 +147,185 @@
 
 @if (Model.EditingVersion is not null)
 {
-    <h2>@T["Editing:"] @Model.EditingVersion.Title <span class="app-status is-info">@T["PlacementTestStatus." + Model.EditingVersion.Status]</span></h2>
+    <h2>@Model.EditingVersion.Title <span class="@VersionStatusClass(Model.EditingVersion.Status)">@T["PlacementTestStatus." + Model.EditingVersion.Status]</span></h2>
+
+    @if (Model.EditingVersion.Status != PlacementTestStatus.Draft)
+    {
+        <div class="alert alert-info">@T["This test is published, so its questions and score bands are frozen. To change anything, create a new draft."]</div>
+    }
 
     @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
     {
-        <div class="card mb-3">
+        <div class="card mb-3" id="question-form">
             <div class="card-body">
-                <h5 class="card-title">@T["Add a question"]</h5>
-                <form method="post" asp-page-handler="AddQuestion" class="row g-2">
+                <h3 class="card-title h5">@(editingQuestion ? T["Correct this question"].Value : T["Add a question"].Value)</h3>
+                <p class="text-muted small">@T["Write the question, then the answers. Mark the right answer with the button beside it — you never type an answer number."]</p>
+                <form method="post" asp-page-handler="AddQuestion" class="row g-3">
                     <input type="hidden" asp-for="NewQuestion.TestVersionId" value="@Model.EditingVersion.Id" />
+                    <input type="hidden" asp-for="NewQuestion.QuestionId" />
                     <div class="col-12">
-                        <label class="form-label" asp-for="NewQuestion.Text">@T["Question text"]</label>
-                        <input asp-for="NewQuestion.Text" class="form-control" />
+                        <label class="form-label" asp-for="NewQuestion.Text">@T["The question"]<span class="app-required">*</span></label>
+                        <input asp-for="NewQuestion.Text" class="form-control" placeholder="@T["Written exactly as the student will read it"]" />
+                        <span asp-validation-for="NewQuestion.Text" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">@T["The answers"]<span class="app-required">*</span></label>
+                        <div class="form-text mb-2">@T["Two answers are the minimum; the third and fourth are optional. Choose exactly one as correct."]</div>
+
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" asp-for="NewQuestion.CorrectChoiceNumber" value="1" id="correct1" />
+                                <label class="form-check-label visually-hidden" for="correct1">@T["This one is correct"]</label>
+                            </div>
+                            <input asp-for="NewQuestion.Choice1Text" class="form-control" placeholder="@T["Answer 1"]" aria-label="@T["Answer 1"]" />
+                        </div>
+                        <span asp-validation-for="NewQuestion.Choice1Text" class="text-danger small"></span>
+
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" asp-for="NewQuestion.CorrectChoiceNumber" value="2" id="correct2" />
+                                <label class="form-check-label visually-hidden" for="correct2">@T["This one is correct"]</label>
+                            </div>
+                            <input asp-for="NewQuestion.Choice2Text" class="form-control" placeholder="@T["Answer 2"]" aria-label="@T["Answer 2"]" />
+                        </div>
+                        <span asp-validation-for="NewQuestion.Choice2Text" class="text-danger small"></span>
+
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" asp-for="NewQuestion.CorrectChoiceNumber" value="3" id="correct3" />
+                                <label class="form-check-label visually-hidden" for="correct3">@T["This one is correct"]</label>
+                            </div>
+                            <input asp-for="NewQuestion.Choice3Text" class="form-control" placeholder="@T["Answer 3 (optional)"]" aria-label="@T["Answer 3 (optional)"]" />
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" asp-for="NewQuestion.CorrectChoiceNumber" value="4" id="correct4" />
+                                <label class="form-check-label visually-hidden" for="correct4">@T["This one is correct"]</label>
+                            </div>
+                            <input asp-for="NewQuestion.Choice4Text" class="form-control" placeholder="@T["Answer 4 (optional)"]" aria-label="@T["Answer 4 (optional)"]" />
+                        </div>
+                        <div class="form-text">@T["Marking an empty answer as the correct one is refused — pick one that has text."]</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewQuestion.Points">@T["Points if answered correctly"]</label>
+                        <input asp-for="NewQuestion.Points" class="form-control" inputmode="numeric" />
+                        <div class="form-text">@T["Leave it at 1 unless this question should count for more."]</div>
+                        <span asp-validation-for="NewQuestion.Points" class="text-danger small"></span>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label" asp-for="NewQuestion.Points">@T["Points"]</label>
-                        <input asp-for="NewQuestion.Points" class="form-control" />
+                        <label class="form-label" asp-for="NewQuestion.SortOrder">@T["Position in the test"]</label>
+                        <input asp-for="NewQuestion.SortOrder" class="form-control" inputmode="numeric" value="@(editingQuestion ? Model.NewQuestion.SortOrder : Model.NextSortOrder)" />
+                        <div class="form-text">@T["Already filled in with the next free position."]</div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label" asp-for="NewQuestion.SortOrder">@T["Sort order"]</label>
-                        <input asp-for="NewQuestion.SortOrder" class="form-control" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="NewQuestion.CorrectChoiceNumber">@T["Correct choice #"]</label>
-                        <select asp-for="NewQuestion.CorrectChoiceNumber" class="form-select">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="NewQuestion.Choice1Text">@T["Choice 1"]</label>
-                        <input asp-for="NewQuestion.Choice1Text" class="form-control" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="NewQuestion.Choice2Text">@T["Choice 2"]</label>
-                        <input asp-for="NewQuestion.Choice2Text" class="form-control" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="NewQuestion.Choice3Text">@T["Choice 3 (optional)"]</label>
-                        <input asp-for="NewQuestion.Choice3Text" class="form-control" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="NewQuestion.Choice4Text">@T["Choice 4 (optional)"]</label>
-                        <input asp-for="NewQuestion.Choice4Text" class="form-control" />
-                    </div>
+
                     <div class="col-12">
-                        <button type="submit" class="btn btn-primary">@T["Add question"]</button>
+                        <button type="submit" class="btn btn-primary">@(editingQuestion ? T["Save the correction"].Value : T["Add the question"].Value)</button>
+                        @if (editingQuestion)
+                        {
+                            <a class="btn btn-outline-secondary" asp-page="/Admin/PlacementTests" asp-route-versionId="@Model.EditingVersion.Id">@T["Cancel"]</a>
+                            <div class="app-outcome mt-3">@T["Saving replaces the old wording with this one, in the same position in the test."]</div>
+                        }
                     </div>
                 </form>
             </div>
         </div>
 
-        <div class="card mb-3">
+        <div class="card mb-3" id="range-form">
             <div class="card-body">
-                <h5 class="card-title">@T["Add a score range → level mapping"]</h5>
-                <form method="post" asp-page-handler="AddScoreRange" class="row g-2">
+                <h3 class="card-title h5">@(editingRange ? T["Correct this score band"].Value : T["Which score gets which level?"].Value)</h3>
+                <p class="text-muted small">@T["A test only produces a number. These bands are what turn that number into a level — without them a finished test cannot place anybody. The bands together must cover every score from zero up to the full mark, leaving no gap and no overlap."]</p>
+                <form method="post" asp-page-handler="AddScoreRange" class="row g-3 align-items-end">
                     <input type="hidden" asp-for="NewScoreRange.TestVersionId" value="@Model.EditingVersion.Id" />
+                    <input type="hidden" asp-for="NewScoreRange.ScoreRangeId" />
                     <div class="col-md-3">
-                        <label class="form-label" asp-for="NewScoreRange.MinScore">@T["Min score"]</label>
-                        <input asp-for="NewScoreRange.MinScore" class="form-control" />
+                        <label class="form-label" asp-for="NewScoreRange.MinScore">@T["From this score"]<span class="app-required">*</span></label>
+                        <input asp-for="NewScoreRange.MinScore" class="form-control" inputmode="numeric" />
+                        <span asp-validation-for="NewScoreRange.MinScore" class="text-danger small"></span>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label" asp-for="NewScoreRange.MaxScore">@T["Max score"]</label>
-                        <input asp-for="NewScoreRange.MaxScore" class="form-control" />
+                        <label class="form-label" asp-for="NewScoreRange.MaxScore">@T["Up to this score"]<span class="app-required">*</span></label>
+                        <input asp-for="NewScoreRange.MaxScore" class="form-control" inputmode="numeric" />
+                        <span asp-validation-for="NewScoreRange.MaxScore" class="text-danger small"></span>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label" asp-for="NewScoreRange.LevelId">@T["Level"]</label>
+                        <label class="form-label" asp-for="NewScoreRange.LevelId">@T["Goes to this level"]<span class="app-required">*</span></label>
                         <select asp-for="NewScoreRange.LevelId" class="form-select">
-                            <option value="">-- @T["select"] --</option>
+                            <option value="">@T["Select placeholder"]</option>
                             @foreach (var l in Model.Levels)
                             {
                                 <option value="@l.Id">@l.Code</option>
                             }
                         </select>
+                        <span asp-validation-for="NewScoreRange.LevelId" class="text-danger small"></span>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary">@T["Add range"]</button>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary">@(editingRange ? T["Save the correction"].Value : T["Add the band"].Value)</button>
+                        @if (editingRange)
+                        {
+                            <a class="btn btn-outline-secondary" asp-page="/Admin/PlacementTests" asp-route-versionId="@Model.EditingVersion.Id">@T["Cancel"]</a>
+                        }
                     </div>
                 </form>
             </div>
         </div>
     }
 
-    <h4>@T["Questions"]</h4>
+    <h3 class="h4">@T["Questions"]</h3>
     <div class="table-responsive mb-3">
         <table class="table table-sm table-striped">
-            <thead><tr><th>#</th><th>@T["Text"]</th><th>@T["Points"]</th><th>@T["Choices (✓ = correct)"]</th><th></th></tr></thead>
+            <thead><tr><th>@T["Position"]</th><th>@T["The question"]</th><th>@T["Points"]</th><th>@T["Answers"]</th><th>@T["Actions"]</th></tr></thead>
             <tbody>
                 @foreach (var q in Model.EditingQuestions)
                 {
-                    <tr>
+                    <tr class="@(Model.EditingQuestionId == q.Id ? "table-active" : "")">
                         <td>@q.SortOrder</td>
                         <td>@q.Text</td>
                         <td>@q.Points</td>
                         <td>
                             @if (Model.ChoicesByQuestion.TryGetValue(q.Id, out var choices))
                             {
-                                foreach (var c in choices)
+                                foreach (var c in choices.OrderBy(c => c.SortOrder))
                                 {
-                                    <div>@(c.IsCorrect ? "✓ " : "")@c.Text</div>
+                                    if (c.IsCorrect)
+                                    {
+                                        <div><span class="app-status is-success">@T["Correct"]</span> @c.Text</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted">@c.Text</div>
+                                    }
                                 }
                             }
                         </td>
                         <td>
                             @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
                             {
-                                <form method="post" asp-page-handler="RemoveQuestion">
-                                    <input type="hidden" name="questionId" value="@q.Id" />
-                                    <input type="hidden" name="versionId" value="@Model.EditingVersion.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["Remove"]</button>
-                                </form>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <a class="btn btn-sm btn-outline-primary"
+                                       asp-page="/Admin/PlacementTests" asp-route-versionId="@Model.EditingVersion.Id"
+                                       asp-route-editQuestionId="@q.Id" asp-fragment="question-form">@T["Edit"]</a>
+                                    <form method="post" asp-page-handler="RemoveQuestion">
+                                        <input type="hidden" name="questionId" value="@q.Id" />
+                                        <input type="hidden" name="versionId" value="@Model.EditingVersion.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                data-mv-confirm="@T["Delete this question?"]">@T["Delete"]</button>
+                                    </form>
+                                </div>
                             }
+                        </td>
+                    </tr>
+                }
+                @if (Model.EditingQuestions.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <div class="app-empty">
+                                <strong>@T["This test has no questions yet."]</strong>
+                                <span>@T["Add the first one above — a test cannot be published while it is empty."]</span>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -200,26 +333,43 @@
         </table>
     </div>
 
-    <h4>@T["Score ranges"]</h4>
-    <div class="table-responsive">
+    <h3 class="h4">@T["Score bands"]</h3>
+    <div class="table-responsive mb-4">
         <table class="table table-sm table-striped">
-            <thead><tr><th>@T["Min"]</th><th>@T["Max"]</th><th>@T["Level"]</th><th></th></tr></thead>
+            <thead><tr><th>@T["From"]</th><th>@T["Up to"]</th><th>@T["Level"]</th><th>@T["Actions"]</th></tr></thead>
             <tbody>
-                @foreach (var r in Model.EditingScoreRanges)
+                @foreach (var r in Model.EditingScoreRanges.OrderBy(r => r.MinScore))
                 {
-                    <tr>
+                    <tr class="@(Model.EditingScoreRangeId == r.Id ? "table-active" : "")">
                         <td>@r.MinScore</td>
                         <td>@r.MaxScore</td>
-                        <td>@(Model.Levels.FirstOrDefault(l => l.Id == r.LevelId)?.Code ?? $"#{r.LevelId}")</td>
+                        <td>@Model.LevelCode(r.LevelId)</td>
                         <td>
                             @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
                             {
-                                <form method="post" asp-page-handler="RemoveScoreRange">
-                                    <input type="hidden" name="scoreRangeId" value="@r.Id" />
-                                    <input type="hidden" name="versionId" value="@Model.EditingVersion.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["Remove"]</button>
-                                </form>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <a class="btn btn-sm btn-outline-primary"
+                                       asp-page="/Admin/PlacementTests" asp-route-versionId="@Model.EditingVersion.Id"
+                                       asp-route-editRangeId="@r.Id" asp-fragment="range-form">@T["Edit"]</a>
+                                    <form method="post" asp-page-handler="RemoveScoreRange">
+                                        <input type="hidden" name="scoreRangeId" value="@r.Id" />
+                                        <input type="hidden" name="versionId" value="@Model.EditingVersion.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                data-mv-confirm="@T["Delete this band?"]">@T["Delete"]</button>
+                                    </form>
+                                </div>
                             }
+                        </td>
+                    </tr>
+                }
+                @if (Model.EditingScoreRanges.Count == 0)
+                {
+                    <tr>
+                        <td colspan="4">
+                            <div class="app-empty">
+                                <strong>@T["No score band yet."]</strong>
+                                <span>@T["A finished test would produce a number with no level to give it. Add the bands above."]</span>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -228,28 +378,44 @@
     </div>
 }
 
-<h2>@T["Pending retake requests"]</h2>
-<p class="text-muted small">@T["A retake requires explicit admin approval; approving or rejecting is audit-logged."]</p>
+<h2>@T["Students asking to sit the test again"]</h2>
+<p class="text-muted small">@T["A student only gets a second attempt if an admin allows it. Whichever you choose is recorded against your name."]</p>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>#</th><th>@T["Student"]</th><th>@T["Requested"]</th><th></th></tr></thead>
+        <thead><tr><th>@T["Student"]</th><th>@T["Asked on"]</th><th>@T["Actions"]</th></tr></thead>
         <tbody>
             @foreach (var r in Model.PendingRetakeRequests)
             {
                 <tr>
-                    <td>@r.Id</td>
-                    <td>@Model.StudentNamesById.GetValueOrDefault(r.StudentId, $"#{r.StudentId}")</td>
+                    <td>@Model.StudentNamesById.GetValueOrDefault(r.StudentId, T["Not specified"].Value)</td>
                     <td>@T.DateTimeUtc(r.RequestedAtUtc)</td>
                     <td>
-                        <form method="post" asp-page-handler="ApproveRetake" class="d-inline">
-                            <input type="hidden" name="retakeRequestId" value="@r.Id" />
-                            <button type="submit" class="btn btn-sm btn-outline-success">@T["Approve"]</button>
-                        </form>
-                        <form method="post" asp-page-handler="RejectRetake" class="d-inline">
-                            <input type="hidden" name="retakeRequestId" value="@r.Id" />
-                            <input type="text" name="reason" placeholder="@T["Reason (required)"]" class="form-control form-control-sm d-inline-block" style="width:auto" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
-                        </form>
+                        <div class="d-flex gap-2 flex-wrap align-items-end">
+                            <form method="post" asp-page-handler="ApproveRetake">
+                                <input type="hidden" name="retakeRequestId" value="@r.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-success"
+                                        data-mv-confirm="@T["Let this student sit the test again?"]">@T["Allow it"]</button>
+                            </form>
+                            <form method="post" asp-page-handler="RejectRetake" class="d-flex gap-1 align-items-end">
+                                <input type="hidden" name="retakeRequestId" value="@r.Id" />
+                                <div>
+                                    <label class="form-label small mb-0" for="retakeReason-@r.Id">@T["Reason the student will read"]<span class="app-required">*</span></label>
+                                    <input type="text" id="retakeReason-@r.Id" name="reason" class="form-control form-control-sm" style="width:16rem" />
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Refuse"]</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (Model.PendingRetakeRequests.Count == 0)
+            {
+                <tr>
+                    <td colspan="3">
+                        <div class="app-empty">
+                            <strong>@T["Nobody is asking."]</strong>
+                            <span>@T["A request appears here when a student who already sat the test asks for another go."]</span>
+                        </div>
                     </td>
                 </tr>
             }
