@@ -211,7 +211,6 @@
   <data name="The receipt must be a JPEG, PNG, or PDF file." xml:space="preserve"><value>The receipt must be a JPEG, PNG, or PDF file.</value></data>
   <data name="The receipt file is too large." xml:space="preserve"><value>The receipt file is too large.</value></data>
   <data name="The receipt could not be uploaded." xml:space="preserve"><value>The receipt could not be uploaded.</value></data>
-  <data name="Transfer details recorded — awaiting confirmation on /Admin/Payments once the money is seen in the account." xml:space="preserve"><value>Transfer details recorded — awaiting confirmation on /Admin/Payments once the money is seen in the account.</value></data>
   <data name="Payment not found." xml:space="preserve"><value>Payment not found.</value></data>
   <data name="This payment is no longer pending." xml:space="preserve"><value>This payment is no longer pending.</value></data>
   <data name="This bank reference looks like it was already used for another payment — double check with the guardian." xml:space="preserve"><value>This bank reference looks like it was already used for another payment — double check with the guardian.</value></data>
@@ -422,7 +421,7 @@
   <data name="That session can no longer be booked." xml:space="preserve"><value>That session can no longer be booked.</value></data>
   <data name="You're already booked into that session." xml:space="preserve"><value>You're already booked into that session.</value></data>
   <data name="That session is full." xml:space="preserve"><value>That session is full.</value></data>
-  <data name="Booking this session would exceed your remaining package balance." xml:space="preserve"><value>Booking this session would exceed your remaining package balance.</value></data>
+  <data name="Booking this session would exceed your remaining package balance." xml:space="preserve"><value>This session was not booked. Your package does not have enough remaining balance to cover it — contact the centre to add hours, or wait for a new package.</value></data>
   <data name="No age group covers your current age." xml:space="preserve"><value>No age group covers your current age.</value></data>
   <data name="Replacement request submitted — an admin will review it." xml:space="preserve"><value>Replacement request submitted — an admin will review it.</value></data>
   <data name="That session isn't recorded as a no-show." xml:space="preserve"><value>That session isn't recorded as a no-show.</value></data>
@@ -770,7 +769,6 @@
   <data name="Resume" xml:space="preserve"><value>Resume</value></data>
   <data name="Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual &quot;Trigger now&quot; on /hangfire)." xml:space="preserve"><value>Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual &quot;Trigger now&quot; on /hangfire).</value></data>
   <data name="Enrolled the student into {0} upcoming session(s) generated from this schedule." xml:space="preserve"><value>Enrolled the student into {0} upcoming session(s) generated from this schedule.</value></data>
-  <data name="Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched (approve a specific replacement lesson for them on /Admin/RescheduleSessions if appropriate)." xml:space="preserve"><value>Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched (approve a specific replacement lesson for them on /Admin/RescheduleSessions if appropriate).</value></data>
   <data name="Session cancelled and replaced. {0} student(s) moved to the replacement; {1} could not fit and need manual attention; {2} already-joined student(s) left untouched." xml:space="preserve"><value>Session cancelled and replaced. {0} student(s) moved to the replacement; {1} could not fit and need manual attention; {2} already-joined student(s) left untouched.</value></data>
   <data name="This session is already cancelled, completed, or marked not delivered." xml:space="preserve"><value>This session is already cancelled, completed, or marked not delivered.</value></data>
   <data name="The replacement session id was not found." xml:space="preserve"><value>The replacement session id was not found.</value></data>
@@ -1470,4 +1468,22 @@
   <data name="Does this cost me anything?" xml:space="preserve"><value>Does this cost me anything?</value></data>
   <data name="No." xml:space="preserve"><value>No.</value></data>
   <data name="A free Google account is enough. The centre does not buy, provide, or repay any video licence, and you are never asked for your Zoom or Google password — you sign in with them directly." xml:space="preserve"><value>A free Google account is enough. The centre does not buy, provide, or repay any video licence, and you are never asked for your Zoom or Google password — you sign in with them directly.</value></data>
+  <data name="Now, exactly what arrived:" xml:space="preserve"><value>Now, exactly what arrived:</value></data>
+  <data name="Open in a new tab" xml:space="preserve"><value>Open in a new tab</value></data>
+  <data name="For one student" xml:space="preserve"><value>For one student</value></data>
+  <data name="Centre-wide — not for one student" xml:space="preserve"><value>Centre-wide — not for one student</value></data>
+  <data name="You arrived from:" xml:space="preserve"><value>You arrived from:</value></data>
+  <data name="no level assigned yet" xml:space="preserve"><value>no level assigned yet</value></data>
+  <data name="Change their level" xml:space="preserve"><value>Change their level</value></data>
+  <data name="The &quot;Enroll a student&quot; form below is ready for them. &quot;Create a new weekly schedule&quot; is a separate, centre-wide action — see the note on that card." xml:space="preserve"><value>The &quot;Enroll a student&quot; form below is ready for them. &quot;Create a new weekly schedule&quot; is a separate, centre-wide action — see the note on that card.</value></data>
+  <data name="Choose who teaches it, at what level, on which days, and from when. Everything else follows from that. This creates a standing class any student at that level can later be enrolled into — it does not enroll anyone by itself." xml:space="preserve"><value>Choose who teaches it, at what level, on which days, and from when. Everything else follows from that. This creates a standing class any student at that level can later be enrolled into — it does not enroll anyone by itself.</value></data>
+  <data name="(no level yet)" xml:space="preserve"><value>(no level yet)</value></data>
+  <data name="No weekly class runs at this student's level yet — create one above first." xml:space="preserve"><value>No weekly class runs at this student's level yet — create one above first.</value></data>
+  <data name="What happens when I press Connect?" xml:space="preserve"><value>What happens when I press Connect?</value></data>
+  <data name="Press &quot;Connect Google Meet&quot; (or Zoom) in the table below." xml:space="preserve"><value>Press &quot;Connect Google Meet&quot; (or Zoom) in the table below.</value></data>
+  <data name="Choose your Google account on the page it takes you to." xml:space="preserve"><value>Choose your Google account on the page it takes you to.</value></data>
+  <data name="Approve the access MVTeaches is asking for." xml:space="preserve"><value>Approve the access MVTeaches is asking for.</value></data>
+  <data name="You land back here — check that this provider's row now says &quot;Connected&quot;." xml:space="preserve"><value>You land back here — check that this provider's row now says &quot;Connected&quot;.</value></data>
+  <data name="Transfer details recorded. An admin will confirm it on the payments screen once the money is seen in the account." xml:space="preserve"><value>Transfer details recorded. An admin will confirm it on the payments screen once the money is seen in the account.</value></data>
+  <data name="Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched — approve a specific replacement lesson for them from the Reschedule / Compensation screen if appropriate." xml:space="preserve"><value>Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched — approve a specific replacement lesson for them from the Reschedule / Compensation screen if appropriate.</value></data>
 </root>
