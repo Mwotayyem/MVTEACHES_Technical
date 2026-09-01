@@ -2,22 +2,55 @@
 @model MVTeaches.Web.Pages.Admin.DashboardModel
 @{
     ViewData["Title"] = T["Dashboard"].Value;
+    var busiest = Model.BusiestDayCount;
 }
 
 <div class="app-page-head">
     <div>
         <h1>@T["Dashboard"]</h1>
-        <p class="text-muted">@T["Live counts, read directly from the database — nothing here is cached or precomputed."]</p>
+        <p class="text-muted">@T["Everything on this page is counted live from the database as you load it."]</p>
     </div>
     <div class="app-page-actions">
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["Students"]</a>
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Schedules">@T["Schedules"]</a>
-        <a class="btn btn-primary btn-sm" asp-page="/Admin/AssistedRegistration">@T["Assisted Registration"]</a>
+        <a class="btn btn-primary btn-sm" asp-page="/Admin/AssistedRegistration">@T["Register a family step by step"]</a>
     </div>
 </div>
 
+@if (Model.TotalWaiting == 0)
+{
+    <div class="alert alert-success" role="status">
+        <strong>@T["Nothing is waiting on you."]</strong>
+        @T["No payment to confirm, no request to review, no student stuck without a level."]
+    </div>
+}
+else
+{
+    <div class="alert alert-warning" role="status">
+        <strong>@T["{0} thing(s) are waiting on you.", Model.TotalWaiting]</strong>
+        @T["Each card below is a queue: open it, deal with it, and the number goes down."]
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            @if (Model.PaymentsAwaitingConfirmation > 0)
+            {
+                <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments">@T["Confirm payments"] (@Model.PaymentsAwaitingConfirmation)</a>
+            }
+            @if (Model.StudentsWithoutLevel > 0)
+            {
+                <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Students">@T["Set levels"] (@Model.StudentsWithoutLevel)</a>
+            }
+            @if (Model.ReplacementRequestsAwaitingReview > 0)
+            {
+                <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/CompensationRequests">@T["Review make-up requests"] (@Model.ReplacementRequestsAwaitingReview)</a>
+            }
+            @if (Model.DeliveriesAwaitingVerification > 0)
+            {
+                <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payroll">@T["Check delivered lessons"] (@Model.DeliveriesAwaitingVerification)</a>
+            }
+        </div>
+    </div>
+}
+
 <h2 class="h4">@T["Waiting for you"] @if (Model.TotalWaiting > 0) { <span class="app-status is-warning">@Model.TotalWaiting</span> }</h2>
-<p class="text-muted small">@T["Everything below is a queue: open it and the number goes down. An empty row means nothing is waiting."]</p>
 
 <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3 mb-4">
     <div class="col">
@@ -64,6 +97,72 @@
     </div>
 </div>
 
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <h2 class="h4">@T["The week ahead"]</h2>
+        <p class="text-muted small">@T["How many lessons are scheduled on each of the next seven days."]</p>
+        <div class="card">
+            <div class="card-body">
+                @if (busiest == 0)
+                {
+                    <div class="app-empty">
+                        <strong>@T["No lesson is scheduled this week."]</strong>
+                        <span>@T["Either no weekly class is running, or its sessions have not been generated yet."]</span>
+                        <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Schedules">@T["Open schedules"]</a></span>
+                    </div>
+                }
+                else
+                {
+                    <div class="app-chart" role="img"
+                         aria-label="@T["Lessons scheduled on each of the next seven days."]">
+                        @foreach (var day in Model.WeekAhead)
+                        {
+                            <div class="app-chart-col @(day.SessionCount == 0 ? "is-empty" : "")">
+                                <span class="app-chart-value">@day.SessionCount</span>
+                                <span class="app-chart-bar" style="--mv-bar: @(((double)day.SessionCount / busiest).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))"></span>
+                            </div>
+                        }
+                    </div>
+                    <div class="app-chart-axis">
+                        @foreach (var day in Model.WeekAhead)
+                        {
+                            <span>@T.ShortDay(day.Day)</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <h2 class="h4">@T["Next lessons"]</h2>
+        <p class="text-muted small">@T["The ones starting soonest, with how many seats are taken."]</p>
+        <div class="app-feed">
+            @foreach (var s in Model.UpcomingSessions)
+            {
+                <div class="app-feed-item">
+                    <span class="app-feed-when">@T.SessionMoment(s.StartsAtUtc, s.TimeZoneId)</span>
+                    <span class="app-feed-what">@s.TeacherName · @s.LevelCode</span>
+                    <span class="app-feed-meta">
+                        @T["Seats"]: @s.SeatsTaken / @s.Capacity
+                        @if (s.SeatsTaken >= s.Capacity)
+                        {
+                            <span class="app-status is-warning">@T["Full"]</span>
+                        }
+                    </span>
+                </div>
+            }
+            @if (Model.UpcomingSessions.Count == 0)
+            {
+                <div class="app-empty">
+                    <strong>@T["Nothing is coming up."]</strong>
+                    <span>@T["No lesson is scheduled in the next seven days."]</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
 <h2 class="h4">@T["The school right now"]</h2>
 <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
     <div class="col">
@@ -104,7 +203,7 @@
     <div class="col">
         <a class="app-kpi" asp-page="/Admin/FinancialReport">
             <span class="app-kpi-label">@T["Financial Report"]</span>
-            <span class="app-kpi-value">→</span>
+            <span class="app-kpi-value">@T["Open"]</span>
             <span class="app-kpi-hint">@T["Confirmed income, expenses, and payroll for a period."]</span>
         </a>
     </div>
