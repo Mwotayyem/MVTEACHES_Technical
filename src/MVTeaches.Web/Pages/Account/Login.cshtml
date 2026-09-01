@@ -4,37 +4,69 @@
     ViewData["Title"] = T["Sign in"];
 }
 
-<section class="auth-panel">
-    <div class="auth-copy">
-        <p class="app-eyebrow">@T["MVTEACHES"]</p>
-        <h1>@T["Sign in to your learning workspace."]</h1>
-        <p>@T["Use the email address assigned to your admin, teacher, guardian, or student account."]</p>
+@* A split-screen sign-in: a coloured panel that moves on one side, the form on
+   the other. The panel is the marketing half of a normal SaaS sign-in — except
+   that MVTEACHES has no public sign-up, so where a "create an account" button
+   would sit, this says how an account is actually opened here (through the
+   centre) rather than offering something that does not exist.
+
+   CSS and existing markup only. No new library, no social sign-in, no second
+   factor, and nothing about authentication itself is touched: the form below
+   posts exactly the same three fields to exactly the same handler as before.
+   The motion is decorative and is switched off entirely for anyone whose
+   system asks for reduced motion. *@
+<section class="auth-split">
+    <div class="auth-stage" aria-hidden="true">
+        <span class="auth-orb auth-orb-1"></span>
+        <span class="auth-orb auth-orb-2"></span>
+        <span class="auth-orb auth-orb-3"></span>
+        <div class="auth-stage-copy">
+            <p class="app-eyebrow">@T["MVTEACHES"]</p>
+            <h2>@T["English, taught live, with the hours you paid for tracked to the minute."]</h2>
+            <ul class="auth-stage-points">
+                <li>@T["Your lessons, your level, and what is left of your package — on one screen."]</li>
+                <li>@T["Join a lesson from the same place you booked it."]</li>
+                <li>@T["Every payment you send is checked by the centre before anything activates."]</li>
+            </ul>
+        </div>
     </div>
 
-    <div class="auth-card">
-        <form method="post" novalidate>
-            <input type="hidden" asp-for="ReturnUrl" />
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            @if (Model.ErrorMessage is not null)
-            {
-                <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
-            }
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="@T["Email address"]" />
-                <label asp-for="Input.Email">@T["Email address"]</label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
+    <div class="auth-form-side">
+        <div class="auth-card">
+            <div class="auth-card-head">
+                <h1>@T["Sign in to your learning workspace."]</h1>
+                <p>@T["Use the email address assigned to your admin, teacher, guardian, or student account."]</p>
             </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="@T["Password"]" />
-                <label asp-for="Input.Password">@T["Password"]</label>
-                <span asp-validation-for="Input.Password" class="text-danger"></span>
+
+            <form method="post" novalidate>
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                @if (Model.ErrorMessage is not null)
+                {
+                    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+                }
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="@T["Email address"]" />
+                    <label asp-for="Input.Email">@T["Email address"]</label>
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="@T["Password"]" />
+                    <label asp-for="Input.Password">@T["Password"]</label>
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" asp-for="Input.RememberMe" />
+                    <label asp-for="Input.RememberMe" class="form-check-label">@T["Remember me"]</label>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">@T["Sign in"]</button>
+            </form>
+
+            <div class="auth-card-foot">
+                <p class="mb-1"><strong>@T["No account yet?"]</strong></p>
+                <p class="text-muted small mb-0">@T["Accounts are opened by the centre. Contact MVTEACHES and the team will register you and send you your sign-in details."]</p>
             </div>
-            <div class="form-check mb-3">
-                <input class="form-check-input" asp-for="Input.RememberMe" />
-                <label asp-for="Input.RememberMe" class="form-check-label">@T["Remember me"]</label>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">@T["Sign in"]</button>
-        </form>
+        </div>
     </div>
 </section>
 
