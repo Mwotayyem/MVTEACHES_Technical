@@ -181,10 +181,14 @@ public class SchedulesModel : PageModel
     {
         // Arriving from a student's file means the intent is to enroll THAT
         // student, not to create a centre-wide weekly class.
-        Rosters = await _rosters.ReadAsync(
-            UpcomingSessions.Select(session => session.Id).ToList(), HttpContext.RequestAborted);
-
         if (FocusStudentId is not null) { ActiveTab = "enroll"; }
+
+        // LoadAsync is what fills UpcomingSessions, so the rosters must be
+        // read AFTER it. Reading them first asked for the roster of an empty
+        // list, which is why every "see the students" button on this screen
+        // counted 0 and opened an empty modal even for a session that plainly
+        // showed 3/4 seats taken. Nothing about enrolment changed — only when
+        // this read happens.
         await LoadAsync();
     }
 
@@ -410,5 +414,11 @@ public class SchedulesModel : PageModel
         UpcomingSessions = sessions.Select(s => new SessionRow(s.Id, teacherNames.GetValueOrDefault(s.TeacherId, string.Empty),
             courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
             s.StartsAtUtc, s.ScheduleTimeZone, s.SeatsTaken, s.Capacity, s.Status)).ToList();
+
+        // Read here, at the end, so it can never run against a list that has
+        // not been filled yet — and so a re-render after enrolling somebody
+        // shows the roster they were just added to, not the one from before.
+        Rosters = await _rosters.ReadAsync(
+            UpcomingSessions.Select(session => session.Id).ToList(), HttpContext.RequestAborted);
     }
 }

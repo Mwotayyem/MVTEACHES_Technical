@@ -345,10 +345,17 @@
 <partial name="_SessionFlowGuide" />
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>@T["Teacher"]</th><th>@T["Course/Level"]</th><th>@T["When"]</th><th>@T["Seats"]</th><th>@T["Status"]</th><th>@T["Students"]</th></tr></thead>
+        <thead><tr><th>@T["Teacher"]</th><th>@T["Course/Level"]</th><th>@T["When"]</th><th>@T["Enrolled / seats"]</th><th>@T["Status"]</th><th>@T["Students"]</th></tr></thead>
         <tbody>
+            @* "3 / 4" used to sit under a heading that just said "Seats", which
+               left an admin to guess whether 3 was the number of students in the
+               lesson or the number of places still free. It is the number of
+               students. The heading now says so, the roster count next to the
+               button is read from the very same list the modal shows, and the
+               two can no longer disagree. *@
             @foreach (var s in Model.UpcomingSessions)
             {
+                var enrolled = Model.Rosters.TryGetValue(s.Id, out var roster) ? roster.Students.Count : 0;
                 <tr>
                     <td>@s.TeacherName</td>
                     <td>@s.CourseName / @s.LevelCode</td>
@@ -357,19 +364,31 @@
                         <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
                     </td>
                     <td>
-                        @s.SeatsTaken / @s.Capacity
+                        <strong>@enrolled</strong> / @s.Capacity
+                        <div class="text-muted small">@T["students enrolled"]</div>
                         @if (s.SeatsTaken >= s.Capacity)
                         {
                             <span class="app-status is-warning">@T["Full"]</span>
                         }
+                        else
+                        {
+                            <span class="text-muted small">@T["Free seats: {0}", s.Capacity - s.SeatsTaken]</span>
+                        }
                     </td>
                     <td>@T["ClassSessionStatus." + s.Status]</td>
                     <td>
-                        <button type="button" class="btn btn-sm btn-outline-secondary"
-                                data-bs-toggle="modal" data-bs-target="#roster-@s.Id">
-                            @T["See the students"]
-                            <span class="app-tab-count">@(Model.Rosters.TryGetValue(s.Id, out var roster) ? roster.Students.Count : 0)</span>
-                        </button>
+                        @if (enrolled > 0)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="modal" data-bs-target="#roster-@s.Id">
+                                @T["See the students"]
+                                <span class="app-tab-count">@enrolled</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">@T["Nobody is enrolled yet"]</span>
+                        }
                     </td>
                 </tr>
             }
