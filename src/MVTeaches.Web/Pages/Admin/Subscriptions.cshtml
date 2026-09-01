@@ -21,15 +21,31 @@
     };
 }
 
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Packages and subscriptions"]</span>
+</nav>
+
 <div class="app-page-head">
     <div>
-        <h1>@T["Pricing plans and subscriptions"]</h1>
-        <p class="text-muted">@T["Subscriptions page intro"] <a asp-page="/Admin/Payments">@T["Payments"]</a>.</p>
+        <h1>@T["Packages and subscriptions"]</h1>
+        <p class="text-muted">@T["Two different things live on this screen: the price list the centre publishes, and the packages individual students actually hold."]</p>
     </div>
     <div class="app-page-actions">
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["Students"]</a>
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Payments">@T["Payments"]</a>
     </div>
+</div>
+
+<div class="app-guide">
+    <p class="app-guide-title">@T["What is a package price, and when do I create one?"]</p>
+    <p>@T["A package price is a public offer: a course, one level, a number of sessions, and what it costs. Publish it once and any student at that level can buy it — you do not create a price per family."]</p>
+    <ul>
+        <li>@T["Create a new price only when the centre genuinely sells something new: a different level, a different number of sessions, or a different amount."]</li>
+        <li>@T["A published price is never edited. The amount a family paid is frozen onto their own subscription the moment they buy, so past invoices and reports can never change underneath you. To sell at a new amount, publish a new price."]</li>
+        <li>@T["A student can only buy a package published for the level they currently hold."]</li>
+    </ul>
 </div>
 
 @if (Model.FilterStudentId is not null)
@@ -58,16 +74,181 @@
 }
 
 <div class="row g-4 mb-4">
+    <div class="col-lg-6 d-flex flex-column gap-4">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title h5">@T["Give a student a package they paid for"]</h2>
+                <p class="text-muted small">@T["Creates an unpaid package. It becomes usable only once its payment is confirmed on the payments screen."]</p>
+                <form method="post" asp-page-handler="Purchase" class="row g-2">
+                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="Purchase.StudentId">@T["Student"]<span class="app-required">*</span></label>
+                        <input type="search" class="form-control mb-1" data-mv-select-filter="#purchaseStudent"
+                               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                        <select asp-for="Purchase.StudentId" id="purchaseStudent" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var s in Model.StudentPicks)
+                            {
+                                <option value="@s.Id" data-owner-key="@s.CurrentLevelId">
+                                    @s.FullName — @(s.CurrentLevelCode ?? T["no level yet"].Value)
+                                </option>
+                            }
+                        </select>
+                        <div class="form-text">@T["The level shown next to the name is what decides which packages are offered."]</div>
+                        <span asp-validation-for="Purchase.StudentId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="Purchase.PricingPlanId">@T["Package"]<span class="app-required">*</span></label>
+                        <select asp-for="Purchase.PricingPlanId" id="purchasePlan" class="form-select"
+                                data-mv-options-of="#purchaseStudent" data-mv-options-empty="#noPlansForStudent">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var p in Model.Plans.Where(p => p.LevelId is not null))
+                            {
+                                <option value="@p.Id" data-owner="@p.LevelId">@p.CourseName · @p.LevelCode · @SessionTypeLabel(p.SessionType) · @p.SessionsCount @T["Sessions"] · @T.Money(p.Amount, p.Currency)</option>
+                            }
+                        </select>
+                        <div class="form-text">@T["Only packages published for this student's own level are listed."]</div>
+                        <div class="form-text text-warning" id="noPlansForStudent" hidden>
+                            @T["Nothing is published for this student's level yet — or they have no level. Create a package price below, or set their level first."]
+                        </div>
+                        <span asp-validation-for="Purchase.PricingPlanId" class="text-danger small"></span>
+                    </div>
+                    @* Owner decision 2026-08-30 rule 4: the level is always the plan's own
+                       level, matched server-side against the student's current level — there
+                       is no field here for an admin to pick a different one. *@
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="Purchase.Origin">@T["Who asked for it?"]</label>
+                        <select asp-for="Purchase.Origin" class="form-select">
+                            <option value="@SubscriptionOrigin.GuardianPurchase">@OriginLabel(SubscriptionOrigin.GuardianPurchase)</option>
+                            <option value="@SubscriptionOrigin.SelfPurchase">@OriginLabel(SubscriptionOrigin.SelfPurchase)</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">@T["Create the package"]</button>
+                        <div class="app-outcome mt-3">@T["Next: record and confirm the payment on the payments screen — that is what activates it."]</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title h5">@T["Give a student a package for free"]</h2>
+                <p class="text-muted small">@T["Active straight away, with no payment at all. Pick the student, then one of the packages published for their level. The reason is kept on the record permanently."]</p>
+                <form method="post" asp-page-handler="Grant" class="row g-2">
+                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="Grant.StudentId">@T["Student"]<span class="app-required">*</span></label>
+                        <input type="search" class="form-control mb-1" data-mv-select-filter="#grantStudent"
+                               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                        <select asp-for="Grant.StudentId" id="grantStudent" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var s in Model.StudentPicks)
+                            {
+                                <option value="@s.Id" data-owner-key="@s.CurrentLevelId">
+                                    @s.FullName — @(s.CurrentLevelCode ?? T["no level yet"].Value)
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="Grant.StudentId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" asp-for="Grant.PricingPlanId">@T["Package"]</label>
+                        <select asp-for="Grant.PricingPlanId" id="grantPlan" class="form-select"
+                                data-mv-options-of="#grantStudent" data-mv-options-empty="#noPlansToGrant">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var p in Model.Plans.Where(p => p.LevelId is not null))
+                            {
+                                <option value="@p.Id" data-owner="@p.LevelId">@p.CourseName · @p.LevelCode · @SessionTypeLabel(p.SessionType) · @p.SessionsCount @T["Sessions"]</option>
+                            }
+                        </select>
+                        <div class="form-text">@T["Everything else — course, level, sessions, how long it stays valid — comes from the package itself."]</div>
+                        <div class="form-text text-warning" id="noPlansToGrant" hidden>
+                            @T["Nothing is published for this student's level yet. Use the manual option below, or publish a package price first."]
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" asp-for="Grant.Reason">@T["Why is this free?"]<span class="app-required">*</span></label>
+                        <input asp-for="Grant.Reason" class="form-control" placeholder="@T["e.g. compensation agreed with the family, or a scholarship"]" />
+                        <span asp-validation-for="Grant.Reason" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <details class="mt-2">
+                            <summary class="text-muted small">@T["The gift does not match any published package"]</summary>
+                            <p class="text-muted small mt-2">@T["Fill in every field here instead, and leave the package above empty."]</p>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label" asp-for="Grant.CountryId">@T["Country"]</label>
+                                    <select asp-for="Grant.CountryId" class="form-select">
+                                        <option value="">@T["Select placeholder"]</option>
+                                        @foreach (var c in Model.Countries)
+                                        {
+                                            <option value="@c.Id">@Model.DisplayCountry(c)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" asp-for="Grant.CourseId">@T["Course"]</label>
+                                    <select asp-for="Grant.CourseId" class="form-select">
+                                        <option value="">@T["Select placeholder"]</option>
+                                        @foreach (var c in Model.Courses)
+                                        {
+                                            <option value="@c.Id">@Model.DisplayCourse(c)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" asp-for="Grant.LevelId">@T["Level"]</label>
+                                    <select asp-for="Grant.LevelId" class="form-select">
+                                        <option value="">@T["Select placeholder"]</option>
+                                        @foreach (var l in Model.Levels)
+                                        {
+                                            <option value="@l.Id">@l.Code - @Model.DisplayLevel(l)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" asp-for="Grant.SessionType">@T["Session type"]</label>
+                                    <select asp-for="Grant.SessionType" class="form-select">
+                                        <option value="@SessionType.Group">@SessionTypeLabel(SessionType.Group)</option>
+                                        <option value="@SessionType.Private">@SessionTypeLabel(SessionType.Private)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" asp-for="Grant.SessionsCount">@T["Sessions"]</label>
+                                    <input asp-for="Grant.SessionsCount" class="form-control" inputmode="numeric" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" asp-for="Grant.MinutesTotal">@T["Total minutes"]</label>
+                                    <input asp-for="Grant.MinutesTotal" class="form-control" inputmode="numeric" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" asp-for="Grant.ValidityDays">@T["Valid for (days)"]</label>
+                                    <input asp-for="Grant.ValidityDays" class="form-control" inputmode="numeric" />
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-warning"
+                                data-mv-confirm="@T["Grant this package for free, with no payment?"]">@T["Grant it free"]</button>
+                        <div class="app-outcome mt-3">@T["This one activates immediately — no payment is created and nothing waits for confirmation."]</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="col-lg-6">
         <div class="card h-100">
             <div class="card-body">
-                <h2 class="card-title h5">@T["Create a pricing plan"]</h2>
-                <p class="text-muted small">@T["A plan is the published price list a package is bought from."]</p>
+                <h2 class="card-title h5">@T["Publish a new package price"]</h2>
+                <p class="text-muted small">@T["This is the offer itself, not a purchase. Anyone at the chosen level can then buy it."]</p>
                 <form method="post" asp-page-handler="CreatePlan">
                     <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
                     <div class="row g-2">
                         <div class="col-6">
-                            <label class="form-label" asp-for="NewPlan.CountryId">@T["Country"]</label>
+                            <label class="form-label" asp-for="NewPlan.CountryId">@T["Country"]<span class="app-required">*</span></label>
                             <select asp-for="NewPlan.CountryId" class="form-select">
                                 <option value="">@T["Select placeholder"]</option>
                                 @foreach (var c in Model.Countries)
@@ -78,7 +259,7 @@
                             <span asp-validation-for="NewPlan.CountryId" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
-                            <label class="form-label" asp-for="NewPlan.CourseId">@T["Course"]</label>
+                            <label class="form-label" asp-for="NewPlan.CourseId">@T["Course"]<span class="app-required">*</span></label>
                             <select asp-for="NewPlan.CourseId" class="form-select">
                                 <option value="">@T["Select placeholder"]</option>
                                 @foreach (var c in Model.Courses)
@@ -89,14 +270,15 @@
                             <span asp-validation-for="NewPlan.CourseId" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
-                            <label class="form-label" asp-for="NewPlan.LevelId">@T["Level optional"]</label>
+                            <label class="form-label" asp-for="NewPlan.LevelId">@T["Level"]<span class="app-required">*</span></label>
                             <select asp-for="NewPlan.LevelId" class="form-select">
-                                <option value="">@T["Any level placeholder"]</option>
+                                <option value="">@T["Select placeholder"]</option>
                                 @foreach (var l in Model.Levels)
                                 {
                                     <option value="@l.Id">@l.Code - @Model.DisplayLevel(l)</option>
                                 }
                             </select>
+                            <div class="form-text">@T["A package with no level cannot be bought by anyone — always choose one."]</div>
                         </div>
                         <div class="col-6">
                             <label class="form-label" asp-for="NewPlan.SessionType">@T["Session type"]</label>
@@ -106,25 +288,26 @@
                                     <option value="@v">@SessionTypeLabel(v)</option>
                                 }
                             </select>
+                            <div class="form-text">@T["A group session seats exactly 4 students; a private one seats exactly 1."]</div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label" asp-for="NewPlan.SessionsCount">@T["Sessions"]</label>
+                            <label class="form-label" asp-for="NewPlan.SessionsCount">@T["How many sessions?"]<span class="app-required">*</span></label>
                             <input asp-for="NewPlan.SessionsCount" class="form-control" inputmode="numeric" />
                             <span asp-validation-for="NewPlan.SessionsCount" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
-                            <label class="form-label" asp-for="NewPlan.MinutesTotal">@T["Minutes total"]</label>
-                            <input asp-for="NewPlan.MinutesTotal" class="form-control" inputmode="numeric" />
-                            <div class="form-text">@T["Total teaching minutes the package buys."]</div>
-                            <span asp-validation-for="NewPlan.MinutesTotal" class="text-danger small"></span>
+                            <label class="form-label" asp-for="NewPlan.MinutesPerSession">@T["How long is one session? (minutes)"]<span class="app-required">*</span></label>
+                            <input asp-for="NewPlan.MinutesPerSession" class="form-control" inputmode="numeric" />
+                            <div class="form-text">@T["The total the system keeps is simply this multiplied by the number of sessions — you never enter a total by hand."]</div>
+                            <span asp-validation-for="NewPlan.MinutesPerSession" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
-                            <label class="form-label" asp-for="NewPlan.Amount">@T["Amount"]</label>
+                            <label class="form-label" asp-for="NewPlan.Amount">@T["Price"]<span class="app-required">*</span></label>
                             <input asp-for="NewPlan.Amount" class="form-control" inputmode="decimal" />
                             <span asp-validation-for="NewPlan.Amount" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
-                            <label class="form-label" asp-for="NewPlan.Currency">@T["Currency"]</label>
+                            <label class="form-label" asp-for="NewPlan.Currency">@T["Currency"]<span class="app-required">*</span></label>
                             <select asp-for="NewPlan.Currency" class="form-select">
                                 @foreach (var code in Model.Currencies)
                                 {
@@ -134,164 +317,31 @@
                             <span asp-validation-for="NewPlan.Currency" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
-                            <label class="form-label" asp-for="NewPlan.ValidityDays">@T["Validity days"]</label>
+                            <label class="form-label" asp-for="NewPlan.ValidityDays">@T["Valid for (days)"]<span class="app-required">*</span></label>
                             <input asp-for="NewPlan.ValidityDays" class="form-control" inputmode="numeric" />
                             <div class="form-text">@T["How long the package stays usable after it activates."]</div>
                             <span asp-validation-for="NewPlan.ValidityDays" class="text-danger small"></span>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary mt-3">@T["Create plan"]</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-6 d-flex flex-column gap-4">
-        <div class="card">
-            <div class="card-body">
-                <h2 class="card-title h5">@T["Purchase a subscription from a plan"]</h2>
-                <p class="text-muted small">@T["Creates a draft package. It activates only when its payment is confirmed."]</p>
-                <form method="post" asp-page-handler="Purchase" class="row g-2">
-                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="Purchase.StudentId">@T["Student"]</label>
-                        <input type="search" class="form-control mb-1" data-mv-select-filter="#purchaseStudent"
-                               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
-                        <select asp-for="Purchase.StudentId" id="purchaseStudent" class="form-select">
-                            <option value="">@T["Select placeholder"]</option>
-                            @foreach (var s in Model.Students)
-                            {
-                                <option value="@s.Id">@s.FullName</option>
-                            }
-                        </select>
-                        <span asp-validation-for="Purchase.StudentId" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="Purchase.PricingPlanId">@T["Plan"]</label>
-                        <input type="search" class="form-control mb-1" data-mv-select-filter="#purchasePlan"
-                               placeholder="@T["Search plans…"]" aria-label="@T["Search plans…"]" />
-                        <select asp-for="Purchase.PricingPlanId" id="purchasePlan" class="form-select">
-                            <option value="">@T["Select placeholder"]</option>
-                            @foreach (var p in Model.Plans)
-                            {
-                                <option value="@p.Id">@p.CourseName · @(p.LevelCode ?? Label("Any level")) · @SessionTypeLabel(p.SessionType) · @p.SessionsCount @T["Sessions"] · @T.Money(p.Amount, p.Currency)</option>
-                            }
-                        </select>
-                        <span asp-validation-for="Purchase.PricingPlanId" class="text-danger small"></span>
-                    </div>
-                    @* Owner decision 2026-08-30 rule 4: the level is always the plan's own
-                       level, matched server-side against the student's current level — there
-                       is no field here for an admin to pick a different one. *@
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="Purchase.Origin">@T["Origin"]</label>
-                        <select asp-for="Purchase.Origin" class="form-select">
-                            <option value="@SubscriptionOrigin.GuardianPurchase">@OriginLabel(SubscriptionOrigin.GuardianPurchase)</option>
-                            <option value="@SubscriptionOrigin.SelfPurchase">@OriginLabel(SubscriptionOrigin.SelfPurchase)</option>
-                        </select>
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">@T["Purchase creates draft"]</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-body">
-                <h2 class="card-title h5">@T["Grant a subscription free"]</h2>
-                <p class="text-muted small">@T["Activates immediately with no payment. The reason is kept on the record."]</p>
-                <form method="post" asp-page-handler="Grant" class="row g-2">
-                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="Grant.StudentId">@T["Student"]</label>
-                        <input type="search" class="form-control mb-1" data-mv-select-filter="#grantStudent"
-                               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
-                        <select asp-for="Grant.StudentId" id="grantStudent" class="form-select">
-                            <option value="">@T["Select placeholder"]</option>
-                            @foreach (var s in Model.Students)
-                            {
-                                <option value="@s.Id">@s.FullName</option>
-                            }
-                        </select>
-                        <span asp-validation-for="Grant.StudentId" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="Grant.CountryId">@T["Country"]</label>
-                        <select asp-for="Grant.CountryId" class="form-select">
-                            <option value="">@T["Select placeholder"]</option>
-                            @foreach (var c in Model.Countries)
-                            {
-                                <option value="@c.Id">@Model.DisplayCountry(c)</option>
-                            }
-                        </select>
-                        <span asp-validation-for="Grant.CountryId" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="Grant.CourseId">@T["Course"]</label>
-                        <select asp-for="Grant.CourseId" class="form-select">
-                            <option value="">@T["Select placeholder"]</option>
-                            @foreach (var c in Model.Courses)
-                            {
-                                <option value="@c.Id">@Model.DisplayCourse(c)</option>
-                            }
-                        </select>
-                        <span asp-validation-for="Grant.CourseId" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="Grant.LevelId">@T["Level"]</label>
-                        <select asp-for="Grant.LevelId" class="form-select">
-                            <option value="">@T["Select placeholder"]</option>
-                            @foreach (var l in Model.Levels)
-                            {
-                                <option value="@l.Id">@l.Code - @Model.DisplayLevel(l)</option>
-                            }
-                        </select>
-                        <span asp-validation-for="Grant.LevelId" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" asp-for="Grant.SessionType">@T["Session type"]</label>
-                        <select asp-for="Grant.SessionType" class="form-select">
-                            <option value="@SessionType.Group">@SessionTypeLabel(SessionType.Group)</option>
-                            <option value="@SessionType.Private">@SessionTypeLabel(SessionType.Private)</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label" asp-for="Grant.SessionsCount">@T["Sessions"]</label>
-                        <input asp-for="Grant.SessionsCount" class="form-control" inputmode="numeric" />
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label" asp-for="Grant.MinutesTotal">@T["Minutes"]</label>
-                        <input asp-for="Grant.MinutesTotal" class="form-control" inputmode="numeric" />
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label" asp-for="Grant.ValidityDays">@T["Validity days"]</label>
-                        <input asp-for="Grant.ValidityDays" class="form-control" inputmode="numeric" />
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label" asp-for="Grant.Reason">@T["Reason mandatory"]</label>
-                        <input asp-for="Grant.Reason" class="form-control" />
-                        <span asp-validation-for="Grant.Reason" class="text-danger small"></span>
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-warning"
-                                data-mv-confirm="@T["Grant this package for free, with no payment?"]">@T["Grant free"]</button>
-                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">@T["Publish it"]</button>
+                    <div class="app-outcome mt-3">@T["Once published it appears immediately in the two forms on the left, for students at that level."]</div>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<h2>@T["Active plans"]</h2>
+<h2>@T["Published package prices"]</h2>
+<p class="text-muted small">@T["These are offers, not purchases. They are not edited after publishing — publish a new one to sell at a different price."]</p>
 <div class="app-toolbar">
     <div class="app-search">
         <input type="search" class="form-control" data-mv-filter="#plansTable"
-               placeholder="@T["Search plans…"]" aria-label="@T["Search plans…"]" />
+               placeholder="@T["Search packages…"]" aria-label="@T["Search packages…"]" />
     </div>
 </div>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped" id="plansTable">
-        <thead><tr><th>@T["Country"]</th><th>@T["Course"]</th><th>@T["Level"]</th><th>@T["Type"]</th><th>@T["Sessions"]</th><th>@T["Minutes"]</th><th>@T["Price"]</th><th>@T["Validity"]</th></tr></thead>
+        <thead><tr><th>@T["Country"]</th><th>@T["Course"]</th><th>@T["Level"]</th><th>@T["Type"]</th><th>@T["Sessions"]</th><th>@T["Session length"]</th><th>@T["Price"]</th><th>@T["Validity"]</th></tr></thead>
         <tbody>
             @foreach (var p in Model.Plans)
             {
@@ -301,23 +351,30 @@
                     <td>@(p.LevelCode ?? Label("Any level"))</td>
                     <td>@SessionTypeLabel(p.SessionType)</td>
                     <td>@p.SessionsCount</td>
-                    <td>@T.Minutes(p.MinutesTotal)</td>
+                    <td>@(p.SessionsCount > 0 ? T.Minutes(p.MinutesTotal / p.SessionsCount) : T.Minutes(p.MinutesTotal))</td>
                     <td>@T.Money(p.Amount, p.Currency)</td>
                     <td>@T["Days format", p.ValidityDays]</td>
                 </tr>
             }
             <tr data-mv-filter-empty="true" hidden>
-                <td colspan="8" class="text-muted">@T["No plan matches this search."]</td>
+                <td colspan="8" class="text-muted">@T["No package matches this search."]</td>
             </tr>
             @if (Model.Plans.Count == 0)
             {
-                <tr><td colspan="8" class="text-muted">@T["No pricing plan yet — create the first one above."]</td></tr>
+                <tr>
+                    <td colspan="8">
+                        <div class="app-empty">
+                            <strong>@T["No package price published yet."]</strong>
+                            <span>@T["Nothing can be sold until one exists — publish the first one above."]</span>
+                        </div>
+                    </td>
+                </tr>
             }
         </tbody>
     </table>
 </div>
 
-<h2>@T["Recent subscriptions"]</h2>
+<h2>@T["Packages students actually hold"]</h2>
 <div class="app-toolbar">
     <div class="app-search">
         <input type="search" class="form-control" data-mv-filter="#subscriptionsTable"
@@ -339,7 +396,14 @@
                     <td>@T.Minutes(s.BalanceMinutes)</td>
                     <td>@T.Date(s.ExpiresOn)</td>
                     <td>
-                        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments" asp-route-studentId="@s.StudentId">@T["Payments"]</a>
+                        @if (s.Status == SubscriptionStatus.Draft)
+                        {
+                            <a class="btn btn-sm btn-primary" asp-page="/Admin/Payments" asp-route-studentId="@s.StudentId">@T["Record the payment"]</a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments" asp-route-studentId="@s.StudentId">@T["Payments"]</a>
+                        }
                     </td>
                 </tr>
             }
@@ -348,7 +412,14 @@
             </tr>
             @if (Model.RecentSubscriptions.Count == 0)
             {
-                <tr><td colspan="8" class="text-muted">@T["No subscriptions yet."]</td></tr>
+                <tr>
+                    <td colspan="8">
+                        <div class="app-empty">
+                            <strong>@T["No student holds a package yet."]</strong>
+                            <span>@T["Use one of the two forms above once a package price is published."]</span>
+                        </div>
+                    </td>
+                </tr>
             }
         </tbody>
     </table>

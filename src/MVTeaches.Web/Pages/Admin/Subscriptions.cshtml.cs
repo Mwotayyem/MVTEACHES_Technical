@@ -46,12 +46,20 @@ public class SubscriptionsModel : PageModel
         _localizer = localizer;
     }
 
-    public record PlanRow(long Id, string CountryName, string CourseName, string? LevelCode, SessionType SessionType,
-        int SessionsCount, int MinutesTotal, decimal Amount, string Currency, int ValidityDays);
+    public record PlanRow(long Id, string CountryName, string CourseName, int? LevelId, string? LevelCode,
+        SessionType SessionType, int SessionsCount, int MinutesTotal, decimal Amount, string Currency, int ValidityDays);
 
     public record SubscriptionRow(long Id, long StudentId, string StudentName, string CourseName, string LevelCode,
         decimal Price, string Currency, SubscriptionStatus Status, SubscriptionOrigin Origin, int BalanceMinutes,
         LocalDate ExpiresOn);
+
+    /// <summary>A student as this screen needs them: the name to pick by, and
+    /// the level that decides which packages are even legal for them. The plan
+    /// picker filters on that level, so a package for the wrong level can no
+    /// longer be chosen and then refused after the fact.</summary>
+    public record StudentPickRow(long Id, string FullName, int? CurrentLevelId, string? CurrentLevelCode);
+
+    public IReadOnlyList<StudentPickRow> StudentPicks { get; set; } = Array.Empty<StudentPickRow>();
 
     public IReadOnlyList<PlanRow> Plans { get; set; } = Array.Empty<PlanRow>();
     public IReadOnlyList<SubscriptionRow> RecentSubscriptions { get; set; } = Array.Empty<SubscriptionRow>();
@@ -101,7 +109,15 @@ public class SubscriptionsModel : PageModel
         public int? LevelId { get; set; }
         [Required] public SessionType SessionType { get; set; }
         [Required, Range(1, int.MaxValue, ErrorMessage = "Enter how many sessions the package includes.")] public int SessionsCount { get; set; }
-        [Required, Range(1, int.MaxValue, ErrorMessage = "Enter the total minutes the package includes.")] public int MinutesTotal { get; set; }
+
+        /// <summary>The admin thinks in sessions and in how long one session
+        /// runs — never in a bag of total minutes. The total the ledger
+        /// actually stores is the product of the two, computed below, so
+        /// nothing about what is saved changes; only what has to be typed.
+        /// (D-95: the scheduled duration is the financial truth.)</summary>
+        [Required, Range(1, 600, ErrorMessage = "Enter how long one session runs, in minutes.")] public int MinutesPerSession { get; set; }
+
+        public int MinutesTotal => SessionsCount * MinutesPerSession;
         [Required, Range(0, double.MaxValue, ErrorMessage = "Enter the price.")] public decimal Amount { get; set; }
         [Required(ErrorMessage = "Choose a currency."), StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
         [Required, Range(1, int.MaxValue, ErrorMessage = "Enter how many days the package stays valid.")] public int ValidityDays { get; set; }
@@ -114,20 +130,40 @@ public class SubscriptionsModel : PageModel
         [Required] public SubscriptionOrigin Origin { get; set; } = SubscriptionOrigin.GuardianPurchase;
     }
 
+    /// <summary>Granting a package for free is now expressed the way the
+    /// admin actually thinks about it: pick the student, see their level, pick
+    /// one of the packages already published for that level, say why. Every
+    /// value the service needs — country, course, level, type, sessions,
+    /// minutes, validity — is read off that published package, so the admin
+    /// never types a minute count. The manual fields are still here for the
+    /// rare grant that matches no published package; they are only read when
+    /// no package was chosen, and the service call is identical either way.</summary>
     public class GrantInput
     {
         [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
-        [Required(ErrorMessage = "Choose a country.")] public int? CountryId { get; set; }
-        [Required(ErrorMessage = "Choose a course.")] public long? CourseId { get; set; }
-        [Required(ErrorMessage = "Choose a level.")] public int? LevelId { get; set; }
-        [Required] public SessionType SessionType { get; set; }
-        [Required, Range(1, int.MaxValue)] public int SessionsCount { get; set; }
-        [Required, Range(1, int.MaxValue)] public int MinutesTotal { get; set; }
-        [Required, Range(1, int.MaxValue)] public int ValidityDays { get; set; }
+
+        public long? PricingPlanId { get; set; }
+
+        public int? CountryId { get; set; }
+        public long? CourseId { get; set; }
+        public int? LevelId { get; set; }
+        public SessionType SessionType { get; set; }
+        public int SessionsCount { get; set; }
+        public int MinutesTotal { get; set; }
+        public int ValidityDays { get; set; }
+
         [Required(ErrorMessage = "Write the reason for this decision.")] public string Reason { get; set; } = string.Empty;
     }
 
-    public async Task OnGetAsync() => await LoadAsync();
+    public async Task OnGetAsync()
+    {
+        await LoadAsync();
+        if (FilterStudentId is not null)
+        {
+            Purchase.StudentId ??= FilterStudentId;
+            Grant.StudentId ??= FilterStudentId;
+        }
+    }
 
     public async Task<IActionResult> OnPostCreatePlanAsync()
     {
@@ -193,10 +229,57 @@ public class SubscriptionsModel : PageModel
             return Page();
         }
 
+        int countryId;
+        long courseId;
+        int levelId;
+        SessionType sessionType;
+        int sessionsCount;
+        int minutesTotal;
+        int validityDays;
+
+        if (Grant.PricingPlanId is not null)
+        {
+            // Read the shape of the gift off the published package, exactly as
+            // a paid purchase of it would have been shaped. No new rule: the
+            // same seven values the manual path already passed.
+            var plan = await _db.PricingPlans.FirstOrDefaultAsync(p => p.Id == Grant.PricingPlanId.Value);
+            if (plan is null || plan.LevelId is null)
+            {
+                ErrorMessage = _localizer["Pricing plan not found."].Value;
+                await LoadAsync();
+                return Page();
+            }
+
+            countryId = plan.CountryId;
+            courseId = plan.CourseId;
+            levelId = plan.LevelId.Value;
+            sessionType = plan.SessionType;
+            sessionsCount = plan.SessionsCount;
+            minutesTotal = plan.MinutesTotal;
+            validityDays = plan.ValidityDays;
+        }
+        else if (Grant.CountryId is not null && Grant.CourseId is not null && Grant.LevelId is not null
+                 && Grant.SessionsCount > 0 && Grant.MinutesTotal > 0 && Grant.ValidityDays > 0)
+        {
+            countryId = Grant.CountryId.Value;
+            courseId = Grant.CourseId.Value;
+            levelId = Grant.LevelId.Value;
+            sessionType = Grant.SessionType;
+            sessionsCount = Grant.SessionsCount;
+            minutesTotal = Grant.MinutesTotal;
+            validityDays = Grant.ValidityDays;
+        }
+        else
+        {
+            ErrorMessage = _localizer["Choose one of the published packages, or fill in every field under the manual option."].Value;
+            await LoadAsync();
+            return Page();
+        }
+
         var actingUserId = GetCurrentUserId();
-        var result = await _subscriptions.GrantAdminSubscriptionAsync(Grant.StudentId!.Value, Grant.CountryId!.Value,
-            Grant.CourseId!.Value, Grant.LevelId!.Value, Grant.SessionType, Grant.SessionsCount, Grant.MinutesTotal,
-            Grant.ValidityDays, actingUserId, Grant.Reason, HttpContext.RequestAborted);
+        var result = await _subscriptions.GrantAdminSubscriptionAsync(Grant.StudentId!.Value, countryId,
+            courseId, levelId, sessionType, sessionsCount, minutesTotal,
+            validityDays, actingUserId, Grant.Reason, HttpContext.RequestAborted);
 
         StatusMessage = _localizer["Subscription granted and activated immediately.", result.SubscriptionId];
         await LoadAsync();
@@ -229,8 +312,18 @@ public class SubscriptionsModel : PageModel
 
         var plans = await _db.PricingPlans.Where(p => p.IsActive).OrderByDescending(p => p.Id).ToListAsync();
         Plans = plans.Select(p => new PlanRow(p.Id, countryByI.GetValueOrDefault(p.CountryId, "?"),
-            courseByI.GetValueOrDefault(p.CourseId, "?"), p.LevelId.HasValue ? levelByI.GetValueOrDefault(p.LevelId.Value) : null,
+            courseByI.GetValueOrDefault(p.CourseId, "?"), p.LevelId,
+            p.LevelId.HasValue ? levelByI.GetValueOrDefault(p.LevelId.Value) : null,
             p.SessionType, p.SessionsCount, p.MinutesTotal, p.Amount.Amount, p.Amount.Currency, p.ValidityDays)).ToList();
+
+        var currentLevels = await _db.StudentLevels.Where(l => l.IsCurrent).ToListAsync();
+        var currentLevelByStudent = currentLevels.ToDictionary(l => l.StudentId, l => l.LevelId);
+        StudentPicks = Students.Select(st =>
+        {
+            var levelId = currentLevelByStudent.TryGetValue(st.Id, out var found) ? found : (int?)null;
+            return new StudentPickRow(st.Id, st.FullName, levelId,
+                levelId is null ? null : levelByI.GetValueOrDefault(levelId.Value));
+        }).ToList();
 
         var subs = await _db.Subscriptions
             .Where(s => FilterStudentId == null || s.StudentId == FilterStudentId)
