@@ -59,26 +59,51 @@ else
         }
         else
         {
-            <div class="row g-3 mb-4">
+            @* A price list is not a choice. These are posters: one tall card per
+               package, with the level as its face, the price as the loudest thing
+               on it, and the facts underneath in a fixed order so two packages can
+               be compared by looking at the same spot twice. Pure CSS - no image is
+               uploaded, no column is added, and the form posts exactly what the
+               table version posted. *@
+            <div class="app-poster-rail">
                 @foreach (var p in Model.EligiblePlans)
                 {
-                    <div class="col-md-4">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">@p.CourseName — @p.LevelCode</h5>
-                                <p class="card-text">
-                                    @T["SessionType." + p.SessionType] · @p.SessionsCount @T["Sessions"] · @p.MinutesTotal @T["Minutes"]<br />
-                                    <strong>@T.Money(p.Amount, p.Currency)</strong><br />
-                                    @T["Valid {0} days", p.ValidityDays]
-                                </p>
-                                <form method="post" asp-page-handler="Purchase">
-                                    <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
-                                    <input type="hidden" name="pricingPlanId" value="@p.Id" />
-                                    <button type="submit" class="btn btn-primary">@T["Request this package"]</button>
-                                </form>
-                            </div>
+                    <article class="app-poster">
+                        <div class="app-poster-face" aria-hidden="true">
+                            <span class="app-poster-level">@p.LevelCode</span>
+                            <span class="app-poster-kind">@T["SessionType." + p.SessionType]</span>
                         </div>
-                    </div>
+                        <div class="app-poster-body">
+                            <h3>@p.CourseName</h3>
+                            <p class="app-poster-price">
+                                <strong>@T.Money(p.Amount, p.Currency)</strong>
+                            </p>
+                            <dl class="app-poster-facts">
+                                <div>
+                                    <dt>@T["Lessons"]</dt>
+                                    <dd>@p.SessionsCount</dd>
+                                </div>
+                                <div>
+                                    <dt>@T["Each lesson"]</dt>
+                                    <dd>@T.Minutes(p.SessionsCount > 0 ? p.MinutesTotal / p.SessionsCount : p.MinutesTotal)</dd>
+                                </div>
+                                <div>
+                                    <dt>@T["Total time"]</dt>
+                                    <dd>@T.Minutes(p.MinutesTotal)</dd>
+                                </div>
+                                <div>
+                                    <dt>@T["Valid for"]</dt>
+                                    <dd>@T["{0} day(s)", p.ValidityDays]</dd>
+                                </div>
+                            </dl>
+                            <form method="post" asp-page-handler="Purchase">
+                                <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
+                                <input type="hidden" name="pricingPlanId" value="@p.Id" />
+                                <button type="submit" class="btn btn-primary w-100">@T["Request this package"]</button>
+                            </form>
+                            <p class="app-poster-note">@T["Requesting it does not charge you. The centre confirms your payment first, and only then does the package activate."]</p>
+                        </div>
+                    </article>
                 }
             </div>
         }
