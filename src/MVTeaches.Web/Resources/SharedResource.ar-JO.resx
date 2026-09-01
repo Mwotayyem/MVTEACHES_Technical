@@ -76,7 +76,7 @@
   <data name="Request ID" xml:space="preserve"><value>رقم الطلب</value></data>
   <data name="Back home" xml:space="preserve"><value>العودة للرئيسية</value></data>
   <data name="Pricing plans and subscriptions" xml:space="preserve"><value>خطط الأسعار والاشتراكات</value></data>
-  <data name="Subscriptions page intro" xml:space="preserve"><value>يبقى الاشتراك الذي يتم شراؤه هنا كمسودة إلى أن يتم تسجيل الدفعة المطابقة وتأكيدها في</value></data>
+  <data name="Subscriptions page intro" xml:space="preserve"><value>الباقة المشتراة من هنا تبقى غير مفعَّلة حتى تُسجَّل دفعتها وتُؤكَّد في</value></data>
   <data name="Create a pricing plan" xml:space="preserve"><value>إنشاء خطة أسعار</value></data>
   <data name="Country" xml:space="preserve"><value>الدولة</value></data>
   <data name="Select placeholder" xml:space="preserve"><value>-- اختر --</value></data>
@@ -123,7 +123,7 @@
   <data name="Pricing plan created." xml:space="preserve"><value>تم إنشاء خطة الأسعار.</value></data>
   <data name="Pricing plan not found." xml:space="preserve"><value>لم يتم العثور على خطة الأسعار.</value></data>
   <data name="Payment Methods" xml:space="preserve"><value>وسائل الدفع</value></data>
-  <data name="Payment methods intro" xml:space="preserve"><value>هذه تحويلات حقيقية تتم خارج المنصة — لا توجد بوابة دفع إلكتروني. أضِف بيانات الاستقبال هنا لكل وسيلة يقبلها المركز فعليًا.</value></data>
+  <data name="Payment methods intro" xml:space="preserve"><value>هذه حوالات حقيقية تتم خارج المنصة — لا توجد بوابة دفع إلكتروني. أضف بيانات الاستلام لكل وسيلة يقبلها المركز فعلًا.</value></data>
   <data name="Add a payment method" xml:space="preserve"><value>إضافة وسيلة دفع</value></data>
   <data name="Method type" xml:space="preserve"><value>نوع الوسيلة</value></data>
   <data name="PaymentMethod.CliQ" xml:space="preserve"><value>تحويل CliQ محلي</value></data>
@@ -146,7 +146,7 @@
   <data name="Payment method added." xml:space="preserve"><value>تمت إضافة وسيلة الدفع.</value></data>
   <data name="Payment method deactivated." xml:space="preserve"><value>تم تعطيل وسيلة الدفع.</value></data>
   <data name="Assisted Registration" xml:space="preserve"><value>التسجيل بمساعدة الإدارة</value></data>
-  <data name="Assisted registration intro" xml:space="preserve"><value>لأولياء الأمور الذين لا يستطيعون إتمام الخطوات إلكترونيًا — ابحث لتفادي التكرار، سجّل، اربط، وجّه لامتحان تحديد المستوى الحقيقي، ثم اختر الباقة المطابقة وسجّل التحويل.</value></data>
+  <data name="Assisted registration intro" xml:space="preserve"><value>لأولياء الأمور الذين لا يستطيعون إتمام الخطوات بأنفسهم — ابحث أولًا تفاديًا للتكرار، ثم سجّل، ثم اربط، ثم وجّههم لاختبار تحديد المستوى، ثم اختر الباقة وسجّل الحوالة.</value></data>
   <data name="Search for an existing guardian or student" xml:space="preserve"><value>البحث عن ولي أمر أو طالب موجود</value></data>
   <data name="Search before creating, to avoid duplicate accounts" xml:space="preserve"><value>ابحث قبل الإنشاء لتفادي إنشاء حسابات مكررة</value></data>
   <data name="Name or email" xml:space="preserve"><value>الاسم أو البريد الإلكتروني</value></data>
@@ -195,15 +195,15 @@
   <data name="This student has no current assigned level yet - a level must be assigned before any package can be purchased." xml:space="preserve"><value>لا يوجد مستوى حالي مخصص لهذا الطالب بعد. يجب تحديد مستوى قبل شراء أي باقة.</value></data>
   <data name="This plan's level does not match the student's current assigned level." xml:space="preserve"><value>مستوى هذه الخطة لا يطابق المستوى الحالي المخصص للطالب.</value></data>
   <data name="Could not record this purchase." xml:space="preserve"><value>تعذر تسجيل عملية الشراء.</value></data>
-  <data name="Subscription purchase created as draft." xml:space="preserve"><value>تم إنشاء الاشتراك رقم {0} كمسودة ({1}). سجّل الدفعة المطابقة وأكدها في /Admin/Payments لتفعيله.</value></data>
-  <data name="Subscription granted and activated immediately." xml:space="preserve"><value>تم منح الاشتراك رقم {0} وتفعيله فورًا (D-13، بدون دفعة).</value></data>
+  <data name="Subscription purchase created as draft." xml:space="preserve"><value>تم إنشاء الباقة، وهي غير مفعَّلة حتى الآن. سجّل الدفعة وأكّدها من شاشة المدفوعات لتُفعَّل.</value></data>
+  <data name="Subscription granted and activated immediately." xml:space="preserve"><value>تم منح الباقة وتفعيلها فورًا، بلا أي دفعة. والسبب الذي كتبته محفوظ في السجل.</value></data>
   <data name="Could not create the guardian's account: {0}" xml:space="preserve"><value>تعذر إنشاء حساب ولي الأمر: {0}</value></data>
   <data name="Guardian registered." xml:space="preserve"><value>تم تسجيل ولي الأمر.</value></data>
   <data name="Student '{0}' registered — link a guardian, then direct them to the free placement test." xml:space="preserve"><value>تم تسجيل الطالب '{0}' — اربطه بولي أمر، ثم وجّه العائلة لإجراء اختبار تحديد المستوى المجاني.</value></data>
   <data name="This student already has a primary guardian." xml:space="preserve"><value>هذا الطالب لديه بالفعل ولي أمر أساسي.</value></data>
   <data name="This guardian is already linked to this student." xml:space="preserve"><value>ولي الأمر هذا مرتبط بالفعل بهذا الطالب.</value></data>
   <data name="Guardian linked." xml:space="preserve"><value>تم ربط ولي الأمر.</value></data>
-  <data name="Subscription #{0} created as Draft ({1}) — record the guardian's transfer below once they send it." xml:space="preserve"><value>تم إنشاء الاشتراك رقم {0} كمسودة ({1}) — سجّل تحويل ولي الأمر أدناه بعد إرساله.</value></data>
+  <data name="Subscription #{0} created as Draft ({1}) — record the guardian's transfer below once they send it." xml:space="preserve"><value>تم إنشاء الباقة بقيمة {1}، وهي غير مفعَّلة حتى الآن — سجّل حوالة وليّ الأمر أدناه بعد إرسالها.</value></data>
   <data name="Package not found." xml:space="preserve"><value>الباقة غير موجودة.</value></data>
   <data name="This package is no longer available." xml:space="preserve"><value>هذه الباقة لم تعد متاحة.</value></data>
   <data name="A placement result is required before purchasing a package." xml:space="preserve"><value>يلزم وجود نتيجة اختبار تحديد مستوى قبل شراء باقة.</value></data>
@@ -247,7 +247,7 @@
   <data name="A receipt is required to submit your transfer for review." xml:space="preserve"><value>الإيصال مطلوب لإرسال تحويلك للمراجعة.</value></data>
   <data name="Transfer details submitted — thank you. The centre will confirm once the money is verified." xml:space="preserve"><value>تم إرسال تفاصيل التحويل — شكرًا لك. سيؤكد المركز ذلك بعد التحقق من وصول المبلغ.</value></data>
   <data name="This bank reference looks like it was already used for another payment — please double check it." xml:space="preserve"><value>يبدو أن هذا المرجع البنكي مستخدم مسبقًا لدفعة أخرى — يرجى التحقق منه.</value></data>
-  <data name="Payments page intro" xml:space="preserve"><value>قرار الإدارة بتاريخ 2026-08-30: المسار الطبيعي هو أن يشتري الطالب أو ولي الأمر باقة منشورة ويدفع عبر بوابة الدفع، مع تفعيل الاستحقاق تلقائيًا فور وصول تأكيد موثوق من البوابة. لم يتم اختيار مزود دفع بعد، لذا هذا المسار غير مفعّل حاليًا. كل ما في هذه الصفحة هو المسار الاستثنائي — نقدًا أو تحويل بنكي أو CliQ أو تصحيح — وهو مخصص للإدارة فقط ويُسجَّل في سجل التدقيق.</value></data>
+  <data name="Payments page intro" xml:space="preserve"><value>كل مبلغ يصل المركز نقدًا أو عبر كليك أو حوالة بنكية يُسجَّل هنا، ثم يؤكده الأدمن بعد رؤيته في الحساب فعلًا.</value></data>
   <data name="Record a manual package and payment" xml:space="preserve"><value>تسجيل باقة ودفعة يدويًا</value></data>
   <data name="Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package." xml:space="preserve"><value>يُستخدم فقط للنقد أو التحويل البنكي أو التصحيح — وليس الطريقة المعتادة لشراء الطالب لباقة.</value></data>
   <data name="select" xml:space="preserve"><value>اختر</value></data>
@@ -824,7 +824,7 @@
   <data name="Pending retake requests" xml:space="preserve"><value>طلبات إعادة الاختبار المعلّقة</value></data>
   <data name="A retake requires explicit admin approval; approving or rejecting is audit-logged." xml:space="preserve"><value>تتطلب إعادة الاختبار موافقة صريحة من المسؤول؛ يُسجَّل قرار الموافقة أو الرفض في سجل التدقيق.</value></data>
   <data name="Reason (required)" xml:space="preserve"><value>السبب (مطلوب)</value></data>
-  <data name="Draft version #{0} created." xml:space="preserve"><value>تم إنشاء النسخة المسودة رقم {0}.</value></data>
+  <data name="Draft version #{0} created." xml:space="preserve"><value>تم إنشاء المسودة. اكتب أسئلتها ونطاقات درجاتها أدناه.</value></data>
   <data name="Question added." xml:space="preserve"><value>تمت إضافة السؤال.</value></data>
   <data name="Question removed." xml:space="preserve"><value>تمت إزالة السؤال.</value></data>
   <data name="Score range added." xml:space="preserve"><value>تمت إضافة نطاق الدرجات.</value></data>
@@ -1001,4 +1001,473 @@
   <data name="Enter the date this rate starts." xml:space="preserve"><value>أدخل تاريخ بدء سريان هذا الأجر.</value></data>
   <data name="Enter the date the expense was incurred." xml:space="preserve"><value>أدخل تاريخ صرف المصروف.</value></data>
   <data name="Enter a category, for example Rent or Marketing." xml:space="preserve"><value>أدخل التصنيف، مثل: إيجار أو تسويق.</value></data>
+  <data name="Breadcrumb" xml:space="preserve"><value>مسار التنقل</value></data>
+  <data name="What do I do on this screen?" xml:space="preserve"><value>ماذا أفعل في هذه الشاشة؟</value></data>
+  <data name="Open file" xml:space="preserve"><value>فتح الملف</value></data>
+  <data name="All students" xml:space="preserve"><value>كل الطلاب</value></data>
+  <data name="Open schedules" xml:space="preserve"><value>فتح الجداول</value></data>
+  <data name="Open packages" xml:space="preserve"><value>فتح الباقات</value></data>
+  <data name="Open payments" xml:space="preserve"><value>فتح المدفوعات</value></data>
+  <data name="Clear" xml:space="preserve"><value>إلغاء التحديد</value></data>
+  <data name="Cancel" xml:space="preserve"><value>إلغاء</value></data>
+  <data name="Delete" xml:space="preserve"><value>حذف</value></data>
+  <data name="Open" xml:space="preserve"><value>فتح</value></data>
+  <data name="Full" xml:space="preserve"><value>مكتملة</value></data>
+  <data name="Showing" xml:space="preserve"><value>يظهر</value></data>
+  <data name="Quick actions" xml:space="preserve"><value>إجراءات سريعة</value></data>
+  <data name="Start here:" xml:space="preserve"><value>ابدأ من هنا:</value></data>
+  <data name="Not applicable" xml:space="preserve"><value>لا ينطبق</value></data>
+  <data name="Register a family, step by step" xml:space="preserve"><value>تسجيل عائلة خطوة بخطوة</value></data>
+  <data name="Register a family step by step" xml:space="preserve"><value>تسجيل عائلة خطوة بخطوة</value></data>
+  <data name="For the parent who phones the centre and cannot do the steps online. Work down the five steps in order — each one only opens what the previous one made possible." xml:space="preserve"><value>لوليّ الأمر الذي يتصل بالمركز ولا يستطيع إتمام الخطوات بنفسه. انزل في الخطوات الخمس بالترتيب — كل خطوة تفتح ما جعلته الخطوة التي قبلها ممكنًا.</value></data>
+  <data name="Start a new family" xml:space="preserve"><value>ابدأ عائلة جديدة</value></data>
+  <data name="The guardian" xml:space="preserve"><value>وليّ الأمر</value></data>
+  <data name="Find them, or create the account" xml:space="preserve"><value>ابحث عنه أو أنشئ حسابه</value></data>
+  <data name="The student" xml:space="preserve"><value>الطالب</value></data>
+  <data name="Find them, or register the child" xml:space="preserve"><value>ابحث عنه أو سجّل الطفل</value></data>
+  <data name="The link" xml:space="preserve"><value>الربط</value></data>
+  <data name="Who is responsible for whom" xml:space="preserve"><value>من المسؤول عن من</value></data>
+  <data name="The level" xml:space="preserve"><value>المستوى</value></data>
+  <data name="From the student's own test" xml:space="preserve"><value>من اختبار الطالب نفسه</value></data>
+  <data name="Package and payment" xml:space="preserve"><value>الباقة والدفع</value></data>
+  <data name="Choose it, then record the transfer" xml:space="preserve"><value>اخترها ثم سجّل الحوالة</value></data>
+  <data name="Working on" xml:space="preserve"><value>العمل جارٍ على</value></data>
+  <data name="Not linked yet" xml:space="preserve"><value>لم يُربط بعد</value></data>
+  <data name="Awaiting the test" xml:space="preserve"><value>بانتظار الاختبار</value></data>
+  <data name="Find the family before creating anything" xml:space="preserve"><value>ابحث عن العائلة قبل إنشاء أي شيء</value></data>
+  <data name="Search by name or email first. Creating a second account for a family that already exists is the one mistake that is painful to undo later." xml:space="preserve"><value>ابحث بالاسم أو البريد أولًا. إنشاء حساب ثانٍ لعائلة موجودة أصلًا هو الخطأ الوحيد الذي يصعب تصحيحه لاحقًا.</value></data>
+  <data name="Part of a name is enough" xml:space="preserve"><value>جزء من الاسم يكفي</value></data>
+  <data name="Guardians found" xml:space="preserve"><value>أولياء أمور مطابقون</value></data>
+  <data name="Already registered" xml:space="preserve"><value>مسجَّل مسبقًا</value></data>
+  <data name="No guardian matches — create one in step 2." xml:space="preserve"><value>لا يوجد وليّ أمر مطابق — أنشئ واحدًا في الخطوة 2.</value></data>
+  <data name="Students found" xml:space="preserve"><value>طلاب مطابقون</value></data>
+  <data name="No student matches — register one in step 2." xml:space="preserve"><value>لا يوجد طالب مطابق — سجّل واحدًا في الخطوة 2.</value></data>
+  <data name="Pick the student's name above to carry on with the rest of the steps for them." xml:space="preserve"><value>اختر اسم الطالب أعلاه لتكمل بقية الخطوات له.</value></data>
+  <data name="Nobody matches that search." xml:space="preserve"><value>لا أحد يطابق هذا البحث.</value></data>
+  <data name="This family is new — create the guardian and the student in step 2 below." xml:space="preserve"><value>هذه العائلة جديدة — أنشئ وليّ الأمر والطالب في الخطوة 2 أدناه.</value></data>
+  <data name="Create whoever is missing" xml:space="preserve"><value>أنشئ من ينقص</value></data>
+  <data name="The guardian gets a real sign-in. The child normally does not — they are reached through their guardian's account." xml:space="preserve"><value>وليّ الأمر يحصل على حساب دخول حقيقي. الطفل عادةً لا يحصل على حساب — يُدخَل إليه من حساب وليّ أمره.</value></data>
+  <data name="New guardian" xml:space="preserve"><value>وليّ أمر جديد</value></data>
+  <data name="At least 8 characters. Read it out on the call; they change it after signing in." xml:space="preserve"><value>٨ أحرف على الأقل. اقرأها له على الهاتف؛ يغيّرها بعد أول دخول.</value></data>
+  <data name="Create the guardian" xml:space="preserve"><value>أنشئ وليّ الأمر</value></data>
+  <data name="New student" xml:space="preserve"><value>طالب جديد</value></data>
+  <data name="No sign-in is created here: this child uses their guardian's account. An older student who really will sign in alone can be given one later from the students screen." xml:space="preserve"><value>لا يُنشأ حساب دخول هنا: هذا الطفل يستخدم حساب وليّ أمره. الطالب الأكبر الذي سيدخل بنفسه فعلًا يمكن منحه حسابًا لاحقًا من شاشة الطلاب.</value></data>
+  <data name="Register the student" xml:space="preserve"><value>سجّل الطالب</value></data>
+  <data name="Link the guardian to the student" xml:space="preserve"><value>اربط وليّ الأمر بالطالب</value></data>
+  <data name="Until they are linked, the guardian cannot see this child or pay for them." xml:space="preserve"><value>قبل الربط، لا يستطيع وليّ الأمر رؤية هذا الطفل ولا الدفع عنه.</value></data>
+  <data name="Pick a student first." xml:space="preserve"><value>اختر الطالب أولًا.</value></data>
+  <data name="Search for them in step 1, or register them in step 2." xml:space="preserve"><value>ابحث عنه في الخطوة 1، أو سجّله في الخطوة 2.</value></data>
+  <data name="This is the main guardian" xml:space="preserve"><value>هذا هو وليّ الأمر الأساسي</value></data>
+  <data name="Link them" xml:space="preserve"><value>اربطهما</value></data>
+  <data name="The student's own placement test" xml:space="preserve"><value>اختبار تحديد المستوى الخاص بالطالب</value></data>
+  <data name="The level decides which packages exist for this student. It comes from the test the student sits themselves — an admin cannot sit it for them." xml:space="preserve"><value>المستوى هو ما يحدد الباقات المتاحة لهذا الطالب، ويأتي من الاختبار الذي يؤديه الطالب بنفسه — لا يستطيع الأدمن أداءه بدلًا عنه.</value></data>
+  <data name="A level belongs to one specific student." xml:space="preserve"><value>المستوى يخصّ طالبًا واحدًا بعينه.</value></data>
+  <data name="No placement result yet. Send the family to the test — the guardian opens it from their own account, on their own device." xml:space="preserve"><value>لا توجد نتيجة تحديد مستوى بعد. وجّه العائلة إلى الاختبار — يفتحه وليّ الأمر من حسابه هو، على جهازه هو.</value></data>
+  <data name="Open the placement test" xml:space="preserve"><value>افتح اختبار تحديد المستوى</value></data>
+  <data name="If the level has to be set by hand instead — a transfer from another centre, for example — that is a recorded override on the students screen." xml:space="preserve"><value>إذا لزم تحديد المستوى يدويًا بدلًا من ذلك — انتقال من مركز آخر مثلًا — فهذا تجاوز مُسجَّل يتم من شاشة الطلاب.</value></data>
+  <data name="Set the level by hand" xml:space="preserve"><value>حدّد المستوى يدويًا</value></data>
+  <data name="Ready to buy a package" xml:space="preserve"><value>جاهز لشراء باقة</value></data>
+  <data name="Choose the package, then record the transfer" xml:space="preserve"><value>اختر الباقة ثم سجّل الحوالة</value></data>
+  <data name="Only packages published for this student's own level appear. Choosing one creates an unpaid request; the package activates only once the money is confirmed as received." xml:space="preserve"><value>لا تظهر إلا الباقات المنشورة لمستوى هذا الطالب. اختيار باقة يُنشئ طلبًا غير مدفوع؛ ولا تُفعَّل الباقة إلا بعد تأكيد وصول المبلغ.</value></data>
+  <data name="Not yet." xml:space="preserve"><value>ليس بعد.</value></data>
+  <data name="A package can only be chosen once the student has a level." xml:space="preserve"><value>لا يمكن اختيار باقة قبل أن يكون للطالب مستوى.</value></data>
+  <data name="No package is published for this level yet." xml:space="preserve"><value>لا توجد باقة منشورة لهذا المستوى بعد.</value></data>
+  <data name="Create one on the packages screen, then come back here." xml:space="preserve"><value>أنشئ واحدة من شاشة الباقات ثم عد إلى هنا.</value></data>
+  <data name="Create an unpaid package request for this student?" xml:space="preserve"><value>إنشاء طلب باقة غير مدفوعة لهذا الطالب؟</value></data>
+  <data name="Choose this package" xml:space="preserve"><value>اختر هذه الباقة</value></data>
+  <data name="Record what the family sent" xml:space="preserve"><value>سجّل ما أرسلته العائلة</value></data>
+  <data name="Recording a transfer does not activate anything on its own — an admin still confirms on the payments screen that the money really arrived." xml:space="preserve"><value>تسجيل الحوالة لا يُفعِّل شيئًا بذاته — يبقى على الأدمن أن يؤكد من شاشة المدفوعات أن المبلغ وصل فعلًا.</value></data>
+  <data name="Unpaid package" xml:space="preserve"><value>باقة غير مدفوعة</value></data>
+  <data name="How did they pay?" xml:space="preserve"><value>كيف دفعوا؟</value></data>
+  <data name="Which of our accounts received it? (optional)" xml:space="preserve"><value>أي حساب من حساباتنا استلمه؟ (اختياري)</value></data>
+  <data name="Which of our accounts received it?" xml:space="preserve"><value>أي حساب من حساباتنا استلمه؟</value></data>
+  <data name="Record the payment" xml:space="preserve"><value>سجّل الدفعة</value></data>
+  <data name="Payments on this student" xml:space="preserve"><value>مدفوعات هذا الطالب</value></data>
+  <data name="Next: an admin confirms on the payments screen that the money arrived, and only then does the package activate." xml:space="preserve"><value>التالي: يؤكد الأدمن من شاشة المدفوعات أن المبلغ وصل، وعندها فقط تُفعَّل الباقة.</value></data>
+  <data name="Open payments for this student" xml:space="preserve"><value>افتح مدفوعات هذا الطالب</value></data>
+  <data name="Make-up requests" xml:space="preserve"><value>طلبات حصص التعويض</value></data>
+  <data name="Students asking for a make-up lesson" xml:space="preserve"><value>طلاب يطلبون حصة تعويضية</value></data>
+  <data name="A student who missed a lesson can ask for one to make up for it. You decide, one request at a time." xml:space="preserve"><value>الطالب الذي فاتته حصة يستطيع طلب حصة تعويضية. القرار لك، طلبًا بطلب.</value></data>
+  <data name="What happens when I approve one?" xml:space="preserve"><value>ماذا يحدث عند الموافقة؟</value></data>
+  <data name="The student is enrolled into the one future lesson you pick, and joining it will not cost them any hours." xml:space="preserve"><value>يُسجَّل الطالب في الحصة القادمة التي تختارها أنت، ودخوله إليها لن يخصم من ساعاته شيئًا.</value></data>
+  <data name="The lesson they missed stays exactly as it is: the absence stands, and the hour it used stays used." xml:space="preserve"><value>الحصة الفائتة تبقى كما هي تمامًا: الغياب يبقى مسجَّلًا، والساعة التي استُهلكت تبقى مستهلَكة.</value></data>
+  <data name="The student is notified. The make-up can be used once, and it is not a credit they can spend elsewhere." xml:space="preserve"><value>يصل إشعار للطالب. الحصة التعويضية تُستخدم مرة واحدة، وليست رصيدًا يستطيع صرفه في مكان آخر.</value></data>
+  <data name="Refusing asks for a reason, and the student reads that reason word for word." xml:space="preserve"><value>الرفض يتطلب سببًا، ويقرأ الطالب هذا السبب حرفيًا.</value></data>
+  <data name="This request cannot be approved yet." xml:space="preserve"><value>لا يمكن الموافقة على هذا الطلب الآن.</value></data>
+  <data name="There is no upcoming lesson at this student's level with a free seat. Add one, then come back — the request stays here waiting." xml:space="preserve"><value>لا توجد حصة قادمة في مستوى هذا الطالب فيها مقعد شاغر. أضف واحدة ثم عد — الطلب يبقى هنا بانتظارك.</value></data>
+  <data name="Which lesson do they get instead?" xml:space="preserve"><value>أي حصة يحصل عليها بدلًا منها؟</value></data>
+  <data name="Only upcoming lessons at this student's own level, with a free seat." xml:space="preserve"><value>الحصص القادمة في مستوى هذا الطالب فقط، وبمقعد شاغر.</value></data>
+  <data name="Enrol this student into that lesson for free? Their missed lesson stays as it is." xml:space="preserve"><value>تسجيل هذا الطالب في تلك الحصة مجانًا؟ حصته الفائتة تبقى كما هي.</value></data>
+  <data name="Everything on this page is counted live from the database as you load it." xml:space="preserve"><value>كل ما في هذه الصفحة يُحسب مباشرةً من قاعدة البيانات لحظة فتحها.</value></data>
+  <data name="Nothing is waiting on you." xml:space="preserve"><value>لا شيء ينتظرك.</value></data>
+  <data name="No payment to confirm, no request to review, no student stuck without a level." xml:space="preserve"><value>لا دفعة بانتظار التأكيد، ولا طلب بانتظار المراجعة، ولا طالب متوقف بلا مستوى.</value></data>
+  <data name="{0} thing(s) are waiting on you." xml:space="preserve"><value>لديك {0} من الأمور التي تنتظرك.</value></data>
+  <data name="Each card below is a queue: open it, deal with it, and the number goes down." xml:space="preserve"><value>كل بطاقة أدناه طابور عمل: افتحها، أنجزها، وينقص الرقم.</value></data>
+  <data name="Confirm payments" xml:space="preserve"><value>تأكيد المدفوعات</value></data>
+  <data name="Set levels" xml:space="preserve"><value>تحديد المستويات</value></data>
+  <data name="Review make-up requests" xml:space="preserve"><value>مراجعة طلبات التعويض</value></data>
+  <data name="Check delivered lessons" xml:space="preserve"><value>التحقق من الحصص المُسلَّمة</value></data>
+  <data name="The week ahead" xml:space="preserve"><value>الأسبوع القادم</value></data>
+  <data name="How many lessons are scheduled on each of the next seven days." xml:space="preserve"><value>عدد الحصص المجدولة في كل يوم من الأيام السبعة القادمة.</value></data>
+  <data name="No lesson is scheduled this week." xml:space="preserve"><value>لا توجد حصة مجدولة هذا الأسبوع.</value></data>
+  <data name="Either no weekly class is running, or its sessions have not been generated yet." xml:space="preserve"><value>إما أنه لا يوجد صف أسبوعي يعمل، أو أن حصصه لم تُولَّد بعد.</value></data>
+  <data name="Lessons scheduled on each of the next seven days." xml:space="preserve"><value>الحصص المجدولة في كل يوم من الأيام السبعة القادمة.</value></data>
+  <data name="Next lessons" xml:space="preserve"><value>الحصص القادمة</value></data>
+  <data name="The ones starting soonest, with how many seats are taken." xml:space="preserve"><value>الأقرب بدءًا، مع عدد المقاعد المحجوزة.</value></data>
+  <data name="Nothing is coming up." xml:space="preserve"><value>لا شيء قادم.</value></data>
+  <data name="No lesson is scheduled in the next seven days." xml:space="preserve"><value>لا توجد حصة مجدولة خلال الأيام السبعة القادمة.</value></data>
+  <data name="What came in, what went out, and what is left — for whatever dates you choose." xml:space="preserve"><value>ما دخل، وما خرج، وما تبقّى — للفترة التي تختارها.</value></data>
+  <data name="How to read this" xml:space="preserve"><value>كيف تقرأ هذه الأرقام</value></data>
+  <data name="Money in counts a payment on the day it was confirmed as received, not the day it was requested." xml:space="preserve"><value>الدخل يحتسب الدفعة يوم تأكيد استلامها، لا يوم طلبها.</value></data>
+  <data name="Teacher pay is taken from the payroll lines automatically — never type it in as an expense." xml:space="preserve"><value>أجور المعلمين تُؤخذ من بنود الرواتب تلقائيًا — لا تُدخلها أبدًا كمصروف.</value></data>
+  <data name="Every other running cost — rent, marketing, tools — is entered by hand at the bottom of this page." xml:space="preserve"><value>كل مصروف تشغيلي آخر — إيجار، تسويق، أدوات — يُدخَل يدويًا في أسفل هذه الصفحة.</value></data>
+  <data name="Record a running cost" xml:space="preserve"><value>تسجيل مصروف تشغيلي</value></data>
+  <data name="Rent, marketing, subscriptions, anything the centre pays out that is not teacher pay. Teacher pay is already counted from payroll and is refused here." xml:space="preserve"><value>إيجار، تسويق، اشتراكات، وأي مبلغ يدفعه المركز غير أجور المعلمين. أجور المعلمين محسوبة أصلًا من الرواتب ومرفوضة هنا.</value></data>
+  <data name="What was it for?" xml:space="preserve"><value>ما هو هذا المصروف؟</value></data>
+  <data name="Reuse the same wording each month so the totals group together." xml:space="preserve"><value>استخدم الصياغة نفسها كل شهر حتى تتجمّع المجاميع معًا.</value></data>
+  <data name="Date it was paid" xml:space="preserve"><value>تاريخ الدفع</value></data>
+  <data name="Record it" xml:space="preserve"><value>سجّله</value></data>
+  <data name="It is counted against the dates chosen at the top of this page, and comes off the profit figure." xml:space="preserve"><value>يُحتسب ضمن التواريخ المختارة أعلى الصفحة، ويُخصم من الربح.</value></data>
+  <data name="Running costs in these dates" xml:space="preserve"><value>المصاريف التشغيلية في هذه الفترة</value></data>
+  <data name="No running cost recorded in these dates." xml:space="preserve"><value>لا يوجد مصروف تشغيلي مسجَّل في هذه الفترة.</value></data>
+  <data name="Teacher pay is not shown here — it is counted separately from payroll." xml:space="preserve"><value>أجور المعلمين لا تظهر هنا — تُحتسب بشكل منفصل من الرواتب.</value></data>
+  <data name="Where families send the money" xml:space="preserve"><value>إلى أين ترسل العائلات المبالغ</value></data>
+  <data name="These are the centre's own accounts, shown to a family when they are about to send money. There is no online card payment: every transfer happens outside the platform and an admin confirms it afterwards." xml:space="preserve"><value>هذه حسابات المركز نفسه، تُعرض على العائلة عند إرسال المبلغ. لا يوجد دفع إلكتروني بالبطاقة: كل حوالة تتم خارج المنصة ويؤكدها الأدمن بعدها.</value></data>
+  <data name="Add one account per way of paying you really accept. An account that is missing a required detail, or is switched off, is never offered to anybody." xml:space="preserve"><value>أضف حسابًا واحدًا لكل وسيلة دفع تقبلونها فعلًا. الحساب الناقص بيانات مطلوبة، أو الموقوف، لا يُعرض على أحد إطلاقًا.</value></data>
+  <data name="Add an account" xml:space="preserve"><value>إضافة حساب</value></data>
+  <data name="Pick how the money arrives first — only the details that way of paying actually needs are then asked for." xml:space="preserve"><value>اختر طريقة وصول المبلغ أولًا — عندها تُطلب فقط البيانات التي تحتاجها تلك الطريقة.</value></data>
+  <data name="How does the money arrive?" xml:space="preserve"><value>كيف يصل المبلغ؟</value></data>
+  <data name="Account holder name" xml:space="preserve"><value>اسم صاحب الحساب</value></data>
+  <data name="Exactly as it appears on the account — the family types this when they transfer." xml:space="preserve"><value>كما هو تمامًا على الحساب — العائلة تكتبه عند التحويل.</value></data>
+  <data name="The alias or phone number a CliQ transfer is sent to." xml:space="preserve"><value>الاسم المستعار أو رقم الهاتف الذي تُرسَل إليه حوالة كليك.</value></data>
+  <data name="Required for a transfer arriving from outside the country." xml:space="preserve"><value>مطلوب للحوالة القادمة من خارج البلد.</value></data>
+  <data name="Country of the bank" xml:space="preserve"><value>بلد البنك</value></data>
+  <data name="Which currencies can this account receive?" xml:space="preserve"><value>ما العملات التي يستطيع هذا الحساب استلامها؟</value></data>
+  <data name="No country is configured yet, so there is no currency to offer." xml:space="preserve"><value>لا توجد دولة معرَّفة بعد، فلا توجد عملة تُعرَض.</value></data>
+  <data name="Anything else the family should know (optional)" xml:space="preserve"><value>أي ملاحظة أخرى تحتاجها العائلة (اختياري)</value></data>
+  <data name="e.g. write the student's name in the transfer note" xml:space="preserve"><value>مثال: اكتب اسم الطالب في خانة ملاحظة الحوالة</value></data>
+  <data name="Add the account" xml:space="preserve"><value>أضف الحساب</value></data>
+  <data name="It becomes visible to families straight away, on the screens where they are told where to send money." xml:space="preserve"><value>يظهر للعائلات فورًا، في الشاشات التي يُقال لهم فيها إلى أين يرسلون المبلغ.</value></data>
+  <data name="Accounts in use" xml:space="preserve"><value>الحسابات المستخدمة</value></data>
+  <data name="Currencies" xml:space="preserve"><value>العملات</value></data>
+  <data name="Paid in person at the centre." xml:space="preserve"><value>يُدفع نقدًا في المركز.</value></data>
+  <data name="Offered to families" xml:space="preserve"><value>معروض على العائلات</value></data>
+  <data name="Switched off" xml:space="preserve"><value>موقوف</value></data>
+  <data name="Stop offering this account to families? Payments already recorded against it are not affected." xml:space="preserve"><value>إيقاف عرض هذا الحساب على العائلات؟ المدفوعات المسجَّلة عليه سابقًا لا تتأثر.</value></data>
+  <data name="Switch it off" xml:space="preserve"><value>أوقفه</value></data>
+  <data name="No account configured yet." xml:space="preserve"><value>لا يوجد حساب معرَّف بعد.</value></data>
+  <data name="Until one exists, a family has nowhere to send the money — add the first one above." xml:space="preserve"><value>قبل وجود حساب، لا تجد العائلة إلى أين ترسل المبلغ — أضف الأول أعلاه.</value></data>
+  <data name="Tick at least one currency this account can receive." xml:space="preserve"><value>أشّر على عملة واحدة على الأقل يستطيع هذا الحساب استلامها.</value></data>
+  <data name="A family sends money outside the platform — cash, CliQ, or a bank transfer. There is no online card payment here." xml:space="preserve"><value>العائلة ترسل المبلغ خارج المنصة — نقدًا أو عبر كليك أو حوالة بنكية. لا يوجد دفع إلكتروني بالبطاقة هنا.</value></data>
+  <data name="The transfer is recorded against the student, either by the family themselves or by you on this screen." xml:space="preserve"><value>تُسجَّل الحوالة على الطالب، إما من العائلة نفسها أو منك في هذه الشاشة.</value></data>
+  <data name="You check the real bank or CliQ account, and only then confirm that the amount actually arrived. Confirming is what activates the package." xml:space="preserve"><value>تتحقق أنت من الحساب البنكي أو كليك فعليًا، وعندها فقط تؤكد أن المبلغ وصل. التأكيد هو ما يُفعِّل الباقة.</value></data>
+  <data name="the Awaiting confirmation list below — those are the ones with somebody waiting." xml:space="preserve"><value>قائمة «بانتظار التأكيد» أدناه — هذه هي التي ينتظر أصحابها.</value></data>
+  <data name="Which package is this paying for?" xml:space="preserve"><value>عن أي باقة هذه الدفعة؟</value></data>
+  <data name="Not paying for a package — just record the money" xml:space="preserve"><value>ليست مقابل باقة — سجّل المبلغ فقط</value></data>
+  <data name="Only this student's own unpaid packages are listed. Attach the payment to the one it pays for — confirming it then activates that package." xml:space="preserve"><value>لا تظهر إلا باقات هذا الطالب غير المدفوعة. اربط الدفعة بالباقة التي تدفع عنها — عندها يُفعِّلها التأكيد.</value></data>
+  <data name="This student has no unpaid package. Either they already paid for everything, or the package has not been chosen yet — do that on the packages screen first." xml:space="preserve"><value>لا توجد لهذا الطالب باقة غير مدفوعة. إما أنه دفع كل شيء، أو أن الباقة لم تُختَر بعد — اخترها من شاشة الباقات أولًا.</value></data>
+  <data name="Leave it on the first option for money that is not buying a package: a correction, a refund reversal, or a deposit to hold a seat." xml:space="preserve"><value>اترك الخيار الأول للمبلغ الذي لا يشتري باقة: تصحيح، أو عكس استرداد، أو عربون لحجز مقعد.</value></data>
+  <data name="Check the centre's real account first. Confirming here says the money is in the account — it is not an acknowledgement that a receipt was uploaded." xml:space="preserve"><value>تحقق من حساب المركز الحقيقي أولًا. التأكيد هنا يعني أن المبلغ في الحساب — وليس مجرد إقرار بأن إيصالًا قد رُفع.</value></data>
+  <data name="Paying the teachers" xml:space="preserve"><value>صرف أجور المعلمين</value></data>
+  <data name="Teachers say which lessons they delivered; you check them; then a month is closed off and paid." xml:space="preserve"><value>المعلمون يبلّغون عن الحصص التي سلّموها؛ أنت تتحقق منها؛ ثم تُغلق فترة الشهر وتُصرف.</value></data>
+  <data name="Check what teachers have declared." xml:space="preserve"><value>تحقّق مما أبلغ عنه المعلمون.</value></data>
+  <data name="A teacher marks a lesson as delivered; a different admin has to agree. That is the list at the top." xml:space="preserve"><value>المعلم يعلّم الحصة كمُسلَّمة، ويجب أن يوافق أدمن آخر. هذه هي القائمة في الأعلى.</value></data>
+  <data name="Open a payroll month." xml:space="preserve"><value>افتح فترة رواتب.</value></data>
+  <data name="A payroll month is just a country and a date range — a container to gather the checked lessons into. Opening one changes no money." xml:space="preserve"><value>فترة الرواتب ليست إلا دولة ومدى تاريخي — وعاء تُجمَّع فيه الحصص المتحقَّق منها. فتحها لا يحرّك أي مبلغ.</value></data>
+  <data name="Press Gather." xml:space="preserve"><value>اضغط «تجميع».</value></data>
+  <data name="That is when the pay lines appear: one per teacher, adding up every checked lesson inside the dates. Before you press it the month is deliberately empty." xml:space="preserve"><value>عندها تظهر بنود الرواتب: بند لكل معلم، يجمع كل حصة متحقَّق منها ضمن التواريخ. قبل ضغطها تكون الفترة فارغة عمدًا.</value></data>
+  <data name="Review, approve, mark paid, close." xml:space="preserve"><value>راجع، اعتمد، علّم كمدفوعة، ثم أغلق.</value></data>
+  <data name="Approving locks the lines so they can no longer change." xml:space="preserve"><value>الاعتماد يقفل البنود فلا يعود بالإمكان تغييرها.</value></data>
+  <data name="A month with no lines?" xml:space="preserve"><value>فترة بلا بنود؟</value></data>
+  <data name="Either it has not been gathered yet, or no checked lesson falls inside its dates." xml:space="preserve"><value>إما أنها لم تُجمَّع بعد، أو أنه لا توجد حصة متحقَّق منها ضمن تواريخها.</value></data>
+  <data name="Step 1 — lessons teachers say they delivered" xml:space="preserve"><value>الخطوة 1 — حصص يقول المعلمون إنهم سلّموها</value></data>
+  <data name="You cannot check a lesson you declared yourself. A checked lesson is what payroll can later pay for." xml:space="preserve"><value>لا تستطيع التحقق من حصة أبلغت عنها أنت. الحصة المتحقَّق منها هي ما تستطيع الرواتب صرفه لاحقًا.</value></data>
+  <data name="Nothing to check right now." xml:space="preserve"><value>لا يوجد ما يُتحقَّق منه الآن.</value></data>
+  <data name="A lesson appears here after the teacher who taught it marks it delivered." xml:space="preserve"><value>تظهر الحصة هنا بعد أن يعلّمها المعلم الذي درّسها كمُسلَّمة.</value></data>
+  <data name="Step 2 — open a payroll month" xml:space="preserve"><value>الخطوة 2 — افتح فترة رواتب</value></data>
+  <data name="A country and a date range, nothing more. It starts empty and completely harmless: opening one moves no money and changes nothing until you gather it." xml:space="preserve"><value>دولة ومدى تاريخي، لا أكثر. تبدأ فارغة وغير مؤثرة إطلاقًا: فتحها لا يحرّك مالًا ولا يغيّر شيئًا حتى تجمّعها.</value></data>
+  <data name="Open it" xml:space="preserve"><value>افتحها</value></data>
+  <data name="Next: press Gather on it below — that is what fills it with the checked lessons in those dates." xml:space="preserve"><value>التالي: اضغط «تجميع» عليها أدناه — هذا ما يملؤها بالحصص المتحقَّق منها ضمن تلك التواريخ.</value></data>
+  <data name="Step 3 — payroll months" xml:space="preserve"><value>الخطوة 3 — فترات الرواتب</value></data>
+  <data name="Dates" xml:space="preserve"><value>التواريخ</value></data>
+  <data name="Pay lines" xml:space="preserve"><value>بنود الرواتب</value></data>
+  <data name="Empty until you press Gather." xml:space="preserve"><value>فارغة حتى تضغط «تجميع».</value></data>
+  <data name="No checked lesson falls inside these dates." xml:space="preserve"><value>لا توجد حصة متحقَّق منها ضمن هذه التواريخ.</value></data>
+  <data name="Gather the lessons" xml:space="preserve"><value>تجميع الحصص</value></data>
+  <data name="Send for review" xml:space="preserve"><value>إرسال للمراجعة</value></data>
+  <data name="No payroll month opened yet." xml:space="preserve"><value>لم تُفتح أي فترة رواتب بعد.</value></data>
+  <data name="Nothing can be paid until one exists — open the first one above." xml:space="preserve"><value>لا يمكن صرف شيء قبل وجود فترة — افتح الأولى أعلاه.</value></data>
+  <data name="The test a new student sits to find out which level they belong in. Every question and every answer here is written by the centre — the system invents nothing." xml:space="preserve"><value>الاختبار الذي يؤديه الطالب الجديد لمعرفة المستوى الذي ينتمي إليه. كل سؤال وكل إجابة هنا يكتبها المركز — النظام لا يخترع شيئًا.</value></data>
+  <data name="How a test goes live" xml:space="preserve"><value>كيف يصبح الاختبار فعّالًا</value></data>
+  <data name="Create a draft and write its questions. A draft can be changed as much as you like." xml:space="preserve"><value>أنشئ مسودة واكتب أسئلتها. المسودة يمكن تعديلها كما تشاء.</value></data>
+  <data name="Say which score gets which level — the bands must cover every possible score, with no gap and no overlap." xml:space="preserve"><value>حدّد أي درجة تعطي أي مستوى — يجب أن تغطي النطاقات كل درجة ممكنة، بلا فجوة وبلا تداخل.</value></data>
+  <data name="Publish it. From then on its questions are frozen, because students' results have to stay comparable." xml:space="preserve"><value>انشره. من تلك اللحظة تُجمَّد أسئلته، لأن نتائج الطلاب يجب أن تبقى قابلة للمقارنة.</value></data>
+  <data name="Make it the active one. Only one test is active at a time, and it is the one new students sit." xml:space="preserve"><value>اجعله الفعّال. اختبار واحد فقط يكون فعّالًا في كل وقت، وهو الذي يؤديه الطلاب الجدد.</value></data>
+  <data name="Start a new draft test" xml:space="preserve"><value>ابدأ مسودة اختبار جديدة</value></data>
+  <data name="Name it so you can tell versions apart" xml:space="preserve"><value>سمِّه بما يميّزه عن النسخ الأخرى</value></data>
+  <data name="Tests" xml:space="preserve"><value>الاختبارات</value></data>
+  <data name="In use" xml:space="preserve"><value>قيد الاستخدام</value></data>
+  <data name="This is the test students sit" xml:space="preserve"><value>هذا هو الاختبار الذي يؤديه الطلاب</value></data>
+  <data name="Open and edit" xml:space="preserve"><value>افتح وعدّل</value></data>
+  <data name="Publish this test? Its questions can never be changed again." xml:space="preserve"><value>نشر هذا الاختبار؟ لن يمكن تغيير أسئلته بعدها أبدًا.</value></data>
+  <data name="Make this the test new students sit from now on?" xml:space="preserve"><value>جعل هذا هو الاختبار الذي يؤديه الطلاب الجدد من الآن؟</value></data>
+  <data name="Make it the active one" xml:space="preserve"><value>اجعله الفعّال</value></data>
+  <data name="No test exists yet." xml:space="preserve"><value>لا يوجد اختبار بعد.</value></data>
+  <data name="Until one is published and active, no student can be placed by test — their level has to be set by hand." xml:space="preserve"><value>قبل نشر اختبار وتفعيله، لا يمكن تحديد مستوى أي طالب بالاختبار — يبقى التحديد يدويًا.</value></data>
+  <data name="This test is published, so its questions and score bands are frozen. To change anything, create a new draft." xml:space="preserve"><value>هذا الاختبار منشور، فأسئلته ونطاقات درجاته مجمَّدة. لتغيير أي شيء، أنشئ مسودة جديدة.</value></data>
+  <data name="Correct this question" xml:space="preserve"><value>تصحيح هذا السؤال</value></data>
+  <data name="Write the question, then the answers. Mark the right answer with the button beside it — you never type an answer number." xml:space="preserve"><value>اكتب السؤال ثم الإجابات. علّم الإجابة الصحيحة بالزر المجاور لها — لا تكتب رقم إجابة إطلاقًا.</value></data>
+  <data name="The question" xml:space="preserve"><value>السؤال</value></data>
+  <data name="Written exactly as the student will read it" xml:space="preserve"><value>مكتوب كما سيقرؤه الطالب تمامًا</value></data>
+  <data name="The answers" xml:space="preserve"><value>الإجابات</value></data>
+  <data name="Two answers are the minimum; the third and fourth are optional. Choose exactly one as correct." xml:space="preserve"><value>إجابتان كحد أدنى؛ الثالثة والرابعة اختياريتان. اختر واحدة فقط بوصفها الصحيحة.</value></data>
+  <data name="This one is correct" xml:space="preserve"><value>هذه هي الصحيحة</value></data>
+  <data name="Answer 1" xml:space="preserve"><value>الإجابة 1</value></data>
+  <data name="Answer 2" xml:space="preserve"><value>الإجابة 2</value></data>
+  <data name="Answer 3 (optional)" xml:space="preserve"><value>الإجابة 3 (اختيارية)</value></data>
+  <data name="Answer 4 (optional)" xml:space="preserve"><value>الإجابة 4 (اختيارية)</value></data>
+  <data name="Marking an empty answer as the correct one is refused — pick one that has text." xml:space="preserve"><value>تعليم إجابة فارغة كصحيحة مرفوض — اختر واحدة مكتوبة.</value></data>
+  <data name="Points if answered correctly" xml:space="preserve"><value>الدرجات عند الإجابة الصحيحة</value></data>
+  <data name="Leave it at 1 unless this question should count for more." xml:space="preserve"><value>اتركها 1 إلا إذا كان هذا السؤال يستحق أكثر.</value></data>
+  <data name="Position in the test" xml:space="preserve"><value>ترتيب السؤال في الاختبار</value></data>
+  <data name="Already filled in with the next free position." xml:space="preserve"><value>مملوءة سلفًا بالترتيب التالي المتاح.</value></data>
+  <data name="Save the correction" xml:space="preserve"><value>احفظ التصحيح</value></data>
+  <data name="Add the question" xml:space="preserve"><value>أضف السؤال</value></data>
+  <data name="Saving replaces the old wording with this one, in the same position in the test." xml:space="preserve"><value>الحفظ يستبدل الصياغة القديمة بهذه، في الموضع نفسه من الاختبار.</value></data>
+  <data name="Correct this score band" xml:space="preserve"><value>تصحيح نطاق الدرجات هذا</value></data>
+  <data name="Which score gets which level?" xml:space="preserve"><value>أي درجة تعطي أي مستوى؟</value></data>
+  <data name="A test only produces a number. These bands are what turn that number into a level — without them a finished test cannot place anybody. The bands together must cover every score from zero up to the full mark, leaving no gap and no overlap." xml:space="preserve"><value>الاختبار لا ينتج إلا رقمًا. هذه النطاقات هي ما يحوّل الرقم إلى مستوى — وبدونها لا يستطيع اختبار مكتمل أن يحدد مستوى أحد. ويجب أن تغطي النطاقات مجتمعةً كل درجة من الصفر حتى العلامة الكاملة، بلا فجوة وبلا تداخل.</value></data>
+  <data name="From this score" xml:space="preserve"><value>من هذه الدرجة</value></data>
+  <data name="Up to this score" xml:space="preserve"><value>إلى هذه الدرجة</value></data>
+  <data name="Goes to this level" xml:space="preserve"><value>يعطي هذا المستوى</value></data>
+  <data name="Add the band" xml:space="preserve"><value>أضف النطاق</value></data>
+  <data name="Position" xml:space="preserve"><value>الترتيب</value></data>
+  <data name="Answers" xml:space="preserve"><value>الإجابات</value></data>
+  <data name="Correct" xml:space="preserve"><value>صحيحة</value></data>
+  <data name="Delete this question?" xml:space="preserve"><value>حذف هذا السؤال؟</value></data>
+  <data name="This test has no questions yet." xml:space="preserve"><value>هذا الاختبار بلا أسئلة بعد.</value></data>
+  <data name="Add the first one above — a test cannot be published while it is empty." xml:space="preserve"><value>أضف أول سؤال أعلاه — لا يمكن نشر اختبار فارغ.</value></data>
+  <data name="Score bands" xml:space="preserve"><value>نطاقات الدرجات</value></data>
+  <data name="Up to" xml:space="preserve"><value>إلى</value></data>
+  <data name="Delete this band?" xml:space="preserve"><value>حذف هذا النطاق؟</value></data>
+  <data name="No score band yet." xml:space="preserve"><value>لا يوجد نطاق درجات بعد.</value></data>
+  <data name="A finished test would produce a number with no level to give it. Add the bands above." xml:space="preserve"><value>الاختبار المكتمل سينتج رقمًا بلا مستوى يقابله. أضف النطاقات أعلاه.</value></data>
+  <data name="Students asking to sit the test again" xml:space="preserve"><value>طلاب يطلبون إعادة الاختبار</value></data>
+  <data name="A student only gets a second attempt if an admin allows it. Whichever you choose is recorded against your name." xml:space="preserve"><value>لا يحصل الطالب على محاولة ثانية إلا بموافقة أدمن. وأيًّا كان قرارك فهو مسجَّل باسمك.</value></data>
+  <data name="Asked on" xml:space="preserve"><value>تاريخ الطلب</value></data>
+  <data name="Let this student sit the test again?" xml:space="preserve"><value>السماح لهذا الطالب بإعادة الاختبار؟</value></data>
+  <data name="Allow it" xml:space="preserve"><value>اسمح</value></data>
+  <data name="Refuse" xml:space="preserve"><value>ارفض</value></data>
+  <data name="Nobody is asking." xml:space="preserve"><value>لا أحد يطلب.</value></data>
+  <data name="A request appears here when a student who already sat the test asks for another go." xml:space="preserve"><value>يظهر الطلب هنا عندما يطلب طالب سبق أن أدّى الاختبار محاولة أخرى.</value></data>
+  <data name="A level that is no longer active" xml:space="preserve"><value>مستوى لم يعد فعّالًا</value></data>
+  <data name="Question updated." xml:space="preserve"><value>تم تحديث السؤال.</value></data>
+  <data name="The highest score cannot be smaller than the lowest one." xml:space="preserve"><value>الدرجة العليا لا يمكن أن تكون أصغر من الدنيا.</value></data>
+  <data name="Score band updated." xml:space="preserve"><value>تم تحديث نطاق الدرجات.</value></data>
+  <data name="Score band added." xml:space="preserve"><value>تمت إضافة نطاق الدرجات.</value></data>
+  <data name="Write the question." xml:space="preserve"><value>اكتب نص السؤال.</value></data>
+  <data name="How many points is this question worth?" xml:space="preserve"><value>كم درجة يستحق هذا السؤال؟</value></data>
+  <data name="Write the first answer." xml:space="preserve"><value>اكتب الإجابة الأولى.</value></data>
+  <data name="Write the second answer." xml:space="preserve"><value>اكتب الإجابة الثانية.</value></data>
+  <data name="Enter the lowest score in this band." xml:space="preserve"><value>أدخل أدنى درجة في هذا النطاق.</value></data>
+  <data name="Enter the highest score in this band." xml:space="preserve"><value>أدخل أعلى درجة في هذا النطاق.</value></data>
+  <data name="Move a lesson" xml:space="preserve"><value>نقل حصة</value></data>
+  <data name="Move a lesson, or give a make-up one" xml:space="preserve"><value>نقل حصة، أو منح حصة تعويضية</value></data>
+  <data name="Both start the same way — one student, one lesson that went wrong, one future lesson to replace it. What separates them is a single question, answered below." xml:space="preserve"><value>الحالتان تبدآن بالطريقة نفسها — طالب واحد، وحصة واحدة لم تسر كما ينبغي، وحصة قادمة تحلّ محلها. ما يفرّق بينهما سؤال واحد، جوابه أدناه.</value></data>
+  <data name="Which of the two is this?" xml:space="preserve"><value>أي الحالتين هذه؟</value></data>
+  <data name="The student never joined." xml:space="preserve"><value>الطالب لم يدخل الحصة إطلاقًا.</value></data>
+  <data name="Nothing was taken off their balance, because nothing was used. You are simply moving that lesson to another time — use the first form." xml:space="preserve"><value>لم يُخصم من رصيده شيء، لأنه لم يستهلك شيئًا. أنت تنقل تلك الحصة إلى وقت آخر فحسب — استخدم النموذج الأول.</value></data>
+  <data name="The student did join, and the lesson then failed." xml:space="preserve"><value>الطالب دخل فعلًا، ثم تعطّلت الحصة.</value></data>
+  <data name="The hour was already taken off their balance and stays taken. You are giving them one extra lesson that will cost them nothing — use the second form." xml:space="preserve"><value>الساعة خُصمت من رصيده وتبقى مخصومة. أنت تمنحه حصة إضافية واحدة لا تكلفه شيئًا — استخدم النموذج الثاني.</value></data>
+  <data name="Neither one hands out a spendable credit. Each is tied to one specific replacement lesson, usable once." xml:space="preserve"><value>لا هذه ولا تلك تمنح رصيدًا قابلًا للصرف. كلٌّ منهما مرتبطة بحصة بديلة واحدة بعينها، تُستخدم مرة واحدة.</value></data>
+  <data name="No lesson has been held yet, so there is nothing to move or make up." xml:space="preserve"><value>لم تُعقَد أي حصة بعد، فلا يوجد ما يُنقَل أو يُعوَّض.</value></data>
+  <data name="A. The student never joined — move the lesson" xml:space="preserve"><value>أ. الطالب لم يدخل — انقل الحصة</value></data>
+  <data name="Their balance was never touched, and it stays untouched." xml:space="preserve"><value>رصيده لم يُمسّ، ويبقى كما هو.</value></data>
+  <data name="Which student?" xml:space="preserve"><value>أي طالب؟</value></data>
+  <data name="Which lesson did they miss?" xml:space="preserve"><value>أي حصة فاتته؟</value></data>
+  <data name="Which lesson replaces it?" xml:space="preserve"><value>أي حصة تحلّ محلها؟</value></data>
+  <data name="Check, then confirm" xml:space="preserve"><value>راجع ثم أكّد</value></data>
+  <data name="Everything below narrows itself to this student once you pick them." xml:space="preserve"><value>كل ما تحت هذه الخطوة يضيق تلقائيًا على هذا الطالب بمجرد اختياره.</value></data>
+  <data name="Only lessons that have already happened are listed, and only the ones this student was actually in. A lesson still in the future cannot be the one that was missed." xml:space="preserve"><value>لا تظهر إلا الحصص التي انعقدت فعلًا، والتي كان هذا الطالب مسجَّلًا فيها. الحصة التي لم تحن بعد لا يمكن أن تكون هي الفائتة.</value></data>
+  <data name="The missed lesson" xml:space="preserve"><value>الحصة الفائتة</value></data>
+  <data name="If the list is empty after choosing a student, that student is not enrolled in any lesson that has already been held." xml:space="preserve"><value>إذا كانت القائمة فارغة بعد اختيار الطالب، فهذا الطالب غير مسجَّل في أي حصة انعقدت بالفعل.</value></data>
+  <data name="Only lessons that have not started yet are listed — a lesson already held cannot be a replacement." xml:space="preserve"><value>لا تظهر إلا الحصص التي لم تبدأ بعد — الحصة التي انعقدت لا تصلح كبديلة.</value></data>
+  <data name="The new lesson" xml:space="preserve"><value>الحصة الجديدة</value></data>
+  <data name="No lesson is scheduled ahead yet — publish or generate one first." xml:space="preserve"><value>لا توجد حصة مجدولة قادمة بعد — انشر أو ولّد واحدة أولًا.</value></data>
+  <data name="Moving out of" xml:space="preserve"><value>النقل من</value></data>
+  <data name="Moving into" xml:space="preserve"><value>النقل إلى</value></data>
+  <data name="Move this student to the new lesson?" xml:space="preserve"><value>نقل هذا الطالب إلى الحصة الجديدة؟</value></data>
+  <data name="Move the lesson" xml:space="preserve"><value>انقل الحصة</value></data>
+  <data name="The student comes off the old lesson and onto the new one. No hours are added or taken away." xml:space="preserve"><value>يخرج الطالب من الحصة القديمة ويدخل الجديدة. لا تُضاف ساعات ولا تُخصم.</value></data>
+  <data name="B. The student joined, and the lesson failed — give a make-up" xml:space="preserve"><value>ب. الطالب دخل وتعطّلت الحصة — امنحه تعويضية</value></data>
+  <data name="Their attendance and the hour they spent both stay on the record forever. This adds one free lesson on top." xml:space="preserve"><value>حضوره والساعة التي استُهلكت يبقيان في السجل إلى الأبد. هذا يضيف حصة مجانية واحدة فوقهما.</value></data>
+  <data name="Which lesson went wrong?" xml:space="preserve"><value>أي حصة تعطّلت؟</value></data>
+  <data name="Which lesson makes up for it?" xml:space="preserve"><value>أي حصة تعوّض عنها؟</value></data>
+  <data name="It has to be one that already happened and that this student actually joined. If they never joined, use form A above instead." xml:space="preserve"><value>يجب أن تكون حصة انعقدت فعلًا ودخلها هذا الطالب بالفعل. وإن لم يدخلها، فاستخدم النموذج «أ» أعلاه.</value></data>
+  <data name="The lesson that failed" xml:space="preserve"><value>الحصة التي تعطّلت</value></data>
+  <data name="It must not have started yet, and it must be at the same level as the one that failed." xml:space="preserve"><value>يجب ألّا تكون قد بدأت، وأن تكون في المستوى نفسه للحصة التي تعطّلت.</value></data>
+  <data name="The make-up lesson" xml:space="preserve"><value>الحصة التعويضية</value></data>
+  <data name="Lesson that failed" xml:space="preserve"><value>الحصة المتعطّلة</value></data>
+  <data name="Make-up lesson" xml:space="preserve"><value>الحصة التعويضية</value></data>
+  <data name="Give this student a free make-up lesson?" xml:space="preserve"><value>منح هذا الطالب حصة تعويضية مجانية؟</value></data>
+  <data name="Approve the make-up lesson" xml:space="preserve"><value>اعتمد الحصة التعويضية</value></data>
+  <data name="When the student joins that lesson, nothing is taken off their balance. It can be used once." xml:space="preserve"><value>عندما يدخل الطالب تلك الحصة، لا يُخصم من رصيده شيء. وتُستخدم مرة واحدة.</value></data>
+  <data name="Weekly schedules" xml:space="preserve"><value>الجداول الأسبوعية</value></data>
+  <data name="A fixed weekly class that repeats — the same teacher, the same level, the same time every week. Real sessions are produced from it automatically." xml:space="preserve"><value>صف أسبوعي ثابت يتكرر — المعلم نفسه، والمستوى نفسه، والوقت نفسه كل أسبوع. وتُولَّد منه الحصص الفعلية تلقائيًا.</value></data>
+  <data name="Two things live on this screen" xml:space="preserve"><value>شيئان مختلفان في هذه الشاشة</value></data>
+  <data name="A weekly schedule is a standing class the centre runs. Creating one does not create sessions on the spot — sessions are generated from it ahead of time, night by night." xml:space="preserve"><value>الجدول الأسبوعي صف دائم يديره المركز. إنشاؤه لا يُنشئ حصصًا في اللحظة — بل تُولَّد منه الحصص مسبقًا، ليلةً بعد ليلة.</value></data>
+  <data name="A teacher publishing their own free times is a different thing entirely, and they do that from their own screen." xml:space="preserve"><value>أما نشر المعلم لأوقاته المتاحة فشيء مختلف تمامًا، ويقوم به من شاشته هو.</value></data>
+  <data name="Every session produced here is a group class seating exactly {0} students. That number is fixed by the centre and is not something this screen can change — a private one-to-one lesson is published by the teacher, not scheduled here." xml:space="preserve"><value>كل حصة تُولَّد من هنا هي حصة جماعية بـ{0} مقاعد بالضبط. هذا العدد يحدده المركز ولا تستطيع هذه الشاشة تغييره — أما الحصة الخاصة الفردية فينشرها المعلم، ولا تُجدوَل هنا.</value></data>
+  <data name="Create a weekly class" xml:space="preserve"><value>إنشاء صف أسبوعي</value></data>
+  <data name="Choose who teaches it, at what level, on which days, and from when. Everything else follows from that." xml:space="preserve"><value>اختر من يدرّسه، وفي أي مستوى، وفي أي أيام، ومن متى. وكل ما عدا ذلك يتبع هذه الاختيارات.</value></data>
+  <data name="Fixed by the centre for every group class — it is not chosen per schedule." xml:space="preserve"><value>يحدده المركز لكل حصة جماعية — ولا يُختار لكل جدول على حدة.</value></data>
+  <data name="Create the weekly class" xml:space="preserve"><value>أنشئ الصف الأسبوعي</value></data>
+  <data name="Next: sessions appear in the list below once the generator runs. Then enrol students into them." xml:space="preserve"><value>التالي: تظهر الحصص في القائمة أدناه بعد تشغيل المولّد. ثم سجّل الطلاب فيها.</value></data>
+  <data name="No session is scheduled in the next two weeks." xml:space="preserve"><value>لا توجد حصة مجدولة خلال الأسبوعين القادمين.</value></data>
+  <data name="Either no weekly class exists yet, or the generator has not produced its sessions yet." xml:space="preserve"><value>إما أنه لا يوجد صف أسبوعي بعد، أو أن المولّد لم يُنتج حصصه بعد.</value></data>
+  <data name="Weekly classes" xml:space="preserve"><value>الصفوف الأسبوعية</value></data>
+  <data name="This student has no level yet." xml:space="preserve"><value>هذا الطالب بلا مستوى بعد.</value></data>
+  <data name="No package can be bought until a level is set." xml:space="preserve"><value>لا يمكن شراء أي باقة قبل تحديد المستوى.</value></data>
+  <data name="Set the level now" xml:space="preserve"><value>حدّد المستوى الآن</value></data>
+  <data name="No guardian is linked." xml:space="preserve"><value>لا يوجد وليّ أمر مرتبط.</value></data>
+  <data name="Nobody can see this student or pay for them yet." xml:space="preserve"><value>لا أحد يستطيع رؤية هذا الطالب ولا الدفع عنه بعد.</value></data>
+  <data name="Link a guardian" xml:space="preserve"><value>اربط وليّ أمر</value></data>
+  <data name="A payment is waiting for confirmation." xml:space="preserve"><value>هناك دفعة بانتظار التأكيد.</value></data>
+  <data name="The package stays inactive until the money is confirmed as received." xml:space="preserve"><value>تبقى الباقة غير مفعَّلة حتى يُؤكَّد استلام المبلغ.</value></data>
+  <data name="A package was bought but not paid for yet." xml:space="preserve"><value>اشتُريت باقة ولم تُدفع بعد.</value></data>
+  <data name="Record the payment so it can activate." xml:space="preserve"><value>سجّل الدفعة حتى تُفعَّل.</value></data>
+  <data name="Signs in as" xml:space="preserve"><value>يسجّل الدخول عبر</value></data>
+  <data name="Their own account" xml:space="preserve"><value>حسابه الخاص</value></data>
+  <data name="Through the guardian" xml:space="preserve"><value>حساب وليّ الأمر</value></data>
+  <data name="Upcoming sessions" xml:space="preserve"><value>حصص قادمة</value></data>
+  <data name="Attended / missed" xml:space="preserve"><value>حضر / غاب</value></data>
+  <data name="Set the level" xml:space="preserve"><value>حدّد المستوى</value></data>
+  <data name="Change the level" xml:space="preserve"><value>غيّر المستوى</value></data>
+  <data name="Opens the level form with this student already chosen." xml:space="preserve"><value>يفتح نموذج المستوى وهذا الطالب مختار سلفًا.</value></data>
+  <data name="Give a parent access to this student and their payments." xml:space="preserve"><value>امنح أحد الوالدين صلاحية رؤية هذا الطالب ومدفوعاته.</value></data>
+  <data name="Add a package" xml:space="preserve"><value>أضف باقة</value></data>
+  <data name="Buy or grant a package for this student only." xml:space="preserve"><value>اشترِ أو امنح باقة لهذا الطالب وحده.</value></data>
+  <data name="Record a payment" xml:space="preserve"><value>سجّل دفعة</value></data>
+  <data name="Record and confirm money received from this family." xml:space="preserve"><value>سجّل وأكّد مبلغًا مستلمًا من هذه العائلة.</value></data>
+  <data name="Reschedule a session" xml:space="preserve"><value>نقل حصة</value></data>
+  <data name="Move a missed lesson, or approve a make-up one." xml:space="preserve"><value>انقل حصة فائتة، أو اعتمد حصة تعويضية.</value></data>
+  <data name="Check whether this student has earned one yet." xml:space="preserve"><value>تحقق مما إذا كان هذا الطالب قد استحق شهادة بعد.</value></data>
+  <data name="Sessions and attendance" xml:space="preserve"><value>الحصص والحضور</value></data>
+  <data name="Every session this student was put into, newest first, with what was actually recorded on the day." xml:space="preserve"><value>كل حصة أُدخل إليها هذا الطالب، الأحدث أولًا، مع ما سُجِّل فعليًا في يومها.</value></data>
+  <data name="Cancelled by the centre" xml:space="preserve"><value>ألغاها المركز</value></data>
+  <data name="Attended" xml:space="preserve"><value>حضر</value></data>
+  <data name="Did not attend" xml:space="preserve"><value>لم يحضر</value></data>
+  <data name="Not yet held" xml:space="preserve"><value>لم تُعقَد بعد</value></data>
+  <data name="This student is not in any session yet." xml:space="preserve"><value>هذا الطالب غير مسجَّل في أي حصة بعد.</value></data>
+  <data name="Enrol them into a weekly schedule, or let them book from their own screen once a package is active." xml:space="preserve"><value>سجّله في جدول أسبوعي، أو اتركه يحجز من شاشته بعد تفعيل باقة.</value></data>
+  <data name="Every student the centre knows about. Open a name to see that student's whole file — guardians, level, packages, payments, sessions and attendance." xml:space="preserve"><value>كل طالب يعرفه المركز. افتح الاسم لترى ملف الطالب كاملًا — أولياء الأمور، والمستوى، والباقات، والمدفوعات، والحصص، والحضور.</value></data>
+  <data name="This screen is the register: find a student, see where they stand, and open their file. The short forms further down are for one-off corrections." xml:space="preserve"><value>هذه الشاشة هي السجل: ابحث عن طالب، وانظر أين وصل، وافتح ملفه. أما النماذج القصيرة في الأسفل فللتصحيحات المفردة.</value></data>
+  <data name="Registering a new family?" xml:space="preserve"><value>تسجّل عائلة جديدة؟</value></data>
+  <data name="Use" xml:space="preserve"><value>استخدم</value></data>
+  <data name="it walks the whole sequence in order: guardian, student, link, level, then the package and its payment." xml:space="preserve"><value>فهي تمشي بك في التسلسل كاملًا بالترتيب: وليّ الأمر، ثم الطالب، ثم الربط، ثم المستوى، ثم الباقة ودفعها.</value></data>
+  <data name="Awaiting a level" xml:space="preserve"><value>بانتظار تحديد مستوى</value></data>
+  <data name="Mark this student as verified?" xml:space="preserve"><value>تعليم هذا الطالب كمُوثَّق؟</value></data>
+  <data name="No students registered yet." xml:space="preserve"><value>لا يوجد طلاب مسجَّلون بعد.</value></data>
+  <data name="Start with a guardian, then the student — the assisted registration screen does both in order." xml:space="preserve"><value>ابدأ بوليّ الأمر ثم الطالب — شاشة التسجيل المساعَد تفعل الاثنين بالترتيب.</value></data>
+  <data name="Single corrections" xml:space="preserve"><value>تصحيحات مفردة</value></data>
+  <data name="Use these only for a one-off fix on somebody who already exists. A brand-new family belongs in assisted registration, which keeps the whole sequence in order." xml:space="preserve"><value>استخدمها فقط لتصحيح مفرد على شخص موجود أصلًا. أما العائلة الجديدة تمامًا فمكانها التسجيل المساعَد، الذي يحفظ التسلسل كاملًا.</value></data>
+  <data name="The forms below are pre-filled for:" xml:space="preserve"><value>النماذج أدناه مملوءة سلفًا لـ:</value></data>
+  <data name="Set or change a student's level" xml:space="preserve"><value>تحديد أو تغيير مستوى طالب</value></data>
+  <data name="A student cannot buy any package before a level is set. Normally the level comes from the placement test the student takes themselves; setting it here is an explicit, recorded override." xml:space="preserve"><value>لا يستطيع الطالب شراء أي باقة قبل تحديد مستواه. وعادةً يأتي المستوى من اختبار تحديد المستوى الذي يؤديه الطالب بنفسه؛ وتحديده هنا تجاوز صريح ومُسجَّل.</value></data>
+  <data name="Why this level?" xml:space="preserve"><value>لماذا هذا المستوى؟</value></data>
+  <data name="e.g. interview result, or a transfer from another centre" xml:space="preserve"><value>مثال: نتيجة مقابلة، أو انتقال من مركز آخر</value></data>
+  <data name="After this, the student can buy any package published for that level." xml:space="preserve"><value>بعد ذلك يستطيع الطالب شراء أي باقة منشورة لذلك المستوى.</value></data>
+  <data name="A linked guardian can see this student and pay for their packages." xml:space="preserve"><value>وليّ الأمر المرتبط يستطيع رؤية هذا الطالب والدفع مقابل باقاته.</value></data>
+  <data name="Register a guardian only" xml:space="preserve"><value>تسجيل وليّ أمر فقط</value></data>
+  <data name="A guardian always signs in with an email and a password. Give them a temporary one; they change it after the first sign-in." xml:space="preserve"><value>وليّ الأمر يدخل دائمًا ببريد إلكتروني وكلمة مرور. امنحه كلمة مؤقتة؛ يغيّرها بعد أول دخول.</value></data>
+  <data name="Register a student only" xml:space="preserve"><value>تسجيل طالب فقط</value></data>
+  <data name="Most children have no sign-in of their own: leave the last two fields empty and the child is reached entirely through their guardian's account." xml:space="preserve"><value>معظم الأطفال بلا حساب دخول خاص: اترك الحقلين الأخيرين فارغين ويُدخَل إلى الطفل بالكامل من حساب وليّ أمره.</value></data>
+  <data name="A child with no email of their own signs in through their guardian — the guardian's account is what opens the session. Fill the two fields below only for an adult student, or an older student who really will sign in alone." xml:space="preserve"><value>الطفل الذي لا بريد له يدخل عبر وليّ أمره — حساب وليّ الأمر هو ما يفتح الحصة. لا تملأ الحقلين أدناه إلا لطالب بالغ، أو طالب أكبر سيدخل بنفسه فعلًا.</value></data>
+  <data name="Sign-in email (only if the student signs in alone)" xml:space="preserve"><value>بريد الدخول (فقط إن كان الطالب سيدخل بنفسه)</value></data>
+  <data name="Sign-in password (only if the student signs in alone)" xml:space="preserve"><value>كلمة مرور الدخول (فقط إن كان الطالب سيدخل بنفسه)</value></data>
+  <data name="Packages and subscriptions" xml:space="preserve"><value>الباقات والاشتراكات</value></data>
+  <data name="Two different things live on this screen: the price list the centre publishes, and the packages individual students actually hold." xml:space="preserve"><value>في هذه الشاشة شيئان مختلفان: قائمة الأسعار التي ينشرها المركز، والباقات التي يملكها الطلاب فعليًا.</value></data>
+  <data name="What is a package price, and when do I create one?" xml:space="preserve"><value>ما هو سعر الباقة؟ ومتى أُنشئ واحدًا؟</value></data>
+  <data name="A package price is a public offer: a course, one level, a number of sessions, and what it costs. Publish it once and any student at that level can buy it — you do not create a price per family." xml:space="preserve"><value>سعر الباقة عرضٌ عام: دورة، ومستوى واحد، وعدد حصص، وثمنها. تنشره مرة واحدة فيستطيع أي طالب في ذلك المستوى شراءه — ولا تُنشئ سعرًا لكل عائلة.</value></data>
+  <data name="Create a new price only when the centre genuinely sells something new: a different level, a different number of sessions, or a different amount." xml:space="preserve"><value>لا تُنشئ سعرًا جديدًا إلا عندما يبيع المركز شيئًا جديدًا فعلًا: مستوى مختلفًا، أو عدد حصص مختلفًا، أو مبلغًا مختلفًا.</value></data>
+  <data name="A published price is never edited. The amount a family paid is frozen onto their own subscription the moment they buy, so past invoices and reports can never change underneath you. To sell at a new amount, publish a new price." xml:space="preserve"><value>السعر المنشور لا يُعدَّل أبدًا. فالمبلغ الذي دفعته العائلة يُجمَّد على اشتراكها لحظة الشراء، حتى لا تتغير الفواتير والتقارير السابقة من تحتك. ولبيع بسعر جديد، انشر سعرًا جديدًا.</value></data>
+  <data name="A student can only buy a package published for the level they currently hold." xml:space="preserve"><value>لا يستطيع الطالب شراء إلا باقة منشورة للمستوى الذي يحمله حاليًا.</value></data>
+  <data name="Give a student a package they paid for" xml:space="preserve"><value>منح طالبًا باقة مدفوعة</value></data>
+  <data name="Creates an unpaid package. It becomes usable only once its payment is confirmed on the payments screen." xml:space="preserve"><value>يُنشئ باقة غير مدفوعة. ولا تصبح قابلة للاستخدام إلا بعد تأكيد دفعتها من شاشة المدفوعات.</value></data>
+  <data name="no level yet" xml:space="preserve"><value>بلا مستوى بعد</value></data>
+  <data name="The level shown next to the name is what decides which packages are offered." xml:space="preserve"><value>المستوى الظاهر بجانب الاسم هو ما يحدد الباقات المعروضة.</value></data>
+  <data name="Package" xml:space="preserve"><value>الباقة</value></data>
+  <data name="Only packages published for this student's own level are listed." xml:space="preserve"><value>لا تظهر إلا الباقات المنشورة لمستوى هذا الطالب.</value></data>
+  <data name="Nothing is published for this student's level yet — or they have no level. Create a package price below, or set their level first." xml:space="preserve"><value>لا يوجد شيء منشور لمستوى هذا الطالب بعد — أو أنه بلا مستوى. أنشئ سعر باقة أدناه، أو حدّد مستواه أولًا.</value></data>
+  <data name="Who asked for it?" xml:space="preserve"><value>من طلبها؟</value></data>
+  <data name="Create the package" xml:space="preserve"><value>أنشئ الباقة</value></data>
+  <data name="Next: record and confirm the payment on the payments screen — that is what activates it." xml:space="preserve"><value>التالي: سجّل الدفعة وأكّدها من شاشة المدفوعات — هذا ما يُفعِّلها.</value></data>
+  <data name="Give a student a package for free" xml:space="preserve"><value>منح طالبًا باقة مجانية</value></data>
+  <data name="Active straight away, with no payment at all. Pick the student, then one of the packages published for their level. The reason is kept on the record permanently." xml:space="preserve"><value>تُفعَّل فورًا وبلا أي دفع. اختر الطالب، ثم إحدى الباقات المنشورة لمستواه. ويبقى السبب مسجَّلًا في السجل دائمًا.</value></data>
+  <data name="Everything else — course, level, sessions, how long it stays valid — comes from the package itself." xml:space="preserve"><value>وكل ما عدا ذلك — الدورة والمستوى وعدد الحصص ومدة الصلاحية — يأتي من الباقة نفسها.</value></data>
+  <data name="Nothing is published for this student's level yet. Use the manual option below, or publish a package price first." xml:space="preserve"><value>لا يوجد شيء منشور لمستوى هذا الطالب بعد. استخدم الخيار اليدوي أدناه، أو انشر سعر باقة أولًا.</value></data>
+  <data name="Why is this free?" xml:space="preserve"><value>لماذا هي مجانية؟</value></data>
+  <data name="e.g. compensation agreed with the family, or a scholarship" xml:space="preserve"><value>مثال: تعويض متفق عليه مع العائلة، أو منحة</value></data>
+  <data name="The gift does not match any published package" xml:space="preserve"><value>المنحة لا تطابق أي باقة منشورة</value></data>
+  <data name="Fill in every field here instead, and leave the package above empty." xml:space="preserve"><value>املأ كل حقل هنا بدلًا من ذلك، واترك خانة الباقة أعلاه فارغة.</value></data>
+  <data name="Total minutes" xml:space="preserve"><value>مجموع الدقائق</value></data>
+  <data name="Valid for (days)" xml:space="preserve"><value>مدة الصلاحية (أيام)</value></data>
+  <data name="Grant it free" xml:space="preserve"><value>امنحها مجانًا</value></data>
+  <data name="This one activates immediately — no payment is created and nothing waits for confirmation." xml:space="preserve"><value>هذه تُفعَّل فورًا — لا تُنشأ دفعة ولا ينتظر شيء تأكيدًا.</value></data>
+  <data name="Publish a new package price" xml:space="preserve"><value>نشر سعر باقة جديد</value></data>
+  <data name="This is the offer itself, not a purchase. Anyone at the chosen level can then buy it." xml:space="preserve"><value>هذا هو العرض نفسه، وليس شراءً. وبعده يستطيع أي طالب في المستوى المختار شراءه.</value></data>
+  <data name="A package with no level cannot be bought by anyone — always choose one." xml:space="preserve"><value>الباقة بلا مستوى لا يستطيع أحد شراءها — اختر مستوى دائمًا.</value></data>
+  <data name="A group session seats exactly 4 students; a private one seats exactly 1." xml:space="preserve"><value>الحصة الجماعية تتسع لأربعة طلاب بالضبط، والخاصة لطالب واحد بالضبط.</value></data>
+  <data name="How many sessions?" xml:space="preserve"><value>كم عدد الحصص؟</value></data>
+  <data name="How long is one session? (minutes)" xml:space="preserve"><value>كم تستغرق الحصة الواحدة؟ (بالدقائق)</value></data>
+  <data name="The total the system keeps is simply this multiplied by the number of sessions — you never enter a total by hand." xml:space="preserve"><value>المجموع الذي يحفظه النظام هو ببساطة هذا الرقم مضروبًا في عدد الحصص — ولا تُدخل مجموعًا يدويًا أبدًا.</value></data>
+  <data name="Publish it" xml:space="preserve"><value>انشرها</value></data>
+  <data name="Once published it appears immediately in the two forms on the left, for students at that level." xml:space="preserve"><value>بمجرد النشر تظهر فورًا في النموذجين على اليسار، لطلاب ذلك المستوى.</value></data>
+  <data name="Published package prices" xml:space="preserve"><value>أسعار الباقات المنشورة</value></data>
+  <data name="These are offers, not purchases. They are not edited after publishing — publish a new one to sell at a different price." xml:space="preserve"><value>هذه عروض، لا مشتريات. ولا تُعدَّل بعد النشر — انشر واحدًا جديدًا للبيع بسعر مختلف.</value></data>
+  <data name="Search packages…" xml:space="preserve"><value>ابحث في الباقات…</value></data>
+  <data name="Session length" xml:space="preserve"><value>مدة الحصة</value></data>
+  <data name="No package matches this search." xml:space="preserve"><value>لا توجد باقة تطابق هذا البحث.</value></data>
+  <data name="No package price published yet." xml:space="preserve"><value>لم يُنشر أي سعر باقة بعد.</value></data>
+  <data name="Nothing can be sold until one exists — publish the first one above." xml:space="preserve"><value>لا يمكن بيع شيء قبل وجود سعر — انشر الأول أعلاه.</value></data>
+  <data name="Packages students actually hold" xml:space="preserve"><value>الباقات التي يملكها الطلاب فعليًا</value></data>
+  <data name="No student holds a package yet." xml:space="preserve"><value>لا يملك أي طالب باقة بعد.</value></data>
+  <data name="Use one of the two forms above once a package price is published." xml:space="preserve"><value>استخدم أحد النموذجين أعلاه بعد نشر سعر باقة.</value></data>
+  <data name="Choose one of the published packages, or fill in every field under the manual option." xml:space="preserve"><value>اختر إحدى الباقات المنشورة، أو املأ كل حقل في الخيار اليدوي.</value></data>
+  <data name="Enter how long one session runs, in minutes." xml:space="preserve"><value>أدخل مدة الحصة الواحدة بالدقائق.</value></data>
+  <data name="Two different things, often confused" xml:space="preserve"><value>شيئان مختلفان كثيرًا ما يختلطان</value></data>
+  <data name="Pay rate" xml:space="preserve"><value>معدّل الأجر</value></data>
+  <data name="how much this teacher is paid. It is money, and it feeds payroll." xml:space="preserve"><value>كم يتقاضى هذا المعلم. هذه مسألة مال، وتغذّي الرواتب.</value></data>
+  <data name="Levels they may teach" xml:space="preserve"><value>المستويات المصرَّح له بتدريسها</value></data>
+  <data name="which classes this teacher is allowed to run at all. It is permission, and it has nothing to do with money." xml:space="preserve"><value>ما الصفوف المسموح لهذا المعلم بتدريسها أصلًا. هذه مسألة صلاحية، ولا علاقة لها بالمال.</value></data>
+  <data name="A teacher needs both: without a pay rate a delivered session cannot be verified for payment, and without at least one allowed level they cannot publish any session." xml:space="preserve"><value>المعلم يحتاج الاثنين معًا: بلا معدّل أجر لا يمكن اعتماد حصة مُسلَّمة للصرف، وبلا مستوى واحد مصرَّح به على الأقل لا يستطيع نشر أي حصة.</value></data>
+  <data name="How much is this teacher paid?" xml:space="preserve"><value>كم يتقاضى هذا المعلم؟</value></data>
+  <data name="Leave course, level and age group empty for the teacher's ordinary rate. Add a more specific rate only when one particular kind of class pays differently — the most specific one that fits wins at payment time." xml:space="preserve"><value>اترك الدورة والمستوى والفئة العمرية فارغة لمعدّل المعلم الاعتيادي. ولا تضف معدّلًا أخص إلا إذا كان نوع صف بعينه يُدفع بشكل مختلف — والأخص المطابق هو الذي يسود وقت الصرف.</value></data>
+  <data name="What the teacher earns per unit chosen beside it." xml:space="preserve"><value>ما يتقاضاه المعلم لكل وحدة مختارة بجانبه.</value></data>
+  <data name="Paid at this rate from" xml:space="preserve"><value>يُدفع بهذا المعدّل ابتداءً من</value></data>
+  <data name="Sessions before this date keep whatever rate applied then." xml:space="preserve"><value>الحصص قبل هذا التاريخ تبقى على المعدّل الذي كان ساريًا حينها.</value></data>
+  <data name="Save the pay rate" xml:space="preserve"><value>احفظ معدّل الأجر</value></data>
+  <data name="Next: when a delivered session is verified on the payroll screen, this is the rate it is paid at." xml:space="preserve"><value>التالي: عند اعتماد حصة مُسلَّمة من شاشة الرواتب، هذا هو المعدّل الذي تُصرَف به.</value></data>
+  <data name="Pay rates in force" xml:space="preserve"><value>معدّلات الأجر السارية</value></data>
+  <data name="No pay rate set yet." xml:space="preserve"><value>لم يُحدَّد أي معدّل أجر بعد.</value></data>
+  <data name="A delivered session cannot be verified for payment until a rate covers it — set one above." xml:space="preserve"><value>لا يمكن اعتماد حصة مُسلَّمة للصرف قبل وجود معدّل يغطيها — حدّد واحدًا أعلاه.</value></data>
+  <data name="Which levels may this teacher teach?" xml:space="preserve"><value>ما المستويات المصرَّح لهذا المعلم بتدريسها؟</value></data>
+  <data name="This is permission, not pay. A teacher can only publish sessions for the levels ticked here. Tick as many as apply — a level they already have is simply left as it is." xml:space="preserve"><value>هذه صلاحية لا أجر. لا يستطيع المعلم نشر حصص إلا للمستويات المؤشَّرة هنا. أشّر على ما ينطبق منها — والمستوى الذي يملكه أصلًا يُترك كما هو.</value></data>
+  <data name="Levels" xml:space="preserve"><value>المستويات</value></data>
+  <data name="Allow these levels" xml:space="preserve"><value>اسمح بهذه المستويات</value></data>
+  <data name="Next: the teacher can publish their own available times for those levels from their own screen." xml:space="preserve"><value>التالي: يستطيع المعلم نشر أوقاته المتاحة لتلك المستويات من شاشته هو.</value></data>
+  <data name="The teacher connects their own account from their Connections screen. The centre has no shared account, and buys no licence." xml:space="preserve"><value>المعلم يربط حسابه الشخصي من شاشة «الاتصالات» عنده. لا يوجد حساب مشترك للمركز، ولا يشتري المركز أي رخصة.</value></data>
+  <data name="Pay rate saved — it applies to every session this teacher delivers from that date on." xml:space="preserve"><value>حُفِظ معدّل الأجر — ويسري على كل حصة يسلّمها هذا المعلم من ذلك التاريخ فصاعدًا.</value></data>
+  <data name="Tick at least one level this teacher may teach." xml:space="preserve"><value>أشّر على مستوى واحد على الأقل يُسمح لهذا المعلم بتدريسه.</value></data>
+  <data name="{0} level(s) added. This teacher can now publish sessions for them." xml:space="preserve"><value>أُضيف {0} مستوى. يستطيع هذا المعلم الآن نشر حصص لها.</value></data>
+  <data name="This teacher already teaches every level you ticked." xml:space="preserve"><value>هذا المعلم مصرَّح له أصلًا بكل المستويات التي أشّرت عليها.</value></data>
+  <data name="Does every teacher have to connect an account?" xml:space="preserve"><value>هل يجب على كل معلم ربط حساب؟</value></data>
+  <data name="Yes." xml:space="preserve"><value>نعم.</value></data>
+  <data name="Each teacher connects their own personal Zoom or Google account, and the centre has no shared account of its own. Your lessons are hosted under your account, so a lesson cannot be created for you until one is connected." xml:space="preserve"><value>كل معلم يربط حسابه الشخصي على Zoom أو Google، ولا يملك المركز حسابًا مشتركًا خاصًا به. حصصك تُستضاف تحت حسابك أنت، فلا يمكن إنشاء حصة لك قبل ربط حساب.</value></data>
+  <data name="Is there an MVTeaches account we could all use instead?" xml:space="preserve"><value>هل يوجد حساب باسم MVTeaches نستخدمه جميعًا بدلًا من ذلك؟</value></data>
+  <data name="No, and there will not be." xml:space="preserve"><value>لا، ولن يوجد.</value></data>
+  <data name="The centre decided against one central account: it would stop two teachers from teaching at the same time, and it would put your meetings under somebody else's login." xml:space="preserve"><value>قرر المركز عدم اعتماد حساب مركزي واحد: فهو يمنع معلمَين من التدريس في الوقت نفسه، ويضع اجتماعاتك تحت حساب شخص آخر.</value></data>
+  <data name="Does this cost me anything?" xml:space="preserve"><value>هل يكلفني هذا شيئًا؟</value></data>
+  <data name="No." xml:space="preserve"><value>لا.</value></data>
+  <data name="A free Google account is enough. The centre does not buy, provide, or repay any video licence, and you are never asked for your Zoom or Google password — you sign in with them directly." xml:space="preserve"><value>حساب Google مجاني يكفي. المركز لا يشتري ولا يوفّر ولا يعوّض أي رخصة فيديو، ولا تُطلب منك كلمة مرور Zoom أو Google إطلاقًا — أنت تسجّل الدخول لديهم مباشرةً.</value></data>
 </root>
