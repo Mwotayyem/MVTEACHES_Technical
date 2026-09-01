@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +7,7 @@ using MVTeaches.Domain.Certificates;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.People;
 using MVTeaches.Domain.Placement;
+using MVTeaches.Domain.Scheduling;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
@@ -40,6 +41,13 @@ public class StudentDetailsModel : PageModel
         string ReferenceCode, NodaTime.Instant CreatedAtUtc);
     public record CertificateRow(string CertificateNumber, string LevelCode, CertificateStatus Status, NodaTime.Instant IssuedAtUtc);
 
+    /// <summary>One row per session this student is (or was) enrolled in,
+    /// with whatever attendance was actually recorded for it. Read-only —
+    /// the same tables /Teacher/MySessions and the finalizer already write.</summary>
+    public record SessionRow(long SessionId, NodaTime.Instant StartsAtUtc, string? TimeZoneId, string LevelCode,
+        string TeacherName, ClassSessionStatus SessionStatus, EnrollmentState EnrollmentState,
+        bool IsCompensation, bool? WasPresent);
+
     // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Student namespace.
     public MVTeaches.Domain.People.Student? Student { get; set; }
     public string? CountryName { get; set; }
@@ -56,6 +64,14 @@ public class StudentDetailsModel : PageModel
     public IReadOnlyList<SubscriptionRow> Subscriptions { get; set; } = Array.Empty<SubscriptionRow>();
     public IReadOnlyList<PaymentRow> Payments { get; set; } = Array.Empty<PaymentRow>();
     public IReadOnlyList<CertificateRow> Certificates { get; set; } = Array.Empty<CertificateRow>();
+    public IReadOnlyList<SessionRow> Sessions { get; set; } = Array.Empty<SessionRow>();
+
+    /// <summary>Header counts an admin reads before deciding what to do next.</summary>
+    public int UpcomingSessionCount { get; set; }
+    public int AttendedSessionCount { get; set; }
+    public int MissedSessionCount { get; set; }
+    public bool HasPendingPayment { get; set; }
+    public bool HasDraftSubscription { get; set; }
 
     public async Task<IActionResult> OnGetAsync(long id)
     {
@@ -102,6 +118,44 @@ public class StudentDetailsModel : PageModel
         var payments = await _db.Payments.Where(p => p.StudentId == id).OrderByDescending(p => p.Id).ToListAsync();
         Payments = payments.Select(p => new PaymentRow(p.Id, p.Amount.Amount, p.Amount.Currency, p.Method, p.Status,
             p.ReferenceCode, p.CreatedAtUtc)).ToList();
+
+        // Sessions and attendance — the two things a profile was missing and an
+        // admin asks for first ("did they actually show up?"). Read-only joins over
+        // tables that already exist; nothing here writes or derives a new rule.
+        var enrollments = await _db.SessionEnrollments.Where(e => e.StudentId == id).ToListAsync();
+        var enrolledSessionIds = enrollments.Select(e => e.SessionId).Distinct().ToList();
+        var sessionsById = await _db.ClassSessions
+            .Where(cs => enrolledSessionIds.Contains(cs.Id))
+            .ToDictionaryAsync(cs => cs.Id);
+        var teacherNames = await _db.Teachers
+            .Where(t => sessionsById.Values.Select(cs => cs.TeacherId).Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, t => t.FullName);
+        var attendanceBySession = await _db.AttendanceRecords
+            .Where(a => a.StudentId == id && enrolledSessionIds.Contains(a.SessionId))
+            .ToDictionaryAsync(a => a.SessionId, a => a.IsPresent);
+
+        Sessions = enrollments
+            .Where(e => sessionsById.ContainsKey(e.SessionId))
+            .Select(e =>
+            {
+                var session = sessionsById[e.SessionId];
+                return new SessionRow(session.Id, session.StartsAtUtc, session.ScheduleTimeZone,
+                    levelCodes.GetValueOrDefault(session.LevelId, "?"),
+                    teacherNames.GetValueOrDefault(session.TeacherId, string.Empty),
+                    session.Status, e.State, e.CompensatesForSessionId is not null,
+                    attendanceBySession.TryGetValue(session.Id, out var present) ? present : (bool?)null);
+            })
+            .OrderByDescending(r => r.StartsAtUtc)
+            .ToList();
+
+        var nowUtc = NodaTime.SystemClock.Instance.GetCurrentInstant();
+        UpcomingSessionCount = Sessions.Count(r => r.StartsAtUtc > nowUtc
+                                                   && r.SessionStatus != ClassSessionStatus.Cancelled
+                                                   && r.EnrollmentState == EnrollmentState.Active);
+        AttendedSessionCount = Sessions.Count(r => r.WasPresent == true);
+        MissedSessionCount = Sessions.Count(r => r.WasPresent == false);
+        HasPendingPayment = Payments.Any(p => p.Status == PaymentStatus.Pending);
+        HasDraftSubscription = Subscriptions.Any(sub => sub.Status == SubscriptionStatus.Draft);
 
         var certificates = await _db.Certificates.Where(c => c.StudentId == id).OrderByDescending(c => c.Id).ToListAsync();
         Certificates = certificates.Select(c => new CertificateRow(c.CertificateNumber,

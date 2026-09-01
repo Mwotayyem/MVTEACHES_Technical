@@ -1,8 +1,9 @@
-@page "{id:long}"
+﻿@page "{id:long}"
 @model MVTeaches.Web.Pages.Admin.StudentDetailsModel
 @using MVTeaches.Domain.People
 @using MVTeaches.Domain.Payments
 @using MVTeaches.Domain.Subscriptions
+@using MVTeaches.Domain.Scheduling
 @{
     ViewData["Title"] = Model.Student?.FullName ?? T["Student"].Value;
 }
@@ -35,6 +36,14 @@
 
 @if (Model.Student is { } student)
 {
+    <nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+        <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+        <span class="app-crumb-sep" aria-hidden="true">/</span>
+        <a asp-page="/Admin/Students">@T["Students"]</a>
+        <span class="app-crumb-sep" aria-hidden="true">/</span>
+        <span>@student.FullName</span>
+    </nav>
+
     <div class="app-page-head">
         <div>
             <h1>@student.FullName</h1>
@@ -42,10 +51,38 @@
         </div>
         <div class="app-page-actions">
             <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["Back to students"]</a>
-            <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>
-            <a class="btn btn-primary btn-sm" asp-page="/Admin/Subscriptions" asp-route-studentId="@student.Id">@T["Subscriptions"]</a>
         </div>
     </div>
+
+    @* The one thing to do next, stated before anything else on the page. *@
+    @if (Model.CurrentLevelCode is null)
+    {
+        <div class="alert alert-warning d-flex flex-wrap gap-2 align-items-center" role="status">
+            <span><strong>@T["This student has no level yet."]</strong> @T["No package can be bought until a level is set."]</span>
+            <a class="btn btn-sm btn-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">@T["Set the level now"]</a>
+        </div>
+    }
+    else if (Model.Guardians.Count == 0)
+    {
+        <div class="alert alert-warning d-flex flex-wrap gap-2 align-items-center" role="status">
+            <span><strong>@T["No guardian is linked."]</strong> @T["Nobody can see this student or pay for them yet."]</span>
+            <a class="btn btn-sm btn-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="link-guardian">@T["Link a guardian"]</a>
+        </div>
+    }
+    else if (Model.HasPendingPayment)
+    {
+        <div class="alert alert-warning d-flex flex-wrap gap-2 align-items-center" role="status">
+            <span><strong>@T["A payment is waiting for confirmation."]</strong> @T["The package stays inactive until the money is confirmed as received."]</span>
+            <a class="btn btn-sm btn-primary" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Open payments"]</a>
+        </div>
+    }
+    else if (Model.HasDraftSubscription)
+    {
+        <div class="alert alert-info d-flex flex-wrap gap-2 align-items-center" role="status">
+            <span><strong>@T["A package was bought but not paid for yet."]</strong> @T["Record the payment so it can activate."]</span>
+            <a class="btn btn-sm btn-primary" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Record the payment"]</a>
+        </div>
+    }
 
     <dl class="app-summary">
         <div>
@@ -65,10 +102,46 @@
             <dd>@(Model.PrimaryGuardianName ?? T["Not specified"].Value)</dd>
         </div>
         <div>
-            <dt>@T["Has own login"]</dt>
-            <dd>@(student.UserId is not null ? T["Yes"].Value : T["No"].Value)</dd>
+            <dt>@T["Signs in as"]</dt>
+            <dd>@(student.UserId is not null ? T["Their own account"].Value : T["Through the guardian"].Value)</dd>
+        </div>
+        <div>
+            <dt>@T["Upcoming sessions"]</dt>
+            <dd>@Model.UpcomingSessionCount</dd>
+        </div>
+        <div>
+            <dt>@T["Attended / missed"]</dt>
+            <dd>@Model.AttendedSessionCount / @Model.MissedSessionCount</dd>
         </div>
     </dl>
+
+    <h2 class="h5">@T["Quick actions"]</h2>
+    <div class="app-quick-actions">
+        <a class="app-quick-action" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">
+            <strong>@(Model.CurrentLevelCode is null ? T["Set the level"].Value : T["Change the level"].Value)</strong>
+            <span>@T["Opens the level form with this student already chosen."]</span>
+        </a>
+        <a class="app-quick-action" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="link-guardian">
+            <strong>@T["Link a guardian"]</strong>
+            <span>@T["Give a parent access to this student and their payments."]</span>
+        </a>
+        <a class="app-quick-action" asp-page="/Admin/Subscriptions" asp-route-studentId="@student.Id">
+            <strong>@T["Add a package"]</strong>
+            <span>@T["Buy or grant a package for this student only."]</span>
+        </a>
+        <a class="app-quick-action" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">
+            <strong>@T["Record a payment"]</strong>
+            <span>@T["Record and confirm money received from this family."]</span>
+        </a>
+        <a class="app-quick-action" asp-page="/Admin/RescheduleSessions">
+            <strong>@T["Reschedule a session"]</strong>
+            <span>@T["Move a missed lesson, or approve a make-up one."]</span>
+        </a>
+        <a class="app-quick-action" asp-page="/Admin/Certificates">
+            <strong>@T["Certificates"]</strong>
+            <span>@T["Check whether this student has earned one yet."]</span>
+        </a>
+    </div>
 
     <div class="row g-4 mb-4">
         <div class="col-md-6">
@@ -170,6 +243,68 @@
                         <td colspan="5" class="text-muted">
                             @T["No payments recorded — see"]
                             <a asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="h4">@T["Sessions and attendance"]</h2>
+    <p class="text-muted small">@T["Every session this student was put into, newest first, with what was actually recorded on the day."]</p>
+    <div class="table-responsive mb-4">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>@T["When"]</th><th>@T["Level"]</th><th>@T["Teacher"]</th><th>@T["Session"]</th><th>@T["Attendance"]</th></tr></thead>
+            <tbody>
+                @foreach (var row in Model.Sessions)
+                {
+                    <tr>
+                        <td>@T.SessionMoment(row.StartsAtUtc, row.TimeZoneId) <span class="text-muted small">(@DisplayFormat.ZoneLabel(row.TimeZoneId))</span></td>
+                        <td>@row.LevelCode</td>
+                        <td>@row.TeacherName</td>
+                        <td>
+                            @if (row.SessionStatus == ClassSessionStatus.Cancelled)
+                            {
+                                <span class="app-status is-danger">@T["Cancelled by the centre"]</span>
+                            }
+                            else if (row.EnrollmentState != EnrollmentState.Active)
+                            {
+                                <span class="app-status is-muted">@T["EnrollmentState." + row.EnrollmentState]</span>
+                            }
+                            else
+                            {
+                                <span class="app-status is-info">@T["ClassSessionStatus." + row.SessionStatus]</span>
+                            }
+                            @if (row.IsCompensation)
+                            {
+                                <span class="app-status is-info">@T["Make-up lesson"]</span>
+                            }
+                        </td>
+                        <td>
+                            @if (row.WasPresent == true)
+                            {
+                                <span class="app-status is-success">@T["Attended"]</span>
+                            }
+                            else if (row.WasPresent == false)
+                            {
+                                <span class="app-status is-danger">@T["Did not attend"]</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">@T["Not yet held"]</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.Sessions.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <div class="app-empty">
+                                <strong>@T["This student is not in any session yet."]</strong>
+                                <span>@T["Enrol them into a weekly schedule, or let them book from their own screen once a package is active."]</span>
+                                <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Schedules">@T["Open schedules"]</a></span>
+                            </div>
                         </td>
                     </tr>
                 }

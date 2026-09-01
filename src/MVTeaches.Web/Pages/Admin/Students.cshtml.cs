@@ -48,7 +48,7 @@ public class StudentsModel : PageModel
         _localizer = localizer;
     }
 
-    public record StudentRow(long Id, string FullName, string CountryCode, StudentStatus Status,
+    public record StudentRow(long Id, string FullName, string CountryName, StudentStatus Status,
         string? CurrentLevelCode, IReadOnlyList<string> GuardianNames);
 
     public IReadOnlyList<StudentRow> Students { get; set; } = Array.Empty<StudentRow>();
@@ -71,6 +71,22 @@ public class StudentsModel : PageModel
 
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
+
+    /// <summary>Set when the admin clicked "set the level now" / "link a
+    /// guardian" on one row: the correction forms further down open with
+    /// that student already chosen, so the admin never re-finds the name in
+    /// a 200-row picker. Display convenience only — the posted student id is
+    /// still whatever the form itself carries.</summary>
+    [BindProperty(SupportsGet = true, Name = "studentId")]
+    public long? FocusStudentId { get; set; }
+
+    public string? FocusStudentName { get; set; }
+
+    public bool IsArabic => System.Globalization.CultureInfo.CurrentUICulture
+        .TwoLetterISOLanguageName.Equals("ar", StringComparison.OrdinalIgnoreCase);
+
+    public string DisplayCountry(Country country) => IsArabic ? country.NameAr : country.NameEn;
+    public string DisplayLevel(Level level) => IsArabic ? level.NameAr : level.NameEn;
 
     /// <summary>A picker label: the student's own name plus what an admin needs
     /// to tell two similar names apart — never the internal row id.</summary>
@@ -137,7 +153,15 @@ public class StudentsModel : PageModel
         public string Reason { get; set; } = string.Empty;
     }
 
-    public async Task OnGetAsync() => await LoadAsync();
+    public async Task OnGetAsync()
+    {
+        await LoadAsync();
+        if (FocusStudentId is not null)
+        {
+            LevelAssignment.StudentId ??= FocusStudentId;
+            Link.StudentId ??= FocusStudentId;
+        }
+    }
 
     public async Task<IActionResult> OnPostRegisterGuardianAsync()
     {
@@ -260,7 +284,7 @@ public class StudentsModel : PageModel
             .Take(200)
             .ToListAsync();
 
-        var countryByI = Countries.ToDictionary(c => c.Id, c => c.Code);
+        var countryByI = Countries.ToDictionary(c => c.Id, DisplayCountry);
         var levelByI = Levels.ToDictionary(l => l.Id, l => l.Code);
 
         var currentLevels = await _db.StudentLevels.Where(l => l.IsCurrent).ToListAsync();
@@ -275,9 +299,13 @@ public class StudentsModel : PageModel
         Students = students.Select(s => new StudentRow(
             s.Id,
             s.FullName,
-            countryByI.GetValueOrDefault(s.CountryId, "?"),
+            countryByI.GetValueOrDefault(s.CountryId, _localizer["Not specified"].Value),
             s.Status,
             currentLevelByStudent.TryGetValue(s.Id, out var levelId) ? levelByI.GetValueOrDefault(levelId) : null,
             guardianNamesByStudent.GetValueOrDefault(s.Id, Array.Empty<string>()))).ToList();
+
+        FocusStudentName = FocusStudentId is null
+            ? null
+            : Students.FirstOrDefault(s => s.Id == FocusStudentId)?.FullName;
     }
 }
