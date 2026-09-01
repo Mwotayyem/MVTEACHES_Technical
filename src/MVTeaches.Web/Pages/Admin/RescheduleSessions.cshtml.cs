@@ -61,9 +61,14 @@ public class RescheduleSessionsModel : PageModel
     /// (ApproveReplacementOutcome.ReplacementSessionLevelMismatch), applied to
     /// the list instead of only to the rejection afterwards.</summary>
     public record SessionOption(long Id, string Label, string EnrolledStudentIds, bool HasStarted,
-        int LevelId, string LevelCode);
+        int LevelId, string LevelCode, string When);
 
-    public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
+    /// <summary>The student, plus the person who would actually be told about
+    /// a move. Nothing is sent from this screen - the guardian's name is here
+    /// so the admin can see who the message is for and copy it.</summary>
+    public record StudentOption(long Id, string FullName, string? GuardianName);
+
+    public IReadOnlyList<StudentOption> Students { get; set; } = Array.Empty<StudentOption>();
     public IReadOnlyList<SessionOption> Sessions { get; set; } = Array.Empty<SessionOption>();
 
     /// <summary>Sessions that have already started — the only ones that can be
@@ -82,6 +87,19 @@ public class RescheduleSessionsModel : PageModel
 
     [BindProperty]
     public ApproveInput Approve { get; set; } = new();
+
+    /// <summary>Set when the admin arrived from a student's file ("move this
+    /// lesson"), so this screen opens on that student and that lesson instead
+    /// of asking them to find both again. Display only - the server still
+    /// validates and decides exactly as before.</summary>
+    [BindProperty(SupportsGet = true, Name = "studentId")]
+    public long? FocusStudentId { get; set; }
+
+    [BindProperty(SupportsGet = true, Name = "sessionId")]
+    public long? FocusSessionId { get; set; }
+
+    public string? FocusStudentName { get; set; }
+    public string? FocusGuardianName { get; set; }
 
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
@@ -103,7 +121,30 @@ public class RescheduleSessionsModel : PageModel
         [Required(ErrorMessage = "Choose the replacement session.")] public long? ReplacementSessionId { get; set; }
     }
 
-    public async Task OnGetAsync() => await LoadAsync();
+    public async Task OnGetAsync()
+    {
+        await LoadAsync();
+
+        if (FocusStudentId is null)
+        {
+            return;
+        }
+
+        var focus = Students.FirstOrDefault(student => student.Id == FocusStudentId.Value);
+        FocusStudentName = focus?.FullName;
+        FocusGuardianName = focus?.GuardianName;
+
+        // Pre-fill BOTH forms' student picker: which of the two applies
+        // depends on whether the student joined, and only the admin knows
+        // that. Pre-filling the lesson too, but only where it is eligible.
+        Reschedule.StudentId ??= FocusStudentId;
+        Approve.StudentId ??= FocusStudentId;
+        if (FocusSessionId is not null && PastSessions.Any(session => session.Id == FocusSessionId.Value))
+        {
+            Reschedule.OriginalSessionId ??= FocusSessionId;
+            Approve.OriginalSessionId ??= FocusSessionId;
+        }
+    }
 
     public async Task<IActionResult> OnPostRescheduleAsync()
     {
@@ -182,7 +223,23 @@ public class RescheduleSessionsModel : PageModel
 
     private async Task LoadAsync()
     {
-        Students = await _db.Students.OrderBy(s => s.FullName).Take(200).ToListAsync();
+        var studentEntities = await _db.Students.OrderBy(s => s.FullName).Take(200).ToListAsync();
+        var studentIds = studentEntities.Select(s => s.Id).ToList();
+        var guardianships = await _db.Guardianships
+            .Where(g => studentIds.Contains(g.StudentId))
+            .ToListAsync();
+        var guardianNames = await _db.Guardians
+            .Where(g => guardianships.Select(x => x.GuardianId).Contains(g.Id))
+            .ToDictionaryAsync(g => g.Id, g => g.FullName);
+        var guardianByStudent = guardianships
+            .GroupBy(g => g.StudentId)
+            .ToDictionary(
+                g => g.Key,
+                g => guardianNames.GetValueOrDefault(
+                    (g.FirstOrDefault(x => x.IsPrimary) ?? g.First()).GuardianId));
+        Students = studentEntities
+            .Select(s => new StudentOption(s.Id, s.FullName, guardianByStudent.GetValueOrDefault(s.Id)))
+            .ToList();
 
         var now = _clock.GetCurrentInstant();
         var window = now.Minus(Duration.FromDays(30));
@@ -214,6 +271,7 @@ public class RescheduleSessionsModel : PageModel
             enrolledBySession.GetValueOrDefault(s.Id, string.Empty),
             s.StartsAtUtc <= now,
             s.LevelId,
-            levelCodes.GetValueOrDefault(s.LevelId, "?"))).ToList();
+            levelCodes.GetValueOrDefault(s.LevelId, "?"),
+            _localizer.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone))).ToList();
     }
 }

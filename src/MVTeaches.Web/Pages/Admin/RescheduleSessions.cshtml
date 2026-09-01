@@ -30,6 +30,21 @@
     <p>@T["Neither one hands out a spendable credit. Each is tied to one specific replacement lesson, usable once."]</p>
 </div>
 
+@if (Model.FocusStudentId is not null)
+{
+    <div class="alert alert-info d-flex flex-wrap gap-2 align-items-center" role="status">
+        <span>
+            @T["You arrived from:"] <strong>@(Model.FocusStudentName ?? T["Not specified"].Value)</strong>
+            @if (Model.FocusGuardianName is not null)
+            {
+                <text> — @T["Guardian:"] <strong>@Model.FocusGuardianName</strong></text>
+            }
+        </span>
+        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/StudentDetails" asp-route-id="@Model.FocusStudentId">@T["Open student profile"]</a>
+        <span class="text-muted small">@T["Both forms below are already set to this student. Pick the one that matches what happened."]</span>
+    </div>
+}
+
 @if (Model.StatusMessage is not null)
 {
     <div class="alert alert-success" role="status">@Model.StatusMessage</div>
@@ -76,7 +91,7 @@
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
-                        <option value="@s.Id">@s.FullName</option>
+                        <option value="@s.Id" data-guardian="@s.GuardianName">@s.FullName</option>
                     }
                 </select>
                 <span asp-validation-for="Reschedule.StudentId" class="text-danger small"></span>
@@ -97,7 +112,8 @@
                     @foreach (var s in Model.PastSessions)
                     {
                         <option value="@s.Id" data-students="@s.EnrolledStudentIds"
-                                data-level="@s.LevelId" data-level-name="@s.LevelCode">@s.Label</option>
+                                data-level="@s.LevelId" data-level-name="@s.LevelCode"
+                                data-when="@s.When">@s.Label</option>
                     }
                 </select>
                 <div class="form-text" id="rescheduleNoStudentYet">@T["Pick the student in step 1 first. This list stays closed until then, so another student's lesson can never be chosen here by mistake."]</div>
@@ -119,7 +135,7 @@
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.FutureSessions)
                     {
-                        <option value="@s.Id">@s.Label</option>
+                        <option value="@s.Id" data-when="@s.When">@s.Label</option>
                     }
                 </select>
                 <span asp-validation-for="Reschedule.ReplacementSessionId" class="text-danger small"></span>
@@ -147,6 +163,28 @@
                 <dd><span data-mv-echo="#rescheduleReplacement" data-mv-echo-empty="—"></span></dd>
             </div>
         </dl>
+        @* Nothing is sent from this screen. WhatsApp is not connected, and
+           this builds no message on the server and stores none - it fills a
+           box in the browser from the three things already chosen above, so
+           the admin can copy it into whatever they actually use. *@
+        <div class="app-draft" data-mv-message
+             data-mv-message-student="#rescheduleStudent"
+             data-mv-message-from="#rescheduleOriginal"
+             data-mv-message-to="#rescheduleReplacement"
+             data-mv-message-template="@T["Hello {guardian}, this is MVTEACHES. {student}'s lesson has been moved from {from} to {to}. Nothing is deducted from the package because of this change. See you then."]"
+             data-mv-message-fallback="@T["The guardian"]">
+            <div class="app-draft-head">
+                <div>
+                    <strong>@T["Message to send"]</strong>
+                    <p class="text-muted small mb-0">
+                        @T["Who will be told:"] <span data-mv-message-who>—</span>
+                    </p>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-mv-message-copy>@T["Copy"]</button>
+            </div>
+            <textarea class="form-control" rows="3" readonly aria-label="@T["Message to send"]" data-mv-message-text></textarea>
+            <p class="app-draft-note">@T["Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically."]</p>
+        </div>
         <button type="submit" class="btn btn-primary"
                 data-mv-confirm="@T["Move this student to the new lesson?"]">@T["Move the lesson"]</button>
         <div class="app-outcome mt-3">@T["The student comes off the old lesson and onto the new one. No hours are added or taken away."]</div>
@@ -175,7 +213,7 @@
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
-                        <option value="@s.Id">@s.FullName</option>
+                        <option value="@s.Id" data-guardian="@s.GuardianName">@s.FullName</option>
                     }
                 </select>
                 <span asp-validation-for="Approve.StudentId" class="text-danger small"></span>
@@ -196,7 +234,8 @@
                     @foreach (var s in Model.PastSessions)
                     {
                         <option value="@s.Id" data-students="@s.EnrolledStudentIds"
-                                data-level="@s.LevelId" data-level-name="@s.LevelCode">@s.Label</option>
+                                data-level="@s.LevelId" data-level-name="@s.LevelCode"
+                                data-when="@s.When">@s.Label</option>
                     }
                 </select>
                 <div class="form-text" id="approveNoStudentYet">@T["Pick the student in step 1 first. This list stays closed until then, so another student's lesson can never be chosen here by mistake."]</div>
@@ -219,7 +258,7 @@
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.FutureSessions)
                     {
-                        <option value="@s.Id" data-level="@s.LevelId">@s.Label</option>
+                        <option value="@s.Id" data-level="@s.LevelId" data-when="@s.When">@s.Label</option>
                     }
                 </select>
                 <div class="form-text" id="approveLevelNote" hidden>
@@ -247,6 +286,28 @@
                 <dd><span data-mv-echo="#approveReplacement" data-mv-echo-empty="—"></span></dd>
             </div>
         </dl>
+        @* Nothing is sent from this screen. WhatsApp is not connected, and
+           this builds no message on the server and stores none - it fills a
+           box in the browser from the three things already chosen above, so
+           the admin can copy it into whatever they actually use. *@
+        <div class="app-draft" data-mv-message
+             data-mv-message-student="#approveStudent"
+             data-mv-message-from="#approveOriginal"
+             data-mv-message-to="#approveReplacement"
+             data-mv-message-template="@T["Hello {guardian}, this is MVTEACHES. {student}'s lesson has been moved from {from} to {to}. Nothing is deducted from the package because of this change. See you then."]"
+             data-mv-message-fallback="@T["The guardian"]">
+            <div class="app-draft-head">
+                <div>
+                    <strong>@T["Message to send"]</strong>
+                    <p class="text-muted small mb-0">
+                        @T["Who will be told:"] <span data-mv-message-who>—</span>
+                    </p>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-mv-message-copy>@T["Copy"]</button>
+            </div>
+            <textarea class="form-control" rows="3" readonly aria-label="@T["Message to send"]" data-mv-message-text></textarea>
+            <p class="app-draft-note">@T["Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically."]</p>
+        </div>
         <button type="submit" class="btn btn-primary"
                 data-mv-confirm="@T["Give this student a free make-up lesson?"]">@T["Approve the make-up lesson"]</button>
         <div class="app-outcome mt-3">@T["When the student joins that lesson, nothing is taken off their balance. It can be used once."]</div>
