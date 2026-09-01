@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.RescheduleSessionsModel
 @{
     ViewData["Title"] = T["Reschedule / Compensation"].Value;
@@ -91,14 +91,17 @@
             <div class="col-md-8">
                 <label class="form-label" asp-for="Reschedule.OriginalSessionId">@T["The missed lesson"]<span class="app-required">*</span></label>
                 <select asp-for="Reschedule.OriginalSessionId" id="rescheduleOriginal" class="form-select"
-                        data-mv-sessions-of="#rescheduleStudent" data-mv-step-field>
+                        data-mv-sessions-of="#rescheduleStudent" data-mv-step-field
+                        data-mv-note-no-source="#rescheduleNoStudentYet" data-mv-note-empty="#rescheduleNoPastLesson">
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.PastSessions)
                     {
-                        <option value="@s.Id" data-students="@s.EnrolledStudentIds">@s.Label</option>
+                        <option value="@s.Id" data-students="@s.EnrolledStudentIds"
+                                data-level="@s.LevelId" data-level-name="@s.LevelCode">@s.Label</option>
                     }
                 </select>
-                <div class="form-text">@T["If the list is empty after choosing a student, that student is not enrolled in any lesson that has already been held."]</div>
+                <div class="form-text" id="rescheduleNoStudentYet">@T["Pick the student in step 1 first. This list stays closed until then, so another student's lesson can never be chosen here by mistake."]</div>
+                <div class="form-text text-warning" id="rescheduleNoPastLesson" hidden>@T["This student was not in any lesson that has already been held, so there is nothing to move."]</div>
                 <span asp-validation-for="Reschedule.OriginalSessionId" class="text-danger small"></span>
             </div>
         </div>
@@ -187,13 +190,17 @@
             <div class="col-md-8">
                 <label class="form-label" asp-for="Approve.OriginalSessionId">@T["The lesson that failed"]<span class="app-required">*</span></label>
                 <select asp-for="Approve.OriginalSessionId" id="approveOriginal" class="form-select"
-                        data-mv-sessions-of="#approveStudent" data-mv-step-field>
+                        data-mv-sessions-of="#approveStudent" data-mv-step-field
+                        data-mv-note-no-source="#approveNoStudentYet" data-mv-note-empty="#approveNoPastLesson">
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.PastSessions)
                     {
-                        <option value="@s.Id" data-students="@s.EnrolledStudentIds">@s.Label</option>
+                        <option value="@s.Id" data-students="@s.EnrolledStudentIds"
+                                data-level="@s.LevelId" data-level-name="@s.LevelCode">@s.Label</option>
                     }
                 </select>
+                <div class="form-text" id="approveNoStudentYet">@T["Pick the student in step 1 first. This list stays closed until then, so another student's lesson can never be chosen here by mistake."]</div>
+                <div class="form-text text-warning" id="approveNoPastLesson" hidden>@T["This student was not in any lesson that has already been held, so there is nothing to move."]</div>
                 <span asp-validation-for="Approve.OriginalSessionId" class="text-danger small"></span>
             </div>
         </div>
@@ -207,13 +214,18 @@
                 <label class="form-label" asp-for="Approve.ReplacementSessionId">@T["The make-up lesson"]<span class="app-required">*</span></label>
                 <input type="search" class="form-control mb-1" data-mv-select-filter="#approveReplacement"
                        placeholder="@T["Search sessions…"]" aria-label="@T["Search sessions…"]" />
-                <select asp-for="Approve.ReplacementSessionId" id="approveReplacement" class="form-select" data-mv-step-field>
+                <select asp-for="Approve.ReplacementSessionId" id="approveReplacement" class="form-select" data-mv-step-field
+                        data-mv-level-of="#approveOriginal" data-mv-level-note="#approveLevelNote">
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.FutureSessions)
                     {
-                        <option value="@s.Id">@s.Label</option>
+                        <option value="@s.Id" data-level="@s.LevelId">@s.Label</option>
                     }
                 </select>
+                <div class="form-text" id="approveLevelNote" hidden>
+                    @T["Narrowed to the level of the lesson that failed, because a make-up must be at that same level:"]
+                    <strong data-mv-level-name></strong>
+                </div>
                 <span asp-validation-for="Approve.ReplacementSessionId" class="text-danger small"></span>
             </div>
         </div>

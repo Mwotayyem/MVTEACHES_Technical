@@ -221,20 +221,44 @@
         });
     }
 
+    // An optional data-* selector: absent, empty, or simply not on the page
+    // must all mean "no such note", never a thrown selector error.
+    function optionalTarget(selector) {
+        if (!selector) { return null; }
+        try { return document.querySelector(selector); } catch (e) { return null; }
+    }
+
     // --- Narrow a session list to one student -------------------------------
     // <select data-mv-sessions-of="#studentSelect"> whose options carry
-    // data-students="3,7,11": picking a student hides the sessions they are not
-    // enrolled in. Purely a display filter — the server still decides what is
-    // allowed, and clearing the student shows every session again.
+    // data-students="3,7,11": picking a student leaves only the sessions they
+    // were actually enrolled in.
+    //
+    // Until a student IS picked the list is emptied and disabled on purpose.
+    // Showing every past session of every student, at every level and with
+    // every teacher, was the single worst thing on this screen: the admin
+    // could read a lesson belonging to someone else as if it were an option,
+    // and only discover the mistake after the server refused it. A list that
+    // cannot yet be meaningful is better shown as not-yet-available than as a
+    // wrong list.
+    //
+    // Optional notes, each a selector for an element toggled with [hidden]:
+    //   data-mv-note-no-source — shown while no student is chosen.
+    //   data-mv-note-empty     — shown when the chosen student has none.
+    // Purely a display filter: the server still decides what is allowed.
     function wireSessionNarrowing() {
         document.querySelectorAll("[data-mv-sessions-of]").forEach(function (select) {
             var studentSelect = document.querySelector(select.getAttribute("data-mv-sessions-of"));
             if (!studentSelect) { return; }
 
+            var noteNoSource = optionalTarget(select.getAttribute("data-mv-note-no-source"));
+            var noteEmpty = optionalTarget(select.getAttribute("data-mv-note-empty"));
+
             var original = Array.prototype.map.call(select.options, function (option) {
                 return {
                     value: option.value,
                     text: option.text,
+                    level: option.getAttribute("data-level") || "",
+                    levelName: option.getAttribute("data-level-name") || "",
                     students: (option.getAttribute("data-students") || "").split(",").filter(Boolean)
                 };
             });
@@ -242,23 +266,95 @@
             function apply() {
                 var studentId = studentSelect.value;
                 var previous = select.value;
+                var kept = 0;
                 select.innerHTML = "";
 
                 original.forEach(function (item) {
-                    var keep = item.value === "" || studentId === "" || item.students.indexOf(studentId) !== -1;
+                    var isPlaceholder = item.value === "";
+                    // No student yet => placeholder only. Never another
+                    // student's lesson.
+                    var keep = isPlaceholder || (studentId !== "" && item.students.indexOf(studentId) !== -1);
                     if (!keep) { return; }
+                    if (!isPlaceholder) { kept++; }
                     var option = document.createElement("option");
                     option.value = item.value;
                     option.text = item.text;
                     option.setAttribute("data-students", item.students.join(","));
+                    if (item.level) { option.setAttribute("data-level", item.level); }
+                    if (item.levelName) { option.setAttribute("data-level-name", item.levelName); }
                     select.add(option);
                 });
 
                 select.value = previous;
                 if (select.selectedIndex === -1) { select.selectedIndex = 0; }
+                select.disabled = studentId === "";
+
+                if (noteNoSource) { noteNoSource.hidden = studentId !== ""; }
+                if (noteEmpty) { noteEmpty.hidden = !(studentId !== "" && kept === 0); }
+
+                // Anything chained off this list (the level match below) has to
+                // recompute against what is actually left in it.
+                select.dispatchEvent(new Event("change", { bubbles: true }));
             }
 
             studentSelect.addEventListener("change", apply);
+            apply();
+        });
+    }
+
+    // --- Keep a replacement list at the same level as the original ----------
+    // <select data-mv-level-of="#originalSelect"> whose options carry
+    // data-level="4", against a source whose options carry the same attribute.
+    // The server already refuses a make-up lesson at a different level
+    // (ApproveReplacementOutcome.ReplacementSessionLevelMismatch); offering one
+    // anyway only lets the admin pick something that is certain to be rejected.
+    // data-mv-level-note is a selector for an element whose text ends with the
+    // level being matched, so the admin can see WHY the list got shorter.
+    function wireLevelNarrowing() {
+        document.querySelectorAll("[data-mv-level-of]").forEach(function (select) {
+            var source = document.querySelector(select.getAttribute("data-mv-level-of"));
+            if (!source) { return; }
+
+            var note = optionalTarget(select.getAttribute("data-mv-level-note"));
+            var noteLabel = note ? note.querySelector("[data-mv-level-name]") : null;
+
+            var original = Array.prototype.map.call(select.options, function (option) {
+                return {
+                    value: option.value,
+                    text: option.text,
+                    level: option.getAttribute("data-level") || ""
+                };
+            });
+
+            function apply() {
+                var chosen = source.options[source.selectedIndex];
+                var level = chosen ? (chosen.getAttribute("data-level") || "") : "";
+                var levelName = chosen ? (chosen.getAttribute("data-level-name") || "") : "";
+                var previous = select.value;
+                select.innerHTML = "";
+
+                original.forEach(function (item) {
+                    var keep = item.value === "" || level === "" || item.level === level;
+                    if (!keep) { return; }
+                    var option = document.createElement("option");
+                    option.value = item.value;
+                    option.text = item.text;
+                    if (item.level) { option.setAttribute("data-level", item.level); }
+                    select.add(option);
+                });
+
+                select.value = previous;
+                if (select.selectedIndex === -1) { select.selectedIndex = 0; }
+
+                if (note) {
+                    note.hidden = level === "";
+                    if (noteLabel) { noteLabel.textContent = levelName; }
+                }
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+
+            source.addEventListener("change", apply);
+            apply();
         });
     }
 
@@ -477,6 +573,7 @@
         wireTableFilters();
         wireSelectFilters();
         wireSessionNarrowing();
+        wireLevelNarrowing();
         wireDependentFields();
         wireOwnedOptions();
         wireEchoes();

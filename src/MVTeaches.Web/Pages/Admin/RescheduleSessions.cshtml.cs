@@ -55,7 +55,13 @@ public class RescheduleSessionsModel : PageModel
     /// "original session" list to the sessions the picked student is actually
     /// enrolled in — the same list, filtered client-side, never a different
     /// query and never a rule about what may be chosen.</summary>
-    public record SessionOption(long Id, string Label, string EnrolledStudentIds, bool HasStarted);
+    /// <summary><paramref name="LevelId"/>/<paramref name="LevelCode"/> let the
+    /// make-up form offer only replacement lessons at the SAME level as the one
+    /// that failed — the rule the server already enforces
+    /// (ApproveReplacementOutcome.ReplacementSessionLevelMismatch), applied to
+    /// the list instead of only to the rejection afterwards.</summary>
+    public record SessionOption(long Id, string Label, string EnrolledStudentIds, bool HasStarted,
+        int LevelId, string LevelCode);
 
     public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
     public IReadOnlyList<SessionOption> Sessions { get; set; } = Array.Empty<SessionOption>();
@@ -206,6 +212,8 @@ public class RescheduleSessionsModel : PageModel
                 _localizer["ClassSessionStatus." + s.Status].Value,
             }.Where(part => !string.IsNullOrWhiteSpace(part))),
             enrolledBySession.GetValueOrDefault(s.Id, string.Empty),
-            s.StartsAtUtc <= now)).ToList();
+            s.StartsAtUtc <= now,
+            s.LevelId,
+            levelCodes.GetValueOrDefault(s.LevelId, "?"))).ToList();
     }
 }

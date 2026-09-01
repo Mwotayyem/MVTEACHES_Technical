@@ -1288,7 +1288,6 @@
   <data name="Everything below narrows itself to this student once you pick them." xml:space="preserve"><value>كل ما تحت هذه الخطوة يضيق تلقائيًا على هذا الطالب بمجرد اختياره.</value></data>
   <data name="Only lessons that have already happened are listed, and only the ones this student was actually in. A lesson still in the future cannot be the one that was missed." xml:space="preserve"><value>لا تظهر إلا الحصص التي انعقدت فعلًا، والتي كان هذا الطالب مسجَّلًا فيها. الحصة التي لم تحن بعد لا يمكن أن تكون هي الفائتة.</value></data>
   <data name="The missed lesson" xml:space="preserve"><value>الحصة الفائتة</value></data>
-  <data name="If the list is empty after choosing a student, that student is not enrolled in any lesson that has already been held." xml:space="preserve"><value>إذا كانت القائمة فارغة بعد اختيار الطالب، فهذا الطالب غير مسجَّل في أي حصة انعقدت بالفعل.</value></data>
   <data name="Only lessons that have not started yet are listed — a lesson already held cannot be a replacement." xml:space="preserve"><value>لا تظهر إلا الحصص التي لم تبدأ بعد — الحصة التي انعقدت لا تصلح كبديلة.</value></data>
   <data name="The new lesson" xml:space="preserve"><value>الحصة الجديدة</value></data>
   <data name="No lesson is scheduled ahead yet — publish or generate one first." xml:space="preserve"><value>لا توجد حصة مجدولة قادمة بعد — انشر أو ولّد واحدة أولًا.</value></data>
@@ -1486,4 +1485,13 @@
   <data name="You land back here — check that this provider's row now says &quot;Connected&quot;." xml:space="preserve"><value>ستعود إلى هذه الصفحة — تحقق أن صف هذا المزوّد أصبح يقول «متصل».</value></data>
   <data name="Transfer details recorded. An admin will confirm it on the payments screen once the money is seen in the account." xml:space="preserve"><value>تم تسجيل تفاصيل التحويل. سيؤكدها أحد المسؤولين من شاشة المدفوعات بعد أن يرى المبلغ في الحساب.</value></data>
   <data name="Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched — approve a specific replacement lesson for them from the Reschedule / Compensation screen if appropriate." xml:space="preserve"><value>تم إلغاء الحصة. تم إلغاء {0} تسجيل(ات)؛ {1} من الطلاب الذين انضموا بالفعل تُركوا دون تعديل — وافق على حصة بديلة محددة لهم من شاشة إعادة الجدولة / التعويض إذا لزم الأمر.</value></data>
+  <data name="Pick the student in step 1 first. This list stays closed until then, so another student's lesson can never be chosen here by mistake." xml:space="preserve">
+    <value>اختر الطالب في الخطوة 1 أولًا. تبقى هذه القائمة مغلقة حتى ذلك الحين، حتى لا تُختار هنا حصة طالب آخر بالخطأ.</value>
+  </data>
+  <data name="This student was not in any lesson that has already been held, so there is nothing to move." xml:space="preserve">
+    <value>هذا الطالب لم يكن في أي حصة انعقدت بالفعل، فلا يوجد ما يُنقل.</value>
+  </data>
+  <data name="Narrowed to the level of the lesson that failed, because a make-up must be at that same level:" xml:space="preserve">
+    <value>القائمة مضيّقة على مستوى الحصة التي فشلت، لأن الحصة التعويضية يجب أن تكون بالمستوى نفسه:</value>
+  </data>
 </root>
