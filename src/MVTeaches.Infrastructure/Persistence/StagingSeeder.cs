@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -338,14 +339,14 @@ public static class StagingSeeder
         // ---- Future sessions (scheduling) --------------------------------
         var futureSessions = new[]
         {
-            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, now.Plus(Duration.FromDays(1)), "10:00", new[] { yazan, tala }),
-            new SessionSpec(teacherIds[0], A2LevelId, SessionType.Private, now.Plus(Duration.FromDays(2)), "11:00", Array.Empty<SeededStudent>()),
-            new SessionSpec(teacherIds[1], A2LevelId, SessionType.Group, now.Plus(Duration.FromDays(1)), "12:00", new[] { maryam, rayan }),
-            new SessionSpec(teacherIds[1], B1LevelId, SessionType.Group, now.Plus(Duration.FromDays(2)), "13:00", new[] { noor }),
-            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, now.Plus(Duration.FromDays(1)), "14:00", new[] { firas }),
-            new SessionSpec(teacherIds[2], B1LevelId, SessionType.Group, now.Plus(Duration.FromDays(3)), "15:00", Array.Empty<SeededStudent>()),
-            new SessionSpec(teacherIds[3], C1LevelId, SessionType.Group, now.Plus(Duration.FromDays(2)), "16:00", Array.Empty<SeededStudent>()),
-            new SessionSpec(teacherIds[4], C2LevelId, SessionType.Private, now.Plus(Duration.FromDays(3)), "17:00", Array.Empty<SeededStudent>()),
+            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, SessionStart(now, 1, "10:00"), "10:00", new[] { yazan, tala }),
+            new SessionSpec(teacherIds[0], A2LevelId, SessionType.Private, SessionStart(now, 2, "11:00"), "11:00", Array.Empty<SeededStudent>()),
+            new SessionSpec(teacherIds[1], A2LevelId, SessionType.Group, SessionStart(now, 1, "12:00"), "12:00", new[] { maryam, rayan }),
+            new SessionSpec(teacherIds[1], B1LevelId, SessionType.Group, SessionStart(now, 2, "13:00"), "13:00", new[] { noor }),
+            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, SessionStart(now, 1, "14:00"), "14:00", new[] { firas }),
+            new SessionSpec(teacherIds[2], B1LevelId, SessionType.Group, SessionStart(now, 3, "15:00"), "15:00", Array.Empty<SeededStudent>()),
+            new SessionSpec(teacherIds[3], C1LevelId, SessionType.Group, SessionStart(now, 2, "16:00"), "16:00", Array.Empty<SeededStudent>()),
+            new SessionSpec(teacherIds[4], C2LevelId, SessionType.Private, SessionStart(now, 3, "17:00"), "17:00", Array.Empty<SeededStudent>()),
         };
         foreach (var spec in futureSessions)
         {
@@ -353,13 +354,14 @@ public static class StagingSeeder
         }
 
         // ---- Past sessions (scheduling + attendance history) ---------------
+        var firasNoShowStart = SessionStart(now, -2, "14:00");
         var pastSessions = new[]
         {
-            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, now.Minus(Duration.FromDays(5)), "10:00", new[] { yazan }),
-            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, now.Minus(Duration.FromDays(2)), "10:00", new[] { yazan, tala }),
-            new SessionSpec(teacherIds[1], A2LevelId, SessionType.Group, now.Minus(Duration.FromDays(3)), "12:00", new[] { maryam, rayan }),
-            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, now.Minus(Duration.FromDays(4)), "14:00", new[] { firas }),
-            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, now.Minus(Duration.FromDays(2)), "14:00", new[] { firas }),
+            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, SessionStart(now, -5, "10:00"), "10:00", new[] { yazan }),
+            new SessionSpec(teacherIds[0], A1LevelId, SessionType.Group, SessionStart(now, -2, "10:00"), "10:00", new[] { yazan, tala }),
+            new SessionSpec(teacherIds[1], A2LevelId, SessionType.Group, SessionStart(now, -3, "12:00"), "12:00", new[] { maryam, rayan }),
+            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, SessionStart(now, -4, "14:00"), "14:00", new[] { firas }),
+            new SessionSpec(teacherIds[2], B2LevelId, SessionType.Private, firasNoShowStart, "14:00", new[] { firas }),
         };
         // Every past student except رياان (no-show, no request) and the
         // second فراس session (no-show, becomes a compensation request below)
@@ -381,7 +383,7 @@ public static class StagingSeeder
             foreach (var student in spec.Students)
             {
                 var isFirasSecondPrivateSession = spec.TeacherId == teacherIds[2] && spec.SessionType == SessionType.Private
-                    && student.StudentId == firas.StudentId && spec.StartsAtUtc == now.Minus(Duration.FromDays(2));
+                    && student.StudentId == firas.StudentId && spec.StartsAtUtc == firasNoShowStart;
                 var isRayanGroupSession = student.StudentId == rayan.StudentId;
 
                 if (isFirasSecondPrivateSession)
@@ -435,6 +437,34 @@ public static class StagingSeeder
 
     private sealed record SessionSpec(long TeacherId, int LevelId, SessionType SessionType, Instant StartsAtUtc,
         string LocalStartText, IReadOnlyList<SeededStudent> Students);
+
+    /// <summary>The zone every seeded session is scheduled in — the same one
+    /// stored on the session itself, so its wall-clock time means what the
+    /// label says.</summary>
+    private static readonly DateTimeZone StagingSessionZone = DateTimeZoneProviders.Tzdb["Asia/Amman"];
+
+    /// <summary>
+    /// A session's start, anchored to a calendar day at a fixed local time
+    /// rather than "now plus N days".
+    ///
+    /// The earlier form carried the current time-of-day into every start, so
+    /// no two runs ever produced the same instant: the idempotency check on
+    /// (teacher, start) never matched, every startup tried to insert a fresh
+    /// set of sessions, and PostgreSQL rejected each one that landed on top of
+    /// an existing booking for that teacher — over a hundred
+    /// `no_teacher_overlap` violations logged per start, with the demo data
+    /// drifting a little further each time. Anchoring the time makes a repeat
+    /// run on the same day a genuine no-op, and makes the stored time agree
+    /// with the label beside it (10:00 really is 10:00 in Amman).
+    /// </summary>
+    private static Instant SessionStart(Instant now, int dayOffset, string localStartText)
+    {
+        var parts = localStartText.Split(':');
+        var time = new LocalTime(int.Parse(parts[0], CultureInfo.InvariantCulture),
+            int.Parse(parts[1], CultureInfo.InvariantCulture));
+        var day = now.InZone(StagingSessionZone).Date.PlusDays(dayOffset);
+        return day.At(time).InZoneLeniently(StagingSessionZone).ToInstant();
+    }
 
     private static async Task<ApplicationUser?> FindAnyAdminAsync(UserManager<ApplicationUser> userManager, CancellationToken ct)
     {
