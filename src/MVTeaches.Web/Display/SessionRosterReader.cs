@@ -114,16 +114,12 @@ public class SessionRosterReader
 
             // One currency only — the running package's. D-53 forbids folding
             // two currencies into one number, so a second one is left for the
-            // profile rather than invented here.
-            var currency = (running ?? subs.FirstOrDefault())?.Price.Currency;
-            var billed = currency is null ? 0m : subs
-                .Where(sub => sub.Price.Currency == currency
-                              && sub.Status is SubscriptionStatus.Draft or SubscriptionStatus.Active)
-                .Sum(sub => sub.Price.Amount);
-            var paid = currency is null ? 0m : pays
-                .Where(pay => pay.Status == PaymentStatus.Confirmed
-                              && (pay.ReceivedCurrency ?? pay.Amount.Currency) == currency)
-                .Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount);
+            // profile rather than invented here. See MoneyStanding's own
+            // remarks: "paid" only counts payments tied to THIS student's
+            // Draft/Active subscriptions, never every confirmed payment ever
+            // made in that currency (a closed, fully-paid, since-Expired
+            // package must not make a new unpaid one look already settled).
+            var (currency, money) = MoneyStanding.ComputePrimary(subs, pays);
 
             var state = StudentLifecycle.Classify(new StudentLifecycleFacts(
                 student.Status,
@@ -152,7 +148,7 @@ public class SessionRosterReader
                 state,
                 running is null ? null : $"{courseNames.GetValueOrDefault(running.CourseId, "?")} / {levelCodes.GetValueOrDefault(running.LevelId, "?")}",
                 currency,
-                Math.Max(0m, billed - paid),
+                money.Outstanding,
                 remainingMinutes,
                 note);
         }

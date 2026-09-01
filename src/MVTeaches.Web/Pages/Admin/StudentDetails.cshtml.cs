@@ -11,6 +11,7 @@ using MVTeaches.Domain.Scheduling;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Display;
 
 namespace MVTeaches.Web.Pages.Admin;
 
@@ -51,9 +52,12 @@ public class StudentDetailsModel : PageModel
     /// <summary>Money for ONE currency. Never a total across currencies: D-53
     /// forbids converting between them automatically, so a student who paid in
     /// two currencies gets two lines, not one invented sum.</summary>
-    public record MoneyLine(string Currency, decimal Owed, decimal Paid, decimal AwaitingConfirmation)
+    public record MoneyLine(string Currency, decimal Owed, decimal Paid, decimal Outstanding, decimal AwaitingConfirmation)
     {
-        public decimal Outstanding => Owed - Paid;
+        // Outstanding comes from MoneyStanding as a sum of PER-SUBSCRIPTION
+        // shortfalls, each clamped at zero before adding up — never Owed
+        // minus Paid, which could let one open package's overpayment cancel
+        // out a different package's real shortfall.
         public bool IsSettled => Outstanding <= 0m;
         public int PaidPercent => Owed <= 0m ? 100
             : (int)Math.Round(Math.Clamp((double)(Paid / Owed) * 100d, 0d, 100d));
@@ -231,32 +235,27 @@ public class StudentDetailsModel : PageModel
             .FirstOrDefault();
 
         // What was billed, what actually arrived, and what is still in the air —
-        // per currency, never summed across them (D-53). "Billed" counts the
-        // packages that were bought or are running; a cancelled or expired one
-        // is no longer something to collect. What arrived is the CONFIRMED
-        // received amount, which is the money in the account, not the amount
-        // that was asked for.
-        var billedByCurrency = subs
-            .Where(sub => sub.Status is SubscriptionStatus.Draft or SubscriptionStatus.Active)
-            .GroupBy(sub => sub.Price.Currency)
-            .ToDictionary(g => g.Key, g => g.Sum(sub => sub.Price.Amount));
-        var paidByCurrency = payments
-            .Where(pay => pay.Status == PaymentStatus.Confirmed)
-            .GroupBy(pay => pay.ReceivedCurrency ?? pay.Amount.Currency)
-            .ToDictionary(g => g.Key, g => g.Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount));
+        // per currency, never summed across them (D-53). "Billed"/"Paid" cover
+        // only Draft/Active packages, via MoneyStanding — see its own remarks
+        // for why a payment counts only when it is actually recorded against
+        // one of those specific subscriptions, never every confirmed payment
+        // ever made in that currency (a closed, fully-paid, since-Expired
+        // package must not make a NEW small unpaid one look already paid for).
+        var moneyByCurrency = MoneyStanding.ComputeByCurrency(subs, payments);
         var pendingByCurrency = payments
             .Where(pay => pay.Status == PaymentStatus.Pending)
             .GroupBy(pay => pay.Amount.Currency)
             .ToDictionary(g => g.Key, g => g.Sum(pay => pay.Amount.Amount));
 
-        MoneyLines = billedByCurrency.Keys
-            .Union(paidByCurrency.Keys)
+        MoneyLines = moneyByCurrency.Keys
             .Union(pendingByCurrency.Keys)
             .OrderBy(currency => currency)
-            .Select(currency => new MoneyLine(currency,
-                billedByCurrency.GetValueOrDefault(currency),
-                paidByCurrency.GetValueOrDefault(currency),
-                pendingByCurrency.GetValueOrDefault(currency)))
+            .Select(currency =>
+            {
+                var money = moneyByCurrency.GetValueOrDefault(currency);
+                return new MoneyLine(currency, money.Billed, money.Paid, money.Outstanding,
+                    pendingByCurrency.GetValueOrDefault(currency));
+            })
             .ToList();
 
         var compensations = await _db.CompensationRequests

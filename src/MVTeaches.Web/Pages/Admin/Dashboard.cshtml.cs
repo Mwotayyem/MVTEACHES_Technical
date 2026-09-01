@@ -154,18 +154,20 @@ public class DashboardModel : PageModel
             .Where(pay => pay.ConfirmedAtUtc is not null && pay.ConfirmedAtUtc >= monthStart)
             .GroupBy(pay => pay.ReceivedCurrency ?? pay.Amount.Currency)
             .ToDictionary(g => g.Key, g => g.Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount));
-        var billedAll = billableSubscriptions
-            .GroupBy(sub => sub.Price.Currency)
-            .ToDictionary(g => g.Key, g => g.Sum(sub => sub.Price.Amount));
-        var paidAll = confirmedPayments
-            .GroupBy(pay => pay.ReceivedCurrency ?? pay.Amount.Currency)
-            .ToDictionary(g => g.Key, g => g.Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount));
 
-        Money = paidThisMonth.Keys.Union(billedAll.Keys).Union(paidAll.Keys)
+        // Outstanding, school-wide: MoneyStanding sums each OPEN subscription's
+        // own shortfall (clamped at zero on its own) rather than netting one
+        // big billed total against one big paid total — a payment tied to a
+        // closed, since-Expired package must not silently offset a different,
+        // currently-unpaid one, for the same reason it must not on one
+        // student's own card. See MoneyStanding's own remarks.
+        var standing = MoneyStanding.ComputeByCurrency(billableSubscriptions, confirmedPayments);
+
+        Money = paidThisMonth.Keys.Union(standing.Keys)
             .OrderBy(currency => currency)
             .Select(currency => new MoneyLine(currency,
                 paidThisMonth.GetValueOrDefault(currency),
-                Math.Max(0m, billedAll.GetValueOrDefault(currency) - paidAll.GetValueOrDefault(currency))))
+                standing.GetValueOrDefault(currency).Outstanding))
             .ToList();
 
         // --- where every student stands ----------------------------------

@@ -64,11 +64,13 @@ public class StudentsModel : PageModel
     public record StudentRow(long Id, string FullName, string CountryName, StudentStatus Status,
         string? CurrentLevelCode, IReadOnlyList<string> GuardianNames,
         StudentLifecycleState State, string? PackageName, string? Currency,
-        decimal Billed, decimal Paid, int RemainingMinutes, int PurchasedMinutes,
+        decimal Billed, decimal Paid, decimal Outstanding, int RemainingMinutes, int PurchasedMinutes,
         LocalDate? StartsOn, LocalDate? ExpiresOn, int UpcomingLessonCount)
     {
-        public decimal Outstanding => Math.Max(0m, Billed - Paid);
-
+        // Outstanding comes from MoneyStanding as a sum of PER-SUBSCRIPTION
+        // shortfalls, each clamped at zero before adding up — never re-derived
+        // here as Billed minus Paid, which could let one open subscription's
+        // overpayment silently cancel out a different one's real shortfall.
         public int PaidPercent => Billed <= 0m ? 100
             : (int)Math.Round(Math.Clamp((double)(Paid / Billed) * 100d, 0d, 100d));
 
@@ -392,17 +394,12 @@ public class StudentsModel : PageModel
             var nextLesson = upcoming.FirstOrDefault();
 
             // Money is reported in ONE currency - the running package's, or the
-            // newest package's. D-53 forbids adding two currencies together, so a
-            // second currency is shown on the profile, never folded in here.
-            var currency = (running ?? subs.FirstOrDefault())?.Price.Currency;
-            var billed = currency is null ? 0m : subs
-                .Where(sub => sub.Price.Currency == currency
-                              && sub.Status is SubscriptionStatus.Draft or SubscriptionStatus.Active)
-                .Sum(sub => sub.Price.Amount);
-            var paid = currency is null ? 0m : pays
-                .Where(pay => pay.Status == PaymentStatus.Confirmed
-                              && (pay.ReceivedCurrency ?? pay.Amount.Currency) == currency)
-                .Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount);
+            // newest open package's. D-53 forbids adding two currencies
+            // together, so a second currency is shown on the profile, never
+            // folded in here. See MoneyStanding's own remarks for why "paid"
+            // is scoped to payments actually tied to a Draft/Active
+            // subscription, not every confirmed payment ever in that currency.
+            var (currency, money) = MoneyStanding.ComputePrimary(subs, pays);
 
             var remainingMinutes = subs.Where(sub => sub.Status == SubscriptionStatus.Active)
                 .Sum(sub => balanceBySubscription.GetValueOrDefault(sub.Id));
@@ -432,8 +429,9 @@ public class StudentsModel : PageModel
                 state,
                 running is null ? null : $"{courseNames.GetValueOrDefault(running.CourseId, "?")} / {levelByI.GetValueOrDefault(running.LevelId, "?")}",
                 currency,
-                billed,
-                paid,
+                money.Billed,
+                money.Paid,
+                money.Outstanding,
                 remainingMinutes,
                 purchasedMinutes,
                 running?.StartsOn,
