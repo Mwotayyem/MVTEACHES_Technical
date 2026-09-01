@@ -32,6 +32,26 @@
     <p>@T["Every session produced here is a group class seating exactly {0} students. That number is fixed by the centre and is not something this screen can change — a private one-to-one lesson is published by the teacher, not scheduled here.", Model.GroupCapacity]</p>
 </div>
 
+@if (Model.FocusStudentId is not null)
+{
+    <div class="alert alert-info d-flex flex-wrap gap-2 align-items-center" role="status">
+        <span>
+            @T["You arrived from:"] <strong>@(Model.FocusStudentName ?? T["Not specified"].Value)</strong>
+            @if (Model.FocusStudentLevelCode is not null)
+            {
+                <text> — @T["Level"] <strong>@Model.FocusStudentLevelCode</strong></text>
+            }
+            else
+            {
+                <text> — <span class="text-danger">@T["no level assigned yet"]</span></text>
+            }
+        </span>
+        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/StudentDetails" asp-route-id="@Model.FocusStudentId">@T["Open student profile"]</a>
+        <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Students" asp-route-studentId="@Model.FocusStudentId" asp-fragment="assign-level">@T["Change their level"]</a>
+        <span class="text-muted small">@T["The \"Enroll a student\" form below is ready for them. \"Create a new weekly schedule\" is a separate, centre-wide action — see the note on that card."]</span>
+    </div>
+}
+
 @if (Model.StatusMessage is not null)
 {
     <div class="alert alert-success">@Model.StatusMessage</div>
@@ -43,8 +63,9 @@
 
 <div class="card mb-4">
     <div class="card-body">
+        <p class="app-eyebrow">@T["Centre-wide — not for one student"]</p>
         <h5 class="card-title">@T["Create a weekly class"]</h5>
-        <p class="text-muted small">@T["Choose who teaches it, at what level, on which days, and from when. Everything else follows from that."]</p>
+        <p class="text-muted small">@T["Choose who teaches it, at what level, on which days, and from when. Everything else follows from that. This creates a standing class any student at that level can later be enrolled into — it does not enroll anyone by itself."]</p>
         <form method="post" asp-page-handler="Create" class="row g-2">
             <div class="col-md-3">
                 <label class="form-label" asp-for="NewSchedule.CountryId">@T["Country"]</label>
@@ -159,25 +180,32 @@
         <h5 class="card-title">@T["Enroll a student"]</h5>
         <p class="text-muted small">@T["This enrolls the student directly into every currently-generated, not-yet-started session under the chosen schedule — a one-time bulk action, not a standing membership. A student added to a schedule AFTER new sessions are generated needs enrolling again for those new ones."]</p>
         <form method="post" asp-page-handler="Enroll" class="row g-2">
+            <input type="hidden" name="studentId" value="@Model.FocusStudentId" />
             <div class="col-md-4">
-                <label class="form-label" asp-for="Enroll.RecurringScheduleId">@T["Schedule"]</label>
-                <select asp-for="Enroll.RecurringScheduleId" class="form-select">
+                <label class="form-label" asp-for="Enroll.StudentId">@T["Student"]</label>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#enrollStudent"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="Enroll.StudentId" id="enrollStudent" class="form-select">
                     <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.Schedules)
+                    @foreach (var s in Model.Students)
                     {
-                        <option value="@s.Id">@s.CourseName / @s.LevelCode — @s.TeacherName (@s.Days @s.StartLocal)</option>
+                        <option value="@s.Id" data-owner-key="@s.CurrentLevelId">@s.FullName @(s.CurrentLevelCode is null ? T["(no level yet)"].Value : $"— {s.CurrentLevelCode}")</option>
                     }
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label" asp-for="Enroll.StudentId">@T["Student"]</label>
-                <select asp-for="Enroll.StudentId" class="form-select">
+                <label class="form-label" asp-for="Enroll.RecurringScheduleId">@T["Schedule"]</label>
+                <select asp-for="Enroll.RecurringScheduleId" id="enrollSchedule" class="form-select"
+                        data-mv-options-of="#enrollStudent" data-mv-options-empty="#noSchedulesForLevel">
                     <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.Students)
+                    @foreach (var s in Model.Schedules)
                     {
-                        <option value="@s.Id">@s.FullName</option>
+                        <option value="@s.Id" data-owner="@s.LevelId">@s.CourseName / @s.LevelCode — @s.TeacherName (@s.Days @s.StartLocal)</option>
                     }
                 </select>
+                <div class="form-text text-warning" id="noSchedulesForLevel" hidden>
+                    @T["No weekly class runs at this student's level yet — create one above first."]
+                </div>
             </div>
             <div class="col-md-4 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary">@T["Enroll into upcoming sessions"]</button>

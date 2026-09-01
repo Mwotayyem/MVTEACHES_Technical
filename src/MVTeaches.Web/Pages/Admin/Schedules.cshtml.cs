@@ -57,13 +57,21 @@ public class SchedulesModel : PageModel
         _localizer = localizer;
     }
 
-    public record ScheduleRow(long Id, string TeacherName, string CourseName, string LevelCode, string AgeGroupCode,
+    public record ScheduleRow(long Id, string TeacherName, string CourseName, int LevelId, string LevelCode, string AgeGroupCode,
         string Days, string StartLocal, int DurationMinutes, string TimeZoneId, RecurringScheduleStatus Status);
 
     /// <summary>An upcoming, still-cancellable session — the admin needs to see
     /// a real session Id to act on it; nothing before this page ever surfaced one.</summary>
     public record SessionRow(long Id, string TeacherName, string CourseName, string LevelCode,
         Instant StartsAtUtc, string ScheduleTimeZone, int SeatsTaken, int Capacity, ClassSessionStatus Status);
+
+    /// <summary><see cref="CurrentLevelId"/> is what lets the "enroll a
+    /// student" picker below narrow the schedule list to the student's own
+    /// level automatically (same data-owner-key/data-mv-options-of mechanism
+    /// Admin/Subscriptions already uses for its plan picker) — arriving here
+    /// from a student's own file used to drop that context entirely and show
+    /// every level's schedules at once.</summary>
+    public record StudentPickRow(long Id, string FullName, int? CurrentLevelId, string? CurrentLevelCode);
 
     public IReadOnlyList<ScheduleRow> Schedules { get; set; } = Array.Empty<ScheduleRow>();
     public IReadOnlyList<SessionRow> UpcomingSessions { get; set; } = Array.Empty<SessionRow>();
@@ -73,7 +81,16 @@ public class SchedulesModel : PageModel
     public IReadOnlyList<AgeGroup> AgeGroups { get; set; } = Array.Empty<AgeGroup>();
     public IReadOnlyList<MVTeaches.Domain.People.Teacher> Teachers { get; set; } = Array.Empty<MVTeaches.Domain.People.Teacher>();
     public IReadOnlyList<string> TimeZoneIds { get; set; } = Array.Empty<string>();
-    public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
+    public IReadOnlyList<StudentPickRow> Students { get; set; } = Array.Empty<StudentPickRow>();
+
+    /// <summary>Set when the admin arrived here from one student's own file
+    /// ("Open schedules"), so the enroll form can pre-select them and narrow
+    /// the schedule list to their level instead of starting from scratch.</summary>
+    [BindProperty(SupportsGet = true, Name = "studentId")]
+    public long? FocusStudentId { get; set; }
+
+    public string? FocusStudentName { get; set; }
+    public string? FocusStudentLevelCode { get; set; }
 
     [BindProperty]
     public CreateScheduleInput NewSchedule { get; set; } = new();
@@ -216,8 +233,10 @@ public class SchedulesModel : PageModel
         switch (result.Outcome)
         {
             case CancelSessionOutcome.Cancelled:
+                // Used to name the raw path "/Admin/RescheduleSessions" —
+                // the destination is now named in words instead.
                 StatusMessage = Cancel.ReplacementSessionId is null
-                    ? _localizer["Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched (approve a specific replacement lesson for them on /Admin/RescheduleSessions if appropriate).",
+                    ? _localizer["Session cancelled. {0} enrollment(s) cancelled; {1} already-joined student(s) left untouched — approve a specific replacement lesson for them from the Reschedule / Compensation screen if appropriate.",
                         result.EnrollmentsMovedOrCancelled, result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed].Value
                     : _localizer["Session cancelled and replaced. {0} student(s) moved to the replacement; {1} could not fit and need manual attention; {2} already-joined student(s) left untouched.",
                         result.EnrollmentsMovedOrCancelled, result.EnrollmentsThatCouldNotBeMovedToReplacement, result.EnrollmentsLeftUntouchedBecauseAlreadyConsumed].Value;
@@ -314,16 +333,35 @@ public class SchedulesModel : PageModel
             .ToListAsync()).ToHashSet();
         TeachersNotReadyForOnlineSessions = Teachers.Select(t => t.Id).Where(id => !readyTeacherIds.Contains(id)).ToHashSet();
 
-        Students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
+        var students = await _db.Students.OrderByDescending(s => s.Id).Take(200).ToListAsync();
 
         var teacherNames = Teachers.ToDictionary(t => t.Id, t => t.FullName);
         var courseNames = Courses.ToDictionary(c => c.Id, c => c.NameEn);
         var levelCodes = Levels.ToDictionary(l => l.Id, l => l.Code);
         var ageGroupCodes = AgeGroups.ToDictionary(a => a.Id, a => a.Code);
 
+        // Same source Admin/Subscriptions reads its own student-level pickers
+        // from, kept as its own query here rather than a shared helper,
+        // matching how each admin page already keeps its own copy.
+        var currentLevelByStudent = (await _db.StudentLevels.Where(l => l.IsCurrent).ToListAsync())
+            .ToDictionary(l => l.StudentId, l => l.LevelId);
+        Students = students.Select(s =>
+        {
+            var levelId = currentLevelByStudent.TryGetValue(s.Id, out var found) ? found : (int?)null;
+            return new StudentPickRow(s.Id, s.FullName, levelId, levelId is null ? null : levelCodes.GetValueOrDefault(levelId.Value));
+        }).ToList();
+
+        if (FocusStudentId is not null)
+        {
+            var focus = Students.FirstOrDefault(s => s.Id == FocusStudentId.Value);
+            FocusStudentName = focus?.FullName;
+            FocusStudentLevelCode = focus?.CurrentLevelCode;
+            Enroll.StudentId ??= FocusStudentId;
+        }
+
         var schedules = await _db.RecurringSchedules.OrderByDescending(s => s.Id).ToListAsync();
         Schedules = schedules.Select(s => new ScheduleRow(s.Id, teacherNames.GetValueOrDefault(s.TeacherId, string.Empty),
-            courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
+            courseNames.GetValueOrDefault(s.CourseId, "?"), s.LevelId, levelCodes.GetValueOrDefault(s.LevelId, "?"),
             ageGroupCodes.GetValueOrDefault(s.AgeGroupId, "?"),
             string.Join(",", s.DaysOfWeek.Select(d => _localizer["DayOfWeek." + d].Value)),
             s.StartLocal.ToString("HH:mm", null), s.DurationMinutes, s.TimeZoneId, s.Status)).ToList();
