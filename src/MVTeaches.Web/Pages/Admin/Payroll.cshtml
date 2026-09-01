@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.PayrollModel
 @using MVTeaches.Domain.Payroll
 @{
@@ -14,15 +14,32 @@
     };
 }
 
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Payroll"]</span>
+</nav>
+
 <div class="app-page-head">
     <div>
-        <h1>@T["Payroll"]</h1>
-        <p class="text-muted">@T["The payroll cycle: declare → verify → aggregate → review → approve → pay → close. Whoever declared a delivery cannot also verify it."]</p>
+        <h1>@T["Paying the teachers"]</h1>
+        <p class="text-muted">@T["Teachers say which lessons they delivered; you check them; then a month is closed off and paid."]</p>
     </div>
     <div class="app-page-actions">
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Teachers">@T["Teachers"]</a>
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/FinancialReport">@T["Financial Report"]</a>
     </div>
+</div>
+
+<div class="app-guide">
+    <p class="app-guide-title">@T["What do I do on this screen?"]</p>
+    <ol>
+        <li><strong>@T["Check what teachers have declared."]</strong> @T["A teacher marks a lesson as delivered; a different admin has to agree. That is the list at the top."]</li>
+        <li><strong>@T["Open a payroll month."]</strong> @T["A payroll month is just a country and a date range — a container to gather the checked lessons into. Opening one changes no money."]</li>
+        <li><strong>@T["Press Gather."]</strong> @T["That is when the pay lines appear: one per teacher, adding up every checked lesson inside the dates. Before you press it the month is deliberately empty."]</li>
+        <li><strong>@T["Review, approve, mark paid, close."]</strong> @T["Approving locks the lines so they can no longer change."]</li>
+    </ol>
+    <p><span class="app-guide-next">@T["A month with no lines?"]</span> @T["Either it has not been gathered yet, or no checked lesson falls inside its dates."]</p>
 </div>
 
 @if (Model.StatusMessage is not null)
@@ -41,7 +58,8 @@
     </div>
 }
 
-<h2>@T["Declared, awaiting verification"] <span class="app-status @(Model.DeclaredDeliveries.Count > 0 ? "is-warning" : "is-muted")">@Model.DeclaredDeliveries.Count</span></h2>
+<h2>@T["Step 1 — lessons teachers say they delivered"] <span class="app-status @(Model.DeclaredDeliveries.Count > 0 ? "is-warning" : "is-muted")">@Model.DeclaredDeliveries.Count</span></h2>
+<p class="text-muted small">@T["You cannot check a lesson you declared yourself. A checked lesson is what payroll can later pay for."]</p>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
         <thead><tr><th>@T["Session"]</th><th>@T["Teacher"]</th><th>@T["Declared minutes"]</th><th>@T["Note"]</th><th>@T["Actions"]</th></tr></thead>
@@ -72,7 +90,14 @@
             }
             @if (Model.DeclaredDeliveries.Count == 0)
             {
-                <tr><td colspan="5" class="text-muted">@T["Nothing awaiting verification."]</td></tr>
+                <tr>
+                    <td colspan="5">
+                        <div class="app-empty">
+                            <strong>@T["Nothing to check right now."]</strong>
+                            <span>@T["A lesson appears here after the teacher who taught it marks it delivered."]</span>
+                        </div>
+                    </td>
+                </tr>
             }
         </tbody>
     </table>
@@ -80,8 +105,8 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h2 class="card-title h5">@T["Open a payroll period"]</h2>
-        <p class="text-muted small">@T["One period per country and date range. Verified deliveries inside the range are what gets aggregated into it."]</p>
+        <h2 class="card-title h5">@T["Step 2 — open a payroll month"]</h2>
+        <p class="text-muted small">@T["A country and a date range, nothing more. It starts empty and completely harmless: opening one moves no money and changes nothing until you gather it."]</p>
         <form method="post" asp-page-handler="OpenPeriod" class="row g-3 align-items-start">
             <div class="col-md-4">
                 <label class="form-label" asp-for="NewPeriod.CountryId">@T["Country"]</label>
@@ -105,16 +130,19 @@
                 <span asp-validation-for="NewPeriod.End" class="text-danger small"></span>
             </div>
             <div class="col-md-2 align-self-end">
-                <button type="submit" class="btn btn-primary w-100">@T["Open period"]</button>
+                <button type="submit" class="btn btn-primary w-100">@T["Open it"]</button>
+            </div>
+            <div class="col-12">
+                <div class="app-outcome">@T["Next: press Gather on it below — that is what fills it with the checked lessons in those dates."]</div>
             </div>
         </form>
     </div>
 </div>
 
-<h2>@T["Periods"]</h2>
+<h2>@T["Step 3 — payroll months"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
-        <thead><tr><th>@T["Country"]</th><th>@T["Range"]</th><th>@T["Status"]</th><th>@T["Lines"]</th><th>@T["Total"]</th><th>@T["Actions"]</th></tr></thead>
+        <thead><tr><th>@T["Country"]</th><th>@T["Dates"]</th><th>@T["Status"]</th><th>@T["Pay lines"]</th><th>@T["Total"]</th><th>@T["Actions"]</th></tr></thead>
         <tbody>
             @foreach (var p in Model.Periods)
             {
@@ -122,18 +150,28 @@
                     <td>@p.CountryName</td>
                     <td>@T.Date(p.Start) — @T.Date(p.End)</td>
                     <td><span class="@PeriodStatusClass(p.Status)">@T["PayrollPeriodStatus." + p.Status]</span></td>
-                    <td>@p.LineCount</td>
+                    <td>
+                        @p.LineCount
+                        @if (p.LineCount == 0 && p.Status == PayrollPeriodStatus.Open)
+                        {
+                            <div class="form-text text-warning">@T["Empty until you press Gather."]</div>
+                        }
+                        else if (p.LineCount == 0)
+                        {
+                            <div class="form-text text-warning">@T["No checked lesson falls inside these dates."]</div>
+                        }
+                    </td>
                     <td>@T.Money(p.TotalAmount, p.CurrencyCode)</td>
                     <td class="d-flex gap-2 flex-wrap">
                         @if (p.Status == PayrollPeriodStatus.Open)
                         {
                             <form method="post" asp-page-handler="Aggregate">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-primary">@T["Aggregate"]</button>
+                                <button type="submit" class="btn btn-sm btn-primary">@T["Gather the lessons"]</button>
                             </form>
                             <form method="post" asp-page-handler="MoveToReview">
                                 <input type="hidden" name="periodId" value="@p.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">@T["Move to review"]</button>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">@T["Send for review"]</button>
                             </form>
                         }
                         @if (p.Status == PayrollPeriodStatus.Review)
@@ -165,7 +203,14 @@
             }
             @if (Model.Periods.Count == 0)
             {
-                <tr><td colspan="6" class="text-muted">@T["No payroll period opened yet."]</td></tr>
+                <tr>
+                    <td colspan="6">
+                        <div class="app-empty">
+                            <strong>@T["No payroll month opened yet."]</strong>
+                            <span>@T["Nothing can be paid until one exists — open the first one above."]</span>
+                        </div>
+                    </td>
+                </tr>
             }
         </tbody>
     </table>

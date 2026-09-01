@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.CompensationRequestsModel
 @using MVTeaches.Domain.Scheduling
 @{
@@ -15,15 +15,31 @@
     };
 }
 
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Make-up requests"]</span>
+</nav>
+
 <div class="app-page-head">
     <div>
-        <h1>@T["Compensation Requests"]</h1>
-        <p class="text-muted">@T["Student-submitted requests for a missed (no-show) session. Approving links exactly one specific future session — the original absence and its consumption are never touched."]</p>
+        <h1>@T["Students asking for a make-up lesson"]</h1>
+        <p class="text-muted">@T["A student who missed a lesson can ask for one to make up for it. You decide, one request at a time."]</p>
     </div>
     <div class="app-page-actions">
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/RescheduleSessions">@T["Reschedule / Compensation"]</a>
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Schedules">@T["Schedules"]</a>
     </div>
+</div>
+
+<div class="app-guide">
+    <p class="app-guide-title">@T["What happens when I approve one?"]</p>
+    <ul>
+        <li>@T["The student is enrolled into the one future lesson you pick, and joining it will not cost them any hours."]</li>
+        <li>@T["The lesson they missed stays exactly as it is: the absence stands, and the hour it used stays used."]</li>
+        <li>@T["The student is notified. The make-up can be used once, and it is not a credit they can spend elsewhere."]</li>
+    </ul>
+    <p>@T["Refusing asks for a reason, and the student reads that reason word for word."]</p>
 </div>
 
 @if (Model.StatusMessage is not null)
@@ -56,31 +72,43 @@
 
                 <div class="row g-3">
                     <div class="col-lg-7">
-                        <form method="post" asp-page-handler="Approve" class="d-flex gap-2 flex-wrap align-items-end">
-                            <input type="hidden" name="requestId" value="@r.RequestId" />
-                            <div class="flex-grow-1">
-                                <label class="form-label small mb-0" for="replacement-@r.RequestId">@T["Replacement session"]</label>
-                                <select id="replacement-@r.RequestId" name="replacementSessionId" class="form-select form-select-sm">
-                                    <option value="">@T["Select placeholder"]</option>
-                                    @foreach (var opt in r.CandidateReplacementSessions)
-                                    {
-                                        <option value="@opt.Id">@opt.Label</option>
-                                    }
-                                </select>
-                                @if (r.CandidateReplacementSessions.Count == 0)
-                                {
-                                    <div class="form-text text-warning">@T["No future session at this level has a free seat yet — publish one first."]</div>
-                                }
+                        @if (r.CandidateReplacementSessions.Count == 0)
+                        {
+                            @* Nothing can be approved into, so neither the empty
+                               picker nor the button that needs it is shown at all —
+                               an "choose…" list with no choices in it, beside a
+                               button that can only fail, told the admin nothing. *@
+                            <div class="app-empty text-start">
+                                <strong>@T["This request cannot be approved yet."]</strong>
+                                <span>@T["There is no upcoming lesson at this student's level with a free seat. Add one, then come back — the request stays here waiting."]</span>
+                                <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Schedules">@T["Open schedules"]</a></span>
                             </div>
-                            <button type="submit" class="btn btn-sm btn-primary"
-                                    data-mv-confirm="@T["Approve this replacement session for the student?"]">@T["Approve"]</button>
-                        </form>
+                        }
+                        else
+                        {
+                            <form method="post" asp-page-handler="Approve" class="d-flex gap-2 flex-wrap align-items-end">
+                                <input type="hidden" name="requestId" value="@r.RequestId" />
+                                <div class="flex-grow-1">
+                                    <label class="form-label small mb-0" for="replacement-@r.RequestId">@T["Which lesson do they get instead?"]<span class="app-required">*</span></label>
+                                    <select id="replacement-@r.RequestId" name="replacementSessionId" class="form-select form-select-sm" required>
+                                        <option value="">@T["Select placeholder"]</option>
+                                        @foreach (var opt in r.CandidateReplacementSessions)
+                                        {
+                                            <option value="@opt.Id">@opt.Label</option>
+                                        }
+                                    </select>
+                                    <div class="form-text">@T["Only upcoming lessons at this student's own level, with a free seat."]</div>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary"
+                                        data-mv-confirm="@T["Enrol this student into that lesson for free? Their missed lesson stays as it is."]">@T["Approve"]</button>
+                            </form>
+                        }
                     </div>
                     <div class="col-lg-5">
                         <form method="post" asp-page-handler="Reject" class="d-flex gap-2 flex-wrap align-items-end">
                             <input type="hidden" name="requestId" value="@r.RequestId" />
                             <div class="flex-grow-1">
-                                <label class="form-label small mb-0" for="reject-@r.RequestId">@T["Reason the student will read"]</label>
+                                <label class="form-label small mb-0" for="reject-@r.RequestId">@T["Reason the student will read"]<span class="app-required">*</span></label>
                                 <input type="text" id="reject-@r.RequestId" name="RejectReason" class="form-control form-control-sm" />
                             </div>
                             <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
