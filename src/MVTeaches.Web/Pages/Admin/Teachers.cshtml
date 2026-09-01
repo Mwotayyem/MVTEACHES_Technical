@@ -5,6 +5,12 @@
     ViewData["Title"] = T["Teachers"].Value;
 }
 
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Teachers"]</span>
+</nav>
+
 <div class="app-page-head">
     <div>
         <h1>@T["Teachers"]</h1>
@@ -73,14 +79,25 @@
     </div>
 </div>
 
-<div class="card mb-4">
+<div class="app-guide">
+    <p class="app-guide-title">@T["Two different things, often confused"]</p>
+    <ul>
+        <li><strong>@T["Pay rate"]</strong> — @T["how much this teacher is paid. It is money, and it feeds payroll."]</li>
+        <li><strong>@T["Levels they may teach"]</strong> — @T["which classes this teacher is allowed to run at all. It is permission, and it has nothing to do with money."]</li>
+    </ul>
+    <p>@T["A teacher needs both: without a pay rate a delivered session cannot be verified for payment, and without at least one allowed level they cannot publish any session."]</p>
+</div>
+
+<div class="card mb-4" id="pay-rate">
     <div class="card-body">
-        <h2 class="card-title h5">@T["Set a pay rate"]</h2>
-        <p class="text-muted small">@T["Most-specific-wins at verification time: (course+level+age group) beats (course+level) beats (course) beats the teacher's own default (leave course/level/age group blank)."]</p>
+        <h2 class="card-title h5">@T["How much is this teacher paid?"]</h2>
+        <p class="text-muted small">@T["Leave course, level and age group empty for the teacher's ordinary rate. Add a more specific rate only when one particular kind of class pays differently — the most specific one that fits wins at payment time."]</p>
         <form method="post" asp-page-handler="CreateRate" class="row g-3">
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.TeacherId">@T["Teacher"]</label>
-                <select asp-for="NewRate.TeacherId" class="form-select">
+                <label class="form-label" asp-for="NewRate.TeacherId">@T["Teacher"]<span class="app-required">*</span></label>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#rateTeacher"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="NewRate.TeacherId" id="rateTeacher" class="form-select">
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var t in Model.Teachers)
                     {
@@ -120,12 +137,13 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.Amount">@T["Amount"]</label>
+                <label class="form-label" asp-for="NewRate.Amount">@T["Amount"]<span class="app-required">*</span></label>
                 <input asp-for="NewRate.Amount" class="form-control" inputmode="decimal" />
+                <div class="form-text">@T["What the teacher earns per unit chosen beside it."]</div>
                 <span asp-validation-for="NewRate.Amount" class="text-danger small"></span>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.Currency">@T["Currency"]</label>
+                <label class="form-label" asp-for="NewRate.Currency">@T["Currency"]<span class="app-required">*</span></label>
                 <select asp-for="NewRate.Currency" class="form-select">
                     @foreach (var code in Model.Currencies)
                     {
@@ -144,18 +162,20 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.EffectiveFrom">@T["Effective from"]</label>
+                <label class="form-label" asp-for="NewRate.EffectiveFrom">@T["Paid at this rate from"]<span class="app-required">*</span></label>
                 <input asp-for="NewRate.EffectiveFrom" type="date" class="form-control" />
+                <div class="form-text">@T["Sessions before this date keep whatever rate applied then."]</div>
                 <span asp-validation-for="NewRate.EffectiveFrom" class="text-danger small"></span>
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary">@T["Create rate"]</button>
+                <button type="submit" class="btn btn-primary">@T["Save the pay rate"]</button>
+                <div class="app-outcome mt-3">@T["Next: when a delivered session is verified on the payroll screen, this is the rate it is paid at."]</div>
             </div>
         </form>
     </div>
 </div>
 
-<h2>@T["Pay rates"]</h2>
+<h2>@T["Pay rates in force"]</h2>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
         <thead><tr><th>@T["Teacher"]</th><th>@T["Course"]</th><th>@T["Level"]</th><th>@T["Age group"]</th><th>@T["Rate"]</th><th>@T["Unit"]</th><th>@T["From"]</th><th>@T["To"]</th></tr></thead>
@@ -175,20 +195,29 @@
             }
             @if (Model.Rates.Count == 0)
             {
-                <tr><td colspan="8" class="text-muted">@T["No pay rate set yet — a delivery cannot be verified until one applies."]</td></tr>
+                <tr>
+                    <td colspan="8">
+                        <div class="app-empty">
+                            <strong>@T["No pay rate set yet."]</strong>
+                            <span>@T["A delivered session cannot be verified for payment until a rate covers it — set one above."]</span>
+                        </div>
+                    </td>
+                </tr>
             }
         </tbody>
     </table>
 </div>
 
-<div class="card mb-4">
+<div class="card mb-4" id="allowed-levels">
     <div class="card-body">
-        <h2 class="card-title h5">@T["Grant a teacher an authorized level"]</h2>
-        <p class="text-muted small">@T["A teacher may publish sessions only for levels explicitly granted here. Granting an already-granted level is refused, not silently accepted twice."]</p>
+        <h2 class="card-title h5">@T["Which levels may this teacher teach?"]</h2>
+        <p class="text-muted small">@T["This is permission, not pay. A teacher can only publish sessions for the levels ticked here. Tick as many as apply — a level they already have is simply left as it is."]</p>
         <form method="post" asp-page-handler="GrantLevel" class="row g-3">
             <div class="col-md-4">
-                <label class="form-label" asp-for="LevelGrant.TeacherId">@T["Teacher"]</label>
-                <select asp-for="LevelGrant.TeacherId" class="form-select">
+                <label class="form-label" asp-for="LevelGrant.TeacherId">@T["Teacher"]<span class="app-required">*</span></label>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#grantLevelTeacher"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="LevelGrant.TeacherId" id="grantLevelTeacher" class="form-select">
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var t in Model.Teachers)
                     {
@@ -197,19 +226,22 @@
                 </select>
                 <span asp-validation-for="LevelGrant.TeacherId" class="text-danger small"></span>
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="LevelGrant.LevelId">@T["Level"]</label>
-                <select asp-for="LevelGrant.LevelId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
+            <div class="col-md-8">
+                <label class="form-label">@T["Levels"]<span class="app-required">*</span></label>
+                <div class="d-flex flex-wrap gap-3">
                     @foreach (var l in Model.Levels)
                     {
-                        <option value="@l.Id">@l.Code</option>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="LevelGrant.LevelIds"
+                                   value="@l.Id" id="grantLevel_@l.Id" />
+                            <label class="form-check-label" for="grantLevel_@l.Id">@l.Code</label>
+                        </div>
                     }
-                </select>
-                <span asp-validation-for="LevelGrant.LevelId" class="text-danger small"></span>
+                </div>
             </div>
-            <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">@T["Grant level"]</button>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">@T["Allow these levels"]</button>
+                <div class="app-outcome mt-3">@T["Next: the teacher can publish their own available times for those levels from their own screen."]</div>
             </div>
         </form>
     </div>
@@ -224,7 +256,7 @@
 </div>
 <div class="table-responsive">
     <table class="table table-sm table-striped" id="teachersTable">
-        <thead><tr><th>@T["Name"]</th><th>@T["Time zone"]</th><th>@T["Active"]</th><th>@T["Online sessions"]</th><th>@T["Authorized levels"]</th><th>@T["Actions"]</th></tr></thead>
+        <thead><tr><th>@T["Name"]</th><th>@T["Time zone"]</th><th>@T["Active"]</th><th>@T["Online sessions"]</th><th>@T["Levels they may teach"]</th><th>@T["Actions"]</th></tr></thead>
         <tbody>
             @foreach (var t in Model.Teachers)
             {
@@ -245,6 +277,7 @@
                         @if (Model.TeachersNotReadyForOnlineSessions.Contains(t.Id))
                         {
                             <span class="app-status is-danger" title="@T["No connected Zoom or Google Meet account — this teacher cannot be assigned online sessions. A free Google account is sufficient."]">@T["Not ready"]</span>
+                            <div class="form-text">@T["The teacher connects their own account from their Connections screen. The centre has no shared account, and buys no licence."]</div>
                         }
                         else
                         {

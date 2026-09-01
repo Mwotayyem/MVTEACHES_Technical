@@ -94,10 +94,17 @@ public class TeachersModel : PageModel
     // Ids and dates are nullable so [Required] actually fires on an untouched
     // picker; on a non-nullable value type the empty post binds to 0 /
     // 0001-01-01 and passes validation silently.
+    /// <summary>Owner decision 2026-08-30 rule 6 asks for allowed levels to be
+    /// easy to add. Ticking several at once is exactly the same operation
+    /// repeated — ITeacherLevelAuthorizationService.GrantAsync is still called
+    /// once per level and is still the only thing that decides whether each one
+    /// is allowed (including refusing a duplicate). No batching rule of any
+    /// kind lives in this page.</summary>
     public class LevelGrantInput
     {
         [Required(ErrorMessage = "Choose a teacher.")] public long? TeacherId { get; set; }
-        [Required(ErrorMessage = "Choose a level.")] public int? LevelId { get; set; }
+
+        public List<int> LevelIds { get; set; } = new();
     }
 
     public class RegisterTeacherInput
@@ -125,7 +132,11 @@ public class TeachersModel : PageModel
         public int? LevelId { get; set; }
         public int? AgeGroupId { get; set; }
 
-        [Required, Range(0, double.MaxValue, ErrorMessage = "Enter the rate amount.")] public decimal Amount { get; set; }
+        // Nullable for the same reason every picked id on this page is: a
+        // non-nullable decimal binds an empty box to 0, Range(0, ...) accepts
+        // it, and the admin gets a pay rate of zero with no complaint at all.
+        [Required(ErrorMessage = "Enter the rate amount."), Range(0, double.MaxValue, ErrorMessage = "Enter the rate amount.")]
+        public decimal? Amount { get; set; }
         [Required(ErrorMessage = "Choose a currency."), StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
         [Required] public RateUnit Unit { get; set; }
         [Required(ErrorMessage = "Enter the date this rate starts.")] public DateOnly? EffectiveFrom { get; set; }
@@ -174,8 +185,8 @@ public class TeachersModel : PageModel
         try
         {
             await _rates.CreateRateAsync(NewRate.TeacherId!.Value, NewRate.CourseId, NewRate.LevelId, NewRate.AgeGroupId,
-                new Money(NewRate.Amount, NewRate.Currency), NewRate.Unit, effectiveFrom, actingUserId, HttpContext.RequestAborted);
-            StatusMessage = _localizer["Rate created."].Value;
+                new Money(NewRate.Amount!.Value, NewRate.Currency), NewRate.Unit, effectiveFrom, actingUserId, HttpContext.RequestAborted);
+            StatusMessage = _localizer["Pay rate saved — it applies to every session this teacher delivers from that date on."].Value;
         }
         catch (ArgumentOutOfRangeException ex)
         {
@@ -201,20 +212,51 @@ public class TeachersModel : PageModel
             return Page();
         }
 
+        var levelIds = LevelGrant.LevelIds.Distinct().ToList();
+        if (levelIds.Count == 0)
+        {
+            ErrorMessage = _localizer["Tick at least one level this teacher may teach."].Value;
+            await LoadAsync();
+            return Page();
+        }
+
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
-        var outcome = await _levelAuthorization.GrantAsync(LevelGrant.TeacherId!.Value, LevelGrant.LevelId!.Value,
-            actingUserId, HttpContext.RequestAborted);
-        ErrorMessage = outcome switch
+        var granted = 0;
+        var alreadyGranted = 0;
+        string? failure = null;
+
+        foreach (var levelId in levelIds)
         {
-            TeacherLevelGrantOutcome.Granted => null,
-            TeacherLevelGrantOutcome.AlreadyGranted => _localizer["This teacher is already authorized for this level."].Value,
-            TeacherLevelGrantOutcome.TeacherNotFound => _localizer["Teacher not found."].Value,
-            TeacherLevelGrantOutcome.LevelNotFound => _localizer["Level not found."].Value,
-            _ => _localizer["Could not grant this level."].Value,
-        };
-        if (outcome == TeacherLevelGrantOutcome.Granted)
+            var outcome = await _levelAuthorization.GrantAsync(LevelGrant.TeacherId!.Value, levelId,
+                actingUserId, HttpContext.RequestAborted);
+            switch (outcome)
+            {
+                case TeacherLevelGrantOutcome.Granted:
+                    granted++;
+                    break;
+                case TeacherLevelGrantOutcome.AlreadyGranted:
+                    alreadyGranted++;
+                    break;
+                case TeacherLevelGrantOutcome.TeacherNotFound:
+                    failure ??= _localizer["Teacher not found."].Value;
+                    break;
+                case TeacherLevelGrantOutcome.LevelNotFound:
+                    failure ??= _localizer["Level not found."].Value;
+                    break;
+                default:
+                    failure ??= _localizer["Could not grant this level."].Value;
+                    break;
+            }
+        }
+
+        ErrorMessage = failure;
+        if (granted > 0)
         {
-            StatusMessage = _localizer["Level granted."].Value;
+            StatusMessage = _localizer["{0} level(s) added. This teacher can now publish sessions for them.", granted].Value;
+        }
+        else if (alreadyGranted > 0 && failure is null)
+        {
+            ErrorMessage = _localizer["This teacher already teaches every level you ticked."].Value;
         }
 
         await LoadAsync();
