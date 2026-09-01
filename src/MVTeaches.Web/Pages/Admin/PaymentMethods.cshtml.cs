@@ -1,12 +1,14 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Payments;
+using Microsoft.EntityFrameworkCore;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -26,18 +28,25 @@ namespace MVTeaches.Web.Pages.Admin;
 public class PaymentMethodsModel : PageModel
 {
     private readonly IPaymentMethodConfigService _methods;
+    private readonly MvTeachesDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public PaymentMethodsModel(IPaymentMethodConfigService methods, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer)
+    public PaymentMethodsModel(IPaymentMethodConfigService methods, MvTeachesDbContext db,
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
     {
         _methods = methods;
+        _db = db;
         _userManager = userManager;
         _localizer = localizer;
     }
 
     public IReadOnlyList<PaymentMethodConfig> Methods { get; set; } = Array.Empty<PaymentMethodConfig>();
+
+    /// <summary>Currency codes taken from the configured countries, home market
+    /// first — so the admin ticks the ones this account accepts instead of
+    /// typing three-letter codes into a comma-separated box.</summary>
+    public IReadOnlyList<string> Currencies { get; set; } = Array.Empty<string>();
 
     [BindProperty]
     public NewMethodInput NewMethod { get; set; } = new();
@@ -55,7 +64,11 @@ public class PaymentMethodsModel : PageModel
         public string? SwiftBic { get; set; }
         public string? CountryName { get; set; }
         public string? Instructions { get; set; }
-        [Required] public string AcceptedCurrencies { get; set; } = string.Empty;
+
+        /// <summary>Ticked from the configured currencies. PaymentMethodConfig
+        /// still stores exactly the same comma-separated string it always
+        /// did — this only replaces free-typed codes with a choice.</summary>
+        public List<string> AcceptedCurrencies { get; set; } = new();
     }
 
     public async Task OnGetAsync() => await LoadAsync();
@@ -70,7 +83,17 @@ public class PaymentMethodsModel : PageModel
         }
 
         var actingUserId = GetCurrentUserId();
-        var currencies = NewMethod.AcceptedCurrencies.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var currencies = NewMethod.AcceptedCurrencies
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim())
+            .ToArray();
+
+        if (currencies.Length == 0)
+        {
+            ErrorMessage = _localizer["Tick at least one currency this account can receive."].Value;
+            await LoadAsync();
+            return Page();
+        }
 
         try
         {
@@ -99,5 +122,17 @@ public class PaymentMethodsModel : PageModel
 
     private long GetCurrentUserId() => long.Parse(_userManager.GetUserId(User)!);
 
-    private async Task LoadAsync() => Methods = await _methods.ListAllAsync(HttpContext.RequestAborted);
+    private async Task LoadAsync()
+    {
+        Methods = await _methods.ListAllAsync(HttpContext.RequestAborted);
+
+        // Home market first (countries are seeded in that order), so the first
+        // currency offered is the one this centre actually bills in.
+        Currencies = (await _db.Countries.Where(c => c.IsActive)
+                .OrderBy(c => c.Id)
+                .Select(c => c.CurrencyCode)
+                .ToListAsync(HttpContext.RequestAborted))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
 }

@@ -1,86 +1,142 @@
-﻿@page
+@page
 @model MVTeaches.Web.Pages.Admin.PaymentMethodsModel
 @using MVTeaches.Domain.Payments
 @{
     ViewData["Title"] = T["Payment Methods"].Value;
 }
 
-<h1>@T["Payment Methods"]</h1>
-<p class="text-muted">@T["Payment methods intro"]</p>
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <a asp-page="/Admin/Payments">@T["Payments"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Payment Methods"]</span>
+</nav>
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Where families send the money"]</h1>
+        <p class="text-muted">@T["Payment methods intro"]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Payments">@T["Payments"]</a>
+    </div>
+</div>
+
+<div class="app-guide">
+    <p class="app-guide-title">@T["What do I do on this screen?"]</p>
+    <p>@T["These are the centre's own accounts, shown to a family when they are about to send money. There is no online card payment: every transfer happens outside the platform and an admin confirms it afterwards."]</p>
+    <p>@T["Add one account per way of paying you really accept. An account that is missing a required detail, or is switched off, is never offered to anybody."]</p>
+</div>
 
 @if (Model.StatusMessage is not null)
 {
-    <div class="alert alert-success">@Model.StatusMessage</div>
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
 }
 @if (Model.ErrorMessage is not null)
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
 }
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">@T["Add a payment method"]</h5>
-        <form method="post" asp-page-handler="Create" class="row g-2">
+        <h2 class="card-title h5">@T["Add an account"]</h2>
+        <p class="text-muted small">@T["Pick how the money arrives first — only the details that way of paying actually needs are then asked for."]</p>
+        <form method="post" asp-page-handler="Create" class="row g-3" data-mv-when-source="#methodType">
             <div class="col-md-4">
-                <label class="form-label" asp-for="NewMethod.Type">@T["Method type"]</label>
-                <select asp-for="NewMethod.Type" class="form-select">
+                <label class="form-label" asp-for="NewMethod.Type">@T["How does the money arrive?"]<span class="app-required">*</span></label>
+                <select asp-for="NewMethod.Type" id="methodType" class="form-select">
                     <option value="@PaymentMethod.CliQ">@T["PaymentMethod.CliQ"]</option>
                     <option value="@PaymentMethod.BankTransfer">@T["PaymentMethod.BankTransfer"]</option>
                     <option value="@PaymentMethod.InternationalBankTransfer">@T["PaymentMethod.InternationalBankTransfer"]</option>
                     <option value="@PaymentMethod.Cash">@T["PaymentMethod.Cash"]</option>
                 </select>
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="NewMethod.BeneficiaryName">@T["Beneficiary name"]</label>
+
+            <div class="col-md-4" data-mv-when="CliQ BankTransfer InternationalBankTransfer">
+                <label class="form-label" asp-for="NewMethod.BeneficiaryName">@T["Account holder name"]<span class="app-required">*</span></label>
                 <input asp-for="NewMethod.BeneficiaryName" class="form-control" />
+                <div class="form-text">@T["Exactly as it appears on the account — the family types this when they transfer."]</div>
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="NewMethod.AcceptedCurrencies">@T["Accepted currencies"]</label>
-                <input asp-for="NewMethod.AcceptedCurrencies" class="form-control" placeholder="JOD, USD" />
-                <div class="form-text">@T["Three-letter codes separated by commas, e.g. JOD, USD."]</div>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="NewMethod.CliqAlias">@T["CliQ alias"]</label>
+
+            <div class="col-md-4" data-mv-when="CliQ">
+                <label class="form-label" asp-for="NewMethod.CliqAlias">@T["CliQ alias"]<span class="app-required">*</span></label>
                 <input asp-for="NewMethod.CliqAlias" class="form-control" />
+                <div class="form-text">@T["The alias or phone number a CliQ transfer is sent to."]</div>
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="NewMethod.Iban">@T["IBAN"]</label>
+
+            <div class="col-md-4" data-mv-when="BankTransfer InternationalBankTransfer">
+                <label class="form-label" asp-for="NewMethod.Iban">@T["IBAN"]<span class="app-required">*</span></label>
                 <input asp-for="NewMethod.Iban" class="form-control" />
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="NewMethod.SwiftBic">@T["SWIFT/BIC"]</label>
-                <input asp-for="NewMethod.SwiftBic" class="form-control" />
-            </div>
-            <div class="col-md-4">
+
+            <div class="col-md-4" data-mv-when="BankTransfer InternationalBankTransfer">
                 <label class="form-label" asp-for="NewMethod.BankName">@T["Bank name"]</label>
                 <input asp-for="NewMethod.BankName" class="form-control" />
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="NewMethod.CountryName">@T["Country"]</label>
+
+            <div class="col-md-4" data-mv-when="InternationalBankTransfer">
+                <label class="form-label" asp-for="NewMethod.SwiftBic">@T["SWIFT/BIC"]<span class="app-required">*</span></label>
+                <input asp-for="NewMethod.SwiftBic" class="form-control" />
+                <div class="form-text">@T["Required for a transfer arriving from outside the country."]</div>
+            </div>
+
+            <div class="col-md-4" data-mv-when="BankTransfer InternationalBankTransfer">
+                <label class="form-label" asp-for="NewMethod.CountryName">@T["Country of the bank"]</label>
                 <input asp-for="NewMethod.CountryName" class="form-control" />
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="NewMethod.Instructions">@T["Additional instructions"]</label>
-                <input asp-for="NewMethod.Instructions" class="form-control" />
-            </div>
+
             <div class="col-12">
-                <button type="submit" class="btn btn-primary">@T["Add method"]</button>
+                <label class="form-label">@T["Which currencies can this account receive?"]<span class="app-required">*</span></label>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach (var code in Model.Currencies)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="NewMethod.AcceptedCurrencies"
+                                   value="@code" id="currency_@code"
+                                   checked="@(Model.NewMethod.AcceptedCurrencies.Contains(code))" />
+                            <label class="form-check-label" for="currency_@code">@code</label>
+                        </div>
+                    }
+                </div>
+                @if (Model.Currencies.Count == 0)
+                {
+                    <div class="form-text text-warning">@T["No country is configured yet, so there is no currency to offer."]</div>
+                }
+            </div>
+
+            <div class="col-12">
+                <label class="form-label" asp-for="NewMethod.Instructions">@T["Anything else the family should know (optional)"]</label>
+                <input asp-for="NewMethod.Instructions" class="form-control"
+                       placeholder="@T["e.g. write the student's name in the transfer note"]" />
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">@T["Add the account"]</button>
+                <div class="app-outcome mt-3">@T["It becomes visible to families straight away, on the screens where they are told where to send money."]</div>
             </div>
         </form>
     </div>
 </div>
 
-<h2>@T["Configured methods"]</h2>
+<h2>@T["Accounts in use"]</h2>
 <div class="table-responsive">
     <table class="table table-sm table-striped">
         <thead>
             <tr>
-                <th>@T["Method type"]</th>
-                <th>@T["Beneficiary name"]</th>
+                <th>@T["How does the money arrive?"]</th>
+                <th>@T["Account holder name"]</th>
                 <th>@T["Details"]</th>
-                <th>@T["Accepted currencies"]</th>
+                <th>@T["Currencies"]</th>
                 <th>@T["Status"]</th>
-                <th></th>
+                <th>@T["Actions"]</th>
             </tr>
         </thead>
         <tbody>
@@ -88,23 +144,45 @@
             {
                 <tr>
                     <td>@T["PaymentMethod." + m.Type]</td>
-                    <td>@(m.Type == PaymentMethod.Cash ? "—" : m.BeneficiaryName)</td>
+                    <td>@(m.Type == PaymentMethod.Cash ? T["Not applicable"].Value : m.BeneficiaryName)</td>
                     <td>
                         @if (m.CliqAlias is not null) { <div>@T["CliQ alias"]: @m.CliqAlias</div> }
                         @if (m.Iban is not null) { <div>IBAN: @m.Iban</div> }
                         @if (m.SwiftBic is not null) { <div>SWIFT/BIC: @m.SwiftBic</div> }
                         @if (m.BankName is not null) { <div>@m.BankName</div> }
+                        @if (m.Type == PaymentMethod.Cash) { <span class="text-muted">@T["Paid in person at the centre."]</span> }
                     </td>
                     <td>@m.AcceptedCurrenciesCsv</td>
-                    <td>@(m.IsActive ? T["Active"] : T["Deactivated"])</td>
+                    <td>
+                        @if (m.IsActive)
+                        {
+                            <span class="app-status is-success">@T["Offered to families"]</span>
+                        }
+                        else
+                        {
+                            <span class="app-status is-muted">@T["Switched off"]</span>
+                        }
+                    </td>
                     <td>
                         @if (m.IsActive)
                         {
                             <form method="post" asp-page-handler="Deactivate">
                                 <input type="hidden" name="id" value="@m.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Deactivate"]</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        data-mv-confirm="@T["Stop offering this account to families? Payments already recorded against it are not affected."]">@T["Switch it off"]</button>
                             </form>
                         }
+                    </td>
+                </tr>
+            }
+            @if (Model.Methods.Count == 0)
+            {
+                <tr>
+                    <td colspan="6">
+                        <div class="app-empty">
+                            <strong>@T["No account configured yet."]</strong>
+                            <span>@T["Until one exists, a family has nowhere to send the money — add the first one above."]</span>
+                        </div>
                     </td>
                 </tr>
             }
