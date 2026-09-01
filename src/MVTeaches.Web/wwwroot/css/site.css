@@ -1659,3 +1659,47 @@ a.app-kpi:hover {
   justify-self: start;
   margin-top: 0.35rem;
 }
+
+/* --- Sign-in split-screen entrance --------------------------------------
+   The two halves arrive from opposite sides and settle, so the page reads as
+   one split surface rather than two boxes that happened to load. CSS only:
+   no markup, no script, and nothing on the Login page itself changed - the
+   sign-in form, its fields and its posting behaviour are untouched.
+
+   The global (prefers-reduced-motion: reduce) block further down already
+   collapses every animation-duration to 0.01ms, so this needs no opt-out of
+   its own; it simply appears, which is the correct reduced-motion outcome.
+
+   Deliberately NOT a Sign in <-> Sign up slide: this product has no public
+   sign-up page (accounts are created by an admin), so there is no second
+   panel to slide to. Adding one would be a change to how people get accounts,
+   not a design polish. */
+@keyframes mv-auth-rise-start {
+  from { opacity: 0; transform: translateX(-1.75rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes mv-auth-rise-end {
+  from { opacity: 0; transform: translateX(1.75rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+.auth-panel > .auth-copy {
+  animation: mv-auth-rise-start 620ms cubic-bezier(0.22, 0.68, 0.36, 1) both;
+}
+
+.auth-panel > .auth-card {
+  /* Slightly behind the copy: the eye lands on the sentence, then on the
+     form it is being asked to fill in. */
+  animation: mv-auth-rise-end 620ms cubic-bezier(0.22, 0.68, 0.36, 1) 90ms both;
+}
+
+/* Arabic reads right-to-left, so "in from the outside" is the mirrored
+   direction on both halves. */
+[dir="rtl"] .auth-panel > .auth-copy {
+  animation-name: mv-auth-rise-end;
+}
+
+[dir="rtl"] .auth-panel > .auth-card {
+  animation-name: mv-auth-rise-start;
+}
