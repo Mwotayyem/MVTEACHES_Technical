@@ -603,7 +603,8 @@
             var who = box.querySelector("[data-mv-message-who]");
             var copyButton = box.querySelector("[data-mv-message-copy]");
             var template = box.getAttribute("data-mv-message-template") || "";
-            var fallback = box.getAttribute("data-mv-message-fallback") || "";
+            var studentTemplate = box.getAttribute("data-mv-message-template-student") || "";
+            var noContact = box.querySelector("[data-mv-message-nocontact]");
             if (!output) { return; }
 
             function chosen(select) {
@@ -625,10 +626,25 @@
                 var fromWhen = from ? (from.getAttribute("data-when") || from.text.trim()) : "";
                 var toWhen = to ? (to.getAttribute("data-when") || to.text.trim()) : "";
 
+                // Who is actually written to. A student with no guardian on
+                // file used to still get a draft opening "Hello guardian",
+                // addressed to somebody who does not exist. Three cases now,
+                // and the third one produces no message at all rather than a
+                // polite letter to nobody.
+                var hasOwnLogin = !!(student && student.getAttribute("data-has-login") === "1");
+                var audience = guardian ? "guardian" : (hasOwnLogin ? "student" : "none");
+
                 if (who) {
-                    who.textContent = guardian
-                        ? guardian + (studentName ? " (" + studentName + ")" : "")
-                        : (studentName || "—");
+                    if (audience === "guardian") {
+                        who.textContent = guardian + (studentName ? " (" + studentName + ")" : "");
+                    } else if (audience === "student") {
+                        who.textContent = studentName;
+                    } else {
+                        who.textContent = student ? "—" : "—";
+                    }
+                }
+                if (noContact) {
+                    noContact.hidden = !(student && audience === "none");
                 }
 
                 // Until all three are picked the draft would be a sentence with
@@ -639,8 +655,17 @@
                     return;
                 }
 
-                output.value = template
-                    .replace("{guardian}", guardian || fallback)
+                // No guardian and no account of their own: there is nobody to
+                // address, so no draft is produced and there is nothing to copy.
+                if (audience === "none") {
+                    output.value = "";
+                    if (copyButton) { copyButton.disabled = true; }
+                    return;
+                }
+
+                var chosenTemplate = (audience === "student" && studentTemplate) ? studentTemplate : template;
+                output.value = chosenTemplate
+                    .replace("{guardian}", guardian)
                     .replace("{student}", studentName)
                     .replace("{from}", fromWhen)
                     .replace("{to}", toWhen);

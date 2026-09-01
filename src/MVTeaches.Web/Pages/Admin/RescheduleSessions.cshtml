@@ -68,8 +68,32 @@
     </div>
 }
 
-<h2 class="h4">@T["A. The student never joined — move the lesson"]</h2>
-<p class="text-muted">@T["Their balance was never touched, and it stays untouched."]</p>
+@* The two forms are two answers to one question, and stacking them meant
+   scrolling through the wrong one to reach the right one. Tabs now, with the
+   tab that just posted left open so its outcome message sits next to the form
+   that produced it. Every form, handler and rule below is unchanged. *@
+<div class="app-tabs">
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "move" ? "active" : null)" id="tab-move"
+                    data-bs-toggle="tab" data-bs-target="#panel-move" type="button" role="tab"
+                    aria-controls="panel-move" aria-selected="@(Model.ActiveTab == "move" ? "true" : "false")">
+                @T["They never joined — move the lesson"]
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "makeup" ? "active" : null)" id="tab-makeup"
+                    data-bs-toggle="tab" data-bs-target="#panel-makeup" type="button" role="tab"
+                    aria-controls="panel-makeup" aria-selected="@(Model.ActiveTab == "makeup" ? "true" : "false")">
+                @T["They joined and it failed — give a make-up"]
+            </button>
+        </li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade @(Model.ActiveTab == "move" ? "show active" : null)" id="panel-move"
+             role="tabpanel" aria-labelledby="tab-move" tabindex="0">
+            <p class="text-muted">@T["Their balance was never touched, and it stays untouched."]</p>
+
 
 <ol class="app-steps">
     <li class="is-current"><span class="app-step-label">@T["Which student?"]</span></li>
@@ -91,7 +115,7 @@
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
-                        <option value="@s.Id" data-guardian="@s.GuardianName">@s.FullName</option>
+                        <option value="@s.Id" data-guardian="@s.GuardianName" data-has-login="@(s.HasOwnLogin ? "1" : "0")">@s.FullName</option>
                     }
                 </select>
                 <span asp-validation-for="Reschedule.StudentId" class="text-danger small"></span>
@@ -172,7 +196,7 @@
              data-mv-message-from="#rescheduleOriginal"
              data-mv-message-to="#rescheduleReplacement"
              data-mv-message-template="@T["Hello {guardian}, this is MVTEACHES. {student}'s lesson has been moved from {from} to {to}. Nothing is deducted from the package because of this change. See you then."]"
-             data-mv-message-fallback="@T["The guardian"]">
+             data-mv-message-template-student="@T["Hello {student}, this is MVTEACHES. Your lesson has been moved from {from} to {to}. Nothing is deducted from your package because of this change. See you then."]">
             <div class="app-draft-head">
                 <div>
                     <strong>@T["Message to send"]</strong>
@@ -182,8 +206,11 @@
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-mv-message-copy>@T["Copy"]</button>
             </div>
+            <div class="alert alert-warning py-2 px-3 small mb-2" data-mv-message-nocontact hidden>
+                @T["This student has no guardian linked and no sign-in of their own, so there is nobody for this message to be addressed to. Link a guardian on the students screen, or contact the family by whatever number the centre has on file."]
+            </div>
             <textarea class="form-control" rows="3" readonly aria-label="@T["Message to send"]" data-mv-message-text></textarea>
-            <p class="app-draft-note">@T["Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically."]</p>
+            <p class="app-draft-note">@T["Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically. WhatsApp is not connected."]</p>
         </div>
         <button type="submit" class="btn btn-primary"
                 data-mv-confirm="@T["Move this student to the new lesson?"]">@T["Move the lesson"]</button>
@@ -191,8 +218,11 @@
     </section>
 </form>
 
-<h2 class="h4 mt-5">@T["B. The student joined, and the lesson failed — give a make-up"]</h2>
-<p class="text-muted">@T["Their attendance and the hour they spent both stay on the record forever. This adds one free lesson on top."]</p>
+        </div>
+        <div class="tab-pane fade @(Model.ActiveTab == "makeup" ? "show active" : null)" id="panel-makeup"
+             role="tabpanel" aria-labelledby="tab-makeup" tabindex="0">
+            <p class="text-muted">@T["Their attendance and the hour they spent both stay on the record forever. This adds one free lesson on top."]</p>
+
 
 <ol class="app-steps">
     <li class="is-current"><span class="app-step-label">@T["Which student?"]</span></li>
@@ -213,7 +243,7 @@
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
-                        <option value="@s.Id" data-guardian="@s.GuardianName">@s.FullName</option>
+                        <option value="@s.Id" data-guardian="@s.GuardianName" data-has-login="@(s.HasOwnLogin ? "1" : "0")">@s.FullName</option>
                     }
                 </select>
                 <span asp-validation-for="Approve.StudentId" class="text-danger small"></span>
@@ -295,7 +325,7 @@
              data-mv-message-from="#approveOriginal"
              data-mv-message-to="#approveReplacement"
              data-mv-message-template="@T["Hello {guardian}, this is MVTEACHES. {student}'s lesson has been moved from {from} to {to}. Nothing is deducted from the package because of this change. See you then."]"
-             data-mv-message-fallback="@T["The guardian"]">
+             data-mv-message-template-student="@T["Hello {student}, this is MVTEACHES. Your lesson has been moved from {from} to {to}. Nothing is deducted from your package because of this change. See you then."]">
             <div class="app-draft-head">
                 <div>
                     <strong>@T["Message to send"]</strong>
@@ -305,11 +335,17 @@
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-mv-message-copy>@T["Copy"]</button>
             </div>
+            <div class="alert alert-warning py-2 px-3 small mb-2" data-mv-message-nocontact hidden>
+                @T["This student has no guardian linked and no sign-in of their own, so there is nobody for this message to be addressed to. Link a guardian on the students screen, or contact the family by whatever number the centre has on file."]
+            </div>
             <textarea class="form-control" rows="3" readonly aria-label="@T["Message to send"]" data-mv-message-text></textarea>
-            <p class="app-draft-note">@T["Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically."]</p>
+            <p class="app-draft-note">@T["Copy it and send it yourself — this screen sends nothing, and moving the lesson does not message anybody automatically. WhatsApp is not connected."]</p>
         </div>
         <button type="submit" class="btn btn-primary"
                 data-mv-confirm="@T["Give this student a free make-up lesson?"]">@T["Approve the make-up lesson"]</button>
         <div class="app-outcome mt-3">@T["When the student joins that lesson, nothing is taken off their balance. It can be used once."]</div>
     </section>
 </form>
+        </div>
+    </div>
+</div>

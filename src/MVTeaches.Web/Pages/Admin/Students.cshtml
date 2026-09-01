@@ -53,15 +53,15 @@
     </div>
 }
 
-@* The register used to be a six-column table, which answered "who exists"
-   and nothing else - an admin still had to open every student to learn
-   whether they had paid, what they were on, or how much was left. Same
-   rows, same order, same links; each one now carries the picture. The
-   state badge comes from StudentLifecycle, a display classification that
-   grants and blocks nothing. *@
+@* Owner correction 2026-09-01: the card grid read as a wall of boxes and
+   was slower to scan than the table it replaced. Back to a table - but a
+   table that still carries the picture the cards were added for: state
+   badge, paid/billed meter, balance left, guardian, and the one action that
+   actually moves this student forward. The state chips above the table are
+   unchanged, and so is every handler and rule below. *@
 <div class="app-toolbar">
     <div class="app-search">
-        <input type="search" class="form-control" data-mv-filter="#studentCards" data-mv-filter-count="#studentsShown"
+        <input type="search" class="form-control" data-mv-filter="#studentRows" data-mv-filter-count="#studentsShown"
                placeholder="@T["Search by name, level, status, or guardian…"]" aria-label="@T["Search by name, level, status, or guardian…"]" />
     </div>
     <span class="text-muted small">@T["Showing"] <span id="studentsShown">@Model.VisibleStudents.Count</span> / @Model.Students.Count</span>
@@ -89,131 +89,183 @@
     }
 </div>
 
-<div class="app-student-grid mb-4" id="studentCards">
-    @foreach (var student in Model.VisibleStudents)
-    {
-        <article class="app-student-card @(student.NeedsAttention ? "needs-attention" : null)" data-mv-filter-item>
-            <header>
-                <a class="app-student-name" asp-page="/Admin/StudentDetails" asp-route-id="@student.Id">@student.FullName</a>
-                <span class="@StudentLifecycle.StatusClass(student.State)">@T["StudentLifecycleState." + student.State]</span>
-            </header>
-
-            <p class="app-student-line">
-                @if (student.CurrentLevelCode is null)
-                {
-                    <span class="app-chip is-missing">@T["Awaiting a level"]</span>
-                }
-                else
-                {
-                    <span class="app-chip is-level">@student.CurrentLevelCode</span>
-                }
-                <span class="app-chip">@(student.PackageName ?? T["No package"].Value)</span>
-                <span class="app-chip">@student.CountryName</span>
-            </p>
-
-            @if (student.Currency is not null)
+<div class="table-responsive mb-4">
+    <table class="table app-register">
+        <thead>
+            <tr>
+                <th scope="col">@T["Student"]</th>
+                <th scope="col">@T["Level and package"]</th>
+                <th scope="col">@T["Where they stand"]</th>
+                <th scope="col">@T["Paid"]</th>
+                <th scope="col">@T["Still owed"]</th>
+                <th scope="col">@T["Balance left"]</th>
+                <th scope="col">@T["Lessons ahead"]</th>
+                <th scope="col">@T["Guardian"]</th>
+                <th scope="col">@T["Next step"]</th>
+                <th scope="col" class="text-end">@T["Actions"]</th>
+            </tr>
+        </thead>
+        <tbody id="studentRows">
+            @foreach (var student in Model.VisibleStudents)
             {
-                <div class="app-student-metric">
-                    <span class="app-student-metric-head">
-                        <span>@T["Paid"]</span>
-                        <strong>@T.Money(student.Paid, student.Currency) / @T.Money(student.Billed, student.Currency)</strong>
-                    </span>
-                    <div class="app-meter" role="img"
-                         aria-label="@T["{0}% of the billed amount has been paid.", student.PaidPercent]">
-                        <span class="app-meter-fill @(student.Outstanding <= 0m ? "is-success" : "is-warning")"
-                              style="width:@(student.PaidPercent)%"></span>
-                    </div>
-                    @if (student.Outstanding > 0m)
-                    {
-                        <span class="app-student-metric-note is-bad">@T["Still owed"]: @T.Money(student.Outstanding, student.Currency)</span>
-                    }
-                </div>
-            }
-
-            @if (student.PurchasedMinutes > 0)
-            {
-                <div class="app-student-metric">
-                    <span class="app-student-metric-head">
-                        <span>@T["Balance left"]</span>
-                        <strong>@T.Minutes(student.RemainingMinutes)</strong>
-                    </span>
-                    <div class="app-meter" role="img"
-                         aria-label="@T["{0}% of the purchased time has been used.", student.UsedPercent]">
-                        <span class="app-meter-fill @(student.UsedPercent >= 85 ? "is-warning" : "is-primary")"
-                              style="width:@(student.UsedPercent)%"></span>
-                    </div>
-                </div>
-            }
-
-            <dl class="app-student-facts">
-                <div>
-                    <dt>@T["Runs"]</dt>
-                    <dd>
-                        @if (student.StartsOn is not null && student.ExpiresOn is not null)
+                <tr data-mv-filter-item class="@(student.NeedsAttention ? "is-attention" : null)">
+                    <th scope="row">
+                        <a class="app-record-link" asp-page="/Admin/StudentDetails" asp-route-id="@student.Id">
+                            <span class="app-record-name">@student.FullName</span>
+                            <span class="app-record-sub">@T["Student number"] @student.Id · @student.CountryName</span>
+                        </a>
+                    </th>
+                    <td>
+                        @if (student.CurrentLevelCode is null)
                         {
-                            <text>@T.Date(student.StartsOn.Value) → @T.Date(student.ExpiresOn.Value)</text>
+                            <span class="app-chip is-missing">@T["Awaiting a level"]</span>
                         }
                         else
                         {
+                            <span class="app-chip is-level">@student.CurrentLevelCode</span>
+                        }
+                        <div class="text-muted small">@(student.PackageName ?? T["No package"].Value)</div>
+                        @if (student.StartsOn is not null && student.ExpiresOn is not null)
+                        {
+                            <div class="text-muted small">@T.Date(student.StartsOn.Value) → @T.Date(student.ExpiresOn.Value)</div>
+                        }
+                    </td>
+                    <td><span class="@StudentLifecycle.StatusClass(student.State)">@T["StudentLifecycleState." + student.State]</span></td>
+                    <td>
+                        @if (student.Currency is null)
+                        {
                             <span class="text-muted">—</span>
                         }
-                    </dd>
-                </div>
-                <div>
-                    <dt>@T["Lessons ahead"]</dt>
-                    <dd>@student.UpcomingLessonCount</dd>
-                </div>
-                <div>
-                    <dt>@T["Guardians"]</dt>
-                    <dd>@(student.GuardianNames.Count > 0 ? string.Join("، ", student.GuardianNames) : T["Not specified"].Value)</dd>
-                </div>
-            </dl>
-
-            <footer>
-                <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/StudentDetails" asp-route-id="@student.Id">@T["Open file"]</a>
-                @if (student.CurrentLevelCode is null)
-                {
-                    <a class="btn btn-sm btn-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">@T["Set the level now"]</a>
-                }
-                @if (student.GuardianNames.Count == 0)
-                {
-                    <a class="btn btn-sm btn-outline-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="link-guardian">@T["Link a guardian"]</a>
-                }
-                @if (student.State == StudentLifecycleState.PaymentDue)
-                {
-                    <a class="btn btn-sm btn-primary" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Open payments"]</a>
-                }
-                @if (student.Status == StudentStatus.PendingVerification)
-                {
-                    <form method="post" asp-page-handler="Verify" class="d-inline">
-                        <input type="hidden" name="studentId" value="@student.Id" />
-                        <button type="submit" class="btn btn-sm btn-outline-success"
-                                data-mv-confirm="@T["Mark this student as verified?"]">@T["Mark verified"]</button>
-                    </form>
-                }
-            </footer>
-        </article>
-    }
-
-    <div class="app-empty" data-mv-filter-empty="true" hidden>
-        @T["No student matches this search — try part of the name instead."]
-    </div>
-
-    @if (Model.Students.Count == 0)
-    {
-        <div class="app-empty">
-            <strong>@T["No students registered yet."]</strong>
-            <span>@T["Start with a guardian, then the student — the assisted registration screen does both in order."]</span>
-            <span><a class="btn btn-primary btn-sm mt-2" asp-page="/Admin/AssistedRegistration">@T["Register a family step by step"]</a></span>
-        </div>
-    }
-    else if (Model.VisibleStudents.Count == 0)
-    {
-        <div class="app-empty">
-            <strong>@T["No student is in that state right now."]</strong>
-            <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Students">@T["Everyone"]</a></span>
-        </div>
-    }
+                        else
+                        {
+                            <span class="app-cell-figure">@T.Money(student.Paid, student.Currency)</span>
+                            <div class="text-muted small">@T["of"] @T.Money(student.Billed, student.Currency)</div>
+                            <div class="app-meter app-meter-sm" role="img"
+                                 aria-label="@T["{0}% of the billed amount has been paid.", student.PaidPercent]">
+                                <span class="app-meter-fill @(student.Outstanding <= 0m ? "is-success" : "is-warning")"
+                                      style="width:@(student.PaidPercent)%"></span>
+                            </div>
+                        }
+                    </td>
+                    <td>
+                        @if (student.Currency is null)
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                        else if (student.Outstanding > 0m)
+                        {
+                            <span class="app-cell-figure is-bad">@T.Money(student.Outstanding, student.Currency)</span>
+                        }
+                        else
+                        {
+                            <span class="app-status is-success">@T["Fully paid."]</span>
+                        }
+                    </td>
+                    <td>
+                        <span class="app-cell-figure">@T.Minutes(student.RemainingMinutes)</span>
+                        @if (student.PurchasedMinutes > 0)
+                        {
+                            <div class="app-meter app-meter-sm" role="img"
+                                 aria-label="@T["{0}% of the purchased time has been used.", student.UsedPercent]">
+                                <span class="app-meter-fill @(student.UsedPercent >= 85 ? "is-warning" : "is-primary")"
+                                      style="width:@(student.UsedPercent)%"></span>
+                            </div>
+                        }
+                    </td>
+                    <td>@student.UpcomingLessonCount</td>
+                    <td>
+                        @if (student.GuardianNames.Count > 0)
+                        {
+                            @string.Join("، ", student.GuardianNames)
+                        }
+                        else
+                        {
+                            <span class="app-chip is-missing">@T["No guardian linked"]</span>
+                        }
+                    </td>
+                    <td class="text-muted small">
+                        @if (student.Status == StudentStatus.PendingVerification)
+                        {
+                            @T["Confirm the registration details with the family."]
+                        }
+                        else if (student.CurrentLevelCode is null)
+                        {
+                            @T["Set the level so packages can be bought."]
+                        }
+                        else if (student.State == StudentLifecycleState.PaymentDue)
+                        {
+                            @T["Collect or confirm the outstanding amount."]
+                        }
+                        else if (student.State == StudentLifecycleState.EndingSoon)
+                        {
+                            @T["Talk to the family about renewing."]
+                        }
+                        else if (student.GuardianNames.Count == 0)
+                        {
+                            @T["Link a guardian so somebody can be reached."]
+                        }
+                        else
+                        {
+                            @T["Nothing needed right now."]
+                        }
+                    </td>
+                    <td class="text-end">
+                        <div class="app-row-actions">
+                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/StudentDetails" asp-route-id="@student.Id">@T["Open file"]</a>
+                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>
+                            @if (student.CurrentLevelCode is null)
+                            {
+                                <a class="btn btn-sm btn-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">@T["Set the level now"]</a>
+                            }
+                            @if (student.GuardianNames.Count == 0)
+                            {
+                                <a class="btn btn-sm btn-outline-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="link-guardian">@T["Link a guardian"]</a>
+                            }
+                            @if (student.Status == StudentStatus.PendingVerification)
+                            {
+                                @* Renamed 2026-09-01. It used to read "Mark verified", which said
+                                   nothing about WHAT was being verified - the person, the account,
+                                   the phone, or the paperwork. It is the registration details:
+                                   StudentStatus goes PendingVerification -> PendingLevel, which is
+                                   the step that lets a level be assigned. Same handler, same
+                                   service call, same single status change. *@
+                                <form method="post" asp-page-handler="Verify" class="d-inline">
+                                    <input type="hidden" name="studentId" value="@student.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success"
+                                            title="@T["The centre has contacted the family and checked the name, phone number and date of birth. This does not assign a level and does not touch any payment."]"
+                                            data-mv-confirm="@T["Confirm this student's registration details are correct?"]">@T["Confirm registration details"]</button>
+                                </form>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (Model.Students.Count == 0)
+            {
+                <tr><td colspan="10">
+                    <div class="app-empty">
+                        <strong>@T["No students registered yet."]</strong>
+                        <span>@T["Start with a guardian, then the student — the assisted registration screen does both in order."]</span>
+                        <span><a class="btn btn-primary btn-sm mt-2" asp-page="/Admin/AssistedRegistration">@T["Register a family step by step"]</a></span>
+                    </div>
+                </td></tr>
+            }
+            else if (Model.VisibleStudents.Count == 0)
+            {
+                <tr><td colspan="10">
+                    <div class="app-empty">
+                        <strong>@T["No student is in that state right now."]</strong>
+                        <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Students">@T["Everyone"]</a></span>
+                    </div>
+                </td></tr>
+            }
+            <tr data-mv-filter-empty="true" hidden>
+                <td colspan="10">
+                    <div class="app-empty">@T["No student matches this search — try part of the name instead."]</div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 
 <h2>@T["Single corrections"]</h2>

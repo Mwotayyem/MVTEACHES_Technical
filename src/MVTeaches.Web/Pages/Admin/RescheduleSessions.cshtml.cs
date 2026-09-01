@@ -65,8 +65,16 @@ public class RescheduleSessionsModel : PageModel
 
     /// <summary>The student, plus the person who would actually be told about
     /// a move. Nothing is sent from this screen - the guardian's name is here
-    /// so the admin can see who the message is for and copy it.</summary>
-    public record StudentOption(long Id, string FullName, string? GuardianName);
+    /// so the admin can see who the message is for and copy it.
+    ///
+    /// <paramref name="HasOwnLogin"/> exists because not every student has a
+    /// guardian on file. The draft used to open with "Hello guardian" for all
+    /// of them, addressing somebody who does not exist. Now: a guardian is
+    /// written to when there is one, the student is written to when there is
+    /// no guardian but they have their own account, and when there is neither
+    /// the screen says so instead of producing a message with nobody to send
+    /// it to.</summary>
+    public record StudentOption(long Id, string FullName, string? GuardianName, bool HasOwnLogin);
 
     public IReadOnlyList<StudentOption> Students { get; set; } = Array.Empty<StudentOption>();
     public IReadOnlyList<SessionOption> Sessions { get; set; } = Array.Empty<SessionOption>();
@@ -100,6 +108,14 @@ public class RescheduleSessionsModel : PageModel
 
     public string? FocusStudentName { get; set; }
     public string? FocusGuardianName { get; set; }
+
+    /// <summary>Which of the two forms is open. They are two different
+    /// answers to one question ("did the student join or not?") and sat
+    /// stacked on the same page, so an admin scrolled through the wrong one
+    /// to reach the right one. Tabs now, with the tab that just posted left
+    /// open so the outcome message is visible next to the form that produced
+    /// it. Display only - no handler reads it and no rule depends on it.</summary>
+    public string ActiveTab { get; private set; } = "move";
 
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
@@ -148,6 +164,7 @@ public class RescheduleSessionsModel : PageModel
 
     public async Task<IActionResult> OnPostRescheduleAsync()
     {
+        ActiveTab = "move";
         ModelState.Clear();
         if (!TryValidateModel(Reschedule, nameof(Reschedule)))
         {
@@ -184,6 +201,7 @@ public class RescheduleSessionsModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync()
     {
+        ActiveTab = "makeup";
         ModelState.Clear();
         if (!TryValidateModel(Approve, nameof(Approve)))
         {
@@ -238,7 +256,8 @@ public class RescheduleSessionsModel : PageModel
                 g => guardianNames.GetValueOrDefault(
                     (g.FirstOrDefault(x => x.IsPrimary) ?? g.First()).GuardianId));
         Students = studentEntities
-            .Select(s => new StudentOption(s.Id, s.FullName, guardianByStudent.GetValueOrDefault(s.Id)))
+            .Select(s => new StudentOption(s.Id, s.FullName, guardianByStudent.GetValueOrDefault(s.Id),
+                s.UserId is not null))
             .ToList();
 
         var now = _clock.GetCurrentInstant();
