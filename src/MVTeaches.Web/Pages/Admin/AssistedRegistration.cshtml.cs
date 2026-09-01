@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -92,6 +92,27 @@ public class AssistedRegistrationModel : PageModel
     public IReadOnlyList<StudentSearchRow> StudentResults { get; set; } = Array.Empty<StudentSearchRow>();
     public IReadOnlyList<PaymentMethodConfig> ActiveMethods { get; set; } = Array.Empty<PaymentMethodConfig>();
 
+    /// <summary>Everything the pickers on this page need. The screen used to
+    /// ask the admin to type a raw "Guardian id" / "Student id" / "Country id"
+    /// into a number box — three chances to key in a number that belongs to
+    /// somebody else entirely. They are named lists now; no internal id is
+    /// ever shown or typed.</summary>
+    public IReadOnlyList<Country> Countries { get; set; } = Array.Empty<Country>();
+    public IReadOnlyList<GuardianSearchRow> AllGuardians { get; set; } = Array.Empty<GuardianSearchRow>();
+    public IReadOnlyList<StudentSearchRow> AllStudents { get; set; } = Array.Empty<StudentSearchRow>();
+
+    /// <summary>Which step of the sequence this admin is actually on, derived
+    /// from the state of the chosen student — never stored, never a wizard
+    /// session. Display only: every step remains reachable and the server
+    /// still enforces the real order (no level, no package).</summary>
+    public int CurrentStep { get; set; } = 1;
+
+    public bool IsArabic => System.Globalization.CultureInfo.CurrentUICulture
+        .TwoLetterISOLanguageName.Equals("ar", StringComparison.OrdinalIgnoreCase);
+
+    public bool SelectedStudentHasGuardian => SelectedStudentGuardianNames.Count > 0;
+    public bool SelectedStudentHasPackage { get; set; }
+
     public long? SelectedStudentId { get; set; }
     public string? SelectedStudentName { get; set; }
     public IReadOnlyList<string> SelectedStudentGuardianNames { get; set; } = Array.Empty<string>();
@@ -129,30 +150,38 @@ public class AssistedRegistrationModel : PageModel
 
     public class NewGuardianInput
     {
-        [Required, EmailAddress] public string Email { get; set; } = string.Empty;
-        [Required, MinLength(8)] public string Password { get; set; } = string.Empty;
-        [Required] public string FullName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Enter an email address."), EmailAddress(ErrorMessage = "This is not a valid email address.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Enter a temporary password."), MinLength(8, ErrorMessage = "The password must be at least 8 characters.")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Enter the full name.")] public string FullName { get; set; } = string.Empty;
     }
 
+    // Ids and dates are nullable on purpose: on a non-nullable value type an
+    // untouched picker posts "", the binding error is dropped by
+    // ModelState.Clear(), and [Required] then passes on the defaulted 0 /
+    // 0001-01-01. Same fix already documented on /Admin/Students.
     public class NewStudentInput
     {
-        [Required] public int CountryId { get; set; }
-        [Required] public string FullName { get; set; } = string.Empty;
-        [Required] public DateOnly DateOfBirth { get; set; }
+        [Required(ErrorMessage = "Choose a country.")] public int? CountryId { get; set; }
+        [Required(ErrorMessage = "Enter the full name.")] public string FullName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Enter the date of birth.")] public DateOnly? DateOfBirth { get; set; }
     }
 
     public class LinkInput
     {
-        [Required] public long GuardianId { get; set; }
-        [Required] public long StudentId { get; set; }
+        [Required(ErrorMessage = "Choose a guardian.")] public long? GuardianId { get; set; }
+        [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
         [Required] public GuardianRelationship Relationship { get; set; }
         public bool IsPrimary { get; set; }
     }
 
     public class PurchaseInput
     {
-        [Required] public long StudentId { get; set; }
-        [Required] public long PricingPlanId { get; set; }
+        [Required(ErrorMessage = "Choose a student.")] public long StudentId { get; set; }
+        [Required(ErrorMessage = "Choose a pricing plan.")] public long PricingPlanId { get; set; }
     }
 
     public class TransferInput
@@ -205,11 +234,12 @@ public class AssistedRegistrationModel : PageModel
             return Page();
         }
 
-        var dob = new LocalDate(NewStudent.DateOfBirth.Year, NewStudent.DateOfBirth.Month, NewStudent.DateOfBirth.Day);
+        var dateOfBirth = NewStudent.DateOfBirth!.Value;
+        var dob = new LocalDate(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day);
         // No login/password here — this student registers with no independent
         // account yet, exactly the ordinary guardian-only-child case; a login
         // can be added later from /Admin/Students if the family wants one.
-        var result = await _admissions.RegisterStudentAsync(NewStudent.CountryId, NewStudent.FullName, dob,
+        var result = await _admissions.RegisterStudentAsync(NewStudent.CountryId!.Value, NewStudent.FullName, dob,
             loginEmail: null, loginPassword: null, HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome == RegisterStudentOutcome.Registered
@@ -230,7 +260,7 @@ public class AssistedRegistrationModel : PageModel
         }
 
         var actingUserId = GetCurrentUserId();
-        var result = await _admissions.LinkGuardianAsync(Link.GuardianId, Link.StudentId, Link.Relationship, Link.IsPrimary, actingUserId, HttpContext.RequestAborted);
+        var result = await _admissions.LinkGuardianAsync(Link.GuardianId!.Value, Link.StudentId!.Value, Link.Relationship, Link.IsPrimary, actingUserId, HttpContext.RequestAborted);
         ErrorMessage = result.Outcome switch
         {
             LinkGuardianOutcome.PrimaryConflict => _localizer["This student already has a primary guardian."].Value,
@@ -349,6 +379,18 @@ public class AssistedRegistrationModel : PageModel
     {
         ActiveMethods = await _methods.ListActiveAsync(HttpContext.RequestAborted);
 
+        Countries = await _db.Countries.Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(HttpContext.RequestAborted);
+        AllGuardians = await _db.Guardians
+            .OrderBy(g => g.FullName)
+            .Take(300)
+            .Select(g => new GuardianSearchRow(g.Id, g.FullName, null))
+            .ToListAsync(HttpContext.RequestAborted);
+        AllStudents = await _db.Students
+            .OrderBy(st => st.FullName)
+            .Take(300)
+            .Select(st => new StudentSearchRow(st.Id, st.FullName, st.Status))
+            .ToListAsync(HttpContext.RequestAborted);
+
         if (!string.IsNullOrWhiteSpace(query))
         {
             GuardianResults = await _db.Guardians
@@ -427,5 +469,17 @@ public class AssistedRegistrationModel : PageModel
                 funding.ConfirmedReceived, funding.RemainingOwed.Amount));
         }
         SelectedStudentDraftSubscriptions = draftRows;
+
+        SelectedStudentHasPackage = await _db.Subscriptions
+            .AnyAsync(sub => sub.StudentId == studentId, HttpContext.RequestAborted);
+
+        // Where the admin actually stands, read from real state rather than a
+        // remembered wizard position — so refreshing, or coming back tomorrow,
+        // lands on the same step.
+        CurrentStep = !SelectedStudentHasGuardian ? 3
+            : !SelectedStudentHasLevel ? 4
+            : 5;
+
+        Link.StudentId ??= student.Id;
     }
 }

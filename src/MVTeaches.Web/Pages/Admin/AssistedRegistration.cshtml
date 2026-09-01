@@ -1,134 +1,263 @@
-﻿@page
+@page
 @model MVTeaches.Web.Pages.Admin.AssistedRegistrationModel
 @using MVTeaches.Domain.Catalog
 @using MVTeaches.Domain.Payments
 @using MVTeaches.Domain.People
 @{
     ViewData["Title"] = T["Assisted Registration"].Value;
-}
+    var step = Model.CurrentStep;
+    var hasStudent = Model.SelectedStudentId is not null;
 
-<h1>@T["Assisted Registration"]</h1>
-<p class="text-muted">@T["Assisted registration intro"]</p>
-
-@if (Model.StatusMessage is not null)
-{
-    <div class="alert alert-success">@Model.StatusMessage</div>
-}
-@if (Model.ErrorMessage is not null)
-{
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
-}
-
-<div class="card mb-4">
-    <div class="card-body">
-        <h5 class="card-title">@T["Search for an existing guardian or student"]</h5>
-        <p class="text-muted small">@T["Search before creating, to avoid duplicate accounts"]</p>
-        <form method="get" class="row g-2">
-            <div class="col-md-8">
-                <input name="q" value="@Model.Search.Query" class="form-control" placeholder="@T["Name or email"]" />
-            </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-outline-primary">@T["Search"]</button>
-            </div>
-        </form>
-
-        @if (Model.GuardianResults.Count > 0 || Model.StudentResults.Count > 0)
+    string StepClass(int index)
+    {
+        if (!hasStudent)
         {
-            <div class="row mt-3">
-                <div class="col-md-6">
-                    <h6>@T["Guardians"]</h6>
-                    <ul class="list-group">
-                        @foreach (var g in Model.GuardianResults)
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>@g.FullName @(g.Email is not null ? $"({g.Email})" : "")</span>
-                                
-                            </li>
-                        }
-                    </ul>
-                </div>
-                <div class="col-md-6">
-                    <h6>@T["Students"]</h6>
-                    <ul class="list-group">
-                        @foreach (var s in Model.StudentResults)
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <a asp-page="/Admin/AssistedRegistration" asp-route-studentId="@s.Id">@s.FullName</a>
-                                <span class="badge bg-secondary">@s.Status</span>
-                            </li>
-                        }
-                    </ul>
-                </div>
-            </div>
+            return index == 1 ? "is-current" : string.Empty;
+        }
+        if (index < step) { return "is-done"; }
+        return index == step ? "is-current" : string.Empty;
+    }
+}
+
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <a asp-page="/Admin/Students">@T["Students"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Assisted Registration"]</span>
+</nav>
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Register a family, step by step"]</h1>
+        <p class="text-muted">@T["For the parent who phones the centre and cannot do the steps online. Work down the five steps in order — each one only opens what the previous one made possible."]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["All students"]</a>
+        @if (hasStudent)
+        {
+            <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/StudentDetails" asp-route-id="@Model.SelectedStudentId">@T["Open file"]</a>
+            <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/AssistedRegistration">@T["Start a new family"]</a>
         }
     </div>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">@T["Register a new guardian"]</h5>
-                <form method="post" asp-page-handler="RegisterGuardian" class="row g-2">
-                    <div class="col-12">
-                        <label class="form-label" asp-for="NewGuardian.FullName">@T["Full name"]</label>
-                        <input asp-for="NewGuardian.FullName" class="form-control" />
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label" asp-for="NewGuardian.Email">@T["Email address"]</label>
-                        <input asp-for="NewGuardian.Email" class="form-control" />
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label" asp-for="NewGuardian.Password">@T["Temporary password"]</label>
-                        <input asp-for="NewGuardian.Password" type="password" class="form-control" />
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">@T["Register guardian"]</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">@T["Register a new student"]</h5>
-                <p class="text-muted small">@T["No login created here intro"]</p>
-                <form method="post" asp-page-handler="RegisterStudent" class="row g-2">
-                    <div class="col-12">
-                        <label class="form-label" asp-for="NewStudent.FullName">@T["Full name"]</label>
-                        <input asp-for="NewStudent.FullName" class="form-control" />
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label" asp-for="NewStudent.CountryId">@T["Country"]</label>
-                        <input asp-for="NewStudent.CountryId" class="form-control" />
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label" asp-for="NewStudent.DateOfBirth">@T["Date of birth"]</label>
-                        <input asp-for="NewStudent.DateOfBirth" type="date" class="form-control" />
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">@T["Register student"]</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<ol class="app-steps">
+    <li class="@StepClass(1)"><span class="app-step-label">@T["The guardian"]<span class="app-step-hint">@T["Find them, or create the account"]</span></span></li>
+    <li class="@StepClass(2)"><span class="app-step-label">@T["The student"]<span class="app-step-hint">@T["Find them, or register the child"]</span></span></li>
+    <li class="@StepClass(3)"><span class="app-step-label">@T["The link"]<span class="app-step-hint">@T["Who is responsible for whom"]</span></span></li>
+    <li class="@StepClass(4)"><span class="app-step-label">@T["The level"]<span class="app-step-hint">@T["From the student's own test"]</span></span></li>
+    <li class="@StepClass(5)"><span class="app-step-label">@T["Package and payment"]<span class="app-step-hint">@T["Choose it, then record the transfer"]</span></span></li>
+</ol>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <h5 class="card-title">@T["Link a guardian to a student"]</h5>
-        <form method="post" asp-page-handler="Link" class="row g-2">
-            <div class="col-md-3">
-                <label class="form-label" asp-for="Link.GuardianId">@T["Guardian id"]</label>
-                <input asp-for="Link.GuardianId" class="form-control" />
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
+}
+
+@if (hasStudent)
+{
+    <dl class="app-summary">
+        <div>
+            <dt>@T["Working on"]</dt>
+            <dd>@Model.SelectedStudentName</dd>
+        </div>
+        <div>
+            <dt>@T["Guardians"]</dt>
+            <dd>@(Model.SelectedStudentGuardianNames.Count > 0 ? string.Join("، ", Model.SelectedStudentGuardianNames) : T["Not linked yet"].Value)</dd>
+        </div>
+        <div>
+            <dt>@T["Level"]</dt>
+            <dd>@(Model.SelectedStudentLevelCode ?? T["Awaiting the test"].Value)</dd>
+        </div>
+    </dl>
+}
+
+@* ---------------------------------------------------------------- step 1 *@
+<section class="app-step-panel @(hasStudent ? "is-done" : string.Empty)">
+    <h2><span class="app-step-badge">1</span>@T["Find the family before creating anything"]</h2>
+    <p class="app-step-lead">@T["Search by name or email first. Creating a second account for a family that already exists is the one mistake that is painful to undo later."]</p>
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-8">
+            <label class="form-label" for="q">@T["Name or email"]</label>
+            <input id="q" name="q" value="@Model.Search.Query" class="form-control" placeholder="@T["Part of a name is enough"]" />
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary">@T["Search"]</button>
+        </div>
+    </form>
+
+    @if (Model.GuardianResults.Count > 0 || Model.StudentResults.Count > 0)
+    {
+        <div class="row g-3 mt-1">
+            <div class="col-md-6">
+                <h3 class="h6">@T["Guardians found"]</h3>
+                <ul class="list-group">
+                    @foreach (var g in Model.GuardianResults)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                            <span>@g.FullName @(g.Email is not null ? $"({g.Email})" : string.Empty)</span>
+                            <span class="app-status is-success">@T["Already registered"]</span>
+                        </li>
+                    }
+                    @if (Model.GuardianResults.Count == 0)
+                    {
+                        <li class="list-group-item text-muted">@T["No guardian matches — create one in step 2."]</li>
+                    }
+                </ul>
             </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="Link.StudentId">@T["Student id"]</label>
-                <input asp-for="Link.StudentId" class="form-control" value="@Model.SelectedStudentId" />
+            <div class="col-md-6">
+                <h3 class="h6">@T["Students found"]</h3>
+                <ul class="list-group">
+                    @foreach (var st in Model.StudentResults)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                            <a asp-page="/Admin/AssistedRegistration" asp-route-studentId="@st.Id">@st.FullName</a>
+                            <span class="app-status is-info">@T["StudentStatus." + st.Status]</span>
+                        </li>
+                    }
+                    @if (Model.StudentResults.Count == 0)
+                    {
+                        <li class="list-group-item text-muted">@T["No student matches — register one in step 2."]</li>
+                    }
+                </ul>
             </div>
-            <div class="col-md-3">
+        </div>
+        <div class="app-outcome mt-3">@T["Pick the student's name above to carry on with the rest of the steps for them."]</div>
+    }
+    else if (!string.IsNullOrWhiteSpace(Model.Search.Query))
+    {
+        <div class="app-empty mt-3">
+            <strong>@T["Nobody matches that search."]</strong>
+            <span>@T["This family is new — create the guardian and the student in step 2 below."]</span>
+        </div>
+    }
+</section>
+
+@* ---------------------------------------------------------------- step 2 *@
+<section class="app-step-panel @(hasStudent ? "is-done" : string.Empty)">
+    <h2><span class="app-step-badge">2</span>@T["Create whoever is missing"]</h2>
+    <p class="app-step-lead">@T["The guardian gets a real sign-in. The child normally does not — they are reached through their guardian's account."]</p>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="card-title h6">@T["New guardian"]</h3>
+                    <form method="post" asp-page-handler="RegisterGuardian" class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label" asp-for="NewGuardian.FullName">@T["Full name"]<span class="app-required">*</span></label>
+                            <input asp-for="NewGuardian.FullName" class="form-control" autocomplete="off" />
+                            <span asp-validation-for="NewGuardian.FullName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" asp-for="NewGuardian.Email">@T["Email address"]<span class="app-required">*</span></label>
+                            <input asp-for="NewGuardian.Email" class="form-control" autocomplete="off" />
+                            <span asp-validation-for="NewGuardian.Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" asp-for="NewGuardian.Password">@T["Temporary password"]<span class="app-required">*</span></label>
+                            <input asp-for="NewGuardian.Password" type="password" class="form-control" autocomplete="new-password" />
+                            <div class="form-text">@T["At least 8 characters. Read it out on the call; they change it after signing in."]</div>
+                            <span asp-validation-for="NewGuardian.Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">@T["Create the guardian"]</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="card-title h6">@T["New student"]</h3>
+                    <p class="text-muted small">@T["No sign-in is created here: this child uses their guardian's account. An older student who really will sign in alone can be given one later from the students screen."]</p>
+                    <form method="post" asp-page-handler="RegisterStudent" class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label" asp-for="NewStudent.FullName">@T["Full name"]<span class="app-required">*</span></label>
+                            <input asp-for="NewStudent.FullName" class="form-control" autocomplete="off" />
+                            <span asp-validation-for="NewStudent.FullName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="NewStudent.CountryId">@T["Country"]<span class="app-required">*</span></label>
+                            <select asp-for="NewStudent.CountryId" class="form-select">
+                                <option value="">@T["Select placeholder"]</option>
+                                @foreach (var country in Model.Countries)
+                                {
+                                    <option value="@country.Id">@(Model.IsArabic ? country.NameAr : country.NameEn)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="NewStudent.CountryId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="NewStudent.DateOfBirth">@T["Date of birth"]<span class="app-required">*</span></label>
+                            <input asp-for="NewStudent.DateOfBirth" type="date" class="form-control" />
+                            <div class="form-text">@T["Used to pick the right age group for sessions."]</div>
+                            <span asp-validation-for="NewStudent.DateOfBirth" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">@T["Register the student"]</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ---------------------------------------------------------------- step 3 *@
+<section class="app-step-panel @(Model.SelectedStudentHasGuardian ? "is-done" : hasStudent ? string.Empty : "is-waiting")">
+    <h2><span class="app-step-badge">3</span>@T["Link the guardian to the student"]</h2>
+    <p class="app-step-lead">@T["Until they are linked, the guardian cannot see this child or pay for them."]</p>
+    @if (!hasStudent)
+    {
+        <div class="app-empty">
+            <strong>@T["Pick a student first."]</strong>
+            <span>@T["Search for them in step 1, or register them in step 2."]</span>
+        </div>
+    }
+    else
+    {
+        <form method="post" asp-page-handler="Link" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" asp-for="Link.GuardianId">@T["Guardian"]<span class="app-required">*</span></label>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#linkGuardianPicker"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="Link.GuardianId" id="linkGuardianPicker" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
+                    @foreach (var g in Model.AllGuardians)
+                    {
+                        <option value="@g.Id">@g.FullName</option>
+                    }
+                </select>
+                <span asp-validation-for="Link.GuardianId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" asp-for="Link.StudentId">@T["Student"]<span class="app-required">*</span></label>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#linkStudentPicker"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="Link.StudentId" id="linkStudentPicker" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
+                    @foreach (var st in Model.AllStudents)
+                    {
+                        <option value="@st.Id">@st.FullName</option>
+                    }
+                </select>
+                <span asp-validation-for="Link.StudentId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
                 <label class="form-label" asp-for="Link.Relationship">@T["Relationship"]</label>
                 <select asp-for="Link.Relationship" class="form-select">
                     <option value="@GuardianRelationship.Parent">@T["GuardianRelationship.Parent"]</option>
@@ -136,73 +265,99 @@
                     <option value="@GuardianRelationship.Other">@T["GuardianRelationship.Other"]</option>
                 </select>
             </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <div class="form-check me-3">
+            <div class="col-12">
+                <div class="form-check mb-2">
                     <input asp-for="Link.IsPrimary" class="form-check-input" />
-                    <label class="form-check-label" asp-for="Link.IsPrimary">@T["Primary guardian"]</label>
+                    <label class="form-check-label" asp-for="Link.IsPrimary">@T["This is the main guardian"]</label>
                 </div>
-                <button type="submit" class="btn btn-primary">@T["Link"]</button>
+                <button type="submit" class="btn btn-primary">@T["Link them"]</button>
             </div>
         </form>
-    </div>
-</div>
+    }
+</section>
 
-@if (Model.SelectedStudentId is not null)
-{
-    <h2>@Model.SelectedStudentName</h2>
-    <p class="text-muted">@T["Guardians"]: @(Model.SelectedStudentGuardianNames.Count > 0 ? string.Join(", ", Model.SelectedStudentGuardianNames) : T["None"].Value)</p>
-
-    @if (!Model.SelectedStudentHasLevel)
+@* ---------------------------------------------------------------- step 4 *@
+<section class="app-step-panel @(Model.SelectedStudentHasLevel ? "is-done" : hasStudent ? string.Empty : "is-waiting")">
+    <h2><span class="app-step-badge">4</span>@T["The student's own placement test"]</h2>
+    <p class="app-step-lead">@T["The level decides which packages exist for this student. It comes from the test the student sits themselves — an admin cannot sit it for them."]</p>
+    @if (!hasStudent)
     {
-        <div class="alert alert-info">
-            @T["No placement result yet — direct the student to take the test"]
-            <a asp-page="/PlacementTest" asp-route-studentId="@Model.SelectedStudentId" class="alert-link">@T["Placement Test"]</a>.
-            <div class="mt-2 text-muted small">@T["Admin cannot take the exam for the student"]</div>
+        <div class="app-empty">
+            <strong>@T["Pick a student first."]</strong>
+            <span>@T["A level belongs to one specific student."]</span>
+        </div>
+    }
+    else if (!Model.SelectedStudentHasLevel)
+    {
+        <div class="alert alert-info mb-0">
+            <p class="mb-2">@T["No placement result yet. Send the family to the test — the guardian opens it from their own account, on their own device."]</p>
+            <a asp-page="/PlacementTest" asp-route-studentId="@Model.SelectedStudentId" class="btn btn-sm btn-outline-primary">@T["Open the placement test"]</a>
+            <div class="mt-3 text-muted small">@T["If the level has to be set by hand instead — a transfer from another centre, for example — that is a recorded override on the students screen."]</div>
+            <a class="btn btn-sm btn-outline-secondary mt-2" asp-page="/Admin/Students" asp-route-studentId="@Model.SelectedStudentId" asp-fragment="assign-level">@T["Set the level by hand"]</a>
         </div>
     }
     else
     {
-        <p class="text-muted">@T["Current level"]: <strong>@Model.SelectedStudentLevelCode</strong></p>
+        <p class="mb-0">@T["Current level"]: <strong>@Model.SelectedStudentLevelCode</strong> <span class="app-status is-success">@T["Ready to buy a package"]</span></p>
+    }
+</section>
 
-        @if (Model.EligiblePlans.Count == 0)
-        {
-            <div class="alert alert-warning">@T["No packages published for this level"]</div>
-        }
-        else
-        {
-            <h4>@T["Select a package on behalf of the guardian"]</h4>
-            <div class="row g-3 mb-4">
-                @foreach (var p in Model.EligiblePlans)
-                {
-                    <div class="col-md-4">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">@p.CourseName — @p.LevelCode</h5>
-                                <p class="card-text">
-                                    @T["SessionType." + p.SessionType] · @p.SessionsCount @T["Sessions"] · @p.MinutesTotal @T["Minutes"]<br />
-                                    <strong>@T.Money(p.Amount, p.Currency)</strong>
-                                </p>
-                                <form method="post" asp-page-handler="Purchase">
-                                    <input type="hidden" name="Purchase.StudentId" value="@Model.SelectedStudentId" />
-                                    <input type="hidden" name="Purchase.PricingPlanId" value="@p.Id" />
-                                    <button type="submit" class="btn btn-primary">@T["Request this package"]</button>
-                                </form>
-                            </div>
+@* ---------------------------------------------------------------- step 5 *@
+<section class="app-step-panel @(hasStudent && Model.SelectedStudentHasLevel ? string.Empty : "is-waiting")">
+    <h2><span class="app-step-badge">5</span>@T["Choose the package, then record the transfer"]</h2>
+    <p class="app-step-lead">@T["Only packages published for this student's own level appear. Choosing one creates an unpaid request; the package activates only once the money is confirmed as received."]</p>
+
+    @if (!hasStudent || !Model.SelectedStudentHasLevel)
+    {
+        <div class="app-empty">
+            <strong>@T["Not yet."]</strong>
+            <span>@T["A package can only be chosen once the student has a level."]</span>
+        </div>
+    }
+    else if (Model.EligiblePlans.Count == 0)
+    {
+        <div class="app-empty">
+            <strong>@T["No package is published for this level yet."]</strong>
+            <span>@T["Create one on the packages screen, then come back here."]</span>
+            <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Subscriptions">@T["Open packages"]</a></span>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            @foreach (var plan in Model.EligiblePlans)
+            {
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <h3 class="card-title h6">@plan.CourseName — @plan.LevelCode</h3>
+                            <p class="card-text mb-3">
+                                <span class="app-status is-info">@T["SessionType." + plan.SessionType]</span><br />
+                                <span class="text-muted">@T["Sessions"]: <strong>@plan.SessionsCount</strong></span><br />
+                                <span class="fs-5 fw-bold">@T.Money(plan.Amount, plan.Currency)</span>
+                            </p>
+                            <form method="post" asp-page-handler="Purchase" class="mt-auto">
+                                <input type="hidden" name="Purchase.StudentId" value="@Model.SelectedStudentId" />
+                                <input type="hidden" name="Purchase.PricingPlanId" value="@plan.Id" />
+                                <button type="submit" class="btn btn-primary w-100"
+                                        data-mv-confirm="@T["Create an unpaid package request for this student?"]">@T["Choose this package"]</button>
+                            </form>
                         </div>
                     </div>
-                }
-            </div>
-        }
+                </div>
+            }
+        </div>
     }
 
     @if (Model.SelectedStudentDraftSubscriptions.Count > 0)
     {
-        <h4>@T["Record the guardian's payment"]</h4>
+        <h3 class="h6">@T["Record what the family sent"]</h3>
+        <p class="text-muted small">@T["Recording a transfer does not activate anything on its own — an admin still confirms on the payments screen that the money really arrived."]</p>
         @foreach (var d in Model.SelectedStudentDraftSubscriptions)
         {
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">@T["Package request"] — @T.Money(d.Price, d.Currency)</h5>
+                    <h4 class="card-title h6">@T["Unpaid package"] — @T.Money(d.Price, d.Currency)</h4>
                     <dl class="row small mb-2">
                         <dt class="col-sm-3">@T["Package price"]</dt>
                         <dd class="col-sm-9">@T.Money(d.Price, d.Currency)</dd>
@@ -234,7 +389,7 @@
                             <input type="text" name="currency" value="@d.Currency" class="form-control form-control-sm" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small mb-0">@T["Method type"]</label>
+                            <label class="form-label small mb-0">@T["How did they pay?"]</label>
                             <select name="method" class="form-select form-select-sm">
                                 @foreach (var v in Enum.GetValues<PaymentMethod>())
                                 {
@@ -243,9 +398,9 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small mb-0">@T["Payment method config (optional)"]</label>
+                            <label class="form-label small mb-0">@T["Which of our accounts received it? (optional)"]</label>
                             <select name="paymentMethodConfigId" class="form-select form-select-sm">
-                                <option value="">—</option>
+                                <option value="">@T["Not specified"]</option>
                                 @foreach (var m in Model.ActiveMethods)
                                 {
                                     <option value="@m.Id">@T["PaymentMethod." + m.Type] — @m.BeneficiaryName</option>
@@ -253,7 +408,7 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <button type="submit" class="btn btn-primary btn-sm">@T["Record payment"]</button>
+                            <button type="submit" class="btn btn-primary btn-sm">@T["Record the payment"]</button>
                         </div>
                     </form>
                 </div>
@@ -263,7 +418,7 @@
 
     @if (Model.StudentPayments.Count > 0)
     {
-        <h4>@T["Payment requests"]</h4>
+        <h3 class="h6">@T["Payments on this student"]</h3>
         <div class="table-responsive mb-3">
             <table class="table table-sm table-striped">
                 <thead>
@@ -279,7 +434,7 @@
                     @foreach (var p in Model.StudentPayments)
                     {
                         <tr>
-                            <td>@p.ReferenceCode</td>
+                            <td><span class="app-ref">@p.ReferenceCode</span></td>
                             <td>
                                 @T.Money(p.Amount, p.Currency)
                                 @if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount < p.Amount)
@@ -291,15 +446,15 @@
                             <td>
                                 @if (p.Status == PaymentStatus.Pending && !p.HasSubmittedTransferDetails)
                                 {
-                                    <span class="badge bg-warning text-dark">@T["Awaiting transfer"]</span>
+                                    <span class="app-status is-warning">@T["Awaiting transfer"]</span>
                                 }
                                 else if (p.Status == PaymentStatus.Pending)
                                 {
-                                    <span class="badge bg-info text-dark">@T["Under review"]</span>
+                                    <span class="app-status is-info">@T["Under review"]</span>
                                 }
                                 else
                                 {
-                                    <span>@T["PaymentStatus." + p.Status]</span>
+                                    <span class="app-status is-muted">@T["PaymentStatus." + p.Status]</span>
                                 }
                             </td>
                             <td>
@@ -317,9 +472,9 @@
                                     <form method="post" asp-page-handler="SubmitTransfer" enctype="multipart/form-data" class="row g-2">
                                         <input type="hidden" name="Transfer.PaymentId" value="@p.Id" />
                                         <div class="col-md-3">
-                                            <label class="form-label">@T["Method type"]</label>
+                                            <label class="form-label">@T["Which of our accounts received it?"]</label>
                                             <select name="Transfer.PaymentMethodConfigId" class="form-select">
-                                                <option value="">—</option>
+                                                <option value="">@T["Not specified"]</option>
                                                 @foreach (var m in Model.ActiveMethods)
                                                 {
                                                     <option value="@m.Id">@T["PaymentMethod." + m.Type] — @m.BeneficiaryName</option>
@@ -344,6 +499,7 @@
                                         </div>
                                         <div class="col-12">
                                             <button type="submit" class="btn btn-primary btn-sm">@T["Submit transfer details"]</button>
+                                            <div class="app-outcome mt-2">@T["Next: an admin confirms on the payments screen that the money arrived, and only then does the package activate."]</div>
                                         </div>
                                     </form>
                                 </td>
@@ -353,5 +509,6 @@
                 </tbody>
             </table>
         </div>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Payments" asp-route-studentId="@Model.SelectedStudentId">@T["Open payments for this student"]</a>
     }
-}
+</section>
