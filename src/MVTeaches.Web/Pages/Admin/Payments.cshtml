@@ -108,6 +108,10 @@
                 </div>
                 <div class="form-text">@T["Leave it on the first option for money that is not buying a package: a correction, a refund reversal, or a deposit to hold a seat."]</div>
             </div>
+            <div class="col-12">
+                <hr class="my-1" />
+                <p class="text-muted small mb-1 fw-semibold">@T["Now, exactly what arrived:"]</p>
+            </div>
             <div class="col-md-2">
                 <label class="form-label" asp-for="NewPayment.Amount">@T["Amount"]</label>
                 <input asp-for="NewPayment.Amount" class="form-control" inputmode="decimal" />
@@ -148,7 +152,7 @@
             <div class="card-body">
                 <h3 class="card-title h5 d-flex flex-wrap gap-2 align-items-center">
                     <span class="app-ref">@p.ReferenceCode</span>
-                    <span>@p.StudentName</span>
+                    <a asp-page="/Admin/StudentDetails" asp-route-id="@p.StudentId">@p.StudentName</a>
                     <span>@T.Money(p.Amount, p.Currency)</span>
                     <span class="text-muted fw-normal">(@T["PaymentMethod." + p.Method])</span>
                 </h3>
@@ -172,7 +176,8 @@
                         <dd class="col-sm-3">
                             @if (p.HasReceipt)
                             {
-                                <a asp-page="/Files/Receipt" asp-route-paymentId="@p.Id" target="_blank" rel="noopener">@T["View receipt"]</a>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-mv-file-modal="#receiptModal"
+                                        data-mv-file-url="@Url.Page("/Files/Receipt", new { paymentId = p.Id })">@T["View receipt"]</button>
                             }
                             else
                             {
@@ -191,10 +196,22 @@
                     <div class="col-auto">
                         <label class="form-label small mb-0" for="receivedCurrency-@p.Id">@T["Actually received currency (if different)"]</label>
                         <select id="receivedCurrency-@p.Id" name="receivedCurrency" class="form-select form-select-sm" style="width:8rem">
-                            <option value="">@p.Currency</option>
+                            @* This option's value USED to be "" — visually showing the
+                               payment's own currency while actually posting an empty
+                               string. Typing an amount here and leaving this untouched
+                               (exactly what "leave blank when it matches" invites) then
+                               made receivedCurrency blank, so the whole override was
+                               silently discarded and the payment confirmed at its FULL
+                               original amount instead of the amount just typed in — a
+                               partial payment could confirm as if paid in full. The
+                               value now really is the payment's currency. *@
+                            <option value="@p.Currency">@p.Currency</option>
                             @foreach (var code in Model.Currencies)
                             {
-                                <option value="@code">@code</option>
+                                if (!string.Equals(code, p.Currency, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <option value="@code">@code</option>
+                                }
                             }
                         </select>
                     </div>
@@ -267,4 +284,22 @@
             }
         </tbody>
     </table>
+</div>
+
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="receiptModalLabel">@T["Receipt"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@T["Close"]"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe data-mv-file-frame title="@T["Receipt"]" style="width:100%;height:75vh;border:0"></iframe>
+            </div>
+            <div class="modal-footer">
+                <a data-mv-file-open-new href="#" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">@T["Open in a new tab"]</a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">@T["Close"]</button>
+            </div>
+        </div>
+    </div>
 </div>

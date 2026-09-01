@@ -66,6 +66,19 @@ public class ReceiptModel : PageModel
             return NotFound();
         }
 
-        return File(document.Content, document.ContentType, document.OriginalFileName);
+        // File(bytes, contentType, fileDownloadName) sends
+        // Content-Disposition: attachment — every browser forces a save
+        // dialog for it instead of rendering it, which made viewing a
+        // receipt always leave the payments screen for a download prompt.
+        // Nothing about who may reach this endpoint changes (the
+        // authorization checks above are untouched) — only whether the same
+        // bytes are offered inline (so /Admin/Payments can show them in a
+        // modal) or as a download; a person can still save it either way.
+        Response.Headers.ContentDisposition = new System.Net.Mime.ContentDisposition
+        {
+            FileName = document.OriginalFileName,
+            Inline = true,
+        }.ToString();
+        return File(document.Content, document.ContentType);
     }
 }
