@@ -4,7 +4,31 @@
     ViewData["Title"] = T["Financial Report"].Value;
 }
 
-<h1>@T["Financial Report"]</h1>
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Financial Report"]</span>
+</nav>
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Financial Report"]</h1>
+        <p class="text-muted">@T["What came in, what went out, and what is left — for whatever dates you choose."]</p>
+    </div>
+    <div class="app-page-actions">
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Payments">@T["Payments"]</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Payroll">@T["Payroll"]</a>
+    </div>
+</div>
+
+<div class="app-guide">
+    <p class="app-guide-title">@T["How to read this"]</p>
+    <ul>
+        <li>@T["Money in counts a payment on the day it was confirmed as received, not the day it was requested."]</li>
+        <li>@T["Teacher pay is taken from the payroll lines automatically — never type it in as an expense."]</li>
+        <li>@T["Every other running cost — rent, marketing, tools — is entered by hand at the bottom of this page."]</li>
+    </ul>
+</div>
 
 <form method="get" class="row row-cols-lg-auto g-3 align-items-center mb-4">
     <div class="col-12">
@@ -158,8 +182,8 @@
 
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">@T["Record an operating expense"]</h5>
-            <p class="text-muted small">@T["Teacher payroll can never be entered here — it is already counted automatically from payroll lines."]</p>
+            <h5 class="card-title">@T["Record a running cost"]</h5>
+            <p class="text-muted small">@T["Rent, marketing, subscriptions, anything the centre pays out that is not teacher pay. Teacher pay is already counted from payroll and is refused here."]</p>
             @if (Model.StatusMessage is not null)
             {
                 <div class="alert alert-success">@Model.StatusMessage</div>
@@ -170,7 +194,7 @@
             }
             <form method="post" asp-page-handler="RecordExpense" class="row g-2">
                 <div class="col-md-2">
-                    <label class="form-label" asp-for="NewExpense.CountryId">@T["Country"]</label>
+                    <label class="form-label" asp-for="NewExpense.CountryId">@T["Country"]<span class="app-required">*</span></label>
                     <select asp-for="NewExpense.CountryId" class="form-select">
                         <option value="">@T["Select placeholder"]</option>
                         @foreach (var country in Model.Countries)
@@ -181,15 +205,25 @@
                     <span asp-validation-for="NewExpense.CountryId" class="text-danger small"></span>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewExpense.Category">@T["Category"]</label>
-                    <input asp-for="NewExpense.Category" class="form-control" placeholder="@T["e.g. Rent, Marketing"]" />
+                    <label class="form-label" asp-for="NewExpense.Category">@T["What was it for?"]<span class="app-required">*</span></label>
+                    <input asp-for="NewExpense.Category" class="form-control" list="expenseCategories"
+                           placeholder="@T["e.g. Rent, Marketing"]" autocomplete="off" />
+                    <datalist id="expenseCategories">
+                        @foreach (var category in Model.KnownCategories)
+                        {
+                            <option value="@category"></option>
+                        }
+                    </datalist>
+                    <div class="form-text">@T["Reuse the same wording each month so the totals group together."]</div>
+                    <span asp-validation-for="NewExpense.Category" class="text-danger small"></span>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" asp-for="NewExpense.Amount">@T["Amount"]</label>
-                    <input asp-for="NewExpense.Amount" class="form-control" />
+                    <label class="form-label" asp-for="NewExpense.Amount">@T["Amount"]<span class="app-required">*</span></label>
+                    <input asp-for="NewExpense.Amount" class="form-control" inputmode="decimal" />
+                    <span asp-validation-for="NewExpense.Amount" class="text-danger small"></span>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" asp-for="NewExpense.Currency">@T["Currency"]</label>
+                    <label class="form-label" asp-for="NewExpense.Currency">@T["Currency"]<span class="app-required">*</span></label>
                     <select asp-for="NewExpense.Currency" class="form-select">
                         @foreach (var code in Model.Currencies)
                         {
@@ -199,7 +233,7 @@
                     <span asp-validation-for="NewExpense.Currency" class="text-danger small"></span>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" asp-for="NewExpense.IncurredOn">@T["Incurred on"]</label>
+                    <label class="form-label" asp-for="NewExpense.IncurredOn">@T["Date it was paid"]<span class="app-required">*</span></label>
                     <input asp-for="NewExpense.IncurredOn" type="date" class="form-control" />
                     <span asp-validation-for="NewExpense.IncurredOn" class="text-danger small"></span>
                 </div>
@@ -208,13 +242,16 @@
                     <input asp-for="NewExpense.Note" class="form-control" />
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary">@T["Record expense"]</button>
+                    <button type="submit" class="btn btn-primary">@T["Record it"]</button>
+                </div>
+                <div class="col-12">
+                    <div class="app-outcome">@T["It is counted against the dates chosen at the top of this page, and comes off the profit figure."]</div>
                 </div>
             </form>
         </div>
     </div>
 
-    <h2>@T["Operating expenses in this range"]</h2>
+    <h2>@T["Running costs in these dates"]</h2>
     <div class="table-responsive">
         <table class="table table-sm table-striped">
             <thead><tr><th>@T["Date"]</th><th>@T["Category"]</th><th>@T["Amount"]</th><th>@T["Note"]</th></tr></thead>
@@ -230,7 +267,14 @@
                 }
                 @if (Model.Expenses.Count == 0)
                 {
-                    <tr><td colspan="4" class="text-muted">@T["No operating expense recorded in this range."]</td></tr>
+                    <tr>
+                        <td colspan="4">
+                            <div class="app-empty">
+                                <strong>@T["No running cost recorded in these dates."]</strong>
+                                <span>@T["Teacher pay is not shown here — it is counted separately from payroll."]</span>
+                            </div>
+                        </td>
+                    </tr>
                 }
             </tbody>
         </table>

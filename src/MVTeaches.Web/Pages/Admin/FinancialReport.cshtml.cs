@@ -63,6 +63,12 @@ public class FinancialReportModel : PageModel
 
     public IReadOnlyList<string> Currencies { get; set; } = Array.Empty<string>();
 
+    /// <summary>Categories this centre has actually used before, offered as
+    /// suggestions while typing. Read from the expenses themselves rather than
+    /// a list written into the code — what counts as a category is the
+    /// centre's business, not this page's.</summary>
+    public IReadOnlyList<string> KnownCategories { get; set; } = Array.Empty<string>();
+
     public bool IsArabic => System.Globalization.CultureInfo.CurrentUICulture
         .TwoLetterISOLanguageName.Equals("ar", StringComparison.OrdinalIgnoreCase);
 
@@ -120,6 +126,12 @@ public class FinancialReportModel : PageModel
         Countries = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
             _db.Countries.Where(c => c.IsActive).OrderBy(c => c.Id));
         Currencies = Countries.Select(c => c.CurrencyCode).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        KnownCategories = (await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                _db.OperatingExpenses.Select(e => e.Category).Distinct()))
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .OrderBy(c => c, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
 
         if (From == default || To == default)
         {
