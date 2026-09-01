@@ -1,4 +1,4 @@
-﻿@page "{id:long}"
+@page "{id:long}"
 @model MVTeaches.Web.Pages.Admin.StudentDetailsModel
 @using MVTeaches.Domain.People
 @using MVTeaches.Domain.Payments
@@ -32,10 +32,15 @@
         PaymentStatus.Rejected or PaymentStatus.Failed => "app-status is-danger",
         _ => "app-status is-muted",
     };
+
+    string TabClass(string tab, string active) => tab == active ? "active" : string.Empty;
+    string PaneClass(string tab, string active) => tab == active ? "show active" : string.Empty;
 }
 
 @if (Model.Student is { } student)
 {
+    var tab = Model.ActiveTab;
+
     <nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
         <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
         <span class="app-crumb-sep" aria-hidden="true">/</span>
@@ -44,17 +49,34 @@
         <span>@student.FullName</span>
     </nav>
 
-    <div class="app-page-head">
-        <div>
-            <h1>@student.FullName</h1>
-            <p class="text-muted">@Model.CountryName · @T["born"] @T.Date(student.DateOfBirth)</p>
+    @* --- Who this is, in one band, before any table ---------------------- *@
+    <section class="app-profile-hero">
+        <div class="app-profile-identity">
+            <span class="app-avatar" aria-hidden="true">@(string.IsNullOrWhiteSpace(student.FullName) ? "?" : student.FullName.Trim()[..1])</span>
+            <div>
+                <h1>@student.FullName</h1>
+                <p class="app-profile-meta">
+                    <span class="@StudentStatusClass(student.Status)">@T["StudentStatus." + student.Status]</span>
+                    @if (Model.CurrentLevelCode is not null)
+                    {
+                        <span class="app-chip is-level">@T["Level"] @Model.CurrentLevelCode</span>
+                    }
+                    else
+                    {
+                        <span class="app-chip is-missing">@T["no level yet"]</span>
+                    }
+                    <span class="app-chip">@T["Guardian:"] @(Model.PrimaryGuardianName ?? T["Not specified"].Value)</span>
+                    <span class="app-chip">@Model.CountryName · @T["born"] @T.Date(student.DateOfBirth)</span>
+                </p>
+            </div>
         </div>
-        <div class="app-page-actions">
+        <div class="app-profile-actions">
             <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Students">@T["Back to students"]</a>
+            <a class="btn btn-primary btn-sm" asp-page="/Admin/Schedules" asp-route-studentId="@student.Id">@T["Open the schedule"]</a>
         </div>
-    </div>
+    </section>
 
-    @* The one thing to do next, stated before anything else on the page. *@
+    @* --- The one thing to do next, stated before anything else ----------- *@
     @if (Model.CurrentLevelCode is null)
     {
         <div class="alert alert-warning d-flex flex-wrap gap-2 align-items-center" role="status">
@@ -84,253 +106,529 @@
         </div>
     }
 
-    <dl class="app-summary">
-        <div>
-            <dt>@T["Status"]</dt>
-            <dd><span class="@StudentStatusClass(student.Status)">@T["StudentStatus." + student.Status]</span></dd>
+    @* --- The numbers an admin asks for before anything else --------------- *@
+    <div class="app-stat-grid">
+        @{
+            var runningPackage = Model.Subscriptions.FirstOrDefault(s => s.Status == SubscriptionStatus.Active)
+                                 ?? Model.Subscriptions.FirstOrDefault();
+        }
+        <div class="app-stat">
+            <span class="app-stat-label">@T["What they bought"]</span>
+            @if (runningPackage is not null)
+            {
+                <strong class="app-stat-value is-text">@runningPackage.CourseName / @runningPackage.LevelCode</strong>
+                <span class="app-stat-note">
+                    @T.Money(runningPackage.Price, runningPackage.Currency) ·
+                    @T["{0} lesson(s)", runningPackage.SessionsCount] ·
+                    <span class="@SubscriptionStatusClass(runningPackage.Status)">@T["SubscriptionStatus." + runningPackage.Status]</span>
+                </span>
+            }
+            else
+            {
+                <strong class="app-stat-value is-text is-empty">@T["Nothing yet"]</strong>
+                <span class="app-stat-note">@T["No package has been bought for this student."]</span>
+            }
         </div>
-        <div>
-            <dt>@T["Current level"]</dt>
-            <dd>@(Model.CurrentLevelCode ?? T["Not specified"].Value)</dd>
-        </div>
-        <div>
-            <dt>@T["Remaining on active packages"]</dt>
-            <dd>@T.Minutes(Model.RemainingMinutesOnActivePackages)</dd>
-        </div>
-        <div>
-            <dt>@T["Primary guardian"]</dt>
-            <dd>@(Model.PrimaryGuardianName ?? T["Not specified"].Value)</dd>
-        </div>
-        <div>
-            <dt>@T["Signs in as"]</dt>
-            <dd>@(student.UserId is not null ? T["Their own account"].Value : T["Through the guardian"].Value)</dd>
-        </div>
-        <div>
-            <dt>@T["Upcoming sessions"]</dt>
-            <dd>@Model.UpcomingSessionCount</dd>
-        </div>
-        <div>
-            <dt>@T["Attended / missed"]</dt>
-            <dd>@Model.AttendedSessionCount / @Model.MissedSessionCount</dd>
-        </div>
-    </dl>
 
-    <h2 class="h5">@T["Quick actions"]</h2>
-    <div class="app-quick-actions">
-        <a class="app-quick-action" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">
-            <strong>@(Model.CurrentLevelCode is null ? T["Set the level"].Value : T["Change the level"].Value)</strong>
-            <span>@T["Opens the level form with this student already chosen."]</span>
-        </a>
-        <a class="app-quick-action" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="link-guardian">
-            <strong>@T["Link a guardian"]</strong>
-            <span>@T["Give a parent access to this student and their payments."]</span>
-        </a>
-        <a class="app-quick-action" asp-page="/Admin/Subscriptions" asp-route-studentId="@student.Id">
-            <strong>@T["Add a package"]</strong>
-            <span>@T["Buy or grant a package for this student only."]</span>
-        </a>
-        <a class="app-quick-action" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">
-            <strong>@T["Record a payment"]</strong>
-            <span>@T["Record and confirm money received from this family."]</span>
-        </a>
-        <a class="app-quick-action" asp-page="/Admin/RescheduleSessions">
-            <strong>@T["Reschedule a session"]</strong>
-            <span>@T["Move a missed lesson, or approve a make-up one."]</span>
-        </a>
-        <a class="app-quick-action" asp-page="/Admin/Certificates">
-            <strong>@T["Certificates"]</strong>
-            <span>@T["Check whether this student has earned one yet."]</span>
-        </a>
-    </div>
+        @foreach (var money in Model.MoneyLines)
+        {
+            <div class="app-stat">
+                <span class="app-stat-label">@T["Paid"] (@money.Currency)</span>
+                <strong class="app-stat-value">@T.Money(money.Paid, money.Currency)</strong>
+                <span class="app-stat-note">@T["Billed: {0}", T.Money(money.Owed, money.Currency)]</span>
+                <div class="app-meter" role="img"
+                     aria-label="@T["{0}% of the billed amount has been paid.", money.PaidPercent]">
+                    <span class="app-meter-fill @(money.IsSettled ? "is-success" : "is-warning")" style="width:@(money.PaidPercent)%"></span>
+                </div>
+            </div>
+            <div class="app-stat @(money.IsSettled ? null : "is-attention")">
+                <span class="app-stat-label">@T["Still owed"] (@money.Currency)</span>
+                <strong class="app-stat-value @(money.IsSettled ? "is-good" : "is-bad")">
+                    @T.Money(money.IsSettled ? 0m : money.Outstanding, money.Currency)
+                </strong>
+                <span class="app-stat-note">
+                    @if (money.AwaitingConfirmation > 0m)
+                    {
+                        <text>@T["Awaiting confirmation:"] @T.Money(money.AwaitingConfirmation, money.Currency)</text>
+                    }
+                    else if (money.IsSettled)
+                    {
+                        <text>@T["Fully settled."]</text>
+                    }
+                    else
+                    {
+                        <text>@T["Nothing is awaiting confirmation — this is simply unpaid."]</text>
+                    }
+                </span>
+            </div>
+        }
+        @if (Model.MoneyLines.Count == 0)
+        {
+            <div class="app-stat">
+                <span class="app-stat-label">@T["Paid"]</span>
+                <strong class="app-stat-value is-text is-empty">—</strong>
+                <span class="app-stat-note">@T["Nothing has been billed or paid yet."]</span>
+            </div>
+        }
 
-    <div class="row g-4 mb-4">
-        <div class="col-md-6">
-            <h2 class="h4">@T["Guardians"]</h2>
-            <div class="table-responsive">
-                <table class="table table-sm table-striped">
-                    <thead><tr><th>@T["Name"]</th><th>@T["Relationship"]</th><th>@T["Primary"]</th><th>@T["Can pay"]</th></tr></thead>
-                    <tbody>
-                        @foreach (var g in Model.Guardians)
-                        {
-                            <tr>
-                                <td>@g.FullName</td>
-                                <td>@T["GuardianRelationship." + g.Relationship]</td>
-                                <td>@(g.IsPrimary ? T["Yes"].Value : "—")</td>
-                                <td>@(g.CanPay ? T["Yes"].Value : T["No"].Value)</td>
-                            </tr>
-                        }
-                        @if (Model.Guardians.Count == 0)
-                        {
-                            <tr><td colspan="4" class="text-muted">@T["No guardians linked."]</td></tr>
-                        }
-                    </tbody>
-                </table>
+        <div class="app-stat">
+            <span class="app-stat-label">@T["Balance left"]</span>
+            <strong class="app-stat-value">@T.Minutes(Model.RemainingMinutesOnActivePackages)</strong>
+            <span class="app-stat-note">@T["Of {0} on the active packages", T.Minutes(Model.PurchasedMinutesOnActivePackages)]</span>
+            <div class="app-meter" role="img"
+                 aria-label="@T["{0}% of the purchased time has been used.", Model.PackageUsedPercent]">
+                <span class="app-meter-fill @(Model.PackageUsedPercent >= 85 ? "is-warning" : "is-primary")"
+                      style="width:@(Model.PackageUsedPercent)%"></span>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <h2 class="h4">@T["Level history"]</h2>
-            <div class="table-responsive">
-                <table class="table table-sm table-striped">
-                    <thead><tr><th>@T["Level"]</th><th>@T["Source"]</th><th>@T["Current"]</th><th>@T["Since"]</th></tr></thead>
-                    <tbody>
-                        @foreach (var l in Model.LevelHistory)
-                        {
-                            <tr>
-                                <td>@l.LevelCode</td>
-                                <td>@T["LevelAssignmentSource." + l.Source]@(l.Reason is not null ? $" — {l.Reason}" : "")</td>
-                                <td>@(l.IsCurrent ? T["Yes"].Value : "—")</td>
-                                <td>@T.DateUtc(l.EffectiveFromUtc)</td>
-                            </tr>
-                        }
-                        @if (Model.LevelHistory.Count == 0)
-                        {
-                            <tr><td colspan="4" class="text-muted">@T["No level assigned yet."]</td></tr>
-                        }
-                    </tbody>
-                </table>
+        <div class="app-stat">
+            <span class="app-stat-label">@T["Lessons ahead"]</span>
+            <strong class="app-stat-value">@Model.UpcomingSessionCount</strong>
+            <span class="app-stat-note">
+                @if (Model.NextSession is { } next)
+                {
+                    <text>@T["Next:"] @T.SessionMoment(next.StartsAtUtc, next.TimeZoneId)</text>
+                }
+                else
+                {
+                    <text>@T["Nothing scheduled ahead."]</text>
+                }
+            </span>
+        </div>
+
+        <div class="app-stat">
+            <span class="app-stat-label">@T["Attendance"]</span>
+            <div class="app-dial" style="--app-dial-value:@Model.AttendancePercent"
+                 role="img" aria-label="@T["Attended {0}% of the lessons held.", Model.AttendancePercent]">
+                <span>@Model.AttendancePercent<small>%</small></span>
             </div>
+            <span class="app-stat-note">@T["{0} attended, {1} missed", Model.AttendedSessionCount, Model.MissedSessionCount]</span>
         </div>
     </div>
 
-    <h2 class="h4">@T["Subscriptions"]</h2>
-    <div class="table-responsive mb-4">
-        <table class="table table-sm table-striped">
-            <thead><tr><th>@T["Course/Level"]</th><th>@T["Price"]</th><th>@T["Status"]</th><th>@T["Origin"]</th><th>@T["Remaining"]</th><th>@T["Expires"]</th></tr></thead>
-            <tbody>
-                @foreach (var s in Model.Subscriptions)
-                {
-                    <tr>
-                        <td>@s.CourseName / @s.LevelCode</td>
-                        <td>@T.Money(s.Price, s.Currency)</td>
-                        <td><span class="@SubscriptionStatusClass(s.Status)">@T["SubscriptionStatus." + s.Status]</span></td>
-                        <td>@T["SubscriptionOrigin." + s.Origin]</td>
-                        <td>@T.Minutes(s.BalanceMinutes)</td>
-                        <td>@T.Date(s.ExpiresOn)</td>
-                    </tr>
-                }
-                @if (Model.Subscriptions.Count == 0)
-                {
-                    <tr>
-                        <td colspan="6" class="text-muted">
-                            @T["No subscriptions yet — see"]
-                            <a asp-page="/Admin/Subscriptions" asp-route-studentId="@student.Id">@T["Subscriptions"]</a>.
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    @* --- Everything else, one subject at a time --------------------------- *@
+    <div class="app-tabs">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @TabClass("summary", tab)" id="tab-summary" data-bs-toggle="tab"
+                        data-bs-target="#panel-summary" type="button" role="tab" aria-controls="panel-summary"
+                        aria-selected="@(tab == "summary" ? "true" : "false")">@T["Summary"]</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @TabClass("money", tab)" id="tab-money" data-bs-toggle="tab"
+                        data-bs-target="#panel-money" type="button" role="tab" aria-controls="panel-money"
+                        aria-selected="@(tab == "money" ? "true" : "false")">@T["Packages and Payments"]</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @TabClass("sessions", tab)" id="tab-sessions" data-bs-toggle="tab"
+                        data-bs-target="#panel-sessions" type="button" role="tab" aria-controls="panel-sessions"
+                        aria-selected="@(tab == "sessions" ? "true" : "false")">@T["Lessons"]</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @TabClass("attendance", tab)" id="tab-attendance" data-bs-toggle="tab"
+                        data-bs-target="#panel-attendance" type="button" role="tab" aria-controls="panel-attendance"
+                        aria-selected="@(tab == "attendance" ? "true" : "false")">@T["Attendance"]</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @TabClass("compensation", tab)" id="tab-compensation" data-bs-toggle="tab"
+                        data-bs-target="#panel-compensation" type="button" role="tab" aria-controls="panel-compensation"
+                        aria-selected="@(tab == "compensation" ? "true" : "false")">
+                    @T["Make-ups"]
+                    @if (Model.Compensations.Count > 0)
+                    {
+                        <span class="app-tab-count">@Model.Compensations.Count</span>
+                    }
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @TabClass("notes", tab)" id="tab-notes" data-bs-toggle="tab"
+                        data-bs-target="#panel-notes" type="button" role="tab" aria-controls="panel-notes"
+                        aria-selected="@(tab == "notes" ? "true" : "false")">
+                    @T["Written record"]
+                    @if (Model.Notes.Count > 0)
+                    {
+                        <span class="app-tab-count">@Model.Notes.Count</span>
+                    }
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @TabClass("actions", tab)" id="tab-actions" data-bs-toggle="tab"
+                        data-bs-target="#panel-actions" type="button" role="tab" aria-controls="panel-actions"
+                        aria-selected="@(tab == "actions" ? "true" : "false")">@T["Actions"]</button>
+            </li>
+        </ul>
+        <div class="tab-content">
 
-    <h2 class="h4">@T["Payment history"]</h2>
-    <div class="table-responsive mb-4">
-        <table class="table table-sm table-striped">
-            <thead><tr><th>@T["Ref"]</th><th>@T["Amount"]</th><th>@T["Method"]</th><th>@T["Status"]</th><th>@T["Date"]</th></tr></thead>
-            <tbody>
-                @foreach (var p in Model.Payments)
-                {
-                    <tr>
-                        <td><span class="app-ref">@p.ReferenceCode</span></td>
-                        <td>@T.Money(p.Amount, p.Currency)</td>
-                        <td>@T["PaymentMethod." + p.Method]</td>
-                        <td><span class="@PaymentStatusClass(p.Status)">@T["PaymentStatus." + p.Status]</span></td>
-                        <td>@T.DateTimeUtc(p.CreatedAtUtc)</td>
-                    </tr>
-                }
-                @if (Model.Payments.Count == 0)
-                {
-                    <tr>
-                        <td colspan="5" class="text-muted">
-                            @T["No payments recorded — see"]
-                            <a asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>.
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+            @* ---- Summary ---------------------------------------------- *@
+            <div class="tab-pane fade @PaneClass("summary", tab)" id="panel-summary" role="tabpanel"
+                 aria-labelledby="tab-summary" tabindex="0">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <h2 class="h5">@T["Guardians"]</h2>
+                        <p class="text-muted small">@T["Who can see this student and who is allowed to pay for them."]</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead><tr><th>@T["Name"]</th><th>@T["Relationship"]</th><th>@T["Primary"]</th><th>@T["Can pay"]</th></tr></thead>
+                                <tbody>
+                                    @foreach (var g in Model.Guardians)
+                                    {
+                                        <tr>
+                                            <td>@g.FullName</td>
+                                            <td>@T["GuardianRelationship." + g.Relationship]</td>
+                                            <td>@(g.IsPrimary ? T["Yes"].Value : "—")</td>
+                                            <td>@(g.CanPay ? T["Yes"].Value : T["No"].Value)</td>
+                                        </tr>
+                                    }
+                                    @if (Model.Guardians.Count == 0)
+                                    {
+                                        <tr><td colspan="4" class="text-muted">@T["No guardians linked."]</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
-    <h2 class="h4">@T["Sessions and attendance"]</h2>
-    <p class="text-muted small">@T["Every session this student was put into, newest first, with what was actually recorded on the day."]</p>
-    <div class="table-responsive mb-4">
-        <table class="table table-sm table-striped">
-            <thead><tr><th>@T["When"]</th><th>@T["Level"]</th><th>@T["Teacher"]</th><th>@T["Session"]</th><th>@T["Attendance"]</th></tr></thead>
-            <tbody>
-                @foreach (var row in Model.Sessions)
-                {
-                    <tr>
-                        <td>@T.SessionMoment(row.StartsAtUtc, row.TimeZoneId) <span class="text-muted small">(@DisplayFormat.ZoneLabel(row.TimeZoneId))</span></td>
-                        <td>@row.LevelCode</td>
-                        <td>@row.TeacherName</td>
-                        <td>
-                            @if (row.SessionStatus == ClassSessionStatus.Cancelled)
-                            {
-                                <span class="app-status is-danger">@T["Cancelled by the centre"]</span>
-                            }
-                            else if (row.EnrollmentState != EnrollmentState.Active)
-                            {
-                                <span class="app-status is-muted">@T["EnrollmentState." + row.EnrollmentState]</span>
-                            }
-                            else
-                            {
-                                <span class="app-status is-info">@T["ClassSessionStatus." + row.SessionStatus]</span>
-                            }
-                            @if (row.IsCompensation)
-                            {
-                                <span class="app-status is-info">@T["Make-up lesson"]</span>
-                            }
-                        </td>
-                        <td>
-                            @if (row.WasPresent == true)
-                            {
-                                <span class="app-status is-success">@T["Attended"]</span>
-                            }
-                            else if (row.WasPresent == false)
-                            {
-                                <span class="app-status is-danger">@T["Did not attend"]</span>
-                            }
-                            else
-                            {
-                                <span class="text-muted">@T["Not yet held"]</span>
-                            }
-                        </td>
-                    </tr>
-                }
-                @if (Model.Sessions.Count == 0)
-                {
-                    <tr>
-                        <td colspan="5">
-                            <div class="app-empty">
-                                <strong>@T["This student is not in any session yet."]</strong>
-                                <span>@T["Enrol them into a weekly schedule, or let them book from their own screen once a package is active."]</span>
-                                <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Schedules">@T["Open schedules"]</a></span>
+                    <div class="col-md-6">
+                        <h2 class="h5">@T["Level history"]</h2>
+                        <p class="text-muted small">@T["Every level this student has been put at, and who decided it."]</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead><tr><th>@T["Level"]</th><th>@T["Source"]</th><th>@T["Current"]</th><th>@T["Since"]</th></tr></thead>
+                                <tbody>
+                                    @foreach (var l in Model.LevelHistory)
+                                    {
+                                        <tr>
+                                            <td>@l.LevelCode</td>
+                                            <td>@T["LevelAssignmentSource." + l.Source]@(l.Reason is not null ? $" — {l.Reason}" : "")</td>
+                                            <td>@(l.IsCurrent ? T["Yes"].Value : "—")</td>
+                                            <td>@T.DateUtc(l.EffectiveFromUtc)</td>
+                                        </tr>
+                                    }
+                                    @if (Model.LevelHistory.Count == 0)
+                                    {
+                                        <tr><td colspan="4" class="text-muted">@T["No level assigned yet."]</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <h2 class="h5">@T["Certificates"]</h2>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead><tr><th>@T["Number"]</th><th>@T["Level"]</th><th>@T["Status"]</th><th>@T["Issued"]</th></tr></thead>
+                                <tbody>
+                                    @foreach (var c in Model.Certificates)
+                                    {
+                                        <tr>
+                                            <td><span class="app-ref">@c.CertificateNumber</span></td>
+                                            <td>@c.LevelCode</td>
+                                            <td>@T["CertificateStatus." + c.Status]</td>
+                                            <td>@T.DateUtc(c.IssuedAtUtc)</td>
+                                        </tr>
+                                    }
+                                    @if (Model.Certificates.Count == 0)
+                                    {
+                                        <tr><td colspan="4" class="text-muted">@T["No certificates issued yet."]</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ---- Packages and payments -------------------------------- *@
+            <div class="tab-pane fade @PaneClass("money", tab)" id="panel-money" role="tabpanel"
+                 aria-labelledby="tab-money" tabindex="0">
+                <h2 class="h5">@T["Packages"]</h2>
+                <p class="text-muted small">@T["What was bought, how much of it is left, and when it stops being usable."]</p>
+                <div class="app-package-grid">
+                    @foreach (var s in Model.Subscriptions)
+                    {
+                        <article class="app-package @(s.Status == SubscriptionStatus.Active ? "is-active" : null)">
+                            <header>
+                                <span class="app-package-level">@s.LevelCode</span>
+                                <span class="@SubscriptionStatusClass(s.Status)">@T["SubscriptionStatus." + s.Status]</span>
+                            </header>
+                            <h3>@s.CourseName</h3>
+                            <p class="app-package-price">@T.Money(s.Price, s.Currency)</p>
+                            <dl class="app-package-facts">
+                                <div><dt>@T["Lessons"]</dt><dd>@s.SessionsCount</dd></div>
+                                <div><dt>@T["Total time"]</dt><dd>@T.Minutes(s.MinutesTotal)</dd></div>
+                                <div><dt>@T["Left"]</dt><dd>@T.Minutes(s.BalanceMinutes)</dd></div>
+                                <div><dt>@T["Expires"]</dt><dd>@T.Date(s.ExpiresOn)</dd></div>
+                            </dl>
+                            <div class="app-meter" role="img"
+                                 aria-label="@T["{0}% of the purchased time has been used.", s.UsedPercent]">
+                                <span class="app-meter-fill @(s.UsedPercent >= 85 ? "is-warning" : "is-primary")"
+                                      style="width:@(s.UsedPercent)%"></span>
                             </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                            <p class="app-package-origin">@T["SubscriptionOrigin." + s.Origin]</p>
+                        </article>
+                    }
+                    @if (Model.Subscriptions.Count == 0)
+                    {
+                        <div class="app-empty">
+                            <strong>@T["No package has been bought for this student."]</strong>
+                            <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Subscriptions" asp-route-studentId="@student.Id">@T["Add a package"]</a></span>
+                        </div>
+                    }
+                </div>
 
-    <h2 class="h4">@T["Certificates"]</h2>
-    <div class="table-responsive">
-        <table class="table table-sm table-striped">
-            <thead><tr><th>@T["Number"]</th><th>@T["Level"]</th><th>@T["Status"]</th><th>@T["Issued"]</th></tr></thead>
-            <tbody>
-                @foreach (var c in Model.Certificates)
+                <h2 class="h5 mt-4">@T["Payment history"]</h2>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead><tr><th>@T["Ref"]</th><th>@T["Amount"]</th><th>@T["Method"]</th><th>@T["Status"]</th><th>@T["Date"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var p in Model.Payments)
+                            {
+                                <tr>
+                                    <td><span class="app-ref">@p.ReferenceCode</span></td>
+                                    <td>@T.Money(p.Amount, p.Currency)</td>
+                                    <td>@T["PaymentMethod." + p.Method]</td>
+                                    <td><span class="@PaymentStatusClass(p.Status)">@T["PaymentStatus." + p.Status]</span></td>
+                                    <td>@T.DateTimeUtc(p.CreatedAtUtc)</td>
+                                </tr>
+                            }
+                            @if (Model.Payments.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-muted">
+                                        @T["No payments recorded — see"]
+                                        <a asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @* ---- Lessons ---------------------------------------------- *@
+            <div class="tab-pane fade @PaneClass("sessions", tab)" id="panel-sessions" role="tabpanel"
+                 aria-labelledby="tab-sessions" tabindex="0">
+                <h2 class="h5">@T["Every lesson this student was put into"]</h2>
+                <p class="text-muted small">@T["Newest first. To move one of these to another time, use the button on its row."]</p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead><tr><th>@T["When"]</th><th>@T["Level"]</th><th>@T["Teacher"]</th><th>@T["Session"]</th><th>@T["Actions"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in Model.Sessions)
+                            {
+                                <tr>
+                                    <td>@T.SessionMoment(row.StartsAtUtc, row.TimeZoneId) <span class="text-muted small">(@DisplayFormat.ZoneLabel(row.TimeZoneId))</span></td>
+                                    <td>@row.LevelCode</td>
+                                    <td>@row.TeacherName</td>
+                                    <td>
+                                        @if (row.SessionStatus == ClassSessionStatus.Cancelled)
+                                        {
+                                            <span class="app-status is-danger">@T["Cancelled by the centre"]</span>
+                                        }
+                                        else if (row.EnrollmentState != EnrollmentState.Active)
+                                        {
+                                            <span class="app-status is-muted">@T["EnrollmentState." + row.EnrollmentState]</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="app-status is-info">@T["ClassSessionStatus." + row.SessionStatus]</span>
+                                        }
+                                        @if (row.IsCompensation)
+                                        {
+                                            <span class="app-status is-info">@T["Make-up lesson"]</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-sm btn-outline-secondary"
+                                           asp-page="/Admin/RescheduleSessions"
+                                           asp-route-studentId="@student.Id"
+                                           asp-route-sessionId="@row.SessionId">@T["Move this lesson"]</a>
+                                    </td>
+                                </tr>
+                            }
+                            @if (Model.Sessions.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="app-empty">
+                                            <strong>@T["This student is not in any session yet."]</strong>
+                                            <span>@T["Enrol them into a weekly schedule, or let them book from their own screen once a package is active."]</span>
+                                            <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Schedules" asp-route-studentId="@student.Id">@T["Open the schedule"]</a></span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @* ---- Attendance ------------------------------------------- *@
+            <div class="tab-pane fade @PaneClass("attendance", tab)" id="panel-attendance" role="tabpanel"
+                 aria-labelledby="tab-attendance" tabindex="0">
+                <h2 class="h5">@T["What was recorded on the day"]</h2>
+                <div class="app-guide">
+                    <p class="app-guide-title">@T["Where attendance comes from"]</p>
+                    <ul>
+                        <li>@T["Neither Zoom nor Google Meet reports attendance back to this platform. Nothing here is filled in automatically."]</li>
+                        <li>@T["The teacher marks each student present or absent on their own session screen after the lesson."]</li>
+                        <li>@T["Until they do, a lesson that has already passed still shows as not recorded — that is a missing record, not an absence."]</li>
+                    </ul>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead><tr><th>@T["When"]</th><th>@T["Teacher"]</th><th>@T["Attendance"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in Model.Sessions)
+                            {
+                                <tr>
+                                    <td>@T.SessionMoment(row.StartsAtUtc, row.TimeZoneId)</td>
+                                    <td>@row.TeacherName</td>
+                                    <td>
+                                        @if (row.WasPresent == true)
+                                        {
+                                            <span class="app-status is-success">@T["Attended"]</span>
+                                        }
+                                        else if (row.WasPresent == false)
+                                        {
+                                            <span class="app-status is-danger">@T["Did not attend"]</span>
+                                        }
+                                        else if (row.SessionStatus == ClassSessionStatus.Cancelled)
+                                        {
+                                            <span class="app-status is-muted">@T["Cancelled by the centre"]</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">@T["Not recorded yet"]</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            @if (Model.Sessions.Count == 0)
+                            {
+                                <tr><td colspan="3" class="text-muted">@T["Nothing to show — this student has not been in a lesson."]</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @* ---- Make-ups --------------------------------------------- *@
+            <div class="tab-pane fade @PaneClass("compensation", tab)" id="panel-compensation" role="tabpanel"
+                 aria-labelledby="tab-compensation" tabindex="0">
+                <h2 class="h5">@T["Make-up requests"]</h2>
+                <p class="text-muted small">@T["Asked for when a lesson went wrong. Each approved one is tied to a single replacement lesson and can be used once."]</p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead><tr><th>@T["Asked"]</th><th>@T["The lesson that went wrong"]</th><th>@T["Replacement"]</th><th>@T["Status"]</th><th>@T["Reason"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var c in Model.Compensations)
+                            {
+                                <tr>
+                                    <td>@T.DateUtc(c.RequestedAtUtc)</td>
+                                    <td>
+                                        @if (c.OriginalStartsAtUtc is not null)
+                                        {
+                                            @T.SessionMoment(c.OriginalStartsAtUtc.Value, c.OriginalTimeZoneId)
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">@T["Not specified"]</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (c.ReplacementStartsAtUtc is not null)
+                                        {
+                                            @T.SessionMoment(c.ReplacementStartsAtUtc.Value, c.ReplacementTimeZoneId)
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>@T["CompensationRequestStatus." + c.Status]</td>
+                                    <td>@(c.RejectionReason ?? c.Reason ?? "—")</td>
+                                </tr>
+                            }
+                            @if (Model.Compensations.Count == 0)
+                            {
+                                <tr><td colspan="5" class="text-muted">@T["No make-up has ever been asked for by this student."]</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <a class="btn btn-sm btn-outline-primary" asp-page="/Admin/CompensationRequests">@T["Compensation Requests"]</a>
+            </div>
+
+            @* ---- Written record --------------------------------------- *@
+            <div class="tab-pane fade @PaneClass("notes", tab)" id="panel-notes" role="tabpanel"
+                 aria-labelledby="tab-notes" tabindex="0">
+                <h2 class="h5">@T["What people wrote about this student"]</h2>
+                <p class="text-muted small">@T["Every reason typed by an admin or a teacher while doing something to this student's record — a level change, a package, a make-up, a rejected payment. Newest first."]</p>
+                <ol class="app-timeline">
+                    @foreach (var n in Model.Notes)
+                    {
+                        <li>
+                            <span class="app-timeline-when">@T.DateUtc(n.AtUtc)</span>
+                            <span class="app-timeline-source">@T["NoteSource." + n.Source]</span>
+                            <p>@n.Text</p>
+                        </li>
+                    }
+                </ol>
+                @if (Model.Notes.Count == 0)
                 {
-                    <tr>
-                        <td><span class="app-ref">@c.CertificateNumber</span></td>
-                        <td>@c.LevelCode</td>
-                        <td>@T["CertificateStatus." + c.Status]</td>
-                        <td>@T.DateUtc(c.IssuedAtUtc)</td>
-                    </tr>
+                    <div class="app-empty">
+                        <strong>@T["Nothing has been written about this student yet."]</strong>
+                        <span>@T["This list fills itself from the reasons typed elsewhere; there is no free-text note field on a student today."]</span>
+                    </div>
                 }
-                @if (Model.Certificates.Count == 0)
-                {
-                    <tr><td colspan="4" class="text-muted">@T["No certificates issued yet."]</td></tr>
-                }
-            </tbody>
-        </table>
+            </div>
+
+            @* ---- Actions ---------------------------------------------- *@
+            <div class="tab-pane fade @PaneClass("actions", tab)" id="panel-actions" role="tabpanel"
+                 aria-labelledby="tab-actions" tabindex="0">
+                <h2 class="h5">@T["Who this student is"]</h2>
+                <div class="app-quick-actions">
+                    <a class="app-quick-action" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">
+                        <strong>@(Model.CurrentLevelCode is null ? T["Set the level"].Value : T["Change the level"].Value)</strong>
+                        <span>@T["Opens the level form with this student already chosen."]</span>
+                    </a>
+                    <a class="app-quick-action" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="link-guardian">
+                        <strong>@T["Link a guardian"]</strong>
+                        <span>@T["Give a parent access to this student and their payments."]</span>
+                    </a>
+                </div>
+
+                <h2 class="h5 mt-4">@T["Money"]</h2>
+                <div class="app-quick-actions">
+                    <a class="app-quick-action" asp-page="/Admin/Subscriptions" asp-route-studentId="@student.Id">
+                        <strong>@T["Add a package"]</strong>
+                        <span>@T["Buy or grant a package for this student only."]</span>
+                    </a>
+                    <a class="app-quick-action" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">
+                        <strong>@T["Record a payment"]</strong>
+                        <span>@T["Record and confirm money received from this family."]</span>
+                    </a>
+                </div>
+
+                <h2 class="h5 mt-4">@T["Lessons"]</h2>
+                <div class="app-quick-actions">
+                    <a class="app-quick-action" asp-page="/Admin/Schedules" asp-route-studentId="@student.Id">
+                        <strong>@T["Open the schedule"]</strong>
+                        <span>@T["Enrol them into a weekly class, with this student already chosen."]</span>
+                    </a>
+                    <a class="app-quick-action" asp-page="/Admin/RescheduleSessions" asp-route-studentId="@student.Id">
+                        <strong>@T["Reschedule a session"]</strong>
+                        <span>@T["Move a missed lesson, or approve a make-up one."]</span>
+                    </a>
+                    <a class="app-quick-action" asp-page="/Admin/Certificates">
+                        <strong>@T["Certificates"]</strong>
+                        <span>@T["Check whether this student has earned one yet."]</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 }

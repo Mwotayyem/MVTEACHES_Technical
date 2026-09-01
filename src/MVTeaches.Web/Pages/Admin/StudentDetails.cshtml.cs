@@ -36,7 +36,40 @@ public class StudentDetailsModel : PageModel
     public record GuardianRow(long GuardianId, string FullName, GuardianRelationship Relationship, bool IsPrimary, bool CanPay);
     public record LevelHistoryRow(string LevelCode, LevelAssignmentSource Source, bool IsCurrent, NodaTime.Instant EffectiveFromUtc, string? Reason);
     public record SubscriptionRow(long Id, string CourseName, string LevelCode, decimal Price, string Currency,
-        SubscriptionStatus Status, SubscriptionOrigin Origin, int BalanceMinutes, NodaTime.LocalDate ExpiresOn);
+        SubscriptionStatus Status, SubscriptionOrigin Origin, int BalanceMinutes, NodaTime.LocalDate ExpiresOn,
+        int MinutesTotal, int SessionsCount)
+    {
+        public int UsedMinutes => Math.Max(0, MinutesTotal - BalanceMinutes);
+
+        /// <summary>How much of the package has been consumed, for the bar on
+        /// the profile. A zero-minute package can never be "half used", so it
+        /// reports 0 rather than dividing by zero.</summary>
+        public int UsedPercent => MinutesTotal <= 0 ? 0
+            : (int)Math.Round(Math.Clamp(UsedMinutes * 100d / MinutesTotal, 0d, 100d));
+    }
+
+    /// <summary>Money for ONE currency. Never a total across currencies: D-53
+    /// forbids converting between them automatically, so a student who paid in
+    /// two currencies gets two lines, not one invented sum.</summary>
+    public record MoneyLine(string Currency, decimal Owed, decimal Paid, decimal AwaitingConfirmation)
+    {
+        public decimal Outstanding => Owed - Paid;
+        public bool IsSettled => Outstanding <= 0m;
+        public int PaidPercent => Owed <= 0m ? 100
+            : (int)Math.Round(Math.Clamp((double)(Paid / Owed) * 100d, 0d, 100d));
+    }
+
+    public record CompensationRow(long Id, CompensationRequestStatus Status, string? Reason,
+        NodaTime.Instant RequestedAtUtc, NodaTime.Instant? OriginalStartsAtUtc, string? OriginalTimeZoneId,
+        NodaTime.Instant? ReplacementStartsAtUtc, string? ReplacementTimeZoneId, string? RejectionReason);
+
+    /// <summary>A student row has no free-text notes column, and adding one is
+    /// a schema change nobody has asked for. "Notes" here is therefore the
+    /// written record the system ALREADY keeps about this student — the reason
+    /// typed when their level was changed, when a package was created or
+    /// extended, when a make-up was asked for or refused, when a payment was
+    /// rejected. Every line is something a person actually wrote.</summary>
+    public record NoteRow(NodaTime.Instant AtUtc, string Source, string Text);
     public record PaymentRow(long Id, decimal Amount, string Currency, PaymentMethod Method, PaymentStatus Status,
         string ReferenceCode, NodaTime.Instant CreatedAtUtc);
     public record CertificateRow(string CertificateNumber, string LevelCode, CertificateStatus Status, NodaTime.Instant IssuedAtUtc);
@@ -65,6 +98,36 @@ public class StudentDetailsModel : PageModel
     public IReadOnlyList<PaymentRow> Payments { get; set; } = Array.Empty<PaymentRow>();
     public IReadOnlyList<CertificateRow> Certificates { get; set; } = Array.Empty<CertificateRow>();
     public IReadOnlyList<SessionRow> Sessions { get; set; } = Array.Empty<SessionRow>();
+
+    public IReadOnlyList<CompensationRow> Compensations { get; set; } = Array.Empty<CompensationRow>();
+    public IReadOnlyList<NoteRow> Notes { get; set; } = Array.Empty<NoteRow>();
+
+    /// <summary>One line per currency this student has been billed or has paid
+    /// in — see <see cref="MoneyLine"/> for why these are never added up.</summary>
+    public IReadOnlyList<MoneyLine> MoneyLines { get; set; } = Array.Empty<MoneyLine>();
+
+    /// <summary>Minutes bought and minutes left across the ACTIVE packages, so
+    /// the profile can show one bar for "how much of what they bought is
+    /// gone". Draft packages are excluded: nothing has been consumed from a
+    /// package that never activated.</summary>
+    public int PurchasedMinutesOnActivePackages { get; set; }
+
+    public int UsedMinutesOnActivePackages => Math.Max(0, PurchasedMinutesOnActivePackages - RemainingMinutesOnActivePackages);
+
+    public int PackageUsedPercent => PurchasedMinutesOnActivePackages <= 0 ? 0
+        : (int)Math.Round(Math.Clamp(UsedMinutesOnActivePackages * 100d / PurchasedMinutesOnActivePackages, 0d, 100d));
+
+    /// <summary>Share of the sessions that were actually held (attended plus
+    /// missed) where the student was present. Sessions not yet held are not in
+    /// the denominator — an unheld lesson is not a missed one.</summary>
+    public int AttendancePercent => (AttendedSessionCount + MissedSessionCount) <= 0 ? 0
+        : (int)Math.Round(AttendedSessionCount * 100d / (AttendedSessionCount + MissedSessionCount));
+
+    public SessionRow? NextSession { get; set; }
+
+    /// <summary>Which panel of the profile is open. Display only.</summary>
+    [BindProperty(SupportsGet = true, Name = "tab")]
+    public string ActiveTab { get; set; } = "summary";
 
     /// <summary>Header counts an admin reads before deciding what to do next.</summary>
     public int UpcomingSessionCount { get; set; }
@@ -104,7 +167,7 @@ public class StudentDetailsModel : PageModel
             var balance = await _balances.GetSubscriptionBalanceAsync(sub.Id, HttpContext.RequestAborted);
             subRows.Add(new SubscriptionRow(sub.Id, courseNames.GetValueOrDefault(sub.CourseId, "?"),
                 levelCodes.GetValueOrDefault(sub.LevelId, "?"), sub.Price.Amount, sub.Price.Currency, sub.Status,
-                sub.Origin, balance, sub.ExpiresOn));
+                sub.Origin, balance, sub.ExpiresOn, sub.MinutesTotal, sub.SessionsCount));
         }
         Subscriptions = subRows;
 
@@ -112,6 +175,9 @@ public class StudentDetailsModel : PageModel
         RemainingMinutesOnActivePackages = subRows
             .Where(s => s.Status == SubscriptionStatus.Active)
             .Sum(s => s.BalanceMinutes);
+        PurchasedMinutesOnActivePackages = subRows
+            .Where(s => s.Status == SubscriptionStatus.Active)
+            .Sum(s => s.MinutesTotal);
         PrimaryGuardianName = Guardians.FirstOrDefault(g => g.IsPrimary)?.FullName
                               ?? Guardians.FirstOrDefault()?.FullName;
 
@@ -156,6 +222,99 @@ public class StudentDetailsModel : PageModel
         MissedSessionCount = Sessions.Count(r => r.WasPresent == false);
         HasPendingPayment = Payments.Any(p => p.Status == PaymentStatus.Pending);
         HasDraftSubscription = Subscriptions.Any(sub => sub.Status == SubscriptionStatus.Draft);
+
+        NextSession = Sessions
+            .Where(r => r.StartsAtUtc > nowUtc
+                        && r.SessionStatus != ClassSessionStatus.Cancelled
+                        && r.EnrollmentState == EnrollmentState.Active)
+            .OrderBy(r => r.StartsAtUtc)
+            .FirstOrDefault();
+
+        // What was billed, what actually arrived, and what is still in the air —
+        // per currency, never summed across them (D-53). "Billed" counts the
+        // packages that were bought or are running; a cancelled or expired one
+        // is no longer something to collect. What arrived is the CONFIRMED
+        // received amount, which is the money in the account, not the amount
+        // that was asked for.
+        var billedByCurrency = subs
+            .Where(sub => sub.Status is SubscriptionStatus.Draft or SubscriptionStatus.Active)
+            .GroupBy(sub => sub.Price.Currency)
+            .ToDictionary(g => g.Key, g => g.Sum(sub => sub.Price.Amount));
+        var paidByCurrency = payments
+            .Where(pay => pay.Status == PaymentStatus.Confirmed)
+            .GroupBy(pay => pay.ReceivedCurrency ?? pay.Amount.Currency)
+            .ToDictionary(g => g.Key, g => g.Sum(pay => pay.ReceivedAmount ?? pay.Amount.Amount));
+        var pendingByCurrency = payments
+            .Where(pay => pay.Status == PaymentStatus.Pending)
+            .GroupBy(pay => pay.Amount.Currency)
+            .ToDictionary(g => g.Key, g => g.Sum(pay => pay.Amount.Amount));
+
+        MoneyLines = billedByCurrency.Keys
+            .Union(paidByCurrency.Keys)
+            .Union(pendingByCurrency.Keys)
+            .OrderBy(currency => currency)
+            .Select(currency => new MoneyLine(currency,
+                billedByCurrency.GetValueOrDefault(currency),
+                paidByCurrency.GetValueOrDefault(currency),
+                pendingByCurrency.GetValueOrDefault(currency)))
+            .ToList();
+
+        var compensations = await _db.CompensationRequests
+            .Where(c => c.StudentId == id)
+            .OrderByDescending(c => c.Id)
+            .ToListAsync();
+        var compensationSessionIds = compensations.Select(c => c.OriginalSessionId)
+            .Concat(compensations.Where(c => c.ReplacementSessionId is not null).Select(c => c.ReplacementSessionId!.Value))
+            .Distinct().ToList();
+        var compensationSessions = await _db.ClassSessions
+            .Where(cs => compensationSessionIds.Contains(cs.Id))
+            .ToDictionaryAsync(cs => cs.Id);
+        Compensations = compensations.Select(c =>
+        {
+            compensationSessions.TryGetValue(c.OriginalSessionId, out var original);
+            ClassSession? replacement = null;
+            if (c.ReplacementSessionId is not null)
+            {
+                compensationSessions.TryGetValue(c.ReplacementSessionId.Value, out replacement);
+            }
+            return new CompensationRow(c.Id, c.Status, c.Reason, c.RequestedAtUtc,
+                original?.StartsAtUtc, original?.ScheduleTimeZone,
+                replacement?.StartsAtUtc, replacement?.ScheduleTimeZone, c.RejectionReason);
+        }).ToList();
+
+        // Everything a person actually typed about this student, newest first.
+        var notes = new List<NoteRow>();
+        foreach (var level in levels.Where(l => !string.IsNullOrWhiteSpace(l.Reason)))
+        {
+            notes.Add(new NoteRow(level.EffectiveFromUtc, "LevelChange", level.Reason!));
+        }
+        foreach (var sub in subs)
+        {
+            if (!string.IsNullOrWhiteSpace(sub.CreatedReason))
+            {
+                notes.Add(new NoteRow(sub.StartsOn.AtMidnight().InUtc().ToInstant(), "PackageCreated", sub.CreatedReason!));
+            }
+            if (!string.IsNullOrWhiteSpace(sub.ExtendedReason))
+            {
+                notes.Add(new NoteRow(sub.StartsOn.AtMidnight().InUtc().ToInstant(), "PackageExtended", sub.ExtendedReason!));
+            }
+        }
+        foreach (var c in compensations)
+        {
+            if (!string.IsNullOrWhiteSpace(c.Reason))
+            {
+                notes.Add(new NoteRow(c.RequestedAtUtc, "CompensationAsked", c.Reason!));
+            }
+            if (!string.IsNullOrWhiteSpace(c.RejectionReason))
+            {
+                notes.Add(new NoteRow(c.ResolvedAtUtc ?? c.RequestedAtUtc, "CompensationRefused", c.RejectionReason!));
+            }
+        }
+        foreach (var pay in payments.Where(pay => !string.IsNullOrWhiteSpace(pay.RejectionReason)))
+        {
+            notes.Add(new NoteRow(pay.CreatedAtUtc, "PaymentRejected", pay.RejectionReason!));
+        }
+        Notes = notes.OrderByDescending(n => n.AtUtc).ToList();
 
         var certificates = await _db.Certificates.Where(c => c.StudentId == id).OrderByDescending(c => c.Id).ToListAsync();
         Certificates = certificates.Select(c => new CertificateRow(c.CertificateNumber,

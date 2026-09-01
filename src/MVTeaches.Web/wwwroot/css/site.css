@@ -1703,3 +1703,341 @@ a.app-kpi:hover {
 [dir="rtl"] .auth-panel > .auth-card {
   animation-name: mv-auth-rise-start;
 }
+
+/* --- Student profile ----------------------------------------------------
+   A person, not a query result: who they are in one band at the top, then
+   the handful of numbers an admin asks for before deciding anything, then
+   one subject at a time behind tabs. Built from the same tokens as the rest
+   of the product - no second visual language for this screen. */
+.app-profile-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius);
+  box-shadow: var(--mv-shadow-sm);
+  padding: 1.15rem 1.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.app-profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.app-profile-identity h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  line-height: 1.25;
+}
+
+.app-avatar {
+  flex: 0 0 auto;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--mv-primary-soft);
+  color: var(--mv-primary-strong);
+  font-size: 1.4rem;
+  font-weight: 800;
+  /* An initial is decoration, not information - the name is right beside it. */
+  user-select: none;
+}
+
+.app-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+}
+
+.app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--mv-surface-muted);
+  border: 1px solid var(--mv-border);
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.82rem;
+  color: var(--mv-muted);
+}
+
+.app-chip.is-level {
+  background: var(--mv-primary-soft);
+  border-color: transparent;
+  color: var(--mv-primary-strong);
+  font-weight: 700;
+}
+
+.app-chip.is-missing {
+  background: var(--mv-danger-soft);
+  border-color: transparent;
+  color: var(--mv-danger);
+  font-weight: 700;
+}
+
+.app-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* --- Stat cards --------------------------------------------------------- */
+.app-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.app-stat {
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius);
+  box-shadow: var(--mv-shadow-xs);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+/* A card that needs somebody to do something is marked once, on its edge -
+   not by recolouring the whole card, which would make five loud cards. */
+.app-stat.is-attention {
+  border-inline-start: 3px solid var(--mv-warning);
+}
+
+.app-stat-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--mv-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.app-stat-value {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--mv-text);
+  overflow-wrap: anywhere;
+}
+
+.app-stat-value.is-text {
+  font-size: 1.05rem;
+}
+
+.app-stat-value.is-empty {
+  color: var(--mv-muted);
+  font-weight: 700;
+}
+
+.app-stat-value.is-good {
+  color: var(--mv-success);
+}
+
+.app-stat-value.is-bad {
+  color: var(--mv-danger);
+}
+
+.app-stat-note {
+  font-size: 0.85rem;
+  color: var(--mv-muted);
+}
+
+/* --- Progress bar ------------------------------------------------------- */
+.app-meter {
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--mv-surface-muted);
+  overflow: hidden;
+  margin-top: 0.35rem;
+}
+
+.app-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mv-primary);
+  /* Width is set inline from a server-computed percentage. */
+  transition: width 400ms ease;
+}
+
+.app-meter-fill.is-success { background: var(--mv-success); }
+.app-meter-fill.is-warning { background: var(--mv-warning); }
+.app-meter-fill.is-primary { background: var(--mv-primary); }
+
+/* --- Progress dial ------------------------------------------------------
+   conic-gradient off a single custom property, so the percentage is set
+   once inline and nothing here needs a charting library. */
+.app-dial {
+  --app-dial-value: 0;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    conic-gradient(var(--mv-primary) calc(var(--app-dial-value) * 1%), var(--mv-surface-muted) 0);
+  margin: 0.2rem 0;
+}
+
+.app-dial > span {
+  width: 3.15rem;
+  height: 3.15rem;
+  border-radius: 50%;
+  background: var(--mv-surface);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--mv-text);
+}
+
+.app-dial small {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--mv-muted);
+}
+
+/* --- Package cards ------------------------------------------------------ */
+.app-package-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.9rem;
+}
+
+.app-package {
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius);
+  box-shadow: var(--mv-shadow-xs);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.app-package.is-active {
+  border-color: var(--mv-primary);
+  box-shadow: var(--mv-shadow-sm);
+}
+
+.app-package > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.app-package h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.app-package-level {
+  font-weight: 800;
+  color: var(--mv-primary-strong);
+  background: var(--mv-primary-soft);
+  border-radius: var(--mv-radius-sm);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.app-package-price {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.app-package-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+}
+
+.app-package-facts dt {
+  font-size: 0.75rem;
+  color: var(--mv-muted);
+  font-weight: 600;
+}
+
+.app-package-facts dd {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.app-package-origin {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--mv-muted);
+}
+
+/* --- Written record timeline -------------------------------------------- */
+.app-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.app-timeline > li {
+  background: var(--mv-surface-muted);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm);
+  border-inline-start: 3px solid var(--mv-primary);
+  padding: 0.65rem 0.9rem;
+}
+
+.app-timeline-when {
+  font-size: 0.78rem;
+  color: var(--mv-muted);
+  margin-inline-end: 0.5rem;
+}
+
+.app-timeline-source {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--mv-primary-strong);
+  background: var(--mv-primary-soft);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+}
+
+.app-timeline > li > p {
+  margin: 0.35rem 0 0;
+  color: var(--mv-text);
+}
+
+/* A count on a tab: how many rows are behind it, before opening it. */
+.app-tab-count {
+  display: inline-block;
+  min-width: 1.35rem;
+  margin-inline-start: 0.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--mv-surface-muted);
+  color: var(--mv-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.nav-link.active .app-tab-count {
+  background: var(--mv-primary-soft);
+  color: var(--mv-primary-strong);
+}

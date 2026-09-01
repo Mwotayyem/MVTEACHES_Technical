@@ -1521,4 +1521,184 @@
   <data name="Today: that is a different screen — cancelling here affects everybody in the session, not one student." xml:space="preserve">
     <value>اليوم: تلك شاشة أخرى — الإلغاء من هنا يطال كل من في الحصة، لا طالبًا واحدًا.</value>
   </data>
+  <data name="PaymentMethod.Card" xml:space="preserve">
+    <value>بطاقة</value>
+  </data>
+  <data name="PaymentMethod.PayPal" xml:space="preserve">
+    <value>PayPal</value>
+  </data>
+  <data name="PaymentMethod.Migration" xml:space="preserve">
+    <value>منقولة من النظام القديم</value>
+  </data>
+  <data name="Guardian:" xml:space="preserve">
+    <value>ولي الأمر:</value>
+  </data>
+  <data name="What they bought" xml:space="preserve">
+    <value>ما اشتراه</value>
+  </data>
+  <data name="Nothing yet" xml:space="preserve">
+    <value>لا شيء بعد</value>
+  </data>
+  <data name="No package has been bought for this student." xml:space="preserve">
+    <value>لم تُشترَ أي باقة لهذا الطالب.</value>
+  </data>
+  <data name="{0} lesson(s)" xml:space="preserve">
+    <value>{0} حصة</value>
+  </data>
+  <data name="Paid" xml:space="preserve">
+    <value>المدفوع</value>
+  </data>
+  <data name="Billed: {0}" xml:space="preserve">
+    <value>من أصل {0} مطلوبة</value>
+  </data>
+  <data name="Still owed" xml:space="preserve">
+    <value>المتبقي على الطالب</value>
+  </data>
+  <data name="Awaiting confirmation:" xml:space="preserve">
+    <value>بانتظار التأكيد:</value>
+  </data>
+  <data name="Fully settled." xml:space="preserve">
+    <value>مسدَّد بالكامل.</value>
+  </data>
+  <data name="Nothing is awaiting confirmation — this is simply unpaid." xml:space="preserve">
+    <value>لا يوجد شيء بانتظار التأكيد — هذا المبلغ ببساطة غير مدفوع.</value>
+  </data>
+  <data name="Nothing has been billed or paid yet." xml:space="preserve">
+    <value>لم يُطلب ولم يُدفع أي مبلغ بعد.</value>
+  </data>
+  <data name="Balance left" xml:space="preserve">
+    <value>الرصيد المتبقي</value>
+  </data>
+  <data name="Of {0} on the active packages" xml:space="preserve">
+    <value>من أصل {0} على الباقات المفعّلة</value>
+  </data>
+  <data name="Lessons ahead" xml:space="preserve">
+    <value>حصص قادمة</value>
+  </data>
+  <data name="Next:" xml:space="preserve">
+    <value>التالية:</value>
+  </data>
+  <data name="Nothing scheduled ahead." xml:space="preserve">
+    <value>لا يوجد شيء مجدول قادمًا.</value>
+  </data>
+  <data name="{0} attended, {1} missed" xml:space="preserve">
+    <value>حضر {0}، وغاب عن {1}</value>
+  </data>
+  <data name="{0}% of the billed amount has been paid." xml:space="preserve">
+    <value>تم دفع {0}% من المبلغ المطلوب.</value>
+  </data>
+  <data name="{0}% of the purchased time has been used." xml:space="preserve">
+    <value>تم استهلاك {0}% من الوقت المشترى.</value>
+  </data>
+  <data name="Attended {0}% of the lessons held." xml:space="preserve">
+    <value>حضر {0}% من الحصص التي انعقدت.</value>
+  </data>
+  <data name="Summary" xml:space="preserve">
+    <value>الملخص</value>
+  </data>
+  <data name="Make-ups" xml:space="preserve">
+    <value>التعويضات</value>
+  </data>
+  <data name="Written record" xml:space="preserve">
+    <value>السجل المكتوب</value>
+  </data>
+  <data name="Who can see this student and who is allowed to pay for them." xml:space="preserve">
+    <value>من يستطيع رؤية هذا الطالب، ومن يُسمح له بالدفع عنه.</value>
+  </data>
+  <data name="Every level this student has been put at, and who decided it." xml:space="preserve">
+    <value>كل مستوى وُضع فيه هذا الطالب، ومن قرّره.</value>
+  </data>
+  <data name="What was bought, how much of it is left, and when it stops being usable." xml:space="preserve">
+    <value>ما الذي اشتُري، وكم بقي منه، ومتى يتوقف عن كونه قابلًا للاستخدام.</value>
+  </data>
+  <data name="Total time" xml:space="preserve">
+    <value>إجمالي الوقت</value>
+  </data>
+  <data name="Left" xml:space="preserve">
+    <value>المتبقي</value>
+  </data>
+  <data name="Every lesson this student was put into" xml:space="preserve">
+    <value>كل حصة وُضع فيها هذا الطالب</value>
+  </data>
+  <data name="Newest first. To move one of these to another time, use the button on its row." xml:space="preserve">
+    <value>الأحدث أولًا. لنقل إحداها إلى موعد آخر، استخدم الزر في صفّها.</value>
+  </data>
+  <data name="Move this lesson" xml:space="preserve">
+    <value>انقل هذه الحصة</value>
+  </data>
+  <data name="Open the schedule" xml:space="preserve">
+    <value>افتح الجدول</value>
+  </data>
+  <data name="What was recorded on the day" xml:space="preserve">
+    <value>ما سُجِّل في يوم الحصة</value>
+  </data>
+  <data name="Where attendance comes from" xml:space="preserve">
+    <value>من أين يأتي الحضور</value>
+  </data>
+  <data name="Neither Zoom nor Google Meet reports attendance back to this platform. Nothing here is filled in automatically." xml:space="preserve">
+    <value>لا Zoom ولا Google Meet يُرجع الحضور إلى هذه المنصة. لا شيء هنا يُملأ تلقائيًا.</value>
+  </data>
+  <data name="The teacher marks each student present or absent on their own session screen after the lesson." xml:space="preserve">
+    <value>المعلم هو من يحدّد كل طالب حاضرًا أو غائبًا من شاشة حصصه بعد انتهاء الحصة.</value>
+  </data>
+  <data name="Until they do, a lesson that has already passed still shows as not recorded — that is a missing record, not an absence." xml:space="preserve">
+    <value>وإلى أن يفعل، تبقى الحصة التي مضت ظاهرة كغير مسجَّلة — وهذا يعني سجلًا ناقصًا، لا غيابًا.</value>
+  </data>
+  <data name="Not recorded yet" xml:space="preserve">
+    <value>لم يُسجَّل بعد</value>
+  </data>
+  <data name="Nothing to show — this student has not been in a lesson." xml:space="preserve">
+    <value>لا شيء لعرضه — هذا الطالب لم يحضر أي حصة.</value>
+  </data>
+  <data name="Asked for when a lesson went wrong. Each approved one is tied to a single replacement lesson and can be used once." xml:space="preserve">
+    <value>تُطلب عندما تفشل حصة. كل تعويض مُوافَق عليه مرتبط بحصة بديلة واحدة، ويُستخدم مرة واحدة.</value>
+  </data>
+  <data name="Asked" xml:space="preserve">
+    <value>تاريخ الطلب</value>
+  </data>
+  <data name="The lesson that went wrong" xml:space="preserve">
+    <value>الحصة التي فشلت</value>
+  </data>
+  <data name="No make-up has ever been asked for by this student." xml:space="preserve">
+    <value>لم يطلب هذا الطالب أي تعويض قط.</value>
+  </data>
+  <data name="What people wrote about this student" xml:space="preserve">
+    <value>ما كتبه الناس عن هذا الطالب</value>
+  </data>
+  <data name="Every reason typed by an admin or a teacher while doing something to this student's record — a level change, a package, a make-up, a rejected payment. Newest first." xml:space="preserve">
+    <value>كل سبب كتبه أدمن أو معلم أثناء تنفيذ إجراء على سجل هذا الطالب — تغيير مستوى، باقة، تعويض، دفعة مرفوضة. الأحدث أولًا.</value>
+  </data>
+  <data name="Nothing has been written about this student yet." xml:space="preserve">
+    <value>لم يُكتب أي شيء عن هذا الطالب بعد.</value>
+  </data>
+  <data name="This list fills itself from the reasons typed elsewhere; there is no free-text note field on a student today." xml:space="preserve">
+    <value>تمتلئ هذه القائمة تلقائيًا من الأسباب المكتوبة في أماكن أخرى؛ ولا يوجد اليوم حقل ملاحظات حر على الطالب.</value>
+  </data>
+  <data name="NoteSource.LevelChange" xml:space="preserve">
+    <value>تغيير مستوى</value>
+  </data>
+  <data name="NoteSource.PackageCreated" xml:space="preserve">
+    <value>إنشاء باقة</value>
+  </data>
+  <data name="NoteSource.PackageExtended" xml:space="preserve">
+    <value>تمديد باقة</value>
+  </data>
+  <data name="NoteSource.CompensationAsked" xml:space="preserve">
+    <value>طلب تعويض</value>
+  </data>
+  <data name="NoteSource.CompensationRefused" xml:space="preserve">
+    <value>رفض تعويض</value>
+  </data>
+  <data name="NoteSource.PaymentRejected" xml:space="preserve">
+    <value>رفض دفعة</value>
+  </data>
+  <data name="Who this student is" xml:space="preserve">
+    <value>من هو هذا الطالب</value>
+  </data>
+  <data name="Money" xml:space="preserve">
+    <value>المال</value>
+  </data>
+  <data name="Enrol them into a weekly class, with this student already chosen." xml:space="preserve">
+    <value>سجّله في صف أسبوعي، وهذا الطالب مُختار مسبقًا.</value>
+  </data>
 </root>
