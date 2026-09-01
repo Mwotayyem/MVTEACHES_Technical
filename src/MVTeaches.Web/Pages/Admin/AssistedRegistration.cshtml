@@ -227,7 +227,11 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label small mb-0">@T["Currency"]</label>
-                            <input type="text" name="currency" value="@d.Currency" class="form-control form-control-sm" readonly aria-readonly="true" />
+                            @* Deliberately left editable: an international transfer can
+                               genuinely arrive in a different currency, so locking this
+                               would change what a payment can record — a business
+                               change, not a display one. *@
+                            <input type="text" name="currency" value="@d.Currency" class="form-control form-control-sm" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small mb-0">@T["Method type"]</label>
