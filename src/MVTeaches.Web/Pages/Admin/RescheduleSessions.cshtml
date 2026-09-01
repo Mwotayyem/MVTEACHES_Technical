@@ -4,15 +4,30 @@
     ViewData["Title"] = T["Reschedule / Compensation"].Value;
 }
 
+<nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
+    <a asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
+    <span class="app-crumb-sep" aria-hidden="true">/</span>
+    <span>@T["Move a lesson"]</span>
+</nav>
+
 <div class="app-page-head">
     <div>
-        <h1>@T["Reschedule and compensation"]</h1>
-        <p class="text-muted">@T["Two distinct cases — pick the one that matches what actually happened. This does not use a spendable makeup-credit balance; every compensation here is tied to one specific real replacement lesson."]</p>
+        <h1>@T["Move a lesson, or give a make-up one"]</h1>
+        <p class="text-muted">@T["Both start the same way — one student, one lesson that went wrong, one future lesson to replace it. What separates them is a single question, answered below."]</p>
     </div>
     <div class="app-page-actions">
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/CompensationRequests">@T["Compensation Requests"]</a>
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Schedules">@T["Schedules"]</a>
     </div>
+</div>
+
+<div class="app-guide">
+    <p class="app-guide-title">@T["Which of the two is this?"]</p>
+    <ul>
+        <li><strong>@T["The student never joined."]</strong> @T["Nothing was taken off their balance, because nothing was used. You are simply moving that lesson to another time — use the first form."]</li>
+        <li><strong>@T["The student did join, and the lesson then failed."]</strong> @T["The hour was already taken off their balance and stays taken. You are giving them one extra lesson that will cost them nothing — use the second form."]</li>
+    </ul>
+    <p>@T["Neither one hands out a spendable credit. Each is tied to one specific replacement lesson, usable once."]</p>
 </div>
 
 @if (Model.StatusMessage is not null)
@@ -31,16 +46,33 @@
     </div>
 }
 
-<div class="card mb-4">
-    <div class="card-body">
-        <h2 class="card-title h5">@T["1. Reschedule an unattended lesson"]</h2>
-        <p class="text-muted small">@T["The student never pressed Join — nothing was consumed, their balance is already untouched. This just moves that specific lesson-hour to a new session."]</p>
-        <form method="post" asp-page-handler="Reschedule" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Reschedule.StudentId">@T["Student"]</label>
+@if (Model.PastSessions.Count == 0)
+{
+    <div class="alert alert-info" role="status">
+        @T["No lesson has been held yet, so there is nothing to move or make up."]
+    </div>
+}
+
+<h2 class="h4">@T["A. The student never joined — move the lesson"]</h2>
+<p class="text-muted">@T["Their balance was never touched, and it stays untouched."]</p>
+
+<ol class="app-steps">
+    <li class="is-current"><span class="app-step-label">@T["Which student?"]</span></li>
+    <li><span class="app-step-label">@T["Which lesson did they miss?"]</span></li>
+    <li><span class="app-step-label">@T["Which lesson replaces it?"]</span></li>
+    <li><span class="app-step-label">@T["Check, then confirm"]</span></li>
+</ol>
+
+<form method="post" asp-page-handler="Reschedule">
+    <section class="app-step-panel" data-mv-step-panel="1">
+        <h2><span class="app-step-badge">1</span>@T["Which student?"]</h2>
+        <p class="app-step-lead">@T["Everything below narrows itself to this student once you pick them."]</p>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" asp-for="Reschedule.StudentId">@T["Student"]<span class="app-required">*</span></label>
                 <input type="search" class="form-control mb-1" data-mv-select-filter="#rescheduleStudent"
                        placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
-                <select asp-for="Reschedule.StudentId" id="rescheduleStudent" class="form-select">
+                <select asp-for="Reschedule.StudentId" id="rescheduleStudent" class="form-select" data-mv-step-field>
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
@@ -49,48 +81,94 @@
                 </select>
                 <span asp-validation-for="Reschedule.StudentId" class="text-danger small"></span>
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Reschedule.OriginalSessionId">@T["Original (missed) session"]</label>
-                <select asp-for="Reschedule.OriginalSessionId" class="form-select" data-mv-sessions-of="#rescheduleStudent">
+        </div>
+    </section>
+
+    <section class="app-step-panel" data-mv-step-panel="2">
+        <h2><span class="app-step-badge">2</span>@T["Which lesson did they miss?"]</h2>
+        <p class="app-step-lead">@T["Only lessons that have already happened are listed, and only the ones this student was actually in. A lesson still in the future cannot be the one that was missed."]</p>
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label" asp-for="Reschedule.OriginalSessionId">@T["The missed lesson"]<span class="app-required">*</span></label>
+                <select asp-for="Reschedule.OriginalSessionId" id="rescheduleOriginal" class="form-select"
+                        data-mv-sessions-of="#rescheduleStudent" data-mv-step-field>
                     <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.Sessions)
+                    @foreach (var s in Model.PastSessions)
                     {
                         <option value="@s.Id" data-students="@s.EnrolledStudentIds">@s.Label</option>
                     }
                 </select>
-                <div class="form-text">@T["Narrows to the sessions that student is enrolled in once you pick a name."]</div>
+                <div class="form-text">@T["If the list is empty after choosing a student, that student is not enrolled in any lesson that has already been held."]</div>
                 <span asp-validation-for="Reschedule.OriginalSessionId" class="text-danger small"></span>
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Reschedule.ReplacementSessionId">@T["New session"]</label>
+        </div>
+    </section>
+
+    <section class="app-step-panel" data-mv-step-panel="3">
+        <h2><span class="app-step-badge">3</span>@T["Which lesson replaces it?"]</h2>
+        <p class="app-step-lead">@T["Only lessons that have not started yet are listed — a lesson already held cannot be a replacement."]</p>
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label" asp-for="Reschedule.ReplacementSessionId">@T["The new lesson"]<span class="app-required">*</span></label>
                 <input type="search" class="form-control mb-1" data-mv-select-filter="#rescheduleReplacement"
                        placeholder="@T["Search sessions…"]" aria-label="@T["Search sessions…"]" />
-                <select asp-for="Reschedule.ReplacementSessionId" id="rescheduleReplacement" class="form-select">
+                <select asp-for="Reschedule.ReplacementSessionId" id="rescheduleReplacement" class="form-select" data-mv-step-field>
                     <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.Sessions)
+                    @foreach (var s in Model.FutureSessions)
                     {
                         <option value="@s.Id">@s.Label</option>
                     }
                 </select>
                 <span asp-validation-for="Reschedule.ReplacementSessionId" class="text-danger small"></span>
+                @if (Model.FutureSessions.Count == 0)
+                {
+                    <div class="form-text text-warning">@T["No lesson is scheduled ahead yet — publish or generate one first."]</div>
+                }
             </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-primary">@T["Reschedule"]</button>
-            </div>
-        </form>
-    </div>
-</div>
+        </div>
+    </section>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <h2 class="card-title h5">@T["2. Approve a replacement lesson"]</h2>
-        <p class="text-muted small">@T["The student DID press Join, and the session then failed for reasons outside their control. Their original attendance and consumption stay untouched forever. Approve exactly one specific replacement session — the student's Join on it will not deduct their balance again."]</p>
-        <form method="post" asp-page-handler="Approve" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Approve.StudentId">@T["Student"]</label>
+    <section class="app-step-panel" data-mv-step-panel="4">
+        <h2><span class="app-step-badge">4</span>@T["Check, then confirm"]</h2>
+        <dl class="app-summary">
+            <div>
+                <dt>@T["Student"]</dt>
+                <dd><span data-mv-echo="#rescheduleStudent" data-mv-echo-empty="—"></span></dd>
+            </div>
+            <div>
+                <dt>@T["Moving out of"]</dt>
+                <dd><span data-mv-echo="#rescheduleOriginal" data-mv-echo-empty="—"></span></dd>
+            </div>
+            <div>
+                <dt>@T["Moving into"]</dt>
+                <dd><span data-mv-echo="#rescheduleReplacement" data-mv-echo-empty="—"></span></dd>
+            </div>
+        </dl>
+        <button type="submit" class="btn btn-primary"
+                data-mv-confirm="@T["Move this student to the new lesson?"]">@T["Move the lesson"]</button>
+        <div class="app-outcome mt-3">@T["The student comes off the old lesson and onto the new one. No hours are added or taken away."]</div>
+    </section>
+</form>
+
+<h2 class="h4 mt-5">@T["B. The student joined, and the lesson failed — give a make-up"]</h2>
+<p class="text-muted">@T["Their attendance and the hour they spent both stay on the record forever. This adds one free lesson on top."]</p>
+
+<ol class="app-steps">
+    <li class="is-current"><span class="app-step-label">@T["Which student?"]</span></li>
+    <li><span class="app-step-label">@T["Which lesson went wrong?"]</span></li>
+    <li><span class="app-step-label">@T["Which lesson makes up for it?"]</span></li>
+    <li><span class="app-step-label">@T["Check, then confirm"]</span></li>
+</ol>
+
+<form method="post" asp-page-handler="Approve">
+    <section class="app-step-panel" data-mv-step-panel="5">
+        <h2><span class="app-step-badge">1</span>@T["Which student?"]</h2>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" asp-for="Approve.StudentId">@T["Student"]<span class="app-required">*</span></label>
                 <input type="search" class="form-control mb-1" data-mv-select-filter="#approveStudent"
                        placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
-                <select asp-for="Approve.StudentId" id="approveStudent" class="form-select">
+                <select asp-for="Approve.StudentId" id="approveStudent" class="form-select" data-mv-step-field>
                     <option value="">@T["Select placeholder"]</option>
                     @foreach (var s in Model.Students)
                     {
@@ -99,36 +177,66 @@
                 </select>
                 <span asp-validation-for="Approve.StudentId" class="text-danger small"></span>
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Approve.OriginalSessionId">@T["Original (affected) session"]</label>
-                <select asp-for="Approve.OriginalSessionId" class="form-select" data-mv-sessions-of="#approveStudent">
+        </div>
+    </section>
+
+    <section class="app-step-panel" data-mv-step-panel="6">
+        <h2><span class="app-step-badge">2</span>@T["Which lesson went wrong?"]</h2>
+        <p class="app-step-lead">@T["It has to be one that already happened and that this student actually joined. If they never joined, use form A above instead."]</p>
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label" asp-for="Approve.OriginalSessionId">@T["The lesson that failed"]<span class="app-required">*</span></label>
+                <select asp-for="Approve.OriginalSessionId" id="approveOriginal" class="form-select"
+                        data-mv-sessions-of="#approveStudent" data-mv-step-field>
                     <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.Sessions)
+                    @foreach (var s in Model.PastSessions)
                     {
                         <option value="@s.Id" data-students="@s.EnrolledStudentIds">@s.Label</option>
                     }
                 </select>
-                <div class="form-text">@T["Narrows to the sessions that student is enrolled in once you pick a name."]</div>
                 <span asp-validation-for="Approve.OriginalSessionId" class="text-danger small"></span>
             </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Approve.ReplacementSessionId">@T["Replacement session"]</label>
+        </div>
+    </section>
+
+    <section class="app-step-panel" data-mv-step-panel="7">
+        <h2><span class="app-step-badge">3</span>@T["Which lesson makes up for it?"]</h2>
+        <p class="app-step-lead">@T["It must not have started yet, and it must be at the same level as the one that failed."]</p>
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label" asp-for="Approve.ReplacementSessionId">@T["The make-up lesson"]<span class="app-required">*</span></label>
                 <input type="search" class="form-control mb-1" data-mv-select-filter="#approveReplacement"
                        placeholder="@T["Search sessions…"]" aria-label="@T["Search sessions…"]" />
-                <select asp-for="Approve.ReplacementSessionId" id="approveReplacement" class="form-select">
+                <select asp-for="Approve.ReplacementSessionId" id="approveReplacement" class="form-select" data-mv-step-field>
                     <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.Sessions)
+                    @foreach (var s in Model.FutureSessions)
                     {
                         <option value="@s.Id">@s.Label</option>
                     }
                 </select>
-                <div class="form-text">@T["Must be a future session at the same level."]</div>
                 <span asp-validation-for="Approve.ReplacementSessionId" class="text-danger small"></span>
             </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-primary"
-                        data-mv-confirm="@T["Approve this replacement session for the student?"]">@T["Approve replacement"]</button>
+        </div>
+    </section>
+
+    <section class="app-step-panel" data-mv-step-panel="8">
+        <h2><span class="app-step-badge">4</span>@T["Check, then confirm"]</h2>
+        <dl class="app-summary">
+            <div>
+                <dt>@T["Student"]</dt>
+                <dd><span data-mv-echo="#approveStudent" data-mv-echo-empty="—"></span></dd>
             </div>
-        </form>
-    </div>
-</div>
+            <div>
+                <dt>@T["Lesson that failed"]</dt>
+                <dd><span data-mv-echo="#approveOriginal" data-mv-echo-empty="—"></span></dd>
+            </div>
+            <div>
+                <dt>@T["Make-up lesson"]</dt>
+                <dd><span data-mv-echo="#approveReplacement" data-mv-echo-empty="—"></span></dd>
+            </div>
+        </dl>
+        <button type="submit" class="btn btn-primary"
+                data-mv-confirm="@T["Give this student a free make-up lesson?"]">@T["Approve the make-up lesson"]</button>
+        <div class="app-outcome mt-3">@T["When the student joins that lesson, nothing is taken off their balance. It can be used once."]</div>
+    </section>
+</form>

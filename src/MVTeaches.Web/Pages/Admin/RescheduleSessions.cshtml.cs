@@ -55,10 +55,21 @@ public class RescheduleSessionsModel : PageModel
     /// "original session" list to the sessions the picked student is actually
     /// enrolled in — the same list, filtered client-side, never a different
     /// query and never a rule about what may be chosen.</summary>
-    public record SessionOption(long Id, string Label, string EnrolledStudentIds);
+    public record SessionOption(long Id, string Label, string EnrolledStudentIds, bool HasStarted);
 
     public IReadOnlyList<MVTeaches.Domain.People.Student> Students { get; set; } = Array.Empty<MVTeaches.Domain.People.Student>();
     public IReadOnlyList<SessionOption> Sessions { get; set; } = Array.Empty<SessionOption>();
+
+    /// <summary>Sessions that have already started — the only ones that can be
+    /// the ORIGINAL of a reschedule or a make-up. Offering a future session
+    /// there was the single biggest source of confusion on this screen: the
+    /// server rejected it afterwards, having let the admin choose it first.</summary>
+    public IReadOnlyList<SessionOption> PastSessions => Sessions.Where(s => s.HasStarted).ToList();
+
+    /// <summary>Sessions that have not started yet — the only ones that can be
+    /// the REPLACEMENT. The server enforces this too (ApproveReplacementOutcome
+    /// .ReplacementSessionNotInFuture); this stops it being offered at all.</summary>
+    public IReadOnlyList<SessionOption> FutureSessions => Sessions.Where(s => !s.HasStarted).ToList();
 
     [BindProperty]
     public RescheduleInput Reschedule { get; set; } = new();
@@ -194,6 +205,7 @@ public class RescheduleSessionsModel : PageModel
                 teacherNames.GetValueOrDefault(s.TeacherId, string.Empty),
                 _localizer["ClassSessionStatus." + s.Status].Value,
             }.Where(part => !string.IsNullOrWhiteSpace(part))),
-            enrolledBySession.GetValueOrDefault(s.Id, string.Empty))).ToList();
+            enrolledBySession.GetValueOrDefault(s.Id, string.Empty),
+            s.StartsAtUtc <= now)).ToList();
     }
 }
