@@ -8,8 +8,10 @@ using MVTeaches.Application.Attendance;
 using MVTeaches.Application.Integrations;
 using MVTeaches.Application.Ledger;
 using MVTeaches.Application.Scheduling;
+using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Domain.Scheduling;
+using MVTeaches.Web.Display;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Resources;
@@ -64,8 +66,26 @@ public class MySessionsModel : PageModel
     public record SessionRow(long SessionId, Instant StartsAtUtc, string ScheduleTimeZone, string CourseName,
         string LevelCode, ClassSessionStatus SessionStatus, AttendanceState Attendance, bool CanJoin, bool CanRequestReplacement);
 
+    /// <summary>
+    /// A session offered to the student, with the seat figures said plainly.
+    /// This list used to render "SeatsRemaining / Capacity" under a heading
+    /// that read "Seats booked / capacity", so an empty four-seat lesson
+    /// showed "4 / 4" and looked full while still — correctly — offering a
+    /// Book button. Both numbers are now named for what they are, and the
+    /// four states a student can be in are decided here rather than left for
+    /// them to infer from a pair of digits.
+    /// </summary>
     public record AvailableSessionRow(long SessionId, Instant StartsAtUtc, string ScheduleTimeZone, string CourseName,
-        string LevelCode, int SeatsRemaining, int Capacity);
+        string LevelCode, int SeatsTaken, int Capacity, int DurationMinutes, bool AlreadyBooked)
+    {
+        public int SeatsRemaining => Math.Max(0, Capacity - SeatsTaken);
+        public bool IsFull => SeatsTaken >= Capacity;
+
+        /// <summary>A convenience only. The real decision is still
+        /// IStudentBookingService's, which re-checks level, age group, seat
+        /// count and package balance server-side on every attempt.</summary>
+        public bool CanBook => !IsFull && !AlreadyBooked;
+    }
 
     public record CompensationRequestRow(long RequestId, long OriginalSessionId, Instant OriginalSessionStartsAtUtc,
         string OriginalSessionTimeZone, string? Reason, CompensationRequestStatus Status,
@@ -99,6 +119,44 @@ public class MySessionsModel : PageModel
     public string? CurrentLevelCode { get; set; }
 
     public int RemainingMinutes { get; set; }
+
+    // ---- Where do I stand? -------------------------------------------------
+    // A student opening this page could see their next lesson but not whether
+    // they still owed the centre money, how much of their package was left, or
+    // what to do about either. Every figure below is read from rows this page
+    // already loads and is computed by the same shared helper the admin
+    // screens use (MoneyStanding), so a student and an admin can never be
+    // shown two different answers to "how much is still owed".
+
+    /// <summary>Course/level of the package currently running, if any.</summary>
+    public string? CurrentPackageName { get; set; }
+
+    public string? MoneyCurrency { get; set; }
+    public decimal Billed { get; set; }
+    public decimal Paid { get; set; }
+    public decimal Outstanding { get; set; }
+
+    /// <summary>True when a transfer has been reported and the centre has not
+    /// confirmed it yet — the student should wait, not send again.</summary>
+    public bool HasPaymentAwaitingConfirmation { get; set; }
+
+    /// <summary>The Draft package that still owes money and has no payment
+    /// currently pending — the one "finish paying" would act on. Null when
+    /// there is nothing to top up. The button it drives only navigates; the
+    /// actual request is still /PurchasePackage's own handler, which
+    /// recomputes the outstanding amount server-side.</summary>
+    public long? TopUpSubscriptionId { get; set; }
+    public decimal TopUpRemaining { get; set; }
+
+    public int PurchasedMinutes { get; set; }
+    public int UsedMinutes => Math.Max(0, PurchasedMinutes - RemainingMinutes);
+    public int UsedPercent => PurchasedMinutes <= 0 ? 0
+        : (int)Math.Round(Math.Clamp(UsedMinutes * 100m / PurchasedMinutes, 0m, 100m));
+
+    /// <summary>Lessons actually attended (a recorded Join), and lessons still
+    /// ahead — not an estimate from the package size.</summary>
+    public int LessonsAttended { get; set; }
+    public int LessonsUpcoming { get; set; }
 
     [BindProperty]
     public string? CompensationReason { get; set; }
@@ -266,6 +324,8 @@ public class MySessionsModel : PageModel
         }
         RemainingMinutes = remaining;
 
+        await LoadStandingAsync(student.Id, now, courseNames, levelCodes, activeSubscriptionIds);
+
         await LoadMySessionsAsync(student.Id, now, courseNames, levelCodes);
 
         if (currentLevelId is not null)
@@ -274,6 +334,67 @@ public class MySessionsModel : PageModel
         }
 
         await LoadCompensationRequestsAsync(student.Id);
+    }
+
+    private async Task LoadStandingAsync(long studentId, Instant now,
+        Dictionary<long, string> courseNames, Dictionary<int, string> levelCodes,
+        IReadOnlyCollection<long> activeSubscriptionIds)
+    {
+        var subscriptions = await _db.Subscriptions.Where(sub => sub.StudentId == studentId).ToListAsync();
+        var payments = await _db.Payments.Where(pay => pay.StudentId == studentId).ToListAsync();
+
+        var running = subscriptions.FirstOrDefault(sub => sub.Status == SubscriptionStatus.Active);
+        CurrentPackageName = running is null
+            ? null
+            : $"{courseNames.GetValueOrDefault(running.CourseId, "?")} / {levelCodes.GetValueOrDefault(running.LevelId, "?")}";
+
+        var (currency, money) = MoneyStanding.ComputePrimary(subscriptions, payments);
+        MoneyCurrency = currency;
+        Billed = money.Billed;
+        Paid = money.Paid;
+        Outstanding = money.Outstanding;
+
+        HasPaymentAwaitingConfirmation = payments.Any(pay => pay.Status == PaymentStatus.Pending);
+
+        // A Draft package is offerable for a top-up exactly when it still owes
+        // money and has nothing pending against it — the same two conditions
+        // /PurchasePackage applies before it will accept a new request, so this
+        // button never appears for something that page would then refuse.
+        var pendingSubscriptionIds = payments
+            .Where(pay => pay.Status == PaymentStatus.Pending && pay.SubscriptionId is not null)
+            .Select(pay => pay.SubscriptionId!.Value)
+            .ToHashSet();
+        foreach (var draft in subscriptions.Where(sub => sub.Status == SubscriptionStatus.Draft
+                                                         && !pendingSubscriptionIds.Contains(sub.Id)))
+        {
+            var confirmed = payments
+                .Where(pay => pay.SubscriptionId == draft.Id && pay.Status == PaymentStatus.Confirmed
+                              && pay.ReceivedCurrency == draft.Price.Currency)
+                .Sum(pay => pay.ReceivedAmount ?? 0m);
+            var owed = draft.Price.Amount - confirmed;
+            if (owed > 0m)
+            {
+                TopUpSubscriptionId = draft.Id;
+                TopUpRemaining = owed;
+                break;
+            }
+        }
+
+        // Purchased minutes = the Purchase entries on the running packages.
+        // Everything else in the ledger is consumption or an adjustment, and
+        // folding those in would make "used" larger than "bought".
+        PurchasedMinutes = activeSubscriptionIds.Count == 0 ? 0 : await _db.EntitlementLedgerEntries
+            .Where(entry => entry.SubscriptionId != null
+                            && activeSubscriptionIds.Contains(entry.SubscriptionId!.Value)
+                            && entry.DeltaMinutes > 0)
+            .SumAsync(entry => (int?)entry.DeltaMinutes) ?? 0;
+
+        LessonsAttended = await _db.AttendanceRecords.CountAsync(a => a.StudentId == studentId && a.IsPresent);
+        LessonsUpcoming = await _db.SessionEnrollments
+            .Where(e => e.StudentId == studentId && e.State == EnrollmentState.Active)
+            .Join(_db.ClassSessions.Where(cs => cs.StartsAtUtc > now && cs.Status != ClassSessionStatus.Cancelled),
+                e => e.SessionId, cs => cs.Id, (e, cs) => cs.Id)
+            .CountAsync();
     }
 
     private async Task LoadMySessionsAsync(long studentId, Instant now,
@@ -329,18 +450,22 @@ public class MySessionsModel : PageModel
             .Select(e => e.SessionId)
             .ToListAsync()).ToHashSet();
 
+        // Full sessions and ones the student is already in are no longer
+        // dropped from this query: silently removing them left the student
+        // wondering where a lesson went. They are listed with their state
+        // said out loud instead, and without a Book button.
         var candidates = await _db.ClassSessions
             .Where(s => s.LevelId == currentLevelId && s.Status == ClassSessionStatus.Scheduled
-                        && s.StartsAtUtc > now && s.StartsAtUtc <= windowEnd && s.SeatsTaken < s.Capacity)
+                        && s.StartsAtUtc > now && s.StartsAtUtc <= windowEnd)
             .OrderBy(s => s.StartsAtUtc)
             .Take(100)
             .ToListAsync();
 
         AvailableSessions = candidates
-            .Where(s => !alreadyBookedSessionIds.Contains(s.Id))
             .Select(s => new AvailableSessionRow(s.Id, s.StartsAtUtc, s.ScheduleTimeZone,
                 courseNames.GetValueOrDefault(s.CourseId, "?"), levelCodes.GetValueOrDefault(s.LevelId, "?"),
-                s.Capacity - s.SeatsTaken, s.Capacity))
+                s.SeatsTaken, s.Capacity, s.DurationMinutes,
+                alreadyBookedSessionIds.Contains(s.Id)))
             .ToList();
     }
 

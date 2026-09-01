@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Student.MySessionsModel
 @using MVTeaches.Domain.People
 @{
@@ -23,28 +23,99 @@
 }
 else
 {
-    <dl class="app-summary">
-        <div>
-            <dt>@T["Name"]</dt>
-            <dd>@Model.StudentName</dd>
+    @* A student could previously see their next lesson here but not whether
+       they still owed anything, how much of the package was left, or what to
+       do about either. The money figures come from the same shared helper the
+       admin screens use, so the two can never disagree. *@
+    <section class="app-profile-hero">
+        <div class="app-profile-id">
+            <h2>@Model.StudentName</h2>
+            <p>
+                <span class="app-chip is-level">@(Model.CurrentLevelCode ?? T["Awaiting a level"].Value)</span>
+                <span class="@StudentStatusClass(Model.StudentStatus)">@T["StudentStatus." + Model.StudentStatus]</span>
+                <span class="app-chip">@T["Student number"]: <span class="app-ref">@Model.StudentNumber</span></span>
+            </p>
+            @if (Model.CurrentPackageName is not null)
+            {
+                <p class="text-muted mb-0">@T["Current package"]: <strong>@Model.CurrentPackageName</strong></p>
+            }
         </div>
-        <div>
-            <dt>@T["Student number"]</dt>
-            <dd><span class="app-ref">@Model.StudentNumber</span></dd>
+    </section>
+
+    <div class="app-stat-grid">
+        <article class="app-stat">
+            <span class="app-stat-label">@T["Balance left"]</span>
+            <strong class="app-stat-value">@T.Minutes(Model.RemainingMinutes)</strong>
+            @if (Model.PurchasedMinutes > 0)
+            {
+                <div class="app-meter" role="img" aria-label="@T["{0}% of the purchased time has been used.", Model.UsedPercent]">
+                    <span class="app-meter-fill @(Model.UsedPercent >= 85 ? "is-warning" : "is-primary")" style="width:@(Model.UsedPercent)%"></span>
+                </div>
+                <span class="app-stat-note">@T["Used"] @T.Minutes(Model.UsedMinutes) / @T.Minutes(Model.PurchasedMinutes)</span>
+            }
+        </article>
+
+        <article class="app-stat">
+            <span class="app-stat-label">@T["Lessons attended"]</span>
+            <strong class="app-stat-value">@Model.LessonsAttended</strong>
+            <span class="app-stat-note">@T["Lessons ahead"]: @Model.LessonsUpcoming</span>
+        </article>
+
+        @if (Model.MoneyCurrency is not null)
+        {
+            <article class="app-stat">
+                <span class="app-stat-label">@T["Paid"]</span>
+                <strong class="app-stat-value">@T.Money(Model.Paid, Model.MoneyCurrency)</strong>
+                <span class="app-stat-note">@T["Package price"]: @T.Money(Model.Billed, Model.MoneyCurrency)</span>
+            </article>
+
+            <article class="app-stat @(Model.Outstanding > 0m ? "is-bad" : "is-good")">
+                <span class="app-stat-label">@T["Still owed"]</span>
+                <strong class="app-stat-value">@T.Money(Model.Outstanding, Model.MoneyCurrency)</strong>
+                <span class="app-stat-note">
+                    @if (Model.HasPaymentAwaitingConfirmation)
+                    {
+                        @T["A transfer is under review - please wait for the centre to confirm it."]
+                    }
+                    else if (Model.Outstanding > 0m)
+                    {
+                        @T["The package activates once the full amount is confirmed."]
+                    }
+                    else
+                    {
+                        @T["Fully paid."]
+                    }
+                </span>
+            </article>
+        }
+    </div>
+
+    @* The missing step: a package paid short must be finished on the SAME
+       package, not by buying another one. This only navigates - the amount is
+       recomputed server-side by /PurchasePackage before anything is requested. *@
+    @if (Model.TopUpSubscriptionId is not null)
+    {
+        <div class="app-callout is-warning">
+            <div>
+                <strong>@T["You still have an amount to complete on your current package."]</strong>
+                <p class="mb-0">
+                    @T["Remaining owed"]: <strong>@T.Money(Model.TopUpRemaining, Model.MoneyCurrency)</strong>.
+                    @T["Do not buy a new package - finish paying this one. Send only the remaining amount and upload the receipt for it."]
+                </p>
+            </div>
+            <a class="btn btn-primary" asp-page="/PurchasePackage" asp-fragment="finish-paying">@T["Complete the remaining amount"]</a>
         </div>
-        <div>
-            <dt>@T["Current level"]</dt>
-            <dd>@(Model.CurrentLevelCode ?? T["Not specified"].Value)</dd>
+    }
+    else if (Model.HasPaymentAwaitingConfirmation)
+    {
+        <div class="app-callout is-info">
+            <div>
+                <strong>@T["Your transfer is being reviewed."]</strong>
+                <p class="mb-0">@T["The centre confirms the money first, and only then does the package activate. You do not need to send anything again."]</p>
+            </div>
+            <a class="btn btn-outline-secondary" asp-page="/PurchasePackage">@T["See my payment requests"]</a>
         </div>
-        <div>
-            <dt>@T["Status"]</dt>
-            <dd><span class="@StudentStatusClass(Model.StudentStatus)">@T["StudentStatus." + Model.StudentStatus]</span></dd>
-        </div>
-        <div>
-            <dt>@T["Remaining on active packages"]</dt>
-            <dd>@T.Minutes(Model.RemainingMinutes)</dd>
-        </div>
-    </dl>
+    }
 
     @if (Model.StatusMessage is not null)
     {
@@ -120,7 +191,7 @@ else
         <h2 class="h4">@T["Available sessions for your level"]</h2>
         <div class="table-responsive mb-4">
             <table class="table table-sm table-striped">
-                <thead><tr><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Seats booked / capacity"]</th><th>@T["Actions"]</th></tr></thead>
+                <thead><tr><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Enrolled / seats"]</th><th>@T["Status"]</th><th>@T["Actions"]</th></tr></thead>
                 <tbody>
                     @foreach (var s in Model.AvailableSessions)
                     {
@@ -130,18 +201,51 @@ else
                                 <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
                             </td>
                             <td>@s.CourseName / @s.LevelCode</td>
-                            <td>@s.SeatsRemaining / @s.Capacity</td>
                             <td>
-                                <form method="post" asp-page-handler="Book">
-                                    <input type="hidden" name="sessionId" value="@s.SessionId" />
-                                    <button type="submit" class="btn btn-sm btn-success">@T["Book"]</button>
-                                </form>
+                                <strong>@s.SeatsTaken</strong> / @s.Capacity
+                                <div class="text-muted small">@T["students enrolled"]</div>
+                            </td>
+                            <td>
+                                @if (s.AlreadyBooked)
+                                {
+                                    <span class="app-status is-success">@T["You are already booked"]</span>
+                                }
+                                else if (s.IsFull)
+                                {
+                                    <span class="app-status is-danger">@T["Full"]</span>
+                                }
+                                else
+                                {
+                                    <span class="app-status is-success">@T["Seats available"]</span>
+                                    <div class="text-muted small">@T["Free seats: {0}", s.SeatsRemaining]</div>
+                                }
+                            </td>
+                            <td>
+                                @if (s.CanBook)
+                                {
+                                    <form method="post" asp-page-handler="Book">
+                                        <input type="hidden" name="sessionId" value="@s.SessionId" />
+                                        <button type="submit" class="btn btn-sm btn-success">@T["Book"]</button>
+                                    </form>
+                                    @if (Model.RemainingMinutes < s.DurationMinutes)
+                                    {
+                                        <div class="text-warning small mt-1">@T["Your remaining balance may not cover this lesson."]</div>
+                                    }
+                                }
+                                else if (s.AlreadyBooked)
+                                {
+                                    <span class="text-muted small">@T["It is already in your list above."]</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">@T["No seat left in this lesson."]</span>
+                                }
                             </td>
                         </tr>
                     }
                     @if (Model.AvailableSessions.Count == 0)
                     {
-                        <tr><td colspan="4" class="text-muted">@T["No available sessions for your level in the next 30 days."]</td></tr>
+                        <tr><td colspan="5" class="text-muted">@T["No available sessions for your level in the next 30 days."]</td></tr>
                     }
                 </tbody>
             </table>
