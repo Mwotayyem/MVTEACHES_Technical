@@ -157,10 +157,28 @@ public class SchedulesModel : PageModel
     /// read from the domain so the screen can never state a different one.</summary>
     public int GroupCapacity => MVTeaches.Domain.Scheduling.ClassSession.CapacityFor(SessionType.Group);
 
-    public async Task OnGetAsync() => await LoadAsync();
+    /// <summary>Which of the tabbed panels is open. Four unrelated actions —
+    /// create a weekly class, enroll a student, cancel a session, reassign a
+    /// teacher — used to sit stacked on this one page, and an admin who came to
+    /// do one of them had to read past the other three. They are tabs now.
+    ///
+    /// This is set by whichever handler just ran, so a re-render after a post
+    /// reopens the tab the admin was actually working in instead of dropping
+    /// them back on the first one with their own message out of sight.
+    /// Display only — no handler reads it, and it changes no rule.</summary>
+    public string ActiveTab { get; private set; } = "create";
+
+    public async Task OnGetAsync()
+    {
+        // Arriving from a student's file means the intent is to enroll THAT
+        // student, not to create a centre-wide weekly class.
+        if (FocusStudentId is not null) { ActiveTab = "enroll"; }
+        await LoadAsync();
+    }
 
     public async Task<IActionResult> OnPostCreateAsync()
     {
+        ActiveTab = "create";
         ModelState.Clear();
         if (!TryValidateModel(NewSchedule, nameof(NewSchedule)))
         {
@@ -201,6 +219,7 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostEnrollAsync()
     {
+        ActiveTab = "enroll";
         ModelState.Clear();
         if (!TryValidateModel(Enroll, nameof(Enroll)))
         {
@@ -219,6 +238,7 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostCancelAsync()
     {
+        ActiveTab = "cancel";
         ModelState.Clear();
         if (!TryValidateModel(Cancel, nameof(Cancel)))
         {
@@ -269,6 +289,7 @@ public class SchedulesModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostReassignAsync()
     {
+        ActiveTab = "reassign";
         ModelState.Clear();
         if (!TryValidateModel(Reassign, nameof(Reassign)))
         {
@@ -303,6 +324,7 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostPauseAsync(long scheduleId)
     {
+        ActiveTab = "create";
         await _schedules.PauseAsync(scheduleId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Schedule paused — future occurrences stop generating; nothing already generated is affected."].Value;
         await LoadAsync();
@@ -311,6 +333,7 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostResumeAsync(long scheduleId)
     {
+        ActiveTab = "create";
         await _schedules.ResumeAsync(scheduleId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Schedule resumed."].Value;
         await LoadAsync();

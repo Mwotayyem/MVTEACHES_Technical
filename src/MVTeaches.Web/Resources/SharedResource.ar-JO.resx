@@ -1494,4 +1494,31 @@
   <data name="Narrowed to the level of the lesson that failed, because a make-up must be at that same level:" xml:space="preserve">
     <value>القائمة مضيّقة على مستوى الحصة التي فشلت، لأن الحصة التعويضية يجب أن تكون بالمستوى نفسه:</value>
   </data>
+  <data name="Not on this screen" xml:space="preserve">
+    <value>ليست على هذه الشاشة</value>
+  </data>
+  <data name="Things this screen does not do" xml:space="preserve">
+    <value>أشياء لا تقوم بها هذه الشاشة</value>
+  </data>
+  <data name="Listed here so nobody hunts for them among the tabs above. Each one already has a place today — it is just not this screen." xml:space="preserve">
+    <value>مذكورة هنا حتى لا يبحث عنها أحد بين التبويبات في الأعلى. كل واحدة منها لها مكانها اليوم، لكنه ليس هذه الشاشة.</value>
+  </data>
+  <data name="Editing a weekly class after it exists." xml:space="preserve">
+    <value>تعديل صف أسبوعي بعد إنشائه.</value>
+  </data>
+  <data name="Today: pause the one that is wrong in the table below, and create the corrected one in the first tab. Sessions already generated are not disturbed by either step." xml:space="preserve">
+    <value>اليوم: أوقف الصف الخطأ مؤقتًا من الجدول في الأسفل، وأنشئ الصف المصحّح من التبويب الأول. الحصص المولّدة مسبقًا لا تتأثر بأي من الخطوتين.</value>
+  </data>
+  <data name="Producing sessions right now instead of waiting." xml:space="preserve">
+    <value>توليد الحصص الآن بدل الانتظار.</value>
+  </data>
+  <data name="Today: sessions are generated ahead of time by the nightly run. Creating a weekly class does not produce them on the spot." xml:space="preserve">
+    <value>اليوم: الحصص تُولّد مسبقًا في التشغيل الليلي. إنشاء صف أسبوعي لا يولّدها على الفور.</value>
+  </data>
+  <data name="Moving one student out of one lesson." xml:space="preserve">
+    <value>نقل طالب واحد من حصة واحدة.</value>
+  </data>
+  <data name="Today: that is a different screen — cancelling here affects everybody in the session, not one student." xml:space="preserve">
+    <value>اليوم: تلك شاشة أخرى — الإلغاء من هنا يطال كل من في الحصة، لا طالبًا واحدًا.</value>
+  </data>
 </root>

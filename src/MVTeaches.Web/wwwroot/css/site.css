@@ -1568,3 +1568,94 @@ a.app-kpi:hover {
     min-width: 100%;
   }
 }
+
+/* --- Tabbed action panels (Admin > Schedules) ---------------------------
+   One screen, four unrelated actions. Bootstrap's own tab JS drives them
+   (already loaded via bootstrap.bundle) - this is only the surface, built
+   from the same tokens as .card so a tab panel reads as the same object the
+   cards used to be, not as a second visual language. */
+.app-tabs {
+  margin-bottom: 1.5rem;
+}
+
+.app-tabs > .nav-tabs {
+  border-bottom: 1px solid var(--mv-border);
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.app-tabs > .nav-tabs .nav-link {
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--mv-radius-sm) var(--mv-radius-sm) 0 0;
+  color: var(--mv-muted);
+  font-weight: 600;
+  padding: 0.65rem 1.05rem;
+  /* The tab strip is the primary navigation of this screen; it must not
+     shift by a pixel when a tab becomes active, so the active border is
+     reserved as a transparent one from the start. */
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.app-tabs > .nav-tabs .nav-link:hover {
+  background: var(--mv-surface-muted);
+  color: var(--mv-text);
+}
+
+.app-tabs > .nav-tabs .nav-link:focus-visible {
+  outline: 2px solid var(--mv-primary);
+  outline-offset: -2px;
+}
+
+.app-tabs > .nav-tabs .nav-link.active {
+  background: var(--mv-surface);
+  border-color: var(--mv-border);
+  color: var(--mv-primary-strong);
+  box-shadow: inset 0 3px 0 0 var(--mv-primary);
+}
+
+.app-tabs > .tab-content {
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-border);
+  border-top: 0;
+  border-radius: 0 0 var(--mv-radius) var(--mv-radius);
+  box-shadow: var(--mv-shadow-sm);
+  padding: 1.25rem 1.35rem;
+}
+
+.app-tabs > .tab-content > .tab-pane > .card-title {
+  margin-bottom: 0.35rem;
+}
+
+/* "Not on this screen" - each entry names where the thing actually lives
+   today, so the tab is an answer rather than a promise. */
+.app-next-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.app-next-list > li {
+  background: var(--mv-surface-muted);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm);
+  padding: 0.85rem 1rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.app-next-list > li > strong {
+  color: var(--mv-text);
+}
+
+.app-next-list > li > span {
+  color: var(--mv-muted);
+  font-size: 0.9rem;
+}
+
+.app-next-list .app-choice-link {
+  justify-self: start;
+  margin-top: 0.35rem;
+}

@@ -61,233 +61,283 @@
     <div class="alert alert-danger">@Model.ErrorMessage</div>
 }
 
-<div class="card mb-4">
-    <div class="card-body">
-        <p class="app-eyebrow">@T["Centre-wide — not for one student"]</p>
-        <h5 class="card-title">@T["Create a weekly class"]</h5>
-        <p class="text-muted small">@T["Choose who teaches it, at what level, on which days, and from when. Everything else follows from that. This creates a standing class any student at that level can later be enrolled into — it does not enroll anyone by itself."]</p>
-        <form method="post" asp-page-handler="Create" class="row g-2">
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewSchedule.CountryId">@T["Country"]</label>
-                <select asp-for="NewSchedule.CountryId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var c in Model.Countries)
-                    {
-                        <option value="@c.Id">@c.NameEn</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewSchedule.CourseId">@T["Course"]</label>
-                <select asp-for="NewSchedule.CourseId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var c in Model.Courses)
-                    {
-                        <option value="@c.Id">@c.NameEn</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewSchedule.LevelId">@T["Level"]</label>
-                <select asp-for="NewSchedule.LevelId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var l in Model.Levels)
-                    {
-                        <option value="@l.Id">@l.Code</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewSchedule.AgeGroupId">@T["Age group"]</label>
-                <select asp-for="NewSchedule.AgeGroupId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var a in Model.AgeGroups)
-                    {
-                        <option value="@a.Id">@a.Code</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="NewSchedule.TeacherId">@T["Teacher"]</label>
-                @* Owner clarification (2026-08-29): a teacher with no connected
-                   Zoom/Google Meet account is not assignable to online sessions.
-                   RecurringScheduleService rejects it server-side regardless —
-                   this list is only the friendly path. *@
-                <select asp-for="NewSchedule.TeacherId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var t in Model.Teachers.Where(t => !Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)))
-                    {
-                        <option value="@t.Id">@t.FullName</option>
-                    }
-                </select>
+@* The four actions this screen performs are unrelated to each other and
+   were previously stacked one under the other, so an admin who came to do
+   one of them scrolled past the other three. Tabs only — every form,
+   handler and rule below is exactly the one that was already here. *@
+<div class="app-tabs">
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "create" ? "active" : null)" id="tab-create"
+                    data-bs-toggle="tab" data-bs-target="#panel-create" type="button" role="tab"
+                    aria-controls="panel-create" aria-selected="@(Model.ActiveTab == "create" ? "true" : "false")">@T["Create a weekly class"]</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "enroll" ? "active" : null)" id="tab-enroll"
+                    data-bs-toggle="tab" data-bs-target="#panel-enroll" type="button" role="tab"
+                    aria-controls="panel-enroll" aria-selected="@(Model.ActiveTab == "enroll" ? "true" : "false")">@T["Enroll a student"]</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "cancel" ? "active" : null)" id="tab-cancel"
+                    data-bs-toggle="tab" data-bs-target="#panel-cancel" type="button" role="tab"
+                    aria-controls="panel-cancel" aria-selected="@(Model.ActiveTab == "cancel" ? "true" : "false")">@T["Cancel a session"]</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "reassign" ? "active" : null)" id="tab-reassign"
+                    data-bs-toggle="tab" data-bs-target="#panel-reassign" type="button" role="tab"
+                    aria-controls="panel-reassign" aria-selected="@(Model.ActiveTab == "reassign" ? "true" : "false")">@T["Reassign a session's teacher"]</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "next" ? "active" : null)" id="tab-next"
+                    data-bs-toggle="tab" data-bs-target="#panel-next" type="button" role="tab"
+                    aria-controls="panel-next" aria-selected="@(Model.ActiveTab == "next" ? "true" : "false")">@T["Not on this screen"]</button>
+        </li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade @(Model.ActiveTab == "create" ? "show active" : null)" id="panel-create"
+             role="tabpanel" aria-labelledby="tab-create" tabindex="0">
+                <p class="app-eyebrow">@T["Centre-wide — not for one student"]</p>
+                <h5 class="card-title">@T["Create a weekly class"]</h5>
+                <p class="text-muted small">@T["Choose who teaches it, at what level, on which days, and from when. Everything else follows from that. This creates a standing class any student at that level can later be enrolled into — it does not enroll anyone by itself."]</p>
+                <form method="post" asp-page-handler="Create" class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewSchedule.CountryId">@T["Country"]</label>
+                        <select asp-for="NewSchedule.CountryId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var c in Model.Countries)
+                            {
+                                <option value="@c.Id">@c.NameEn</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewSchedule.CourseId">@T["Course"]</label>
+                        <select asp-for="NewSchedule.CourseId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var c in Model.Courses)
+                            {
+                                <option value="@c.Id">@c.NameEn</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewSchedule.LevelId">@T["Level"]</label>
+                        <select asp-for="NewSchedule.LevelId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var l in Model.Levels)
+                            {
+                                <option value="@l.Id">@l.Code</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewSchedule.AgeGroupId">@T["Age group"]</label>
+                        <select asp-for="NewSchedule.AgeGroupId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var a in Model.AgeGroups)
+                            {
+                                <option value="@a.Id">@a.Code</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" asp-for="NewSchedule.TeacherId">@T["Teacher"]</label>
+                        @* Owner clarification (2026-08-29): a teacher with no connected
+                           Zoom/Google Meet account is not assignable to online sessions.
+                           RecurringScheduleService rejects it server-side regardless —
+                           this list is only the friendly path. *@
+                        <select asp-for="NewSchedule.TeacherId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var t in Model.Teachers.Where(t => !Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)))
+                            {
+                                <option value="@t.Id">@t.FullName</option>
+                            }
+                        </select>
+                        @if (Model.TeachersNotReadyForOnlineSessions.Count > 0)
+                        {
+                            <div class="form-text text-danger">
+                                @T["Hidden — not ready for online sessions (no connected video account; a free Google account is enough):"]
+                                @string.Join(", ", Model.Teachers.Where(t => Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)).Select(t => t.FullName))
+                            </div>
+                        }
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">@T["Days of week"]</label>
+                        <div class="d-flex flex-wrap gap-3">
+                            @foreach (var day in Enum.GetValues<IsoDayOfWeek>().Where(d => d != IsoDayOfWeek.None))
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="NewSchedule.DaysOfWeek" value="@((int)day)" id="day_@day" />
+                                    <label class="form-check-label" for="day_@day">@T["DayOfWeek." + day]</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewSchedule.StartLocal">@T["Start time (local)"]</label>
+                        <input asp-for="NewSchedule.StartLocal" type="time" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewSchedule.DurationMinutes">@T["Duration (minutes)"]</label>
+                        <input asp-for="NewSchedule.DurationMinutes" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewSchedule.TimeZoneId">@T["Time zone"]</label>
+                        <select asp-for="NewSchedule.TimeZoneId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var tz in Model.TimeZoneIds)
+                            {
+                                <option value="@tz">@tz</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewSchedule.StartsOn">@T["Starts on"]</label>
+                        <input asp-for="NewSchedule.StartsOn" type="date" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@T["Seats"]</label>
+                        <input class="form-control" value="@Model.GroupCapacity" disabled aria-describedby="seatsNote" />
+                        <div class="form-text" id="seatsNote">@T["Fixed by the centre for every group class — it is not chosen per schedule."]</div>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">@T["Create the weekly class"]</button>
+                        <div class="app-outcome mt-3">@T["Next: sessions appear in the list below once the generator runs. Then enrol students into them."]</div>
+                    </div>
+                </form>
+        </div>
+        <div class="tab-pane fade @(Model.ActiveTab == "enroll" ? "show active" : null)" id="panel-enroll"
+             role="tabpanel" aria-labelledby="tab-enroll" tabindex="0">
+                <h5 class="card-title">@T["Enroll a student"]</h5>
+                <p class="text-muted small">@T["This enrolls the student directly into every currently-generated, not-yet-started session under the chosen schedule — a one-time bulk action, not a standing membership. A student added to a schedule AFTER new sessions are generated needs enrolling again for those new ones."]</p>
+                <form method="post" asp-page-handler="Enroll" class="row g-2">
+                    <input type="hidden" name="studentId" value="@Model.FocusStudentId" />
+                    <div class="col-md-4">
+                        <label class="form-label" asp-for="Enroll.StudentId">@T["Student"]</label>
+                        <input type="search" class="form-control mb-1" data-mv-select-filter="#enrollStudent"
+                               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                        <select asp-for="Enroll.StudentId" id="enrollStudent" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var s in Model.Students)
+                            {
+                                <option value="@s.Id" data-owner-key="@s.CurrentLevelId">@s.FullName @(s.CurrentLevelCode is null ? T["(no level yet)"].Value : $"— {s.CurrentLevelCode}")</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" asp-for="Enroll.RecurringScheduleId">@T["Schedule"]</label>
+                        <select asp-for="Enroll.RecurringScheduleId" id="enrollSchedule" class="form-select"
+                                data-mv-options-of="#enrollStudent" data-mv-options-empty="#noSchedulesForLevel">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var s in Model.Schedules)
+                            {
+                                <option value="@s.Id" data-owner="@s.LevelId">@s.CourseName / @s.LevelCode — @s.TeacherName (@s.Days @s.StartLocal)</option>
+                            }
+                        </select>
+                        <div class="form-text text-warning" id="noSchedulesForLevel" hidden>
+                            @T["No weekly class runs at this student's level yet — create one above first."]
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">@T["Enroll into upcoming sessions"]</button>
+                    </div>
+                </form>
+        </div>
+        <div class="tab-pane fade @(Model.ActiveTab == "cancel" ? "show active" : null)" id="panel-cancel"
+             role="tabpanel" aria-labelledby="tab-cancel" tabindex="0">
+                <h5 class="card-title">@T["Cancel a session"]</h5>
+                <p class="text-muted small">@T["Give a replacement session and every not-yet-joined enrollment transfers to it with no ledger movement — the substitute session's own Join is the one deduction. Leave it blank for a plain cancellation. A student who already pressed Join before the problem occurred is never touched automatically — approve their specific replacement lesson on"] <a asp-page="/Admin/RescheduleSessions">/Admin/RescheduleSessions</a> @T["instead."]</p>
+                <form method="post" asp-page-handler="Cancel" class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="Cancel.SessionId">@T["Session"]</label>
+                        <select asp-for="Cancel.SessionId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var s in Model.UpcomingSessions)
+                            {
+                                <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" asp-for="Cancel.Reason">@T["Reason"]</label>
+                        <input asp-for="Cancel.Reason" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="Cancel.ReplacementSessionId">@T["Replacement session (optional)"]</label>
+                        <select asp-for="Cancel.ReplacementSessionId" class="form-select">
+                            <option value="">@T["None"]</option>
+                            @foreach (var s in Model.UpcomingSessions)
+                            {
+                                <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-danger">@T["Cancel session"]</button>
+                    </div>
+                </form>
+        </div>
+        <div class="tab-pane fade @(Model.ActiveTab == "reassign" ? "show active" : null)" id="panel-reassign"
+             role="tabpanel" aria-labelledby="tab-reassign" tabindex="0">
+                <h5 class="card-title">@T["Reassign a session's teacher"]</h5>
+                <p class="text-muted small">
+                    @T["Only a future session that hasn't started yet. The former teacher's meeting is cancelled under their own connected account (or flagged for admin attention if that account was already revoked) — it is never reused for the new teacher — and a fresh meeting is created under the new teacher's own account the next time the session is started or joined. Enrolled students are notified. A teacher with no connected Zoom or Google Meet account cannot be selected here; a free Google account is sufficient for them to become available."]
+                </p>
+                <form method="post" asp-page-handler="Reassign" class="row g-2">
+                    <div class="col-md-5">
+                        <label class="form-label" asp-for="Reassign.SessionId">@T["Session"]</label>
+                        <select asp-for="Reassign.SessionId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var s in Model.UpcomingSessions)
+                            {
+                                <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" asp-for="Reassign.NewTeacherId">@T["New teacher"]</label>
+                        <select asp-for="Reassign.NewTeacherId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var t in Model.Teachers.Where(t => !Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)))
+                            {
+                                <option value="@t.Id">@t.FullName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-warning">@T["Reassign"]</button>
+                    </div>
+                </form>
                 @if (Model.TeachersNotReadyForOnlineSessions.Count > 0)
                 {
-                    <div class="form-text text-danger">
-                        @T["Hidden — not ready for online sessions (no connected video account; a free Google account is enough):"]
+                    <p class="text-danger small mt-2 mb-0">
+                        @T["Not selectable (no connected video account):"]
                         @string.Join(", ", Model.Teachers.Where(t => Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)).Select(t => t.FullName))
-                    </div>
+                    </p>
                 }
-            </div>
-            <div class="col-md-8">
-                <label class="form-label">@T["Days of week"]</label>
-                <div class="d-flex flex-wrap gap-3">
-                    @foreach (var day in Enum.GetValues<IsoDayOfWeek>().Where(d => d != IsoDayOfWeek.None))
-                    {
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="NewSchedule.DaysOfWeek" value="@((int)day)" id="day_@day" />
-                            <label class="form-check-label" for="day_@day">@T["DayOfWeek." + day]</label>
-                        </div>
-                    }
-                </div>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewSchedule.StartLocal">@T["Start time (local)"]</label>
-                <input asp-for="NewSchedule.StartLocal" type="time" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewSchedule.DurationMinutes">@T["Duration (minutes)"]</label>
-                <input asp-for="NewSchedule.DurationMinutes" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewSchedule.TimeZoneId">@T["Time zone"]</label>
-                <select asp-for="NewSchedule.TimeZoneId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var tz in Model.TimeZoneIds)
-                    {
-                        <option value="@tz">@tz</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewSchedule.StartsOn">@T["Starts on"]</label>
-                <input asp-for="NewSchedule.StartsOn" type="date" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">@T["Seats"]</label>
-                <input class="form-control" value="@Model.GroupCapacity" disabled aria-describedby="seatsNote" />
-                <div class="form-text" id="seatsNote">@T["Fixed by the centre for every group class — it is not chosen per schedule."]</div>
-            </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-primary">@T["Create the weekly class"]</button>
-                <div class="app-outcome mt-3">@T["Next: sessions appear in the list below once the generator runs. Then enrol students into them."]</div>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card mb-4">
-    <div class="card-body">
-        <h5 class="card-title">@T["Enroll a student"]</h5>
-        <p class="text-muted small">@T["This enrolls the student directly into every currently-generated, not-yet-started session under the chosen schedule — a one-time bulk action, not a standing membership. A student added to a schedule AFTER new sessions are generated needs enrolling again for those new ones."]</p>
-        <form method="post" asp-page-handler="Enroll" class="row g-2">
-            <input type="hidden" name="studentId" value="@Model.FocusStudentId" />
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Enroll.StudentId">@T["Student"]</label>
-                <input type="search" class="form-control mb-1" data-mv-select-filter="#enrollStudent"
-                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
-                <select asp-for="Enroll.StudentId" id="enrollStudent" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.Students)
-                    {
-                        <option value="@s.Id" data-owner-key="@s.CurrentLevelId">@s.FullName @(s.CurrentLevelCode is null ? T["(no level yet)"].Value : $"— {s.CurrentLevelCode}")</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Enroll.RecurringScheduleId">@T["Schedule"]</label>
-                <select asp-for="Enroll.RecurringScheduleId" id="enrollSchedule" class="form-select"
-                        data-mv-options-of="#enrollStudent" data-mv-options-empty="#noSchedulesForLevel">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.Schedules)
-                    {
-                        <option value="@s.Id" data-owner="@s.LevelId">@s.CourseName / @s.LevelCode — @s.TeacherName (@s.Days @s.StartLocal)</option>
-                    }
-                </select>
-                <div class="form-text text-warning" id="noSchedulesForLevel" hidden>
-                    @T["No weekly class runs at this student's level yet — create one above first."]
-                </div>
-            </div>
-            <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">@T["Enroll into upcoming sessions"]</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card mb-4">
-    <div class="card-body">
-        <h5 class="card-title">@T["Cancel a session"]</h5>
-        <p class="text-muted small">@T["Give a replacement session and every not-yet-joined enrollment transfers to it with no ledger movement — the substitute session's own Join is the one deduction. Leave it blank for a plain cancellation. A student who already pressed Join before the problem occurred is never touched automatically — approve their specific replacement lesson on"] <a asp-page="/Admin/RescheduleSessions">/Admin/RescheduleSessions</a> @T["instead."]</p>
-        <form method="post" asp-page-handler="Cancel" class="row g-2">
-            <div class="col-md-3">
-                <label class="form-label" asp-for="Cancel.SessionId">@T["Session"]</label>
-                <select asp-for="Cancel.SessionId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.UpcomingSessions)
-                    {
-                        <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label" asp-for="Cancel.Reason">@T["Reason"]</label>
-                <input asp-for="Cancel.Reason" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="Cancel.ReplacementSessionId">@T["Replacement session (optional)"]</label>
-                <select asp-for="Cancel.ReplacementSessionId" class="form-select">
-                    <option value="">@T["None"]</option>
-                    @foreach (var s in Model.UpcomingSessions)
-                    {
-                        <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-danger">@T["Cancel session"]</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card mb-4">
-    <div class="card-body">
-        <h5 class="card-title">@T["Reassign a session's teacher"]</h5>
-        <p class="text-muted small">
-            @T["Only a future session that hasn't started yet. The former teacher's meeting is cancelled under their own connected account (or flagged for admin attention if that account was already revoked) — it is never reused for the new teacher — and a fresh meeting is created under the new teacher's own account the next time the session is started or joined. Enrolled students are notified. A teacher with no connected Zoom or Google Meet account cannot be selected here; a free Google account is sufficient for them to become available."]
-        </p>
-        <form method="post" asp-page-handler="Reassign" class="row g-2">
-            <div class="col-md-5">
-                <label class="form-label" asp-for="Reassign.SessionId">@T["Session"]</label>
-                <select asp-for="Reassign.SessionId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var s in Model.UpcomingSessions)
-                    {
-                        <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-5">
-                <label class="form-label" asp-for="Reassign.NewTeacherId">@T["New teacher"]</label>
-                <select asp-for="Reassign.NewTeacherId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var t in Model.Teachers.Where(t => !Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)))
-                    {
-                        <option value="@t.Id">@t.FullName</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-warning">@T["Reassign"]</button>
-            </div>
-        </form>
-        @if (Model.TeachersNotReadyForOnlineSessions.Count > 0)
-        {
-            <p class="text-danger small mt-2 mb-0">
-                @T["Not selectable (no connected video account):"]
-                @string.Join(", ", Model.Teachers.Where(t => Model.TeachersNotReadyForOnlineSessions.Contains(t.Id)).Select(t => t.FullName))
-            </p>
-        }
+        </div>
+        <div class="tab-pane fade @(Model.ActiveTab == "next" ? "show active" : null)" id="panel-next"
+             role="tabpanel" aria-labelledby="tab-next" tabindex="0">
+            <h5 class="card-title">@T["Things this screen does not do"]</h5>
+            <p class="text-muted small">@T["Listed here so nobody hunts for them among the tabs above. Each one already has a place today — it is just not this screen."]</p>
+            <ul class="app-next-list">
+                <li>
+                    <strong>@T["Editing a weekly class after it exists."]</strong>
+                    <span>@T["Today: pause the one that is wrong in the table below, and create the corrected one in the first tab. Sessions already generated are not disturbed by either step."]</span>
+                </li>
+                <li>
+                    <strong>@T["Producing sessions right now instead of waiting."]</strong>
+                    <span>@T["Today: sessions are generated ahead of time by the nightly run. Creating a weekly class does not produce them on the spot."]</span>
+                </li>
+                <li>
+                    <strong>@T["Moving one student out of one lesson."]</strong>
+                    <span>@T["Today: that is a different screen — cancelling here affects everybody in the session, not one student."]</span>
+                    <a class="app-choice-link" asp-page="/Admin/RescheduleSessions">
+                        @T["Move a lesson, or give a make-up one"]<span class="app-choice-arrow">&#8250;</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
     </div>
 </div>
 
