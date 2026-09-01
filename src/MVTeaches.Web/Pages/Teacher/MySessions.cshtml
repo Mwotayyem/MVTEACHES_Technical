@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Teacher.MySessionsModel
 @using NodaTime
 @{
@@ -31,6 +31,8 @@ else
     }
 
     <p class="text-muted">@T["Last 30 days and next 7 days. Declaring is only offered once a session has actually ended — an admin verifies afterward on a separate account."]</p>
+
+    <partial name="_SessionFlowGuide" />
 
     <div class="table-responsive">
         <table class="table table-sm table-striped">

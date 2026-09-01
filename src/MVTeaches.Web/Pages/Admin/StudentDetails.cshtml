@@ -1,4 +1,4 @@
-@page "{id:long}"
+﻿@page "{id:long}"
 @model MVTeaches.Web.Pages.Admin.StudentDetailsModel
 @using MVTeaches.Domain.People
 @using MVTeaches.Domain.Payments
@@ -473,8 +473,8 @@
                     <p class="app-guide-title">@T["Where attendance comes from"]</p>
                     <ul>
                         <li>@T["Neither Zoom nor Google Meet reports attendance back to this platform. Nothing here is filled in automatically."]</li>
-                        <li>@T["The teacher marks each student present or absent on their own session screen after the lesson."]</li>
-                        <li>@T["Until they do, a lesson that has already passed still shows as not recorded — that is a missing record, not an absence."]</li>
+                        <li>@T["A student counts as present the moment they press Join, and that press is what consumes their balance. If the lesson ends and they never joined, the system records the absence itself shortly afterwards."]</li>
+                        <li>@T["A lesson still showing as not recorded is one that has not ended yet, or one the system has not finished closing — it is not an absence."]</li>
                     </ul>
                 </div>
                 <div class="table-responsive">

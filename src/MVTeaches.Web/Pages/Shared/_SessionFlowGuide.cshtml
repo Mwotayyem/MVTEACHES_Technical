@@ -1,0 +1,38 @@
+@*
+    The four questions people actually ask about an online lesson, answered
+    from what the code really does - not from what the screens imply.
+
+    Verified against the services themselves before writing:
+      • JoinAttendanceService writes AttendanceRecord(isPresent: true) when the
+        STUDENT presses Join. Nobody marks it by hand.
+      • SessionFinalizationService writes AttendanceRecord(isPresent: false)
+        after a session ends for anyone who never joined.
+      • SessionDelivery is a separate pipeline: teacher declares, admin
+        verifies, verified deliveries enter a payroll period. Its own doc
+        comment says it "has nothing to do with, and must never be joined
+        into, whether any given student's balance was consumed".
+
+    Text only. This partial reads nothing and changes nothing.
+*@
+<div class="app-guide">
+    <p class="app-guide-title">@T["How an online lesson actually runs"]</p>
+    <ol class="app-flow">
+        <li>
+            <strong>@T["Is there a meeting link?"]</strong>
+            <span>@T["The teacher does not paste one in. The meeting is created inside the teacher's own connected Zoom or Google account when they press Start session, and the link is handed out from there. A teacher with no connected account cannot be assigned an online lesson at all."]</span>
+        </li>
+        <li>
+            <strong>@T["Did the lesson happen?"]</strong>
+            <span>@T["The session's own status answers this — scheduled, completed, or cancelled by the centre."]</span>
+        </li>
+        <li>
+            <strong>@T["Was attendance recorded?"]</strong>
+            <span>@T["Automatically, and never by hand: a student counts as present the moment they press Join, and that press is what consumes their balance. If the lesson ends and they never joined, the system records the absence itself shortly afterwards. Neither Zoom nor Google Meet reports attendance back here, so nothing is read from the meeting."]</span>
+        </li>
+        <li>
+            <strong>@T["Does it count towards pay?"]</strong>
+            <span>@T["Only after two separate steps: the teacher declares the minutes they delivered once the lesson has ended, and an admin then verifies that declaration. Verified deliveries are what a payroll period picks up."]</span>
+        </li>
+    </ol>
+    <p class="mb-0">@T["Attendance and pay are deliberately two separate records. A student being absent does not reduce what the teacher declared, and verifying a delivery does not touch anybody's balance."]</p>
+</div>

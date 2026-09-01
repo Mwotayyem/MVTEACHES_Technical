@@ -342,9 +342,10 @@
 </div>
 
 <h2>@T["Upcoming sessions (next 14 days)"]</h2>
+<partial name="_SessionFlowGuide" />
 <div class="table-responsive mb-4">
     <table class="table table-sm table-striped">
-        <thead><tr><th>@T["Teacher"]</th><th>@T["Course/Level"]</th><th>@T["When"]</th><th>@T["Seats"]</th><th>@T["Status"]</th></tr></thead>
+        <thead><tr><th>@T["Teacher"]</th><th>@T["Course/Level"]</th><th>@T["When"]</th><th>@T["Seats"]</th><th>@T["Status"]</th><th>@T["Students"]</th></tr></thead>
         <tbody>
             @foreach (var s in Model.UpcomingSessions)
             {
@@ -363,12 +364,19 @@
                         }
                     </td>
                     <td>@T["ClassSessionStatus." + s.Status]</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" data-bs-target="#roster-@s.Id">
+                            @T["See the students"]
+                            <span class="app-tab-count">@(Model.Rosters.TryGetValue(s.Id, out var roster) ? roster.Students.Count : 0)</span>
+                        </button>
+                    </td>
                 </tr>
             }
             @if (Model.UpcomingSessions.Count == 0)
             {
                 <tr>
-                    <td colspan="5">
+                    <td colspan="6">
                         <div class="app-empty">
                             <strong>@T["No session is scheduled in the next two weeks."]</strong>
                             <span>@T["Either no weekly class exists yet, or the generator has not produced its sessions yet."]</span>
@@ -415,3 +423,5 @@
         </tbody>
     </table>
 </div>
+
+<partial name="_SessionRosterModals" model="Model.Rosters" />

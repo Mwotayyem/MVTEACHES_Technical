@@ -12,6 +12,7 @@ using MVTeaches.Domain.Integrations;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -43,9 +44,11 @@ public class SchedulesModel : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
+    private readonly SessionRosterReader _rosters;
+
     public SchedulesModel(MvTeachesDbContext db, IRecurringScheduleService schedules, IEnrollmentService enrollments,
         ISessionCancellationService cancellations, IMeetingProvisioningService meetings, IClock clock,
-        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer, SessionRosterReader rosters)
     {
         _db = db;
         _schedules = schedules;
@@ -55,6 +58,7 @@ public class SchedulesModel : PageModel
         _clock = clock;
         _userManager = userManager;
         _localizer = localizer;
+        _rosters = rosters;
     }
 
     public record ScheduleRow(long Id, string TeacherName, string CourseName, int LevelId, string LevelCode, string AgeGroupCode,
@@ -168,10 +172,18 @@ public class SchedulesModel : PageModel
     /// Display only — no handler reads it, and it changes no rule.</summary>
     public string ActiveTab { get; private set; } = "create";
 
+    /// <summary>Who is in each upcoming session, for the "see the students"
+    /// modal. Read-only; it enrols and removes nobody.</summary>
+    public IReadOnlyDictionary<long, SessionRoster> Rosters { get; set; } =
+        new Dictionary<long, SessionRoster>();
+
     public async Task OnGetAsync()
     {
         // Arriving from a student's file means the intent is to enroll THAT
         // student, not to create a centre-wide weekly class.
+        Rosters = await _rosters.ReadAsync(
+            UpcomingSessions.Select(session => session.Id).ToList(), HttpContext.RequestAborted);
+
         if (FocusStudentId is not null) { ActiveTab = "enroll"; }
         await LoadAsync();
     }

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.DataProtection;
@@ -224,6 +224,11 @@ builder.Services.AddSingleton<ITokenProtector, DataProtectionTokenProtector>();
 builder.Services.AddScoped<TokenRefreshCoordinator>();
 builder.Services.AddScoped<ITeacherMeetingConnectionService, TeacherMeetingConnectionService>();
 builder.Services.AddScoped<IMeetingProvisioningService, MeetingProvisioningService>();
+
+// Display-only readers used by more than one Razor page (the student register,
+// the dashboard, the session rosters). They query and format; they decide
+// nothing and write nothing.
+builder.Services.AddScoped<MVTeaches.Web.Display.SessionRosterReader>();
 
 // ---------------------------------------------------------------------
 // Hangfire — §25: execution mechanism only, PostgreSQL storage (§30.3: no

@@ -1,0 +1,82 @@
+@model IReadOnlyDictionary<long, MVTeaches.Web.Display.SessionRoster>
+@using MVTeaches.Web.Display
+
+@*
+    One modal per session, rendered at the END of the page rather than inside
+    the table it belongs to: a Bootstrap modal inside a .table-responsive (which
+    is overflow:auto) gets clipped by that scroll box.
+
+    Read-only. Nothing here enrols, removes, or charges anybody - it answers
+    "who is actually in this lesson, and is anything wrong with any of them"
+    without making the admin open four profiles in four tabs.
+*@
+@foreach (var (sessionId, roster) in Model)
+{
+    <div class="modal fade" id="roster-@sessionId" tabindex="-1" aria-labelledby="rosterLabel-@sessionId" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rosterLabel-@sessionId">@T["Students in this lesson"]</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@T["Close"]"></button>
+                </div>
+                <div class="modal-body">
+                    @if (roster.Students.Count == 0)
+                    {
+                        <div class="app-empty">
+                            <strong>@T["Nobody is enrolled in this lesson yet."]</strong>
+                            <span>@T["Enrol students into it from the schedule screen."]</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>@T["Name"]</th>
+                                        <th>@T["Level"]</th>
+                                        <th>@T["Status"]</th>
+                                        <th>@T["Still owed"]</th>
+                                        <th>@T["Balance left"]</th>
+                                        <th>@T["Package"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in roster.Students)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a class="fw-bold" asp-page="/Admin/StudentDetails" asp-route-id="@row.StudentId">@row.FullName</a>
+                                                @if (!string.IsNullOrWhiteSpace(row.Note))
+                                                {
+                                                    <div class="text-muted small">@row.Note</div>
+                                                }
+                                            </td>
+                                            <td>@(row.LevelCode ?? "—")</td>
+                                            <td><span class="@StudentLifecycle.StatusClass(row.State)">@T["StudentLifecycleState." + row.State]</span></td>
+                                            <td>
+                                                @if (row.Currency is not null && row.Outstanding > 0m)
+                                                {
+                                                    <span class="text-danger fw-bold">@T.Money(row.Outstanding, row.Currency)</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-success">@T["Fully settled."]</span>
+                                                }
+                                            </td>
+                                            <td>@T.Minutes(row.RemainingMinutes)</td>
+                                            <td>@(row.PackageName ?? T["No package"].Value)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@T["Close"]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
