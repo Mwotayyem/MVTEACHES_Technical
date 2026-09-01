@@ -962,4 +962,9 @@
   <data name="Revoke" xml:space="preserve"><value>سحب</value></data>
   <data name="Duration hours short" xml:space="preserve"><value>س</value></data>
   <data name="Duration minutes short" xml:space="preserve"><value>د</value></data>
+  <data name="Answered" xml:space="preserve"><value>أُجيب عنها</value></data>
+  <data name="Every question must be answered before the test can be submitted." xml:space="preserve"><value>يجب الإجابة عن كل الأسئلة قبل تسليم الاختبار.</value></data>
+  <data name="Question {0} of {1}" xml:space="preserve"><value>السؤال {0} من {1}</value></data>
+  <data name="Revoke this certificate?" xml:space="preserve"><value>سحب هذه الشهادة؟</value></data>
+  <data name="Three-letter codes separated by commas, e.g. JOD, USD." xml:space="preserve"><value>رموز من ثلاثة أحرف تفصل بينها فواصل، مثل: JOD, USD.</value></data>
 </root>

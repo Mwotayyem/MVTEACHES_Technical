@@ -49,7 +49,11 @@ else
     else if (Model.QuizQuestions is not null)
     {
         <p class="text-muted">@T["Answer every question, then submit. Your answers are scored on the server only — nothing here reveals which choice is correct beforehand."]</p>
-        <form method="post" asp-page-handler="Submit">
+        <div class="app-toolbar" role="status" aria-live="polite">
+            <strong>@T["Answered"]: <span id="answeredCount">0</span> / @Model.QuizQuestions.Count</strong>
+            <span class="text-muted small">@T["Every question must be answered before the test can be submitted."]</span>
+        </div>
+        <form method="post" asp-page-handler="Submit" id="placementForm">
             <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
             <input type="hidden" name="attemptId" value="@Model.QuizAttemptId" />
             @for (var i = 0; i < Model.QuizQuestions.Count; i++)
@@ -58,19 +62,44 @@ else
                 <div class="card mb-3">
                     <div class="card-body">
                         <input type="hidden" name="answers[@i].QuestionId" value="@q.QuestionId" />
-                        <h5 class="card-title">@(i + 1). @q.Text</h5>
-                        @foreach (var choice in q.Options)
-                        {
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="answers[@i].SelectedChoiceId" value="@choice.ChoiceId" id="q@(q.QuestionId)_c@(choice.ChoiceId)" required />
-                                <label class="form-check-label" for="q@(q.QuestionId)_c@(choice.ChoiceId)">@choice.Text</label>
-                            </div>
-                        }
+                        <fieldset>
+                            <legend class="card-title h5">
+                                <span class="app-ref">@T["Question {0} of {1}", i + 1, Model.QuizQuestions.Count]</span>
+                                <span class="d-block mt-2">@q.Text</span>
+                            </legend>
+                            @foreach (var choice in q.Options)
+                            {
+                                <div class="form-check py-1">
+                                    <input class="form-check-input" type="radio" name="answers[@i].SelectedChoiceId" value="@choice.ChoiceId" id="q@(q.QuestionId)_c@(choice.ChoiceId)" required />
+                                    <label class="form-check-label" for="q@(q.QuestionId)_c@(choice.ChoiceId)">@choice.Text</label>
+                                </div>
+                            }
+                        </fieldset>
                     </div>
                 </div>
             }
-            <button type="submit" class="btn btn-primary">@T["Submit test"]</button>
+            <button type="submit" class="btn btn-primary btn-lg">@T["Submit test"]</button>
         </form>
+
+        @section Scripts {
+            <script>
+                // Counts answered questions as the student goes. No validation
+                // decision lives here — the radios are still `required`, and the
+                // score is still computed on the server alone.
+                (function () {
+                    var form = document.getElementById("placementForm");
+                    var output = document.getElementById("answeredCount");
+                    if (!form || !output) { return; }
+                    function update() {
+                        var names = {};
+                        form.querySelectorAll("input[type=radio]:checked").forEach(function (input) { names[input.name] = true; });
+                        output.textContent = Object.keys(names).length;
+                    }
+                    form.addEventListener("change", update);
+                    update();
+                })();
+            </script>
+        }
     }
     else if (Model.Eligibility is not null)
     {

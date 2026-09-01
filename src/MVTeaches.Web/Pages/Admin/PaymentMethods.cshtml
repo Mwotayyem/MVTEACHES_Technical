@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.PaymentMethodsModel
 @using MVTeaches.Domain.Payments
 @{
@@ -36,7 +36,8 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="NewMethod.AcceptedCurrencies">@T["Accepted currencies"]</label>
-                <input asp-for="NewMethod.AcceptedCurrencies" class="form-control" placeholder="JOD" />
+                <input asp-for="NewMethod.AcceptedCurrencies" class="form-control" placeholder="JOD, USD" />
+                <div class="form-text">@T["Three-letter codes separated by commas, e.g. JOD, USD."]</div>
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="NewMethod.CliqAlias">@T["CliQ alias"]</label>

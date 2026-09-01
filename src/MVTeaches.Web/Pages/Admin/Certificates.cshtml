@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Admin.CertificatesModel
 @{
     ViewData["Title"] = T["Certificates"].Value;
@@ -9,16 +9,22 @@
 
 @if (Model.StatusMessage is not null)
 {
-    <div class="alert alert-success">@Model.StatusMessage</div>
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
 }
 @if (Model.ErrorMessage is not null)
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
 }
 
 <h2>@T["Progress"]</h2>
+<div class="app-toolbar">
+    <div class="app-search">
+        <input type="search" class="form-control" data-mv-filter="#progressTable"
+               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+    </div>
+</div>
 <div class="table-responsive mb-4">
-    <table class="table table-sm table-striped">
+    <table class="table table-sm table-striped" id="progressTable">
         <thead><tr><th>@T["Student"]</th><th>@T["Level"]</th><th>@T["Course"]</th><th>@T["Minutes"]</th><th>@T["Required"]</th><th>@T["Eligible"]</th><th></th></tr></thead>
         <tbody>
             @foreach (var p in Model.Progress)
@@ -27,9 +33,18 @@
                     <td>@p.StudentName</td>
                     <td>@p.LevelCode</td>
                     <td>@p.CourseName</td>
-                    <td>@p.MinutesCompleted</td>
-                    <td>@p.RequiredMinutes</td>
-                    <td>@(p.IsEligible ? "✅" : "—")</td>
+                    <td>@T.Minutes(p.MinutesCompleted)</td>
+                    <td>@T.Minutes(p.RequiredMinutes)</td>
+                    <td>
+                        @if (p.IsEligible)
+                        {
+                            <span class="app-status is-success">@T["Yes"]</span>
+                        }
+                        else
+                        {
+                            <span class="app-status is-muted">@T["No"]</span>
+                        }
+                    </td>
                     <td>
                         @if (p.AlreadyIssued)
                         {
@@ -47,6 +62,9 @@
                     </td>
                 </tr>
             }
+            <tr data-mv-filter-empty="true" hidden>
+                <td colspan="7" class="text-muted">@T["No student matches this search — try part of the name instead."]</td>
+            </tr>
             @if (Model.Progress.Count == 0)
             {
                 <tr><td colspan="7" class="text-muted">@T["No progress recorded yet."]</td></tr>
@@ -63,7 +81,7 @@
             @foreach (var c in Model.Certificates)
             {
                 <tr>
-                    <td>@c.CertificateNumber</td>
+                    <td><span class="app-ref">@c.CertificateNumber</span></td>
                     <td>@c.StudentName</td>
                     <td>@c.LevelCode</td>
                     <td>@T["CertificateStatus." + c.Status]</td>
@@ -72,11 +90,16 @@
                         {
                             <form method="post" asp-page-handler="Revoke">
                                 <input type="hidden" name="certificateId" value="@c.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Revoke"]</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        data-mv-confirm="@T["Revoke this certificate?"]">@T["Revoke"]</button>
                             </form>
                         }
                     </td>
                 </tr>
+            }
+            @if (Model.Certificates.Count == 0)
+            {
+                <tr><td colspan="5" class="text-muted">@T["No certificates issued yet."]</td></tr>
             }
         </tbody>
     </table>

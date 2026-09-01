@@ -962,4 +962,9 @@
   <data name="Revoke" xml:space="preserve"><value>Revoke</value></data>
   <data name="Duration hours short" xml:space="preserve"><value>h</value></data>
   <data name="Duration minutes short" xml:space="preserve"><value>min</value></data>
+  <data name="Answered" xml:space="preserve"><value>Answered</value></data>
+  <data name="Every question must be answered before the test can be submitted." xml:space="preserve"><value>Every question must be answered before the test can be submitted.</value></data>
+  <data name="Question {0} of {1}" xml:space="preserve"><value>Question {0} of {1}</value></data>
+  <data name="Revoke this certificate?" xml:space="preserve"><value>Revoke this certificate?</value></data>
+  <data name="Three-letter codes separated by commas, e.g. JOD, USD." xml:space="preserve"><value>Three-letter codes separated by commas, e.g. JOD, USD.</value></data>
 </root>
