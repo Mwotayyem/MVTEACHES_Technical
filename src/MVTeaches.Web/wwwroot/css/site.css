@@ -775,6 +775,203 @@ label,
   letter-spacing: 0.01em;
 }
 
+/* page header, toolbars, and list affordances
+   Added with the UI/UX pass: a consistent "what am I looking at, what can I do
+   here, how do I find one row" band at the top of every list screen. */
+.app-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block-end: 1.25rem;
+}
+
+.app-page-head p {
+  max-width: 70ch;
+  margin-block-end: 0;
+}
+
+.app-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.app-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block-end: 0.75rem;
+}
+
+.app-toolbar .form-control {
+  max-width: 22rem;
+}
+
+.app-search {
+  position: relative;
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+
+/* A record's own reference (payment reference, certificate number). Internal
+   database ids are not shown to users at all — this is for codes a person can
+   actually quote back to the centre. */
+.app-ref {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.4rem;
+  background: var(--mv-surface-muted);
+  color: var(--mv-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-empty {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.75rem 1.25rem;
+  border: 1px dashed var(--mv-border);
+  border-radius: var(--mv-radius);
+  background: #fff;
+  color: var(--mv-muted);
+  text-align: center;
+}
+
+.app-empty strong {
+  color: var(--mv-text);
+}
+
+/* status pills — one vocabulary for every state badge in the app */
+.app-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.app-status::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.app-status.is-success {
+  background: var(--mv-success-soft);
+  color: var(--mv-success);
+}
+
+.app-status.is-warning {
+  background: var(--mv-warning-soft);
+  color: var(--mv-warning);
+}
+
+.app-status.is-danger {
+  background: var(--mv-danger-soft);
+  color: var(--mv-danger);
+}
+
+.app-status.is-info {
+  background: var(--mv-primary-soft);
+  color: var(--mv-primary-strong);
+}
+
+.app-status.is-muted {
+  background: var(--mv-surface-muted);
+  color: var(--mv-muted);
+}
+
+/* KPI card that is also a link to the screen where the work gets done */
+.app-kpi {
+  display: block;
+  height: 100%;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-lg);
+  background: #fff;
+  box-shadow: var(--mv-shadow-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+a.app-kpi:hover {
+  transform: translateY(-2px);
+  border-color: var(--mv-primary);
+  box-shadow: var(--mv-shadow);
+  color: inherit;
+}
+
+.app-kpi-label {
+  display: block;
+  color: var(--mv-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.app-kpi-value {
+  display: block;
+  margin-block: 0.35rem 0.15rem;
+  color: var(--mv-primary-strong);
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.app-kpi-hint {
+  display: block;
+  color: var(--mv-muted);
+  font-size: 0.82rem;
+}
+
+.app-kpi.is-attention {
+  border-color: #f3d49b;
+  background: var(--mv-warning-soft);
+}
+
+.app-kpi.is-attention .app-kpi-value {
+  color: var(--mv-warning);
+}
+
+/* profile summary strip (student/teacher header) */
+.app-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-lg);
+  background: #fff;
+  box-shadow: var(--mv-shadow-sm);
+  margin-block-end: 1.25rem;
+}
+
+.app-summary > div {
+  min-width: 9rem;
+}
+
+.app-summary dt {
+  color: var(--mv-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.app-summary dd {
+  margin: 0;
+  color: var(--mv-text);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -766,7 +766,6 @@
   <data name="Course/Level/Age" xml:space="preserve"><value>Course/Level/Age</value></data>
   <data name="Days" xml:space="preserve"><value>Days</value></data>
   <data name="Time" xml:space="preserve"><value>Time</value></data>
-  <data name="min" xml:space="preserve"><value>min</value></data>
   <data name="Pause" xml:space="preserve"><value>Pause</value></data>
   <data name="Resume" xml:space="preserve"><value>Resume</value></data>
   <data name="Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual &quot;Trigger now&quot; on /hangfire)." xml:space="preserve"><value>Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual &quot;Trigger now&quot; on /hangfire).</value></data>
@@ -865,4 +864,102 @@
   <data name="Passwords must use at least {0} different characters." xml:space="preserve"><value>Passwords must use at least {0} different characters.</value></data>
   <data name="Lockout is not enabled for this user." xml:space="preserve"><value>Lockout is not enabled for this user.</value></data>
   <data name="Recovery code redemption failed." xml:space="preserve"><value>Recovery code redemption failed.</value></data>
+  <data name="A plan is the published price list a package is bought from." xml:space="preserve"><value>A plan is the published price list a package is bought from.</value></data>
+  <data name="A request appears here after a student is recorded as a no-show and asks for a make-up lesson." xml:space="preserve"><value>A request appears here after a student is recorded as a no-show and asks for a make-up lesson.</value></data>
+  <data name="A student asked for a make-up lesson after a no-show." xml:space="preserve"><value>A student asked for a make-up lesson after a no-show.</value></data>
+  <data name="A teacher declared a delivered session; a different admin must verify it." xml:space="preserve"><value>A teacher declared a delivered session; a different admin must verify it.</value></data>
+  <data name="Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Activates immediately with no payment. The reason is kept on the record." xml:space="preserve"><value>Activates immediately with no payment. The reason is kept on the record.</value></data>
+  <data name="Approve and lock this period? Its lines can no longer change." xml:space="preserve"><value>Approve and lock this period? Its lines can no longer change.</value></data>
+  <data name="Approve this replacement session for the student?" xml:space="preserve"><value>Approve this replacement session for the student?</value></data>
+  <data name="Ask the centre to link your children to your account." xml:space="preserve"><value>Ask the centre to link your children to your account.</value></data>
+  <data name="At least 8 characters. The guardian can change it after signing in." xml:space="preserve"><value>At least 8 characters. The guardian can change it after signing in.</value></data>
+  <data name="At least 8 characters. The teacher can change it after signing in." xml:space="preserve"><value>At least 8 characters. The teacher can change it after signing in.</value></data>
+  <data name="Attach the payment to the package it pays for — confirming it then activates that package." xml:space="preserve"><value>Attach the payment to the package it pays for — confirming it then activates that package.</value></data>
+  <data name="Available to be scheduled." xml:space="preserve"><value>Available to be scheduled.</value></data>
+  <data name="Back to students" xml:space="preserve"><value>Back to students</value></data>
+  <data name="Children" xml:space="preserve"><value>Children</value></data>
+  <data name="Close this period for good?" xml:space="preserve"><value>Close this period for good?</value></data>
+  <data name="Confirm that this amount really arrived in the account?" xml:space="preserve"><value>Confirm that this amount really arrived in the account?</value></data>
+  <data name="Confirm the money actually arrived, then the package activates." xml:space="preserve"><value>Confirm the money actually arrived, then the package activates.</value></data>
+  <data name="Confirmed income, expenses, and payroll for a period." xml:space="preserve"><value>Confirmed income, expenses, and payroll for a period.</value></data>
+  <data name="Counted over the UTC calendar day." xml:space="preserve"><value>Counted over the UTC calendar day.</value></data>
+  <data name="Creates a draft package. It activates only when its payment is confirmed." xml:space="preserve"><value>Creates a draft package. It activates only when its payment is confirmed.</value></data>
+  <data name="Deactivate this teacher?" xml:space="preserve"><value>Deactivate this teacher?</value></data>
+  <data name="Everything below is a queue: open it and the number goes down. An empty row means nothing is waiting." xml:space="preserve"><value>Everything below is a queue: open it and the number goes down. An empty row means nothing is waiting.</value></data>
+  <data name="Grant this package for free, with no payment?" xml:space="preserve"><value>Grant this package for free, with no payment?</value></data>
+  <data name="Has own login" xml:space="preserve"><value>Has own login</value></data>
+  <data name="How long the package stays usable after it activates." xml:space="preserve"><value>How long the package stays usable after it activates.</value></data>
+  <data name="Kept on the student's level history — write what an auditor would need to understand this decision." xml:space="preserve"><value>Kept on the student's level history — write what an auditor would need to understand this decision.</value></data>
+  <data name="Leave both blank when the full requested amount arrived as requested." xml:space="preserve"><value>Leave both blank when the full requested amount arrived as requested.</value></data>
+  <data name="Mark this period as paid?" xml:space="preserve"><value>Mark this period as paid?</value></data>
+  <data name="Must be a future session at the same level." xml:space="preserve"><value>Must be a future session at the same level.</value></data>
+  <data name="Narrows to the sessions that student is enrolled in once you pick a name." xml:space="preserve"><value>Narrows to the sessions that student is enrolled in once you pick a name.</value></data>
+  <data name="New transfers reported by students and guardians appear here." xml:space="preserve"><value>New transfers reported by students and guardians appear here.</value></data>
+  <data name="No children linked to your account yet." xml:space="preserve"><value>No children linked to your account yet.</value></data>
+  <data name="No future session at this level has a free seat yet — publish one first." xml:space="preserve"><value>No future session at this level has a free seat yet — publish one first.</value></data>
+  <data name="No level" xml:space="preserve"><value>No level</value></data>
+  <data name="No operating expense recorded in this range." xml:space="preserve"><value>No operating expense recorded in this range.</value></data>
+  <data name="No package can be purchased until a level is assigned." xml:space="preserve"><value>No package can be purchased until a level is assigned.</value></data>
+  <data name="No pay rate set yet — a delivery cannot be verified until one applies." xml:space="preserve"><value>No pay rate set yet — a delivery cannot be verified until one applies.</value></data>
+  <data name="No payment matches this search — try part of the student's name or the reference." xml:space="preserve"><value>No payment matches this search — try part of the student's name or the reference.</value></data>
+  <data name="No payments recorded yet." xml:space="preserve"><value>No payments recorded yet.</value></data>
+  <data name="No payroll period opened yet." xml:space="preserve"><value>No payroll period opened yet.</value></data>
+  <data name="No plan matches this search." xml:space="preserve"><value>No plan matches this search.</value></data>
+  <data name="No pricing plan yet — create the first one above." xml:space="preserve"><value>No pricing plan yet — create the first one above.</value></data>
+  <data name="No student matches this search — try part of the name instead." xml:space="preserve"><value>No student matches this search — try part of the name instead.</value></data>
+  <data name="No students registered yet — use the form above to add the first one." xml:space="preserve"><value>No students registered yet — use the form above to add the first one.</value></data>
+  <data name="No subscription matches this search." xml:space="preserve"><value>No subscription matches this search.</value></data>
+  <data name="No subscriptions yet." xml:space="preserve"><value>No subscriptions yet.</value></data>
+  <data name="No teacher matches this search." xml:space="preserve"><value>No teacher matches this search.</value></data>
+  <data name="No teachers registered yet — use the form above to add the first one." xml:space="preserve"><value>No teachers registered yet — use the form above to add the first one.</value></data>
+  <data name="Not specified" xml:space="preserve"><value>Not specified</value></data>
+  <data name="One period per country and date range. Verified deliveries inside the range are what gets aggregated into it." xml:space="preserve"><value>One period per country and date range. Verified deliveries inside the range are what gets aggregated into it.</value></data>
+  <data name="Only {0} of the required {1} was confirmed as received — the package stays inactive until the remaining {2} is sent and confirmed." xml:space="preserve"><value>Only {0} of the required {1} was confirmed as received — the package stays inactive until the remaining {2} is sent and confirmed.</value></data>
+  <data name="Open student profile" xml:space="preserve"><value>Open student profile</value></data>
+  <data name="Packages awaiting payment" xml:space="preserve"><value>Packages awaiting payment</value></data>
+  <data name="Pick both by name — start typing to narrow a long list." xml:space="preserve"><value>Pick both by name — start typing to narrow a long list.</value></data>
+  <data name="Profile" xml:space="preserve"><value>Profile</value></data>
+  <data name="Purchased but still a draft — inactive until its payment is confirmed." xml:space="preserve"><value>Purchased but still a draft — inactive until its payment is confirmed.</value></data>
+  <data name="Reason the payer will read" xml:space="preserve"><value>Reason the payer will read</value></data>
+  <data name="Reason the student will read" xml:space="preserve"><value>Reason the student will read</value></data>
+  <data name="Reason the teacher will read" xml:space="preserve"><value>Reason the teacher will read</value></data>
+  <data name="Registered but not yet marked verified." xml:space="preserve"><value>Registered but not yet marked verified.</value></data>
+  <data name="Remaining" xml:space="preserve"><value>Remaining</value></data>
+  <data name="Remaining on active packages" xml:space="preserve"><value>Remaining on active packages</value></data>
+  <data name="Replacement requests to review" xml:space="preserve"><value>Replacement requests to review</value></data>
+  <data name="Request payment of {0}" xml:space="preserve"><value>Request payment of {0}</value></data>
+  <data name="Revoke this level from this teacher?" xml:space="preserve"><value>Revoke this level from this teacher?</value></data>
+  <data name="Search by name, level, status, or guardian…" xml:space="preserve"><value>Search by name, level, status, or guardian…</value></data>
+  <data name="Search by name, time zone, or level…" xml:space="preserve"><value>Search by name, time zone, or level…</value></data>
+  <data name="Search by name…" xml:space="preserve"><value>Search by name…</value></data>
+  <data name="Search by student, level, or status…" xml:space="preserve"><value>Search by student, level, or status…</value></data>
+  <data name="Search by student, reference, or status…" xml:space="preserve"><value>Search by student, reference, or status…</value></data>
+  <data name="Search plans…" xml:space="preserve"><value>Search plans…</value></data>
+  <data name="Search sessions…" xml:space="preserve"><value>Search sessions…</value></data>
+  <data name="Search time zones…" xml:space="preserve"><value>Search time zones…</value></data>
+  <data name="Sessions in this window" xml:space="preserve"><value>Sessions in this window</value></data>
+  <data name="Sessions this teacher publishes are stored against this zone." xml:space="preserve"><value>Sessions this teacher publishes are stored against this zone.</value></data>
+  <data name="Sessions today" xml:space="preserve"><value>Sessions today</value></data>
+  <data name="Show everyone" xml:space="preserve"><value>Show everyone</value></data>
+  <data name="Showing only:" xml:space="preserve"><value>Showing only:</value></data>
+  <data name="Some fields still need attention" xml:space="preserve"><value>Some fields still need attention</value></data>
+  <data name="Still accepting verified deliveries." xml:space="preserve"><value>Still accepting verified deliveries.</value></data>
+  <data name="Still in effect" xml:space="preserve"><value>Still in effect</value></data>
+  <data name="Student number" xml:space="preserve"><value>Student number</value></data>
+  <data name="Students awaiting verification" xml:space="preserve"><value>Students awaiting verification</value></data>
+  <data name="Students with no level yet" xml:space="preserve"><value>Students with no level yet</value></data>
+  <data name="Teacher deliveries to verify" xml:space="preserve"><value>Teacher deliveries to verify</value></data>
+  <data name="The school right now" xml:space="preserve"><value>The school right now</value></data>
+  <data name="Total teaching minutes the package buys." xml:space="preserve"><value>Total teaching minutes the package buys.</value></data>
+  <data name="Used to pick the right age group for sessions." xml:space="preserve"><value>Used to pick the right age group for sessions.</value></data>
+  <data name="Verified, with a level assigned." xml:space="preserve"><value>Verified, with a level assigned.</value></data>
+  <data name="Verify this delivery so it can be paid?" xml:space="preserve"><value>Verify this delivery so it can be paid?</value></data>
+  <data name="Waiting for you" xml:space="preserve"><value>Waiting for you</value></data>
+  <data name="{0} seats left" xml:space="preserve"><value>{0} seats left</value></data>
+  <data name="Min" xml:space="preserve"><value>Min</value></data>
+  <data name="Reschedule" xml:space="preserve"><value>Reschedule</value></data>
+  <data name="Revoke" xml:space="preserve"><value>Revoke</value></data>
+  <data name="Duration hours short" xml:space="preserve"><value>h</value></data>
+  <data name="Duration minutes short" xml:space="preserve"><value>min</value></data>
 </root>

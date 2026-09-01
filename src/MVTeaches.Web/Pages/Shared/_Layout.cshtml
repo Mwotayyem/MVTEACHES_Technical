@@ -60,10 +60,7 @@
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <div class="app-user-menu">
-                        <span class="app-user-avatar" aria-hidden="true">@((User.Identity!.Name ?? "U").Substring(0, 1).ToUpperInvariant())</span>
-                        <span class="app-user-name">@User.Identity!.Name</span>
-                    </div>
+                    @await Component.InvokeAsync("CurrentUserName")
                     <form method="post" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Content("~/")">
                         <button type="submit" class="btn btn-outline-secondary btn-sm">@T["Sign out"]</button>
                     </form>
@@ -85,7 +82,6 @@
                         <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard"><span class="app-nav-icon" aria-hidden="true"></span>@T["Dashboard"]</a>
                         <div class="app-nav-group">@T["Students and Guardians"]</div>
                         <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students"><span class="app-nav-icon" aria-hidden="true"></span>@T["Students"]</a>
-                        <a class="@NavClass("/Admin/StudentDetails")" asp-page="/Admin/Students"><span class="app-nav-icon" aria-hidden="true"></span>@T["Student details"]</a>
                         <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration"><span class="app-nav-icon" aria-hidden="true"></span>@T["Assisted Registration"]</a>
                         <div class="app-nav-group">@T["Teachers"]</div>
                         <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers"><span class="app-nav-icon" aria-hidden="true"></span>@T["Teachers"]</a>

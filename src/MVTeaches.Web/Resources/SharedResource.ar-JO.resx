@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -766,7 +766,6 @@
   <data name="Course/Level/Age" xml:space="preserve"><value>الدورة/المستوى/العمر</value></data>
   <data name="Days" xml:space="preserve"><value>الأيام</value></data>
   <data name="Time" xml:space="preserve"><value>الوقت</value></data>
-  <data name="min" xml:space="preserve"><value>دقيقة</value></data>
   <data name="Pause" xml:space="preserve"><value>إيقاف مؤقت</value></data>
   <data name="Resume" xml:space="preserve"><value>استئناف</value></data>
   <data name="Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual &quot;Trigger now&quot; on /hangfire)." xml:space="preserve"><value>تم إنشاء الجدول المتكرر — سيبدأ بإنتاج الحصص عند عملية التوليد الليلية القادمة (أو عبر زر &quot;تشغيل الآن&quot; اليدوي للمسؤول على /hangfire).</value></data>
@@ -865,4 +864,102 @@
   <data name="Passwords must use at least {0} different characters." xml:space="preserve"><value>يجب أن تستخدم كلمة المرور {0} أحرف مختلفة على الأقل.</value></data>
   <data name="Lockout is not enabled for this user." xml:space="preserve"><value>الإيقاف المؤقت غير مفعّل لهذا المستخدم.</value></data>
   <data name="Recovery code redemption failed." xml:space="preserve"><value>فشل استخدام رمز الاسترداد.</value></data>
+  <data name="A plan is the published price list a package is bought from." xml:space="preserve"><value>الخطة هي قائمة الأسعار المنشورة التي تُشترى منها الباقة.</value></data>
+  <data name="A request appears here after a student is recorded as a no-show and asks for a make-up lesson." xml:space="preserve"><value>يظهر الطلب هنا بعد تسجيل غياب الطالب عن حصة وطلبه حصة تعويضية.</value></data>
+  <data name="A student asked for a make-up lesson after a no-show." xml:space="preserve"><value>طالب طلب حصة تعويضية بعد تسجيل غيابه.</value></data>
+  <data name="A teacher declared a delivered session; a different admin must verify it." xml:space="preserve"><value>معلّم أقرّ بتقديم حصة، ويجب أن يعتمدها مشرف آخر.</value></data>
+  <data name="Actions" xml:space="preserve"><value>إجراءات</value></data>
+  <data name="Activates immediately with no payment. The reason is kept on the record." xml:space="preserve"><value>تُفعَّل فورًا بلا دفع، ويُحفظ السبب في السجل.</value></data>
+  <data name="Approve and lock this period? Its lines can no longer change." xml:space="preserve"><value>اعتماد الفترة وإقفالها؟ لن يعود بالإمكان تعديل بنودها.</value></data>
+  <data name="Approve this replacement session for the student?" xml:space="preserve"><value>الموافقة على هذه الحصة التعويضية للطالب؟</value></data>
+  <data name="Ask the centre to link your children to your account." xml:space="preserve"><value>اطلب من المركز ربط أبنائك بحسابك.</value></data>
+  <data name="At least 8 characters. The guardian can change it after signing in." xml:space="preserve"><value>8 أحرف على الأقل، ويستطيع وليّ الأمر تغييرها بعد تسجيل الدخول.</value></data>
+  <data name="At least 8 characters. The teacher can change it after signing in." xml:space="preserve"><value>8 أحرف على الأقل، ويستطيع المعلّم تغييرها بعد تسجيل الدخول.</value></data>
+  <data name="Attach the payment to the package it pays for — confirming it then activates that package." xml:space="preserve"><value>اربط الدفعة بالباقة التي تدفع ثمنها — عندها يؤدي تأكيدها إلى تفعيل تلك الباقة.</value></data>
+  <data name="Available to be scheduled." xml:space="preserve"><value>متاحون للجدولة.</value></data>
+  <data name="Back to students" xml:space="preserve"><value>العودة إلى الطلاب</value></data>
+  <data name="Children" xml:space="preserve"><value>الأبناء</value></data>
+  <data name="Close this period for good?" xml:space="preserve"><value>إقفال هذه الفترة نهائيًا؟</value></data>
+  <data name="Confirm that this amount really arrived in the account?" xml:space="preserve"><value>تأكيد أن المبلغ وصل فعلًا إلى الحساب؟</value></data>
+  <data name="Confirm the money actually arrived, then the package activates." xml:space="preserve"><value>أكِّد وصول المبلغ فعليًا، عندها تُفعَّل الباقة.</value></data>
+  <data name="Confirmed income, expenses, and payroll for a period." xml:space="preserve"><value>الإيرادات المؤكدة والمصاريف والرواتب خلال فترة.</value></data>
+  <data name="Counted over the UTC calendar day." xml:space="preserve"><value>محسوبة على اليوم التقويمي بتوقيت UTC.</value></data>
+  <data name="Creates a draft package. It activates only when its payment is confirmed." xml:space="preserve"><value>تُنشئ باقة كمسودة، ولا تُفعَّل إلا بعد تأكيد دفعتها.</value></data>
+  <data name="Deactivate this teacher?" xml:space="preserve"><value>إيقاف هذا المعلّم؟</value></data>
+  <data name="Everything below is a queue: open it and the number goes down. An empty row means nothing is waiting." xml:space="preserve"><value>كل بند أدناه قائمة عمل: افتحه ينقص الرقم، والصفر يعني ألا شيء ينتظرك.</value></data>
+  <data name="Grant this package for free, with no payment?" xml:space="preserve"><value>منح هذه الباقة مجانًا بلا دفع؟</value></data>
+  <data name="Has own login" xml:space="preserve"><value>لديه حساب دخول خاص</value></data>
+  <data name="How long the package stays usable after it activates." xml:space="preserve"><value>المدة التي تبقى فيها الباقة صالحة بعد تفعيلها.</value></data>
+  <data name="Kept on the student's level history — write what an auditor would need to understand this decision." xml:space="preserve"><value>يُحفظ في سجل مستويات الطالب — اكتب ما يحتاجه المدقق لفهم هذا القرار.</value></data>
+  <data name="Leave both blank when the full requested amount arrived as requested." xml:space="preserve"><value>اترك الحقلين فارغين إذا وصل المبلغ المطلوب كاملًا كما هو.</value></data>
+  <data name="Mark this period as paid?" xml:space="preserve"><value>تعليم هذه الفترة كمدفوعة؟</value></data>
+  <data name="Must be a future session at the same level." xml:space="preserve"><value>يجب أن تكون حصة قادمة في المستوى نفسه.</value></data>
+  <data name="Narrows to the sessions that student is enrolled in once you pick a name." xml:space="preserve"><value>تُختصر القائمة إلى حصص الطالب المسجَّل فيها بمجرد اختيار الاسم.</value></data>
+  <data name="New transfers reported by students and guardians appear here." xml:space="preserve"><value>تظهر هنا الحوالات الجديدة التي يبلّغ عنها الطلاب وأولياء الأمور.</value></data>
+  <data name="No children linked to your account yet." xml:space="preserve"><value>لا يوجد أبناء مرتبطون بحسابك بعد.</value></data>
+  <data name="No future session at this level has a free seat yet — publish one first." xml:space="preserve"><value>لا توجد حصة قادمة في هذا المستوى فيها مقعد شاغر — انشر حصة أولًا.</value></data>
+  <data name="No level" xml:space="preserve"><value>بلا مستوى</value></data>
+  <data name="No operating expense recorded in this range." xml:space="preserve"><value>لا مصاريف تشغيلية مسجَّلة في هذه الفترة.</value></data>
+  <data name="No package can be purchased until a level is assigned." xml:space="preserve"><value>لا يمكن شراء أي باقة قبل تحديد المستوى.</value></data>
+  <data name="No pay rate set yet — a delivery cannot be verified until one applies." xml:space="preserve"><value>لا يوجد أجر محدد بعد — لا يمكن اعتماد أي حصة قبل وجود أجر ينطبق عليها.</value></data>
+  <data name="No payment matches this search — try part of the student's name or the reference." xml:space="preserve"><value>لا توجد دفعة تطابق البحث — جرّب جزءًا من اسم الطالب أو الرقم المرجعي.</value></data>
+  <data name="No payments recorded yet." xml:space="preserve"><value>لا دفعات مسجَّلة بعد.</value></data>
+  <data name="No payroll period opened yet." xml:space="preserve"><value>لم تُفتح أي فترة رواتب بعد.</value></data>
+  <data name="No plan matches this search." xml:space="preserve"><value>لا توجد خطة تطابق البحث.</value></data>
+  <data name="No pricing plan yet — create the first one above." xml:space="preserve"><value>لا توجد خطة أسعار بعد — أنشئ الأولى من الأعلى.</value></data>
+  <data name="No student matches this search — try part of the name instead." xml:space="preserve"><value>لا يوجد طالب يطابق البحث — جرّب جزءًا من الاسم.</value></data>
+  <data name="No students registered yet — use the form above to add the first one." xml:space="preserve"><value>لا طلاب مسجَّلون بعد — استخدم النموذج أعلاه لإضافة أول طالب.</value></data>
+  <data name="No subscription matches this search." xml:space="preserve"><value>لا يوجد اشتراك يطابق البحث.</value></data>
+  <data name="No subscriptions yet." xml:space="preserve"><value>لا اشتراكات بعد.</value></data>
+  <data name="No teacher matches this search." xml:space="preserve"><value>لا يوجد معلّم يطابق البحث.</value></data>
+  <data name="No teachers registered yet — use the form above to add the first one." xml:space="preserve"><value>لا معلّمون مسجَّلون بعد — استخدم النموذج أعلاه لإضافة أول معلّم.</value></data>
+  <data name="Not specified" xml:space="preserve"><value>غير محدد</value></data>
+  <data name="One period per country and date range. Verified deliveries inside the range are what gets aggregated into it." xml:space="preserve"><value>فترة واحدة لكل دولة ومدى تاريخي، وتُجمَّع فيها الحصص المعتمدة الواقعة داخل المدى.</value></data>
+  <data name="Only {0} of the required {1} was confirmed as received — the package stays inactive until the remaining {2} is sent and confirmed." xml:space="preserve"><value>لم يُؤكَّد استلام سوى {0} من أصل {1} المطلوبة — تبقى الباقة غير مفعَّلة حتى إرسال {2} المتبقية وتأكيدها.</value></data>
+  <data name="Open student profile" xml:space="preserve"><value>فتح ملف الطالب</value></data>
+  <data name="Packages awaiting payment" xml:space="preserve"><value>باقات بانتظار الدفع</value></data>
+  <data name="Pick both by name — start typing to narrow a long list." xml:space="preserve"><value>اختر الاثنين بالاسم — اكتب أحرفًا لتضييق القائمة الطويلة.</value></data>
+  <data name="Profile" xml:space="preserve"><value>الملف</value></data>
+  <data name="Purchased but still a draft — inactive until its payment is confirmed." xml:space="preserve"><value>اشتُريت لكنها ما زالت مسودة — غير مفعَّلة حتى تأكيد دفعتها.</value></data>
+  <data name="Reason the payer will read" xml:space="preserve"><value>السبب الذي سيقرأه الدافع</value></data>
+  <data name="Reason the student will read" xml:space="preserve"><value>السبب الذي سيقرأه الطالب</value></data>
+  <data name="Reason the teacher will read" xml:space="preserve"><value>السبب الذي سيقرأه المعلّم</value></data>
+  <data name="Registered but not yet marked verified." xml:space="preserve"><value>مسجَّلون ولم يُوثَّقوا بعد.</value></data>
+  <data name="Remaining" xml:space="preserve"><value>المتبقي</value></data>
+  <data name="Remaining on active packages" xml:space="preserve"><value>المتبقي في الباقات الفعّالة</value></data>
+  <data name="Replacement requests to review" xml:space="preserve"><value>طلبات تعويض بانتظار المراجعة</value></data>
+  <data name="Request payment of {0}" xml:space="preserve"><value>طلب دفع {0}</value></data>
+  <data name="Revoke this level from this teacher?" xml:space="preserve"><value>سحب هذا المستوى من المعلّم؟</value></data>
+  <data name="Search by name, level, status, or guardian…" xml:space="preserve"><value>ابحث بالاسم أو المستوى أو الحالة أو وليّ الأمر…</value></data>
+  <data name="Search by name, time zone, or level…" xml:space="preserve"><value>ابحث بالاسم أو المنطقة الزمنية أو المستوى…</value></data>
+  <data name="Search by name…" xml:space="preserve"><value>ابحث بالاسم…</value></data>
+  <data name="Search by student, level, or status…" xml:space="preserve"><value>ابحث بالطالب أو المستوى أو الحالة…</value></data>
+  <data name="Search by student, reference, or status…" xml:space="preserve"><value>ابحث بالطالب أو الرقم المرجعي أو الحالة…</value></data>
+  <data name="Search plans…" xml:space="preserve"><value>ابحث في الخطط…</value></data>
+  <data name="Search sessions…" xml:space="preserve"><value>ابحث في الحصص…</value></data>
+  <data name="Search time zones…" xml:space="preserve"><value>ابحث في المناطق الزمنية…</value></data>
+  <data name="Sessions in this window" xml:space="preserve"><value>حصص ضمن هذه الفترة</value></data>
+  <data name="Sessions this teacher publishes are stored against this zone." xml:space="preserve"><value>تُحفظ الحصص التي ينشرها هذا المعلّم على هذه المنطقة الزمنية.</value></data>
+  <data name="Sessions today" xml:space="preserve"><value>حصص اليوم</value></data>
+  <data name="Show everyone" xml:space="preserve"><value>عرض الجميع</value></data>
+  <data name="Showing only:" xml:space="preserve"><value>المعروض فقط:</value></data>
+  <data name="Some fields still need attention" xml:space="preserve"><value>بعض الحقول ما زالت تحتاج تصحيحًا</value></data>
+  <data name="Still accepting verified deliveries." xml:space="preserve"><value>ما زالت تستقبل الحصص المعتمدة.</value></data>
+  <data name="Still in effect" xml:space="preserve"><value>ما زال ساريًا</value></data>
+  <data name="Student number" xml:space="preserve"><value>رقم الطالب</value></data>
+  <data name="Students awaiting verification" xml:space="preserve"><value>طلاب بانتظار التوثيق</value></data>
+  <data name="Students with no level yet" xml:space="preserve"><value>طلاب بلا مستوى بعد</value></data>
+  <data name="Teacher deliveries to verify" xml:space="preserve"><value>حصص معلّمين بانتظار الاعتماد</value></data>
+  <data name="The school right now" xml:space="preserve"><value>وضع المركز الآن</value></data>
+  <data name="Total teaching minutes the package buys." xml:space="preserve"><value>مجموع دقائق التدريس التي تشتريها الباقة.</value></data>
+  <data name="Used to pick the right age group for sessions." xml:space="preserve"><value>يُستخدم لاختيار الفئة العمرية المناسبة للحصص.</value></data>
+  <data name="Verified, with a level assigned." xml:space="preserve"><value>موثَّقون ولديهم مستوى محدد.</value></data>
+  <data name="Verify this delivery so it can be paid?" xml:space="preserve"><value>اعتماد هذه الحصة ليصبح بالإمكان دفع أجرها؟</value></data>
+  <data name="Waiting for you" xml:space="preserve"><value>بانتظارك</value></data>
+  <data name="{0} seats left" xml:space="preserve"><value>{0} مقاعد متبقية</value></data>
+  <data name="Min" xml:space="preserve"><value>الأدنى</value></data>
+  <data name="Reschedule" xml:space="preserve"><value>إعادة جدولة</value></data>
+  <data name="Revoke" xml:space="preserve"><value>سحب</value></data>
+  <data name="Duration hours short" xml:space="preserve"><value>س</value></data>
+  <data name="Duration minutes short" xml:space="preserve"><value>د</value></data>
 </root>
