@@ -170,6 +170,69 @@ public class PaymentService : IPaymentService
                         && p.ReceivedCurrency == subscription.Price.Currency)
             .SumAsync(p => (decimal?)p.ReceivedAmount, ct) ?? 0m;
 
+    /// <summary>
+    /// Returns the most that could legitimately be confirmed for this payment
+    /// when the figure being confirmed is larger than that, and null when the
+    /// figure is fine.
+    ///
+    /// Two cases, because "owed" means two different things:
+    ///
+    ///   * Attached to a subscription — owed is the subscription's own
+    ///     remaining balance (its price minus every same-currency confirmed
+    ///     payment already on it), read the one approved way, through
+    ///     <see cref="ComputeConfirmedReceivedAsync"/>, so this can never
+    ///     drift from what <see cref="GetSubscriptionFundingStatusAsync"/>
+    ///     shows the admin on the same screen.
+    ///
+    ///   * Standalone — owed is simply what the payment itself says was
+    ///     requested. More arriving than was asked for is still somebody
+    ///     needing to be told, not something to record quietly.
+    ///
+    /// A different currency than the one being measured against is never
+    /// compared (D-53: no invented FX). That case already has its own
+    /// handling: the payment confirms, contributes nothing, and the
+    /// subscription stays inactive until a person resolves it.
+    ///
+    /// The check is SKIPPED when the subscription has already posted its
+    /// Purchase entry. That is the concurrency path
+    /// SettleSubscriptionIfFullyPaidAsync documents and
+    /// Two_concurrent_payment_confirmations_on_the_same_subscription... covers:
+    /// a second, genuinely concurrent confirmation whose money is real and
+    /// which lost only the ledger race must still land as Confirmed. Refusing
+    /// it here would leave real money stuck Pending on a technicality.
+    /// </summary>
+    private async Task<Money?> FindExcessAsync(Payment payment, Money? actuallyReceivedAmount, CancellationToken ct)
+    {
+        var received = actuallyReceivedAmount?.Amount ?? payment.Amount.Amount;
+        var receivedCurrency = actuallyReceivedAmount?.Currency ?? payment.Amount.Currency;
+
+        if (payment.SubscriptionId is null)
+        {
+            return string.Equals(receivedCurrency, payment.Amount.Currency, StringComparison.OrdinalIgnoreCase)
+                   && received > payment.Amount.Amount
+                ? payment.Amount
+                : null;
+        }
+
+        var subscription = await _db.Subscriptions.FirstAsync(s => s.Id == payment.SubscriptionId, ct);
+        if (!string.Equals(receivedCurrency, subscription.Price.Currency, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var alreadyPosted = await _db.EntitlementLedgerEntries.AnyAsync(
+            l => l.SubscriptionId == subscription.Id && l.Reason == LedgerReason.Purchase, ct);
+        if (alreadyPosted)
+        {
+            return null;
+        }
+
+        var remaining = subscription.Price.Amount - await ComputeConfirmedReceivedAsync(subscription, ct);
+        return received > remaining
+            ? new Money(remaining < 0m ? 0m : remaining, subscription.Price.Currency)
+            : null;
+    }
+
     public async Task<AttachTransferDetailsResult> AttachTransferDetailsAsync(long paymentId, long actingUserId, bool isAdminInitiated,
         string? payerDisplayName, LocalDate? transferDate, string? bankReferenceNumber, long? receiptFileId, CancellationToken cancellationToken)
     {
@@ -226,6 +289,22 @@ public class PaymentService : IPaymentService
         if (payment.Status != PaymentStatus.Pending)
         {
             return new ConfirmPaymentResult(ConfirmPaymentOutcome.NotPending);
+        }
+
+        // Owner report 2026-09-01: a package with 10 JOD still owing accepted
+        // a confirmation of 20. Nothing anywhere refused it, the extra money
+        // was absorbed into an activation, and no record was left that the
+        // centre now held more than it had charged for.
+        //
+        // The rule: never confirm more than is actually owed. What "owed"
+        // means depends on what the payment is attached to, so both cases are
+        // checked, and the refusal happens BEFORE Confirm() is called - a
+        // refused confirmation writes nothing at all and the payment stays
+        // Pending, ready to be confirmed again with the right figure.
+        var excess = await FindExcessAsync(payment, actuallyReceivedAmount, cancellationToken);
+        if (excess is not null)
+        {
+            return new ConfirmPaymentResult(ConfirmPaymentOutcome.ReceivedAmountExceedsWhatIsOwed, excess);
         }
 
         var now = _clock.GetCurrentInstant();

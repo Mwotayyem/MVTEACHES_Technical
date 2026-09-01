@@ -69,10 +69,69 @@
     </div>
 }
 
+@* Owner report 2026-09-01: 10 JOD was recorded for a student who owed
+   exactly 10 JOD on a package - but under "not against a package", so the
+   package stayed unfunded while the family had already paid. The unattached
+   option is no longer the path of least resistance: when this student owes on
+   a package, that package is stated first, with a button that fills the form
+   in for it. *@
+@if (Model.OwedPackagesForFilteredStudent.Count > 0 && Model.CompletingPackage is null)
+{
+    <div class="app-callout is-warning">
+        <div>
+            <strong>@T["This student still owes money on a package."]</strong>
+            <ul class="mb-0 mt-1">
+                @foreach (var owed in Model.OwedPackagesForFilteredStudent)
+                {
+                    <li>
+                        @owed.LevelCode —
+                        @T["Package price"]: @T.Money(owed.Price, owed.Currency) ·
+                        @T["Confirmed received"]: @T.Money(owed.ConfirmedReceived, owed.Currency) ·
+                        <strong>@T["Remaining owed"]: @T.Money(owed.RemainingOwed, owed.Currency)</strong>
+                    </li>
+                }
+            </ul>
+            <p class="mb-0 mt-1">@T["Money arriving from this student is almost certainly for that package. Recording it as unattached money leaves the package inactive even though the family has paid."]</p>
+        </div>
+        <div class="d-flex flex-column gap-1">
+            @foreach (var owed in Model.OwedPackagesForFilteredStudent)
+            {
+                <a class="btn btn-primary btn-sm" asp-page="/Admin/Payments"
+                   asp-route-studentId="@Model.FilterStudentId" asp-route-complete="@owed.Id">
+                    @T["Complete the remaining amount for this package"]
+                </a>
+            }
+        </div>
+    </div>
+}
+
 <div class="card mb-4">
     <div class="card-body">
-        <h2 class="card-title h5">@T["Record a manual package and payment"]</h2>
-        <p class="text-muted small mb-2">@T["Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package."]</p>
+        @if (Model.CompletingPackage is not null)
+        {
+            var c = Model.CompletingPackage;
+            <h2 class="card-title h5">@T["Complete the remaining amount for this package"]</h2>
+            <p class="text-muted small mb-2">@T["The form below is already filled in for this package and for exactly what it still needs. Change the amount only if a different sum actually arrived."]</p>
+            <dl class="row small app-owed-breakdown">
+                <dt class="col-sm-5">@T["Package price"]</dt>
+                <dd class="col-sm-7">@T.Money(c.Price, c.Currency)</dd>
+                <dt class="col-sm-5">@T["Confirmed received"]</dt>
+                <dd class="col-sm-7">@T.Money(c.ConfirmedReceived, c.Currency)</dd>
+                <dt class="col-sm-5">@T["Remaining owed"]</dt>
+                <dd class="col-sm-7 fw-bold">@T.Money(c.RemainingOwed, c.Currency)</dd>
+                <dt class="col-sm-5">@T["Amount that will be confirmed"]</dt>
+                <dd class="col-sm-7">@T.Money(c.RemainingOwed, c.Currency)</dd>
+                <dt class="col-sm-5">@T["The package after confirmation"]</dt>
+                <dd class="col-sm-7"><span class="app-status is-success">@T["SubscriptionStatus.Active"]</span></dd>
+            </dl>
+            <p class="text-muted small">@T["Recording it here only queues it. It still has to be confirmed below, after you have checked the account."]</p>
+            <a class="btn btn-sm btn-outline-secondary mb-3" asp-page="/Admin/Payments" asp-route-studentId="@Model.FilterStudentId">@T["Cancel"]</a>
+        }
+        else
+        {
+            <h2 class="card-title h5">@T["Record a manual package and payment"]</h2>
+            <p class="text-muted small mb-2">@T["Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package."]</p>
+        }
         <form method="post" asp-page-handler="Record" class="row g-3 align-items-start">
             <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
             <div class="col-md-4">
@@ -92,7 +151,7 @@
                 <label class="form-label" asp-for="NewPayment.SubscriptionId">@T["Which package is this paying for?"]</label>
                 <select asp-for="NewPayment.SubscriptionId" id="paymentSubscription" class="form-select"
                         data-mv-options-of="#paymentStudent" data-mv-options-empty="#noDraftsForStudent">
-                    <option value="">@T["Not paying for a package — just record the money"]</option>
+                    <option value="">@T["Not paying for a package — just record the money (rare)"]</option>
                     @foreach (var d in Model.DraftSubscriptions)
                     {
                         var price = T.Money(d.Price, d.Currency);
@@ -106,7 +165,7 @@
                 <div class="form-text text-warning" id="noDraftsForStudent" hidden>
                     @T["This student has no unpaid package. Either they already paid for everything, or the package has not been chosen yet — do that on the packages screen first."]
                 </div>
-                <div class="form-text">@T["Leave it on the first option for money that is not buying a package: a correction, a refund reversal, or a deposit to hold a seat."]</div>
+                <div class="form-text text-warning">@T["Only leave it on the first option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. If the student owes on a package, choosing it here is what lets the package activate."]</div>
             </div>
             <div class="col-12">
                 <hr class="my-1" />
@@ -186,12 +245,44 @@
                         </dd>
                     </dl>
                 }
+                @* What this payment is actually funding, and how much that
+                   package still needs. Without it the received-amount box was
+                   a number typed against nothing. *@
+                @if (p.SubscriptionId is not null)
+                {
+                    <dl class="row small app-owed-breakdown mb-2">
+                        <dt class="col-sm-4">@T["Which package is this paying for?"]</dt>
+                        <dd class="col-sm-8">@p.PackageLabel</dd>
+                        <dt class="col-sm-4">@T["Package price"]</dt>
+                        <dd class="col-sm-8">@T.Money(p.PackagePrice, p.Currency)</dd>
+                        <dt class="col-sm-4">@T["Confirmed received"]</dt>
+                        <dd class="col-sm-8">@T.Money(p.PackagePaid, p.Currency)</dd>
+                        <dt class="col-sm-4">@T["Remaining owed"]</dt>
+                        <dd class="col-sm-8 fw-bold">@T.Money(p.PackageRemaining, p.Currency)</dd>
+                    </dl>
+                }
+                else
+                {
+                    <p class="small"><span class="app-status is-muted">@T["Not against any package"]</span></p>
+                }
                 <form method="post" asp-page-handler="Confirm" class="row g-2 align-items-end mb-2">
                     <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
                     <input type="hidden" name="paymentId" value="@p.Id" />
                     <div class="col-auto">
                         <label class="form-label small mb-0" for="received-@p.Id">@T["Actually received amount (if different)"]</label>
-                        <input type="number" step="0.001" id="received-@p.Id" name="receivedAmount" class="form-control form-control-sm" style="width:9rem" />
+                        @{
+                            var ceiling = p.SubscriptionId is not null && p.PackageRemaining is not null
+                                ? p.PackageRemaining.Value
+                                : p.Amount;
+                        }
+                        @* The cap is a convenience that stops the typo before it
+                           is submitted. The refusal itself lives in
+                           IPaymentService.ConfirmAsync, which recomputes the
+                           remaining balance server-side and rejects an excess
+                           whatever the browser sent. *@
+                        <input type="number" step="0.001" min="0" max="@ceiling" id="received-@p.Id" name="receivedAmount"
+                               class="form-control form-control-sm" style="width:9rem" />
+                        <div class="form-text">@T["At most"] @T.Money(ceiling, p.Currency)</div>
                     </div>
                     <div class="col-auto">
                         <label class="form-label small mb-0" for="receivedCurrency-@p.Id">@T["Actually received currency (if different)"]</label>
@@ -223,6 +314,7 @@
                     </div>
                     <div class="col-12">
                         <div class="form-text">@T["Leave both blank when the full requested amount arrived as requested."]</div>
+                        <div class="form-text text-warning">@T["More than what is still owed cannot be confirmed. If a larger sum really arrived, confirm what is owed and record the difference separately, so the extra money is visible instead of disappearing into an activation."]</div>
                     </div>
                 </form>
                 <form method="post" asp-page-handler="Reject" class="d-flex gap-1 flex-wrap">
@@ -245,45 +337,114 @@
 </div>
 
 <h2>@T["Recent history"]</h2>
+@* Owner report 2026-09-01: "a first payment of 50 received 40, a top-up of 10
+   received 20, then another 10" read as three unrelated rows, and an admin
+   could not tell from them whether the package was settled, short, or overpaid.
+   Same payments, same order - gathered under the package they funded, with
+   that package's own standing stated once above them. Money that was never
+   attached to a package gets its own block at the end, so a general payment can
+   never be mistaken for an instalment on a package. *@
 <div class="app-toolbar">
     <div class="app-search">
-        <input type="search" class="form-control" data-mv-filter="#paymentsTable"
+        <input type="search" class="form-control" data-mv-filter="#paymentsHistory"
                placeholder="@T["Search by student, reference, or status…"]" aria-label="@T["Search by student, reference, or status…"]" />
     </div>
 </div>
-<div class="table-responsive">
-    <table class="table table-sm table-striped" id="paymentsTable">
-        <thead>
-            <tr><th>@T["Reference"]</th><th>@T["Student"]</th><th>@T["Amount"]</th><th>@T["Received"]</th><th>@T["Method type"]</th><th>@T["Status"]</th><th>@T["Note"]</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var p in Model.RecentPayments)
-            {
-                <tr>
-                    <td><span class="app-ref">@p.ReferenceCode</span></td>
-                    <td><a asp-page="/Admin/StudentDetails" asp-route-id="@p.StudentId">@p.StudentName</a></td>
-                    <td>@T.Money(p.Amount, p.Currency)</td>
-                    <td>
-                        @(p.ReceivedAmount is not null ? T.Money(p.ReceivedAmount.Value, p.ReceivedCurrency) : T["Not specified"].Value)
-                        @if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount < p.Amount)
-                        {
-                            <span class="app-status is-warning">@T["Remaining owed"]: @T.Money(p.Amount - p.ReceivedAmount.Value, p.Currency)</span>
-                        }
-                    </td>
-                    <td>@T["PaymentMethod." + p.Method]</td>
-                    <td><span class="@StatusClass(p.Status)">@T["PaymentStatus." + p.Status]</span></td>
-                    <td>@p.RejectionReason</td>
-                </tr>
-            }
-            <tr data-mv-filter-empty="true" hidden>
-                <td colspan="7" class="text-muted">@T["No payment matches this search — try part of the student's name or the reference."]</td>
-            </tr>
-            @if (Model.RecentPayments.Count == 0)
-            {
-                <tr><td colspan="7" class="text-muted">@T["No payments recorded yet."]</td></tr>
-            }
-        </tbody>
-    </table>
+
+<div id="paymentsHistory">
+    @foreach (var group in Model.RecentGroups)
+    {
+        <article class="card mb-3" data-mv-filter-item>
+            <div class="card-body">
+                <h3 class="card-title h6 d-flex flex-wrap gap-2 align-items-center">
+                    @if (group.SubscriptionId is not null)
+                    {
+                        <span class="app-chip is-level">@group.Title</span>
+                        <span class="text-muted fw-normal small">@T["Package"] #@group.SubscriptionId</span>
+                    }
+                    else
+                    {
+                        <span class="app-status is-muted">@group.Title</span>
+                    }
+                    @if (group.Status is not null)
+                    {
+                        <span class="@(group.Status == MVTeaches.Domain.Subscriptions.SubscriptionStatus.Active ? "app-status is-success" : "app-status is-warning")">
+                            @T["SubscriptionStatus." + group.Status]
+                        </span>
+                    }
+                </h3>
+
+                @if (group.SubscriptionId is not null && group.Price is not null)
+                {
+                    <dl class="row small app-owed-breakdown mb-2">
+                        <dt class="col-sm-3">@T["Package price"]</dt>
+                        <dd class="col-sm-3">@T.Money(group.Price, group.Currency)</dd>
+                        <dt class="col-sm-3">@T["Confirmed received"]</dt>
+                        <dd class="col-sm-3">@T.Money(group.Paid, group.Currency)</dd>
+                        <dt class="col-sm-3">@T["Remaining owed"]</dt>
+                        <dd class="col-sm-3 fw-bold">
+                            @if (group.Remaining > 0m)
+                            {
+                                <span class="text-danger">@T.Money(group.Remaining, group.Currency)</span>
+                            }
+                            else
+                            {
+                                <span class="app-status is-success">@T["Fully paid."]</span>
+                            }
+                        </dd>
+                    </dl>
+                }
+                else
+                {
+                    <p class="text-muted small mb-2">@T["These amounts do not fund any package. They activate nothing on their own."]</p>
+                }
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr><th>@T["Reference"]</th><th>@T["Student"]</th><th>@T["Amount"]</th><th>@T["Received"]</th><th>@T["Method type"]</th><th>@T["Status"]</th><th>@T["Note"]</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in group.Payments)
+                            {
+                                <tr>
+                                    <td><span class="app-ref">@p.ReferenceCode</span></td>
+                                    <td><a asp-page="/Admin/StudentDetails" asp-route-id="@p.StudentId">@p.StudentName</a></td>
+                                    <td>@T.Money(p.Amount, p.Currency)</td>
+                                    <td>
+                                        @(p.ReceivedAmount is not null ? T.Money(p.ReceivedAmount.Value, p.ReceivedCurrency) : T["Not specified"].Value)
+                                        @if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount < p.Amount)
+                                        {
+                                            <span class="app-status is-warning">@T["Arrived short of what was requested"]</span>
+                                        }
+                                        else if (p.Status == PaymentStatus.Confirmed && p.ReceivedAmount is not null && p.ReceivedCurrency == p.Currency && p.ReceivedAmount > p.Amount)
+                                        {
+                                            @* Only history from before the refusal existed can show
+                                               this. It is called out rather than left to be spotted
+                                               by comparing two columns. *@
+                                            <span class="app-status is-danger">@T["More arrived than was requested"]</span>
+                                        }
+                                    </td>
+                                    <td>@T["PaymentMethod." + p.Method]</td>
+                                    <td><span class="@StatusClass(p.Status)">@T["PaymentStatus." + p.Status]</span></td>
+                                    <td>@p.RejectionReason</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+    }
+
+    <div class="app-empty" data-mv-filter-empty="true" hidden>
+        @T["No payment matches this search — try part of the student's name or the reference."]
+    </div>
+
+    @if (Model.RecentGroups.Count == 0)
+    {
+        <div class="app-empty"><strong>@T["No payments recorded yet."]</strong></div>
+    }
 </div>
 
 <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">

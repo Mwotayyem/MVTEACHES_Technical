@@ -2819,3 +2819,23 @@ a.app-kpi:hover {
     animation: none !important;
   }
 }
+
+/* The price / paid / remaining block that now sits above every confirm
+   action and every package's payment history — the figures an admin needs
+   in view before typing an amount. */
+.app-owed-breakdown {
+  background: var(--mv-surface-muted);
+  border-radius: var(--mv-radius-sm);
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.app-owed-breakdown dt {
+  color: var(--mv-muted);
+  font-weight: 600;
+}
+
+.app-owed-breakdown dd {
+  margin-bottom: 0.15rem;
+  font-variant-numeric: tabular-nums;
+}

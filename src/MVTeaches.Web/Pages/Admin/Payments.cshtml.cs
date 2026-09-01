@@ -12,6 +12,7 @@ using MVTeaches.Domain.People;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -49,10 +50,24 @@ public class PaymentsModel : PageModel
         _localizer = localizer;
     }
 
+    /// <summary><paramref name="SubscriptionId"/> and the three package
+    /// figures beside it were added after the owner confirmed 20 JOD against a
+    /// package that had 10 left owing. The screen never said what a payment
+    /// was funding or how much that package still needed, so there was nothing
+    /// on it to notice the mistake against.</summary>
     public record PaymentRow(long Id, long StudentId, string StudentName, decimal Amount, string Currency, PaymentMethod Method,
         PaymentStatus Status, string ReferenceCode, string? RejectionReason, string? PayerDisplayName,
         NodaTime.LocalDate? TransferDate, string? BankReferenceNumber, bool HasReceipt, bool HasSubmittedTransferDetails,
-        decimal? ReceivedAmount, string? ReceivedCurrency);
+        decimal? ReceivedAmount, string? ReceivedCurrency,
+        long? SubscriptionId, string? PackageLabel, decimal? PackagePrice, decimal? PackagePaid, decimal? PackageRemaining);
+
+    /// <summary>The payments on one package, read together, plus where that
+    /// package stands. The flat list mixed a package's own instalments with
+    /// money that was never attached to any package, so an admin could not
+    /// tell whether a package was settled, overpaid, or still short.</summary>
+    public record PaymentGroup(long? SubscriptionId, string Title, string? Currency,
+        decimal? Price, decimal? Paid, decimal? Remaining, SubscriptionStatus? Status,
+        IReadOnlyList<PaymentRow> Payments);
 
     /// <summary><paramref name="StudentId"/> is what lets the picker below
     /// show only the chosen student's own unpaid packages. Before it, the list
@@ -83,6 +98,30 @@ public class PaymentsModel : PageModel
     /// <summary>Draft subscriptions awaiting their activating payment (D-38) —
     /// see /Admin/Subscriptions, which is where these get created.</summary>
     public IReadOnlyList<DraftSubscriptionRow> DraftSubscriptions { get; set; } = Array.Empty<DraftSubscriptionRow>();
+
+    /// <summary>The subscriptions belonging to the student currently in view
+    /// that still owe money. When this is non-empty the recording form leads
+    /// with them, because a payment from a student who owes on a package is
+    /// almost always for that package - and recording it as unattached money
+    /// (which is what happened) leaves the package unfunded while the family
+    /// has already paid.</summary>
+    public IReadOnlyList<DraftSubscriptionRow> OwedPackagesForFilteredStudent =>
+        FilterStudentId is null
+            ? Array.Empty<DraftSubscriptionRow>()
+            : DraftSubscriptions.Where(d => d.StudentId == FilterStudentId.Value && d.RemainingOwed > 0m).ToList();
+
+    /// <summary>Set by the "complete the remaining amount" button, which
+    /// pre-fills the form for exactly that package and exactly what it still
+    /// needs. Display and pre-fill only - the server still validates the
+    /// student/subscription pair and still recomputes the remaining balance
+    /// itself at confirmation time.</summary>
+    [BindProperty(SupportsGet = true, Name = "complete")]
+    public long? CompleteSubscriptionId { get; set; }
+
+    public DraftSubscriptionRow? CompletingPackage { get; set; }
+
+    /// <summary>Recent payments gathered by the package they funded.</summary>
+    public IReadOnlyList<PaymentGroup> RecentGroups { get; set; } = Array.Empty<PaymentGroup>();
 
     [BindProperty]
     public RecordInput NewPayment { get; set; } = new();
@@ -118,7 +157,27 @@ public class PaymentsModel : PageModel
         public PaymentMethod Method { get; set; }
     }
 
-    public async Task OnGetAsync() => await LoadAsync();
+    public async Task OnGetAsync()
+    {
+        await LoadAsync();
+
+        if (CompleteSubscriptionId is null)
+        {
+            return;
+        }
+
+        CompletingPackage = DraftSubscriptions.FirstOrDefault(d => d.Id == CompleteSubscriptionId.Value);
+        if (CompletingPackage is null)
+        {
+            CompleteSubscriptionId = null;
+            return;
+        }
+
+        NewPayment.StudentId = CompletingPackage.StudentId;
+        NewPayment.SubscriptionId = CompletingPackage.Id;
+        NewPayment.Amount = CompletingPackage.RemainingOwed;
+        NewPayment.Currency = CompletingPackage.Currency;
+    }
 
     public async Task<IActionResult> OnPostRecordAsync()
     {
@@ -147,6 +206,14 @@ public class PaymentsModel : PageModel
     /// in reaches IPaymentService.ConfirmAsync as a real override.</summary>
     public async Task<IActionResult> OnPostConfirmAsync(long paymentId, decimal? receivedAmount, string? receivedCurrency)
     {
+        // This handler does not use NewPayment at all, but Razor Pages
+        // validates every [BindProperty] on the page regardless - so an
+        // untouched recording form posted alongside a confirmation produced a
+        // red "choose a currency / the amount must be greater than zero" block
+        // next to the real outcome message. Confusing on a good day; actively
+        // misleading next to the new "more than is owed" refusal.
+        ModelState.Clear();
+
         var confirmedByUserId = long.Parse(_userManager.GetUserId(User)!);
         Money? actuallyReceived = receivedAmount is not null && !string.IsNullOrWhiteSpace(receivedCurrency)
             ? new Money(receivedAmount.Value, receivedCurrency)
@@ -166,6 +233,15 @@ public class PaymentsModel : PageModel
         {
             ConfirmPaymentOutcome.NotFound => _localizer["Payment not found."].Value,
             ConfirmPaymentOutcome.NotPending => _localizer["This payment is no longer pending (already rejected)."].Value,
+            // Nothing was written: the payment is still Pending and can be
+            // confirmed again with the right figure.
+            // Worded for what this payment actually is: a package instalment
+            // has a package to talk about, a standalone one does not.
+            ConfirmPaymentOutcome.ReceivedAmountExceedsWhatIsOwed => _localizer[
+                await _db.Payments.AnyAsync(p => p.Id == paymentId && p.SubscriptionId != null, HttpContext.RequestAborted)
+                    ? "The amount received is larger than the amount still owed on this package. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again. If more money really did arrive, record the difference as a separate payment and tell the family."
+                    : "The amount received is larger than the amount this payment was recorded for. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again, or reject this one and record the real amount instead.",
+                _localizer.Money(result.MaximumAcceptable!.Amount, result.MaximumAcceptable!.Currency)].Value,
             _ => null,
         };
 
@@ -175,6 +251,7 @@ public class PaymentsModel : PageModel
 
     public async Task<IActionResult> OnPostRejectAsync(long paymentId)
     {
+        ModelState.Clear(); // same reason as OnPostConfirmAsync above
         var rejectedByUserId = long.Parse(_userManager.GetUserId(User)!);
         var reason = string.IsNullOrWhiteSpace(RejectReason) ? _localizer["No reason given"].Value : RejectReason;
 
@@ -253,12 +330,69 @@ public class PaymentsModel : PageModel
         }
         DraftSubscriptions = draftRows;
 
-        PendingPayments = pending.Select(p => ToRow(p, studentNames)).ToList();
-        RecentPayments = recent.Select(p => ToRow(p, studentNames)).ToList();
-    }
+        // Every subscription any payment on this screen points at - not only
+        // the Draft ones. A payment against a package that has since
+        // activated still has to say so, or the history reads as a pile of
+        // unrelated amounts.
+        var subscriptionIds = pending.Concat(recent)
+            .Where(p => p.SubscriptionId is not null)
+            .Select(p => p.SubscriptionId!.Value)
+            .Distinct()
+            .ToList();
+        var subscriptions = await _db.Subscriptions
+            .Where(sub => subscriptionIds.Contains(sub.Id))
+            .ToListAsync();
+        var courseNames = await _db.Courses.ToDictionaryAsync(c => c.Id, c => c.NameEn);
 
-    private static PaymentRow ToRow(Payment p, IReadOnlyDictionary<long, string> studentNames) =>
-        new(p.Id, p.StudentId, studentNames.GetValueOrDefault(p.StudentId, string.Empty), p.Amount.Amount, p.Amount.Currency,
-            p.Method, p.Status, p.ReferenceCode, p.RejectionReason, p.PayerDisplayName, p.TransferDate,
-            p.ProviderTransactionId, p.ProofFileId is not null, p.HasSubmittedTransferDetails, p.ReceivedAmount, p.ReceivedCurrency);
+        var fundingBySubscription = new Dictionary<long, SubscriptionFundingStatus>();
+        foreach (var sub in subscriptions)
+        {
+            fundingBySubscription[sub.Id] = await _payments.GetSubscriptionFundingStatusAsync(sub.Id, HttpContext.RequestAborted);
+        }
+
+        string PackageLabel(Subscription sub) =>
+            $"{courseNames.GetValueOrDefault(sub.CourseId, "?")} / {levelCodes.GetValueOrDefault(sub.LevelId, "?")}";
+
+        PaymentRow Row(Payment payment)
+        {
+            var sub = payment.SubscriptionId is null
+                ? null
+                : subscriptions.FirstOrDefault(x => x.Id == payment.SubscriptionId.Value);
+            var status = sub is null ? null : fundingBySubscription.GetValueOrDefault(sub.Id);
+            return new PaymentRow(payment.Id, payment.StudentId,
+                studentNames.GetValueOrDefault(payment.StudentId, string.Empty),
+                payment.Amount.Amount, payment.Amount.Currency, payment.Method, payment.Status,
+                payment.ReferenceCode, payment.RejectionReason, payment.PayerDisplayName, payment.TransferDate,
+                payment.ProviderTransactionId, payment.ProofFileId is not null, payment.HasSubmittedTransferDetails,
+                payment.ReceivedAmount, payment.ReceivedCurrency,
+                sub?.Id, sub is null ? null : PackageLabel(sub),
+                status?.Price.Amount, status?.ConfirmedReceived, status?.RemainingOwed.Amount);
+        }
+
+        PendingPayments = pending.Select(Row).ToList();
+        RecentPayments = recent.Select(Row).ToList();
+
+        // Grouped: one block per package, then one block for money that was
+        // never attached to a package. Within a block the payments stay in the
+        // same order the flat list used.
+        RecentGroups = RecentPayments
+            .GroupBy(row => row.SubscriptionId)
+            .OrderBy(group => group.Key is null ? 1 : 0)
+            .ThenByDescending(group => group.Key ?? 0)
+            .Select(group =>
+            {
+                if (group.Key is null)
+                {
+                    return new PaymentGroup(null, _localizer["Not against any package"].Value, null,
+                        null, null, null, null, group.ToList());
+                }
+
+                var sub = subscriptions.FirstOrDefault(x => x.Id == group.Key.Value);
+                var status = fundingBySubscription.GetValueOrDefault(group.Key.Value);
+                return new PaymentGroup(group.Key, sub is null ? $"#{group.Key}" : PackageLabel(sub),
+                    status?.Price.Currency, status?.Price.Amount, status?.ConfirmedReceived,
+                    status?.RemainingOwed.Amount, sub?.Status, group.ToList());
+            })
+            .ToList();
+    }
 }

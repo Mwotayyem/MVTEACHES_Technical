@@ -1,4 +1,4 @@
-using MVTeaches.Domain.Common;
+﻿using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Payments;
 using NodaTime;
 
@@ -25,9 +25,27 @@ public enum ConfirmPaymentOutcome
     /// (never auto-converted). No activation happened; nothing was silently
     /// assumed. See PaymentService.SettleSubscriptionIfFullyPaidAsync.</summary>
     ConfirmedButSubscriptionNotYetFullyFunded,
+
+    /// <summary>Owner report 2026-09-01: an admin typed 20 into "actually
+    /// received" for a package that only had 10 left owing, and it was taken.
+    /// Confirming more than is owed is now refused outright rather than
+    /// absorbed. Nothing is written when this is returned - the payment stays
+    /// Pending and can be confirmed again with the right figure.
+    ///
+    /// Deliberately NOT the same thing as tolerating an overpayment: this
+    /// product has no overpayment or credit-balance concept, and inventing one
+    /// silently (by activating a package and swallowing the excess) leaves the
+    /// centre owing money nothing in the system records. Until there is an
+    /// explicit decision about how excess money is held or returned, the
+    /// honest answer is to refuse the figure and let a person deal with it.
+    ///
+    /// <see cref="ConfirmPaymentResult.MaximumAcceptable"/> carries what the
+    /// most that could legitimately be confirmed here is, so the screen can
+    /// name the number instead of making the admin work it out.</summary>
+    ReceivedAmountExceedsWhatIsOwed,
 }
 
-public record ConfirmPaymentResult(ConfirmPaymentOutcome Outcome);
+public record ConfirmPaymentResult(ConfirmPaymentOutcome Outcome, Money? MaximumAcceptable = null);
 
 public enum AttachTransferDetailsOutcome
 {
@@ -144,7 +162,13 @@ public interface IPaymentService
     /// international transfer's fee/shortfall, or a different currency
     /// arriving) — omitted, confirming means exactly what it always meant:
     /// the full requested amount is verified as received, never a policy
-    /// decision about tolerating a difference.</summary>
+    /// decision about tolerating a difference.
+    ///
+    /// A shortfall is the case this field was built for and still works
+    /// exactly as before. An EXCESS is refused
+    /// (<see cref="ConfirmPaymentOutcome.ReceivedAmountExceedsWhatIsOwed"/>):
+    /// see that member for why absorbing one silently is worse than
+    /// refusing it.</summary>
     Task<ConfirmPaymentResult> ConfirmAsync(long paymentId, long confirmedByUserId, CancellationToken cancellationToken,
         Money? actuallyReceivedAmount = null);
 

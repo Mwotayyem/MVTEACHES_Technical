@@ -2160,4 +2160,55 @@
   <data name="Free seats: {0}" xml:space="preserve">
     <value>Free seats: {0}</value>
   </data>
+  <data name="This student still owes money on a package." xml:space="preserve">
+    <value>This student still owes money on a package.</value>
+  </data>
+  <data name="Money arriving from this student is almost certainly for that package. Recording it as unattached money leaves the package inactive even though the family has paid." xml:space="preserve">
+    <value>Money arriving from this student is almost certainly for that package. Recording it as unattached money leaves the package inactive even though the family has paid.</value>
+  </data>
+  <data name="Complete the remaining amount for this package" xml:space="preserve">
+    <value>Complete the remaining amount for this package</value>
+  </data>
+  <data name="The form below is already filled in for this package and for exactly what it still needs. Change the amount only if a different sum actually arrived." xml:space="preserve">
+    <value>The form below is already filled in for this package and for exactly what it still needs. Change the amount only if a different sum actually arrived.</value>
+  </data>
+  <data name="Amount that will be confirmed" xml:space="preserve">
+    <value>Amount that will be confirmed</value>
+  </data>
+  <data name="The package after confirmation" xml:space="preserve">
+    <value>The package after confirmation</value>
+  </data>
+  <data name="Recording it here only queues it. It still has to be confirmed below, after you have checked the account." xml:space="preserve">
+    <value>Recording it here only queues it. It still has to be confirmed below, after you have checked the account.</value>
+  </data>
+  <data name="Not paying for a package — just record the money (rare)" xml:space="preserve">
+    <value>Not paying for a package — just record the money (rare)</value>
+  </data>
+  <data name="Only leave it on the first option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. If the student owes on a package, choosing it here is what lets the package activate." xml:space="preserve">
+    <value>Only leave it on the first option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. If the student owes on a package, choosing it here is what lets the package activate.</value>
+  </data>
+  <data name="Not against any package" xml:space="preserve">
+    <value>Not against any package</value>
+  </data>
+  <data name="At most" xml:space="preserve">
+    <value>At most</value>
+  </data>
+  <data name="More than what is still owed cannot be confirmed. If a larger sum really arrived, confirm what is owed and record the difference separately, so the extra money is visible instead of disappearing into an activation." xml:space="preserve">
+    <value>More than what is still owed cannot be confirmed. If a larger sum really arrived, confirm what is owed and record the difference separately, so the extra money is visible instead of disappearing into an activation.</value>
+  </data>
+  <data name="These amounts do not fund any package. They activate nothing on their own." xml:space="preserve">
+    <value>These amounts do not fund any package. They activate nothing on their own.</value>
+  </data>
+  <data name="Arrived short of what was requested" xml:space="preserve">
+    <value>Arrived short of what was requested</value>
+  </data>
+  <data name="More arrived than was requested" xml:space="preserve">
+    <value>More arrived than was requested</value>
+  </data>
+  <data name="The amount received is larger than the amount still owed on this package. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again. If more money really did arrive, record the difference as a separate payment and tell the family." xml:space="preserve">
+    <value>The amount received is larger than the amount still owed on this package. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again. If more money really did arrive, record the difference as a separate payment and tell the family.</value>
+  </data>
+  <data name="The amount received is larger than the amount this payment was recorded for. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again, or reject this one and record the real amount instead." xml:space="preserve">
+    <value>The amount received is larger than the amount this payment was recorded for. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again, or reject this one and record the real amount instead.</value>
+  </data>
 </root>

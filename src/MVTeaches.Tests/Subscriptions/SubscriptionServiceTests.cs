@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.Ledger;
 using MVTeaches.Application.Subscriptions;
 using MVTeaches.Domain.Catalog;
@@ -59,11 +59,10 @@ public class SubscriptionServiceTests
     private static async Task<(int CountryId, long CourseId, int LevelId, long StudentId, long StudentUserId)> SeedCatalogAndStudentAsync(
         MvTeachesDbContext db, bool assignLevel = true)
     {
-        var countryId = (int)NextId();
         var courseId = NextId();
         var levelId = (int)NextId();
         var studentUserId = await CreateUserAsync(db, "student");
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+        var countryId = await SeedCountryAsync(db);
         db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         var student = new Student(countryId, "Student", new LocalDate(2010, 1, 1), studentUserId);
@@ -78,6 +77,37 @@ public class SubscriptionServiceTests
         }
 
         return (countryId, courseId, levelId, student.Id, studentUserId);
+    }
+
+    /// <summary>
+    /// Same reason as SessionFinalizationServiceTests.GetOrSeedCountryAsync
+    /// and PaymentServiceTests.SeedCountryAsync: the 2-letter country-code
+    /// space is 676 wide and shared by every test class in the run, each
+    /// deriving codes from its own NextId() range through identical
+    /// arithmetic. Adding a single test to ANY class shifts one class's
+    /// residues onto another's, which is exactly how this started failing.
+    /// Catching the real unique violation and retrying with a fresh id is
+    /// self-correcting; hand-picking non-overlapping ranges is not, because
+    /// the next test added breaks it again.
+    /// </summary>
+    private static async Task<int> SeedCountryAsync(MvTeachesDbContext db)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var countryId = (int)NextId();
+            db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            try
+            {
+                await db.SaveChangesAsync();
+                return countryId;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new InvalidOperationException("Could not find a free 2-letter country code after 10 attempts.");
     }
 
     private static ISubscriptionService CreateService(MvTeachesDbContext db, Instant now) =>

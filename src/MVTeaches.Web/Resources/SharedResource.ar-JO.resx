@@ -2160,4 +2160,55 @@
   <data name="Free seats: {0}" xml:space="preserve">
     <value>المقاعد الشاغرة: {0}</value>
   </data>
+  <data name="This student still owes money on a package." xml:space="preserve">
+    <value>هذا الطالب عليه مبلغ متبقٍ على باقة موجودة.</value>
+  </data>
+  <data name="Money arriving from this student is almost certainly for that package. Recording it as unattached money leaves the package inactive even though the family has paid." xml:space="preserve">
+    <value>أي مبلغ يصل من هذا الطالب هو على الأغلب لتلك الباقة. تسجيله كمبلغ غير مرتبط بباقة يُبقي الباقة غير مفعّلة رغم أن الأسرة دفعت.</value>
+  </data>
+  <data name="Complete the remaining amount for this package" xml:space="preserve">
+    <value>إكمال المبلغ المتبقي لهذه الباقة</value>
+  </data>
+  <data name="The form below is already filled in for this package and for exactly what it still needs. Change the amount only if a different sum actually arrived." xml:space="preserve">
+    <value>النموذج أدناه معبّأ مسبقًا لهذه الباقة وبالمبلغ المتبقي عليها بالضبط. لا تغيّر المبلغ إلا إذا وصل مبلغ مختلف فعلًا.</value>
+  </data>
+  <data name="Amount that will be confirmed" xml:space="preserve">
+    <value>المبلغ الذي سيتم تأكيده</value>
+  </data>
+  <data name="The package after confirmation" xml:space="preserve">
+    <value>حالة الباقة بعد التأكيد</value>
+  </data>
+  <data name="Recording it here only queues it. It still has to be confirmed below, after you have checked the account." xml:space="preserve">
+    <value>التسجيل هنا يضعها في قائمة الانتظار فقط. لا تزال بحاجة إلى تأكيد أدناه بعد أن تتحقق من الحساب.</value>
+  </data>
+  <data name="Not paying for a package — just record the money (rare)" xml:space="preserve">
+    <value>ليست مقابل باقة — سجّل المبلغ فقط (حالة نادرة)</value>
+  </data>
+  <data name="Only leave it on the first option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. If the student owes on a package, choosing it here is what lets the package activate." xml:space="preserve">
+    <value>لا تترك الخيار الأول إلا إذا كان المبلغ فعلًا ليس مقابل أي باقة — تصحيح، أو عكس استرداد، أو عربون لحجز مقعد. أما إذا كان على الطالب مبلغ متبقٍ على باقة، فاختيار تلك الباقة هنا هو ما يسمح بتفعيلها.</value>
+  </data>
+  <data name="Not against any package" xml:space="preserve">
+    <value>غير مرتبطة بأي باقة</value>
+  </data>
+  <data name="At most" xml:space="preserve">
+    <value>بحد أقصى</value>
+  </data>
+  <data name="More than what is still owed cannot be confirmed. If a larger sum really arrived, confirm what is owed and record the difference separately, so the extra money is visible instead of disappearing into an activation." xml:space="preserve">
+    <value>لا يمكن تأكيد مبلغ أكبر من المبلغ المتبقي. إذا وصل مبلغ أكبر فعلًا، أكّد المبلغ المتبقي وسجّل الفرق كدفعة منفصلة، حتى يبقى المبلغ الزائد ظاهرًا بدل أن يختفي داخل عملية التفعيل.</value>
+  </data>
+  <data name="These amounts do not fund any package. They activate nothing on their own." xml:space="preserve">
+    <value>هذه المبالغ لا تموّل أي باقة، ولا تفعّل شيئًا بحد ذاتها.</value>
+  </data>
+  <data name="Arrived short of what was requested" xml:space="preserve">
+    <value>وصل أقل من المطلوب</value>
+  </data>
+  <data name="More arrived than was requested" xml:space="preserve">
+    <value>وصل أكثر من المطلوب</value>
+  </data>
+  <data name="The amount received is larger than the amount still owed on this package. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again. If more money really did arrive, record the difference as a separate payment and tell the family." xml:space="preserve">
+    <value>المبلغ المستلم أكبر من المبلغ المتبقي على هذه الباقة. أقصى ما يمكن تأكيده هنا هو {0}. لم يُسجَّل أي شيء — صحّح الرقم وأكّد مرة أخرى. وإذا كان مبلغ أكبر قد وصل فعلًا، سجّل الفرق كدفعة منفصلة وأبلغ الأسرة.</value>
+  </data>
+  <data name="The amount received is larger than the amount this payment was recorded for. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again, or reject this one and record the real amount instead." xml:space="preserve">
+    <value>المبلغ المستلم أكبر من المبلغ الذي سُجّلت به هذه الدفعة. أقصى ما يمكن تأكيده هنا هو {0}. لم يُسجَّل أي شيء — صحّح الرقم وأكّد مرة أخرى، أو ارفض هذه الدفعة وسجّل المبلغ الحقيقي بدلاً منها.</value>
+  </data>
 </root>

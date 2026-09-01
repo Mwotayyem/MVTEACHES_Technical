@@ -50,12 +50,11 @@ public class PaymentServiceTests
 
     private async Task<(long StudentId, long SubscriptionId, Money Price)> SeedBlockedSubscriptionAsync(MvTeachesDbContext db, Money price)
     {
-        var countryId = (int)NextId();
         var courseId = NextId();
         var levelId = (int)NextId();
         var studentUserId = await CreateUserAsync(db);
 
-        db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+        var countryId = await SeedCountryAsync(db);
         db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
 
@@ -71,6 +70,38 @@ public class PaymentServiceTests
         await db.SaveChangesAsync();
 
         return (student.Id, subscription.Id, price);
+    }
+
+    /// <summary>
+    /// The 2-letter country-code space is only 676 wide and every test class
+    /// in this run derives its codes from its own NextId() range through the
+    /// same TwoLetterCode arithmetic, so a residue collision with another
+    /// class's range is a real flake, not a theoretical one — adding a single
+    /// test anywhere shifts one class's residues onto another's. Rather than
+    /// hand-verifying that no two classes' arithmetic overlaps (which the next
+    /// added test would invalidate again), this catches the actual unique
+    /// violation and retries with a fresh id, exactly as
+    /// SessionFinalizationServiceTests.GetOrSeedCountryAsync already does for
+    /// the same reason.
+    /// </summary>
+    private static async Task<int> SeedCountryAsync(MvTeachesDbContext db)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var countryId = (int)NextId();
+            db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            try
+            {
+                await db.SaveChangesAsync();
+                return countryId;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new InvalidOperationException("Could not find a free 2-letter country code after 10 attempts.");
     }
 
     private IPaymentService CreateService(MvTeachesDbContext db, Instant now) => new PaymentService(db, new FakeClock(now));
@@ -645,6 +676,138 @@ public class PaymentServiceTests
         var subscription = await db.Subscriptions.FirstAsync(s => s.Id == subscriptionId);
         Assert.Equal(SubscriptionStatus.Active, subscription.Status);
         Assert.Equal(1, await db.EntitlementLedgerEntries.CountAsync(l => l.SubscriptionId == subscriptionId));
+    }
+
+    // ---- Never confirm more than is owed (owner report 2026-09-01) ----
+    // Reported from the live screen: a package priced 50 had 40 confirmed, a
+    // top-up payment for the remaining 10 was recorded, and 20 was typed into
+    // "actually received". It was accepted. The package activated and the
+    // extra 10 vanished into it, with nothing anywhere recording that the
+    // centre now held more money than it had charged for.
+
+    /// <summary>The reported scenario exactly, with its own numbers.
+    /// Refusing must write NOTHING: the payment stays Pending so it can be
+    /// confirmed again with the right figure, the package stays Draft, and no
+    /// ledger entry appears. Then the correct figure still works, proving the
+    /// guard blocks the mistake without blocking the legitimate path.</summary>
+    [Fact]
+    public async Task Confirming_more_than_the_remaining_balance_is_refused_and_writes_nothing()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var (studentId, subscriptionId, _) = await SeedBlockedSubscriptionAsync(db, new Money(50m, "JOD"));
+        var service = CreateService(db, now);
+
+        // 50 requested, only 40 actually arrived - the shortfall path, untouched.
+        var first = await service.RecordManualPaymentAsync(
+            new RecordPaymentRequest(studentId, subscriptionId, PayerUserId: null, new Money(50m, "JOD"), PaymentMethod.CliQ, null),
+            CancellationToken.None);
+        await service.ConfirmAsync(first.PaymentId, confirmedByUserId: NextId(), CancellationToken.None,
+            actuallyReceivedAmount: new Money(40m, "JOD"));
+
+        var funding = await service.GetSubscriptionFundingStatusAsync(subscriptionId, CancellationToken.None);
+        Assert.Equal(10m, funding.RemainingOwed.Amount);
+
+        // The top-up for the remaining 10 - confirmed as 20 by mistake.
+        var topUp = await service.RecordManualPaymentAsync(
+            new RecordPaymentRequest(studentId, subscriptionId, PayerUserId: null, new Money(10m, "JOD"), PaymentMethod.CliQ, null),
+            CancellationToken.None);
+
+        var refused = await service.ConfirmAsync(topUp.PaymentId, confirmedByUserId: NextId(), CancellationToken.None,
+            actuallyReceivedAmount: new Money(20m, "JOD"));
+
+        Assert.Equal(ConfirmPaymentOutcome.ReceivedAmountExceedsWhatIsOwed, refused.Outcome);
+        // The screen names the number rather than making the admin work it out.
+        Assert.Equal(10m, refused.MaximumAcceptable!.Amount);
+        Assert.Equal("JOD", refused.MaximumAcceptable!.Currency);
+
+        // Nothing was written by the refusal.
+        await using (var verify = _fixture.CreateContext())
+        {
+            var stillPending = await verify.Payments.FirstAsync(x => x.Id == topUp.PaymentId);
+            Assert.Equal(PaymentStatus.Pending, stillPending.Status);
+            Assert.Null(stillPending.ReceivedAmount);
+            Assert.Null(stillPending.ConfirmedAtUtc);
+
+            var subscription = await verify.Subscriptions.FirstAsync(x => x.Id == subscriptionId);
+            Assert.Equal(SubscriptionStatus.Draft, subscription.Status);
+            Assert.False(await verify.EntitlementLedgerEntries.AnyAsync(l => l.SubscriptionId == subscriptionId));
+
+            // 40 confirmed, still 10 owed - the refusal changed no figure.
+            Assert.Equal(40m, await verify.Payments
+                .Where(x => x.SubscriptionId == subscriptionId && x.Status == PaymentStatus.Confirmed)
+                .SumAsync(x => x.ReceivedAmount) ?? 0m);
+        }
+
+        // The same payment, confirmed for what is actually owed, still works.
+        var corrected = await service.ConfirmAsync(topUp.PaymentId, confirmedByUserId: NextId(), CancellationToken.None,
+            actuallyReceivedAmount: new Money(10m, "JOD"));
+        Assert.Equal(ConfirmPaymentOutcome.Confirmed, corrected.Outcome);
+
+        await using (var verify = _fixture.CreateContext())
+        {
+            var subscription = await verify.Subscriptions.FirstAsync(x => x.Id == subscriptionId);
+            Assert.Equal(SubscriptionStatus.Active, subscription.Status);
+            Assert.Equal(1, await verify.EntitlementLedgerEntries.CountAsync(
+                l => l.SubscriptionId == subscriptionId && l.Reason == LedgerReason.Purchase));
+        }
+    }
+
+    /// <summary>The same rule with no override typed at all: a payment
+    /// recorded for the FULL price against a package that has already been
+    /// partly paid would default its received amount to that full price and
+    /// sail past. The requested figure is measured against the remaining
+    /// balance too, not only a typed one.</summary>
+    [Fact]
+    public async Task A_payment_recorded_for_the_full_price_cannot_be_confirmed_once_part_is_already_paid()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var (studentId, subscriptionId, _) = await SeedBlockedSubscriptionAsync(db, new Money(50m, "JOD"));
+        var service = CreateService(db, now);
+
+        var first = await service.RecordManualPaymentAsync(
+            new RecordPaymentRequest(studentId, subscriptionId, PayerUserId: null, new Money(30m, "JOD"), PaymentMethod.CliQ, null),
+            CancellationToken.None);
+        await service.ConfirmAsync(first.PaymentId, confirmedByUserId: NextId(), CancellationToken.None);
+
+        var wrong = await service.RecordManualPaymentAsync(
+            new RecordPaymentRequest(studentId, subscriptionId, PayerUserId: null, new Money(50m, "JOD"), PaymentMethod.CliQ, null),
+            CancellationToken.None);
+        var refused = await service.ConfirmAsync(wrong.PaymentId, confirmedByUserId: NextId(), CancellationToken.None);
+
+        Assert.Equal(ConfirmPaymentOutcome.ReceivedAmountExceedsWhatIsOwed, refused.Outcome);
+        Assert.Equal(20m, refused.MaximumAcceptable!.Amount);
+
+        await using var verify = _fixture.CreateContext();
+        Assert.Equal(SubscriptionStatus.Draft, (await verify.Subscriptions.FirstAsync(x => x.Id == subscriptionId)).Status);
+    }
+
+    /// <summary>A payment attached to no package has no "remaining balance"
+    /// to measure against, so the figure it was recorded for is the ceiling.
+    /// More arriving than was asked for is still somebody who needs telling,
+    /// not something to record quietly.</summary>
+    [Fact]
+    public async Task Confirming_more_than_was_requested_on_a_standalone_payment_is_refused()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var (studentId, _, _) = await SeedBlockedSubscriptionAsync(db, new Money(50m, "JOD"));
+        var service = CreateService(db, now);
+
+        var standalone = await service.RecordManualPaymentAsync(
+            new RecordPaymentRequest(studentId, SubscriptionId: null, PayerUserId: null, new Money(10m, "JOD"), PaymentMethod.Cash, null),
+            CancellationToken.None);
+
+        var refused = await service.ConfirmAsync(standalone.PaymentId, confirmedByUserId: NextId(), CancellationToken.None,
+            actuallyReceivedAmount: new Money(20m, "JOD"));
+        Assert.Equal(ConfirmPaymentOutcome.ReceivedAmountExceedsWhatIsOwed, refused.Outcome);
+        Assert.Equal(10m, refused.MaximumAcceptable!.Amount);
+
+        // Less than requested is a shortfall, not an excess - still allowed.
+        var short_ = await service.ConfirmAsync(standalone.PaymentId, confirmedByUserId: NextId(), CancellationToken.None,
+            actuallyReceivedAmount: new Money(8m, "JOD"));
+        Assert.Equal(ConfirmPaymentOutcome.ConfirmedButSubscriptionNotYetFullyFunded, short_.Outcome);
     }
 
     /// <summary>Concurrency: two concurrent confirmations of a top-up
