@@ -46,35 +46,178 @@
         });
     }
 
-    // --- Filter a long <select> ---------------------------------------------
-    // <input data-mv-select-filter="#studentSelect"> narrows the options as the
-    // admin types, so a 200-name dropdown stays usable without a picker library.
+    // --- Turn a long <select> into a searchable combobox --------------------
+    // <input data-mv-select-filter="#studentSelect"> used to sit ABOVE the real
+    // dropdown and filter its options from the outside — so opening the native
+    // list, then moving the cursor into the search box, closed the list (focus
+    // left it) before the typed letters ever narrowed anything. This rebuilds
+    // the same markup into one real combobox: typing opens a panel of matches
+    // that stays open while you type, and picking one sets the real <select>
+    // (still the only source of truth — every asp-for/data-mv-options-of/
+    // data-mv-sessions-of/data-mv-when-source hookup elsewhere keeps reading
+    // and writing that same element exactly as before) and fires a real
+    // "change" event on it. No new library — the same progressive-enhancement
+    // contract as everything else here: with JS disabled, the native <select>
+    // below the (now plain) search box still works.
     function wireSelectFilters() {
         document.querySelectorAll("[data-mv-select-filter]").forEach(function (input) {
             var select = document.querySelector(input.getAttribute("data-mv-select-filter"));
-            if (!select) { return; }
+            if (!select || select.dataset.mvComboReady === "true") { return; }
+            select.dataset.mvComboReady = "true";
 
-            var original = Array.prototype.map.call(select.options, function (option) {
-                return { value: option.value, text: option.text };
-            });
+            var wrap = document.createElement("div");
+            wrap.className = "app-combo";
+            input.parentNode.insertBefore(wrap, input);
+            wrap.appendChild(input);
 
-            input.addEventListener("input", function () {
-                var term = input.value.trim().toLowerCase();
-                var previous = select.value;
-                select.innerHTML = "";
+            var panel = document.createElement("div");
+            panel.className = "app-combo-panel";
+            panel.hidden = true;
+            wrap.appendChild(panel);
 
-                original.forEach(function (item) {
-                    if (item.value === "" || term === "" || item.text.toLowerCase().indexOf(term) !== -1) {
-                        var option = document.createElement("option");
-                        option.value = item.value;
-                        option.text = item.text;
-                        select.add(option);
-                    }
+            select.classList.add("app-combo-native");
+            input.classList.add("app-combo-input");
+            input.setAttribute("role", "combobox");
+            input.setAttribute("autocomplete", "off");
+            input.setAttribute("aria-expanded", "false");
+            input.setAttribute("aria-haspopup", "listbox");
+
+            // The <label for="..."> already on the page still names the
+            // hidden select — copy that name onto the input (which is what a
+            // screen reader, and now a mouse, actually lands on) instead of
+            // leaving both the label and the id-based lookups to sort it out.
+            var boundLabel = select.id ? document.querySelector('label[for="' + select.id + '"]') : null;
+            if (boundLabel) {
+                input.setAttribute("aria-label", boundLabel.textContent.trim());
+                boundLabel.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    input.focus();
                 });
+            }
 
-                select.value = previous;
-                if (select.selectedIndex === -1) { select.selectedIndex = 0; }
+            var visible = [];
+            var activeIndex = -1;
+
+            function liveOptions() {
+                // Read fresh every time rather than a snapshot taken once at
+                // wire-up — data-mv-options-of can rebuild this very select's
+                // <option> list at runtime (e.g. plans narrowed to a chosen
+                // student's level), and a cached list would go stale.
+                return Array.prototype.map.call(select.options, function (option) {
+                    return { value: option.value, text: option.text };
+                }).filter(function (item) { return item.value !== ""; });
+            }
+
+            function currentLabel() {
+                var option = select.options[select.selectedIndex];
+                return option && option.value !== "" ? option.text : "";
+            }
+
+            function syncInputToSelection() {
+                input.value = currentLabel();
+            }
+
+            function renderPanel(term) {
+                panel.innerHTML = "";
+                visible = liveOptions().filter(function (item) {
+                    return term === "" || item.text.toLowerCase().indexOf(term) !== -1;
+                });
+                activeIndex = -1;
+
+                if (visible.length === 0) {
+                    var empty = document.createElement("div");
+                    empty.className = "app-combo-empty";
+                    empty.textContent = input.getAttribute("data-mv-select-empty") || T_noMatch();
+                    panel.appendChild(empty);
+                    return;
+                }
+
+                visible.forEach(function (item) {
+                    var row = document.createElement("button");
+                    row.type = "button";
+                    row.className = "app-combo-option";
+                    row.textContent = item.text;
+                    // mousedown (not click) commits the pick BEFORE the input's
+                    // own blur handler fires and closes the panel out from under it.
+                    row.addEventListener("mousedown", function (e) {
+                        e.preventDefault();
+                        pick(item);
+                    });
+                    panel.appendChild(row);
+                });
+            }
+
+            function T_noMatch() {
+                return (document.documentElement.getAttribute("lang") || "").toLowerCase().indexOf("ar") === 0
+                    ? "لا نتائج مطابقة"
+                    : "No matches";
+            }
+
+            function pick(item) {
+                select.value = item.value;
+                input.value = item.text;
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+                closePanel();
+            }
+
+            function openPanel() {
+                panel.hidden = false;
+                input.setAttribute("aria-expanded", "true");
+                renderPanel(input.value.trim().toLowerCase());
+            }
+
+            function closePanel() {
+                panel.hidden = true;
+                input.setAttribute("aria-expanded", "false");
+                syncInputToSelection();
+            }
+
+            function highlight(delta) {
+                if (visible.length === 0) { return; }
+                activeIndex = (activeIndex + delta + visible.length) % visible.length;
+                Array.prototype.forEach.call(panel.children, function (el, i) {
+                    el.classList.toggle("is-active", i === activeIndex);
+                });
+                var el = panel.children[activeIndex];
+                if (el && el.scrollIntoView) { el.scrollIntoView({ block: "nearest" }); }
+            }
+
+            input.addEventListener("focus", openPanel);
+            input.addEventListener("click", openPanel);
+            input.addEventListener("input", function () { openPanel(); });
+            input.addEventListener("blur", function () {
+                // Delayed so a mousedown pick on a panel option still lands first.
+                window.setTimeout(closePanel, 150);
             });
+            input.addEventListener("keydown", function (e) {
+                if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    if (panel.hidden) { openPanel(); } else { highlight(1); }
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    highlight(-1);
+                } else if (e.key === "Enter") {
+                    if (!panel.hidden) {
+                        e.preventDefault();
+                        var chosen = activeIndex >= 0 ? visible[activeIndex] : (visible.length === 1 ? visible[0] : null);
+                        if (chosen) { pick(chosen); }
+                    }
+                } else if (e.key === "Escape") {
+                    if (!panel.hidden) {
+                        e.preventDefault();
+                        closePanel();
+                    }
+                }
+            });
+
+            // The select can change from OUTSIDE this widget too (data-mv-
+            // options-of resetting it when its owner changes) — keep the
+            // input's text following it either way.
+            select.addEventListener("change", function () {
+                if (document.activeElement !== input) { syncInputToSelection(); }
+            });
+
+            syncInputToSelection();
         });
     }
 
@@ -299,6 +442,37 @@
         apply();
     }
 
+    // --- Open an authenticated file in a modal instead of a new tab --------
+    // <button data-mv-file-modal="#receiptModal" data-mv-file-url="/Files/...">
+    // sets the modal's <iframe data-mv-file-frame> and its "open in a new
+    // tab" link to that url, then lets Bootstrap's own data-bs-toggle handle
+    // showing it. The iframe is cleared on close so a second receipt never
+    // shows through a moment of the first one's cached frame, and nothing is
+    // fetched at all until a viewer actually opens one.
+    function wireFileModals() {
+        document.querySelectorAll("[data-mv-file-modal]").forEach(function (trigger) {
+            var modal = document.querySelector(trigger.getAttribute("data-mv-file-modal"));
+            if (!modal) { return; }
+
+            trigger.addEventListener("click", function () {
+                var url = trigger.getAttribute("data-mv-file-url");
+                var frame = modal.querySelector("[data-mv-file-frame]");
+                var openNew = modal.querySelector("[data-mv-file-open-new]");
+                if (frame) { frame.src = url; }
+                if (openNew) { openNew.href = url; }
+
+                if (window.bootstrap && window.bootstrap.Modal) {
+                    window.bootstrap.Modal.getOrCreateInstance(modal).show();
+                }
+            });
+
+            modal.addEventListener("hidden.bs.modal", function () {
+                var frame = modal.querySelector("[data-mv-file-frame]");
+                if (frame) { frame.src = "about:blank"; }
+            });
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         wireTableFilters();
         wireSelectFilters();
@@ -308,6 +482,7 @@
         wireEchoes();
         wireStepProgress();
         wireConfirmations();
+        wireFileModals();
         focusFirstInvalidField();
     });
 })();

@@ -816,6 +816,69 @@ label,
   max-width: 24rem;
 }
 
+/* A long <select> rebuilt into a searchable combobox by wireSelectFilters()
+   in site.js — the real <select> stays in the DOM (hidden, but still the
+   form control that actually submits) directly under the visible search
+   input, with the match panel floating below it. */
+.app-combo {
+  position: relative;
+}
+
+.app-combo-native {
+  position: absolute;
+  inset-inline-start: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-combo-input.app-combo-input {
+  margin-block-end: 0;
+}
+
+.app-combo-panel {
+  position: absolute;
+  z-index: 20;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  top: 100%;
+  margin-block-start: 0.25rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm);
+  box-shadow: var(--mv-shadow);
+  padding: 0.3rem;
+}
+
+.app-combo-option {
+  display: block;
+  width: 100%;
+  text-align: start;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--mv-text);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.app-combo-option:hover,
+.app-combo-option.is-active {
+  background: var(--mv-primary-soft);
+  color: var(--mv-primary-strong);
+}
+
+.app-combo-empty {
+  padding: 0.5rem 0.6rem;
+  color: var(--mv-muted);
+  font-size: 0.88rem;
+}
+
 /* A record's own reference (payment reference, certificate number). Internal
    database ids are not shown to users at all — this is for codes a person can
    actually quote back to the centre. */
@@ -828,6 +891,35 @@ label,
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+/* A "choose which child" list (placement test, package purchase) — used to
+   be a bare underlined <a> inside a list item. This makes the whole row the
+   click target, styled like a real choice rather than a text link. */
+.app-choice-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  color: var(--mv-text);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.app-choice-link:hover,
+.app-choice-link:focus-visible {
+  color: var(--mv-primary-strong);
+}
+
+.app-choice-arrow {
+  color: var(--mv-muted);
+  font-size: 1.1rem;
+}
+
+[dir="rtl"] .app-choice-arrow {
+  display: inline-block;
+  transform: scaleX(-1);
 }
 
 .app-empty {
@@ -1259,8 +1351,21 @@ a.app-kpi:hover {
   font-weight: 800;
 }
 
+.app-step-panel.is-done {
+  background: var(--mv-surface-muted);
+  box-shadow: none;
+}
+
 .app-step-panel.is-done .app-step-badge {
   background: var(--mv-success);
+}
+
+.app-step-panel.is-done > h2::after {
+  content: "\2713";
+  margin-inline-start: auto;
+  color: var(--mv-success);
+  font-size: 0.95rem;
+  font-weight: 800;
 }
 
 .app-step-panel.is-waiting {
