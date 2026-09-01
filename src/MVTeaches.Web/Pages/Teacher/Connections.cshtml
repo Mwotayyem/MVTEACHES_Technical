@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model MVTeaches.Web.Pages.Teacher.ConnectionsModel
 @using MVTeaches.Domain.Integrations
 @{
@@ -22,10 +22,14 @@ else
         <div class="alert alert-danger">@Model.ErrorMessage</div>
     }
 
-    <p class="text-muted">
-        @T["MVTeaches creates and manages every meeting through your own connected account — you never copy or paste a meeting link. The centre does not buy, provide, or reimburse video-meeting licences."]
-        <strong>@T["You do not need any paid subscription:"]</strong> @T["a normal free Google account is enough."]
-    </p>
+    <div class="app-guide">
+        <p class="app-guide-title">@T["Does every teacher have to connect an account?"]</p>
+        <p><strong>@T["Yes."]</strong> @T["Each teacher connects their own personal Zoom or Google account, and the centre has no shared account of its own. Your lessons are hosted under your account, so a lesson cannot be created for you until one is connected."]</p>
+        <p class="app-guide-title">@T["Is there an MVTeaches account we could all use instead?"]</p>
+        <p><strong>@T["No, and there will not be."]</strong> @T["The centre decided against one central account: it would stop two teachers from teaching at the same time, and it would put your meetings under somebody else's login."]</p>
+        <p class="app-guide-title">@T["Does this cost me anything?"]</p>
+        <p><strong>@T["No."]</strong> @T["A free Google account is enough. The centre does not buy, provide, or repay any video licence, and you are never asked for your Zoom or Google password — you sign in with them directly."]</p>
+    </div>
 
     @if (Model.NotReadyForOnlineSessions)
     {
