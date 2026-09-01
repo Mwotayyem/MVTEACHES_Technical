@@ -134,8 +134,11 @@ public class SchedulesModel : PageModel
         [Required, Range(1, 480)] public int DurationMinutes { get; set; } = 60;
         [Required(ErrorMessage = "Choose a time zone.")] public string TimeZoneId { get; set; } = string.Empty;
         [Required(ErrorMessage = "Enter the start date.")] public DateOnly? StartsOn { get; set; }
-        [Required, Range(1, 10)] public int Capacity { get; set; } = 4;
     }
+
+    /// <summary>The fixed seat count a weekly group session gets (D-98) —
+    /// read from the domain so the screen can never state a different one.</summary>
+    public int GroupCapacity => MVTeaches.Domain.Scheduling.ClassSession.CapacityFor(SessionType.Group);
 
     public async Task OnGetAsync() => await LoadAsync();
 
@@ -157,9 +160,17 @@ public class SchedulesModel : PageModel
         try
         {
             var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+            // Owner decision D-98: a group session seats exactly four, and
+            // "no seat count entered from the interface or the request body is
+            // accepted". The form used to offer a 1-10 box whose value was then
+            // ignored anyway — ScheduleGenerationService derives every session's
+            // capacity from its type, never from the schedule's stored number —
+            // so the admin could type 7 and silently get 4. The field is gone and
+            // the stored value is now the same one the sessions really get.
+            var groupCapacity = MVTeaches.Domain.Scheduling.ClassSession.CapacityFor(SessionType.Group);
             await _schedules.CreateAsync(NewSchedule.CountryId!.Value, NewSchedule.CourseId!.Value, NewSchedule.LevelId!.Value,
                 NewSchedule.AgeGroupId!.Value, NewSchedule.TeacherId!.Value, days, startLocal, NewSchedule.DurationMinutes,
-                NewSchedule.TimeZoneId, startsOn, NewSchedule.Capacity, actingUserId, HttpContext.RequestAborted);
+                NewSchedule.TimeZoneId, startsOn, groupCapacity, actingUserId, HttpContext.RequestAborted);
             StatusMessage = _localizer["Recurring schedule created — it will start producing sessions on the next nightly generation run (or an admin's manual \"Trigger now\" on /hangfire)."].Value;
         }
         catch (ArgumentException ex)
