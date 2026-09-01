@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -68,13 +68,13 @@ public class PayrollModel : PageModel
         // non-nullable value types, an empty form posted CountryId 0 and a
         // period running 0001-01-01 → 0001-01-01, which is exactly the
         // "01/01/0001" an admin was seeing in the period list.
-        [Required]
+        [Required(ErrorMessage = "Choose a country.")]
         public int? CountryId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Enter the start date.")]
         public DateOnly? Start { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Enter the end date.")]
         public DateOnly? End { get; set; }
     }
 

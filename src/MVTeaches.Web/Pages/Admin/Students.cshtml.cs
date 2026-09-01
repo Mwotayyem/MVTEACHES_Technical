@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -83,25 +83,25 @@ public class StudentsModel : PageModel
 
     public class RegisterGuardianInput
     {
-        [Required, EmailAddress]
+        [Required(ErrorMessage = "Enter an email address."), EmailAddress(ErrorMessage = "This is not a valid email address.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required, MinLength(8)]
+        [Required(ErrorMessage = "Enter a temporary password."), MinLength(8, ErrorMessage = "The password must be at least 8 characters.")]
         public string Password { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Enter the full name.")]
         public string FullName { get; set; } = string.Empty;
     }
 
     public class RegisterStudentInput
     {
-        [Required]
+        [Required(ErrorMessage = "Choose a country.")]
         public int? CountryId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Enter the full name.")]
         public string FullName { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Enter the date of birth.")]
         public DateOnly? DateOfBirth { get; set; }
 
         [EmailAddress]
@@ -113,10 +113,10 @@ public class StudentsModel : PageModel
 
     public class LinkGuardianInput
     {
-        [Required]
+        [Required(ErrorMessage = "Choose a guardian.")]
         public long? GuardianId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Choose a student.")]
         public long? StudentId { get; set; }
 
         [Required]
@@ -127,13 +127,13 @@ public class StudentsModel : PageModel
 
     public class AssignLevelInput
     {
-        [Required]
+        [Required(ErrorMessage = "Choose a student.")]
         public long? StudentId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Choose a level.")]
         public int? LevelId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Write the reason for this decision.")]
         public string Reason { get; set; } = string.Empty;
     }
 

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -94,7 +94,7 @@ public class PaymentsModel : PageModel
         // on a non-nullable long an untouched <select> posts "", the binding
         // error is wiped by ModelState.Clear() below, and [Required] then
         // passes on the defaulted 0. Same fix as Teacher/PublishSlots.cshtml.cs.
-        [Required]
+        [Required(ErrorMessage = "Choose a student.")]
         public long? StudentId { get; set; }
 
         /// <summary>Optional — ties this payment to a Draft subscription so
@@ -103,10 +103,10 @@ public class PaymentsModel : PageModel
         /// blank for a generic payment with no subscription attached.</summary>
         public long? SubscriptionId { get; set; }
 
-        [Required, Range(0.001, double.MaxValue)]
+        [Required(ErrorMessage = "Enter the amount."), Range(0.001, double.MaxValue, ErrorMessage = "The amount must be greater than zero.")]
         public decimal Amount { get; set; }
 
-        [Required, StringLength(3, MinimumLength = 3)]
+        [Required(ErrorMessage = "Choose a currency."), StringLength(3, MinimumLength = 3)]
         public string Currency { get; set; } = string.Empty;
 
         [Required]

@@ -78,11 +78,11 @@ public class FinancialReportModel : PageModel
     {
         // Nullable so [Required] actually fires — a non-nullable int/DateOnly
         // silently passes validation as 0 / 0001-01-01.
-        [Required] public int? CountryId { get; set; }
-        [Required] public string Category { get; set; } = string.Empty;
-        [Required, Range(0.001, double.MaxValue)] public decimal Amount { get; set; }
-        [Required, StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
-        [Required] public DateOnly? IncurredOn { get; set; }
+        [Required(ErrorMessage = "Choose a country.")] public int? CountryId { get; set; }
+        [Required(ErrorMessage = "Enter a category, for example Rent or Marketing.")] public string Category { get; set; } = string.Empty;
+        [Required, Range(0.001, double.MaxValue, ErrorMessage = "Enter the amount.")] public decimal Amount { get; set; }
+        [Required(ErrorMessage = "Choose a currency."), StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Enter the date the expense was incurred.")] public DateOnly? IncurredOn { get; set; }
         public string? Note { get; set; }
     }
 

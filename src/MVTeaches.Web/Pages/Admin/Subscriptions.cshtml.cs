@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -96,35 +96,35 @@ public class SubscriptionsModel : PageModel
     // with student id 0. Same fix already documented in Teacher/PublishSlots.
     public class CreatePlanInput
     {
-        [Required] public int? CountryId { get; set; }
-        [Required] public long? CourseId { get; set; }
+        [Required(ErrorMessage = "Choose a country.")] public int? CountryId { get; set; }
+        [Required(ErrorMessage = "Choose a course.")] public long? CourseId { get; set; }
         public int? LevelId { get; set; }
         [Required] public SessionType SessionType { get; set; }
-        [Required, Range(1, int.MaxValue)] public int SessionsCount { get; set; }
-        [Required, Range(1, int.MaxValue)] public int MinutesTotal { get; set; }
-        [Required, Range(0, double.MaxValue)] public decimal Amount { get; set; }
-        [Required, StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
-        [Required, Range(1, int.MaxValue)] public int ValidityDays { get; set; }
+        [Required, Range(1, int.MaxValue, ErrorMessage = "Enter how many sessions the package includes.")] public int SessionsCount { get; set; }
+        [Required, Range(1, int.MaxValue, ErrorMessage = "Enter the total minutes the package includes.")] public int MinutesTotal { get; set; }
+        [Required, Range(0, double.MaxValue, ErrorMessage = "Enter the price.")] public decimal Amount { get; set; }
+        [Required(ErrorMessage = "Choose a currency."), StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
+        [Required, Range(1, int.MaxValue, ErrorMessage = "Enter how many days the package stays valid.")] public int ValidityDays { get; set; }
     }
 
     public class PurchaseInput
     {
-        [Required] public long? StudentId { get; set; }
-        [Required] public long? PricingPlanId { get; set; }
+        [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
+        [Required(ErrorMessage = "Choose a pricing plan.")] public long? PricingPlanId { get; set; }
         [Required] public SubscriptionOrigin Origin { get; set; } = SubscriptionOrigin.GuardianPurchase;
     }
 
     public class GrantInput
     {
-        [Required] public long? StudentId { get; set; }
-        [Required] public int? CountryId { get; set; }
-        [Required] public long? CourseId { get; set; }
-        [Required] public int? LevelId { get; set; }
+        [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
+        [Required(ErrorMessage = "Choose a country.")] public int? CountryId { get; set; }
+        [Required(ErrorMessage = "Choose a course.")] public long? CourseId { get; set; }
+        [Required(ErrorMessage = "Choose a level.")] public int? LevelId { get; set; }
         [Required] public SessionType SessionType { get; set; }
         [Required, Range(1, int.MaxValue)] public int SessionsCount { get; set; }
         [Required, Range(1, int.MaxValue)] public int MinutesTotal { get; set; }
         [Required, Range(1, int.MaxValue)] public int ValidityDays { get; set; }
-        [Required] public string Reason { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Write the reason for this decision.")] public string Reason { get; set; } = string.Empty;
     }
 
     public async Task OnGetAsync() => await LoadAsync();

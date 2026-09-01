@@ -967,4 +967,38 @@
   <data name="Question {0} of {1}" xml:space="preserve"><value>السؤال {0} من {1}</value></data>
   <data name="Revoke this certificate?" xml:space="preserve"><value>سحب هذه الشهادة؟</value></data>
   <data name="Three-letter codes separated by commas, e.g. JOD, USD." xml:space="preserve"><value>رموز من ثلاثة أحرف تفصل بينها فواصل، مثل: JOD, USD.</value></data>
+  <data name="Enter an email address." xml:space="preserve"><value>أدخل بريدًا إلكترونيًا.</value></data>
+  <data name="This is not a valid email address." xml:space="preserve"><value>هذا ليس بريدًا إلكترونيًا صالحًا.</value></data>
+  <data name="Enter a temporary password." xml:space="preserve"><value>أدخل كلمة مرور مؤقتة.</value></data>
+  <data name="The password must be at least 8 characters." xml:space="preserve"><value>كلمة المرور يجب ألا تقل عن 8 أحرف.</value></data>
+  <data name="Enter the full name." xml:space="preserve"><value>أدخل الاسم الكامل.</value></data>
+  <data name="Enter the date of birth." xml:space="preserve"><value>أدخل تاريخ الميلاد.</value></data>
+  <data name="Choose a country." xml:space="preserve"><value>اختر الدولة.</value></data>
+  <data name="Choose a guardian." xml:space="preserve"><value>اختر وليّ الأمر.</value></data>
+  <data name="Choose a student." xml:space="preserve"><value>اختر الطالب.</value></data>
+  <data name="Choose a level." xml:space="preserve"><value>اختر المستوى.</value></data>
+  <data name="Choose a course." xml:space="preserve"><value>اختر الدورة.</value></data>
+  <data name="Choose a teacher." xml:space="preserve"><value>اختر المعلّم.</value></data>
+  <data name="Choose a session." xml:space="preserve"><value>اختر الحصة.</value></data>
+  <data name="Choose a schedule." xml:space="preserve"><value>اختر الجدول.</value></data>
+  <data name="Choose an age group." xml:space="preserve"><value>اختر الفئة العمرية.</value></data>
+  <data name="Choose a currency." xml:space="preserve"><value>اختر العملة.</value></data>
+  <data name="Choose a pricing plan." xml:space="preserve"><value>اختر خطة الأسعار.</value></data>
+  <data name="Choose a time zone." xml:space="preserve"><value>اختر المنطقة الزمنية.</value></data>
+  <data name="Choose the original session." xml:space="preserve"><value>اختر الحصة الأصلية.</value></data>
+  <data name="Choose the replacement session." xml:space="preserve"><value>اختر الحصة البديلة.</value></data>
+  <data name="Write the reason for this decision." xml:space="preserve"><value>اكتب سبب هذا القرار.</value></data>
+  <data name="Enter the amount." xml:space="preserve"><value>أدخل المبلغ.</value></data>
+  <data name="The amount must be greater than zero." xml:space="preserve"><value>يجب أن يكون المبلغ أكبر من صفر.</value></data>
+  <data name="Enter the price." xml:space="preserve"><value>أدخل السعر.</value></data>
+  <data name="Enter the rate amount." xml:space="preserve"><value>أدخل قيمة الأجر.</value></data>
+  <data name="Enter how many sessions the package includes." xml:space="preserve"><value>أدخل عدد الحصص التي تشملها الباقة.</value></data>
+  <data name="Enter the total minutes the package includes." xml:space="preserve"><value>أدخل مجموع الدقائق التي تشملها الباقة.</value></data>
+  <data name="Enter how many days the package stays valid." xml:space="preserve"><value>أدخل عدد الأيام التي تبقى فيها الباقة صالحة.</value></data>
+  <data name="Enter the start date." xml:space="preserve"><value>أدخل تاريخ البداية.</value></data>
+  <data name="Enter the end date." xml:space="preserve"><value>أدخل تاريخ النهاية.</value></data>
+  <data name="Enter the start time." xml:space="preserve"><value>أدخل وقت البداية.</value></data>
+  <data name="Enter the date this rate starts." xml:space="preserve"><value>أدخل تاريخ بدء سريان هذا الأجر.</value></data>
+  <data name="Enter the date the expense was incurred." xml:space="preserve"><value>أدخل تاريخ صرف المصروف.</value></data>
+  <data name="Enter a category, for example Rent or Marketing." xml:space="preserve"><value>أدخل التصنيف، مثل: إيجار أو تسويق.</value></data>
 </root>

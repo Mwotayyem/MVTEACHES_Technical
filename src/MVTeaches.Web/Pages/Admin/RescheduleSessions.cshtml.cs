@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -74,16 +74,16 @@ public class RescheduleSessionsModel : PageModel
     // binding error, and the service is called with session id 0.
     public class RescheduleInput
     {
-        [Required] public long? StudentId { get; set; }
-        [Required] public long? OriginalSessionId { get; set; }
-        [Required] public long? ReplacementSessionId { get; set; }
+        [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
+        [Required(ErrorMessage = "Choose the original session.")] public long? OriginalSessionId { get; set; }
+        [Required(ErrorMessage = "Choose the replacement session.")] public long? ReplacementSessionId { get; set; }
     }
 
     public class ApproveInput
     {
-        [Required] public long? StudentId { get; set; }
-        [Required] public long? OriginalSessionId { get; set; }
-        [Required] public long? ReplacementSessionId { get; set; }
+        [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
+        [Required(ErrorMessage = "Choose the original session.")] public long? OriginalSessionId { get; set; }
+        [Required(ErrorMessage = "Choose the replacement session.")] public long? ReplacementSessionId { get; set; }
     }
 
     public async Task OnGetAsync() => await LoadAsync();

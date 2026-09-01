@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -96,28 +96,28 @@ public class TeachersModel : PageModel
     // 0001-01-01 and passes validation silently.
     public class LevelGrantInput
     {
-        [Required] public long? TeacherId { get; set; }
-        [Required] public int? LevelId { get; set; }
+        [Required(ErrorMessage = "Choose a teacher.")] public long? TeacherId { get; set; }
+        [Required(ErrorMessage = "Choose a level.")] public int? LevelId { get; set; }
     }
 
     public class RegisterTeacherInput
     {
-        [Required, EmailAddress]
+        [Required(ErrorMessage = "Enter an email address."), EmailAddress(ErrorMessage = "This is not a valid email address.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required, MinLength(8)]
+        [Required(ErrorMessage = "Enter a temporary password."), MinLength(8, ErrorMessage = "The password must be at least 8 characters.")]
         public string Password { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Enter the full name.")]
         public string FullName { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Choose a time zone.")]
         public string TimeZoneId { get; set; } = string.Empty;
     }
 
     public class CreateRateInput
     {
-        [Required] public long? TeacherId { get; set; }
+        [Required(ErrorMessage = "Choose a teacher.")] public long? TeacherId { get; set; }
 
         /// <summary>§9.2's most-specific-wins rule: blank means "applies to
         /// every course/level/age-group" at that dimension.</summary>
@@ -125,10 +125,10 @@ public class TeachersModel : PageModel
         public int? LevelId { get; set; }
         public int? AgeGroupId { get; set; }
 
-        [Required, Range(0, double.MaxValue)] public decimal Amount { get; set; }
-        [Required, StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
+        [Required, Range(0, double.MaxValue, ErrorMessage = "Enter the rate amount.")] public decimal Amount { get; set; }
+        [Required(ErrorMessage = "Choose a currency."), StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
         [Required] public RateUnit Unit { get; set; }
-        [Required] public DateOnly? EffectiveFrom { get; set; }
+        [Required(ErrorMessage = "Enter the date this rate starts.")] public DateOnly? EffectiveFrom { get; set; }
     }
 
     public async Task OnGetAsync() => await LoadAsync();

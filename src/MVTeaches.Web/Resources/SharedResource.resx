@@ -967,4 +967,38 @@
   <data name="Question {0} of {1}" xml:space="preserve"><value>Question {0} of {1}</value></data>
   <data name="Revoke this certificate?" xml:space="preserve"><value>Revoke this certificate?</value></data>
   <data name="Three-letter codes separated by commas, e.g. JOD, USD." xml:space="preserve"><value>Three-letter codes separated by commas, e.g. JOD, USD.</value></data>
+  <data name="Enter an email address." xml:space="preserve"><value>Enter an email address.</value></data>
+  <data name="This is not a valid email address." xml:space="preserve"><value>This is not a valid email address.</value></data>
+  <data name="Enter a temporary password." xml:space="preserve"><value>Enter a temporary password.</value></data>
+  <data name="The password must be at least 8 characters." xml:space="preserve"><value>The password must be at least 8 characters.</value></data>
+  <data name="Enter the full name." xml:space="preserve"><value>Enter the full name.</value></data>
+  <data name="Enter the date of birth." xml:space="preserve"><value>Enter the date of birth.</value></data>
+  <data name="Choose a country." xml:space="preserve"><value>Choose a country.</value></data>
+  <data name="Choose a guardian." xml:space="preserve"><value>Choose a guardian.</value></data>
+  <data name="Choose a student." xml:space="preserve"><value>Choose a student.</value></data>
+  <data name="Choose a level." xml:space="preserve"><value>Choose a level.</value></data>
+  <data name="Choose a course." xml:space="preserve"><value>Choose a course.</value></data>
+  <data name="Choose a teacher." xml:space="preserve"><value>Choose a teacher.</value></data>
+  <data name="Choose a session." xml:space="preserve"><value>Choose a session.</value></data>
+  <data name="Choose a schedule." xml:space="preserve"><value>Choose a schedule.</value></data>
+  <data name="Choose an age group." xml:space="preserve"><value>Choose an age group.</value></data>
+  <data name="Choose a currency." xml:space="preserve"><value>Choose a currency.</value></data>
+  <data name="Choose a pricing plan." xml:space="preserve"><value>Choose a pricing plan.</value></data>
+  <data name="Choose a time zone." xml:space="preserve"><value>Choose a time zone.</value></data>
+  <data name="Choose the original session." xml:space="preserve"><value>Choose the original session.</value></data>
+  <data name="Choose the replacement session." xml:space="preserve"><value>Choose the replacement session.</value></data>
+  <data name="Write the reason for this decision." xml:space="preserve"><value>Write the reason for this decision.</value></data>
+  <data name="Enter the amount." xml:space="preserve"><value>Enter the amount.</value></data>
+  <data name="The amount must be greater than zero." xml:space="preserve"><value>The amount must be greater than zero.</value></data>
+  <data name="Enter the price." xml:space="preserve"><value>Enter the price.</value></data>
+  <data name="Enter the rate amount." xml:space="preserve"><value>Enter the rate amount.</value></data>
+  <data name="Enter how many sessions the package includes." xml:space="preserve"><value>Enter how many sessions the package includes.</value></data>
+  <data name="Enter the total minutes the package includes." xml:space="preserve"><value>Enter the total minutes the package includes.</value></data>
+  <data name="Enter how many days the package stays valid." xml:space="preserve"><value>Enter how many days the package stays valid.</value></data>
+  <data name="Enter the start date." xml:space="preserve"><value>Enter the start date.</value></data>
+  <data name="Enter the end date." xml:space="preserve"><value>Enter the end date.</value></data>
+  <data name="Enter the start time." xml:space="preserve"><value>Enter the start time.</value></data>
+  <data name="Enter the date this rate starts." xml:space="preserve"><value>Enter the date this rate starts.</value></data>
+  <data name="Enter the date the expense was incurred." xml:space="preserve"><value>Enter the date the expense was incurred.</value></data>
+  <data name="Enter a category, for example Rent or Marketing." xml:space="preserve"><value>Enter a category, for example Rent or Marketing.</value></data>
 </root>

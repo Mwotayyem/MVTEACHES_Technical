@@ -101,39 +101,39 @@ public class SchedulesModel : PageModel
     // is called with an id nobody chose.
     public class ReassignInput
     {
-        [Required] public long? SessionId { get; set; }
-        [Required] public long? NewTeacherId { get; set; }
+        [Required(ErrorMessage = "Choose a session.")] public long? SessionId { get; set; }
+        [Required(ErrorMessage = "Choose a teacher.")] public long? NewTeacherId { get; set; }
     }
 
     public class EnrollInput
     {
-        [Required] public long? RecurringScheduleId { get; set; }
-        [Required] public long? StudentId { get; set; }
+        [Required(ErrorMessage = "Choose a schedule.")] public long? RecurringScheduleId { get; set; }
+        [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
     }
 
     public class CancelInput
     {
-        [Required] public long? SessionId { get; set; }
-        [Required] public string Reason { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Choose a session.")] public long? SessionId { get; set; }
+        [Required(ErrorMessage = "Write the reason for this decision.")] public string Reason { get; set; } = string.Empty;
         public long? ReplacementSessionId { get; set; }
     }
 
     public class CreateScheduleInput
     {
-        [Required] public int? CountryId { get; set; }
-        [Required] public long? CourseId { get; set; }
-        [Required] public int? LevelId { get; set; }
-        [Required] public int? AgeGroupId { get; set; }
-        [Required] public long? TeacherId { get; set; }
+        [Required(ErrorMessage = "Choose a country.")] public int? CountryId { get; set; }
+        [Required(ErrorMessage = "Choose a course.")] public long? CourseId { get; set; }
+        [Required(ErrorMessage = "Choose a level.")] public int? LevelId { get; set; }
+        [Required(ErrorMessage = "Choose an age group.")] public int? AgeGroupId { get; set; }
+        [Required(ErrorMessage = "Choose a teacher.")] public long? TeacherId { get; set; }
 
         /// <summary>ISO day numbers (1=Monday..7=Sunday) — bound from a set of checkboxes.</summary>
         [Required, MinLength(1)]
         public List<int> DaysOfWeek { get; set; } = new();
 
-        [Required] public TimeOnly? StartLocal { get; set; }
+        [Required(ErrorMessage = "Enter the start time.")] public TimeOnly? StartLocal { get; set; }
         [Required, Range(1, 480)] public int DurationMinutes { get; set; } = 60;
-        [Required] public string TimeZoneId { get; set; } = string.Empty;
-        [Required] public DateOnly? StartsOn { get; set; }
+        [Required(ErrorMessage = "Choose a time zone.")] public string TimeZoneId { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Enter the start date.")] public DateOnly? StartsOn { get; set; }
         [Required, Range(1, 10)] public int Capacity { get; set; } = 4;
     }
 
