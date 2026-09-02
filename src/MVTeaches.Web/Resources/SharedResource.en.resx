@@ -2211,4 +2211,34 @@
   <data name="The amount received is larger than the amount this payment was recorded for. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again, or reject this one and record the real amount instead." xml:space="preserve">
     <value>The amount received is larger than the amount this payment was recorded for. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again, or reject this one and record the real amount instead.</value>
   </data>
+  <data name="Change password" xml:space="preserve">
+    <value>Change password</value>
+  </data>
+  <data name="Changing your password does not sign you out — you'll stay in your account." xml:space="preserve">
+    <value>Changing your password does not sign you out — you'll stay in your account.</value>
+  </data>
+  <data name="Current password" xml:space="preserve">
+    <value>Current password</value>
+  </data>
+  <data name="New password" xml:space="preserve">
+    <value>New password</value>
+  </data>
+  <data name="Confirm new password" xml:space="preserve">
+    <value>Confirm new password</value>
+  </data>
+  <data name="Enter your current password." xml:space="preserve">
+    <value>Enter your current password.</value>
+  </data>
+  <data name="Enter a new password." xml:space="preserve">
+    <value>Enter a new password.</value>
+  </data>
+  <data name="Confirm the new password." xml:space="preserve">
+    <value>Confirm the new password.</value>
+  </data>
+  <data name="The new password and its confirmation do not match." xml:space="preserve">
+    <value>The new password and its confirmation do not match.</value>
+  </data>
+  <data name="Your password has been changed." xml:space="preserve">
+    <value>Your password has been changed.</value>
+  </data>
 </root>

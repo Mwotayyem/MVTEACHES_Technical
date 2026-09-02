@@ -2211,4 +2211,34 @@
   <data name="The amount received is larger than the amount this payment was recorded for. The most that can be confirmed here is {0}. Nothing was recorded — correct the figure and confirm again, or reject this one and record the real amount instead." xml:space="preserve">
     <value>المبلغ المستلم أكبر من المبلغ الذي سُجّلت به هذه الدفعة. أقصى ما يمكن تأكيده هنا هو {0}. لم يُسجَّل أي شيء — صحّح الرقم وأكّد مرة أخرى، أو ارفض هذه الدفعة وسجّل المبلغ الحقيقي بدلاً منها.</value>
   </data>
+  <data name="Change password" xml:space="preserve">
+    <value>تغيير كلمة المرور</value>
+  </data>
+  <data name="Changing your password does not sign you out — you'll stay in your account." xml:space="preserve">
+    <value>تغيير كلمة المرور لن يسجّل خروجك — ستبقى داخل حسابك.</value>
+  </data>
+  <data name="Current password" xml:space="preserve">
+    <value>كلمة المرور الحالية</value>
+  </data>
+  <data name="New password" xml:space="preserve">
+    <value>كلمة المرور الجديدة</value>
+  </data>
+  <data name="Confirm new password" xml:space="preserve">
+    <value>تأكيد كلمة المرور الجديدة</value>
+  </data>
+  <data name="Enter your current password." xml:space="preserve">
+    <value>أدخل كلمة المرور الحالية.</value>
+  </data>
+  <data name="Enter a new password." xml:space="preserve">
+    <value>أدخل كلمة مرور جديدة.</value>
+  </data>
+  <data name="Confirm the new password." xml:space="preserve">
+    <value>أكّد كلمة المرور الجديدة.</value>
+  </data>
+  <data name="The new password and its confirmation do not match." xml:space="preserve">
+    <value>كلمة المرور الجديدة وتأكيدها غير متطابقين.</value>
+  </data>
+  <data name="Your password has been changed." xml:space="preserve">
+    <value>تم تغيير كلمة مرورك.</value>
+  </data>
 </root>

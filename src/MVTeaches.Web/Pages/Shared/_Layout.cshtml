@@ -99,6 +99,7 @@
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     @await Component.InvokeAsync("CurrentUserName")
+                    <a class="btn btn-outline-secondary btn-sm" asp-page="/Account/ChangePassword">@T["Change password"]</a>
                     <form method="post" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Content("~/")">
                         <button type="submit" class="btn btn-outline-secondary btn-sm">@T["Sign out"]</button>
                     </form>
