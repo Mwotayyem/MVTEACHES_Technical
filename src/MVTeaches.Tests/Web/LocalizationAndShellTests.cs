@@ -117,13 +117,17 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         var body = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("خطط الأسعار والاشتراكات", body);
-        Assert.Contains("إنشاء خطة أسعار", body);
-        Assert.Contains("شراء اشتراك من خطة", body);
+        // Page copy was reworded after this test was written ("Pricing plans
+        // and subscriptions" -> "Packages and subscriptions", etc.) — the
+        // strings below match the current screen; the resx translations
+        // themselves were already correct and unchanged.
+        Assert.Contains("الباقات والاشتراكات", body);
+        Assert.Contains("نشر سعر باقة جديد", body);
+        Assert.Contains("منح طالبًا باقة مدفوعة", body);
         Assert.Contains("نوع الحصة", body);
         Assert.Contains("جماعية", body);
-        Assert.DoesNotContain("Create a pricing plan", body);
-        Assert.DoesNotContain("Purchase a subscription from a plan", body);
+        Assert.DoesNotContain("Publish a new package price", body);
+        Assert.DoesNotContain("Give a student a package they paid for", body);
         Assert.DoesNotContain("Session type", body);
     }
 
@@ -260,16 +264,20 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
     {
         var client = await CreateAuthenticatedClientAsync(AdminEmail);
 
+        // The register's header was shortened to plain "Students" and the
+        // stand-alone guardian/student registration cards were reworded to
+        // "... only" (the everyday path is now "Register a family step by
+        // step" further up) — the strings below match the current screen.
         var arabicBody = WebUtility.HtmlDecode(await client.GetStringAsync("/Admin/Students?culture=ar-JO"));
-        Assert.Contains("الطلاب وأولياء الأمور", arabicBody);
-        Assert.Contains("تسجيل ولي أمر", arabicBody);
-        Assert.Contains("تسجيل طالب", arabicBody);
-        Assert.DoesNotContain("Register a guardian", arabicBody);
+        Assert.Contains("كل طالب يعرفه المركز", arabicBody);
+        Assert.Contains("تسجيل وليّ أمر فقط", arabicBody);
+        Assert.Contains("تسجيل طالب فقط", arabicBody);
+        Assert.DoesNotContain("Register a guardian only", arabicBody);
 
         var englishBody = await client.GetStringAsync("/Admin/Students?culture=en");
-        Assert.Contains("Students &amp; guardians", englishBody);
-        Assert.Contains("Register a guardian", englishBody);
-        Assert.DoesNotContain("تسجيل ولي أمر", englishBody);
+        Assert.Contains("Every student the centre knows about", englishBody);
+        Assert.Contains("Register a guardian only", englishBody);
+        Assert.DoesNotContain("تسجيل وليّ أمر فقط", englishBody);
     }
 
     [Fact]
@@ -277,14 +285,17 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
     {
         var client = await CreateAuthenticatedClientAsync(AdminEmail);
 
+        // "Set a pay rate" was reworded to the question-style heading "How
+        // much is this teacher paid?" — the string below matches the
+        // current screen; the resx translation was already correct.
         var arabicBody = WebUtility.HtmlDecode(await client.GetStringAsync("/Admin/Teachers?culture=ar-JO"));
         Assert.Contains("تسجيل معلم", arabicBody);
-        Assert.Contains("تحديد معدّل الأجر", arabicBody);
+        Assert.Contains("كم يتقاضى هذا المعلم؟", arabicBody);
         Assert.DoesNotContain("Register a teacher", arabicBody);
 
         var englishBody = await client.GetStringAsync("/Admin/Teachers?culture=en");
         Assert.Contains("Register a teacher", englishBody);
-        Assert.Contains("Set a pay rate", englishBody);
+        Assert.Contains("How much is this teacher paid?", englishBody);
         Assert.DoesNotContain("تسجيل معلم", englishBody);
     }
 
@@ -293,16 +304,19 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
     {
         var client = await CreateAuthenticatedClientAsync(AdminEmail);
 
+        // "Recurring schedules" / "Create a recurring schedule" were
+        // reworded to "Weekly schedules" / "Create a weekly class" — the
+        // strings below match the current screen.
         var arabicBody = WebUtility.HtmlDecode(await client.GetStringAsync("/Admin/Schedules?culture=ar-JO"));
-        Assert.Contains("الجداول المتكررة", arabicBody);
-        Assert.Contains("إنشاء جدول متكرر", arabicBody);
+        Assert.Contains("الجداول الأسبوعية", arabicBody);
+        Assert.Contains("إنشاء صف أسبوعي", arabicBody);
         Assert.Contains("تسجيل طالب", arabicBody);
-        Assert.DoesNotContain("Recurring schedules", arabicBody);
+        Assert.DoesNotContain("Weekly schedules", arabicBody);
 
         var englishBody = await client.GetStringAsync("/Admin/Schedules?culture=en");
-        Assert.Contains("Recurring schedules", englishBody);
-        Assert.Contains("Create a recurring schedule", englishBody);
-        Assert.DoesNotContain("الجداول المتكررة", englishBody);
+        Assert.Contains("Weekly schedules", englishBody);
+        Assert.Contains("Create a weekly class", englishBody);
+        Assert.DoesNotContain("الجداول الأسبوعية", englishBody);
     }
 
     /// <summary>Also proves a server-generated POST message (not just a GET
@@ -315,8 +329,11 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
 
         var rawArabicBody = await client.GetStringAsync("/Admin/PlacementTests?culture=ar-JO");
         var arabicBody = WebUtility.HtmlDecode(rawArabicBody);
+        // "Create a new draft version" was reworded to "Start a new draft
+        // test" / button "Create draft" — the strings below match the
+        // current screen.
         Assert.Contains("اختبارات تحديد المستوى", arabicBody);
-        Assert.Contains("إنشاء نسخة مسودة جديدة", arabicBody);
+        Assert.Contains("ابدأ مسودة اختبار جديدة", arabicBody);
         Assert.DoesNotContain("Placement Tests", arabicBody);
 
         var token = AntiforgeryTokenPattern.Match(rawArabicBody).Groups[1].Value;
@@ -328,11 +345,13 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         }));
         var postBody = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("تم إنشاء النسخة المسودة رقم", postBody);
+        // Current message key is "Draft version #{0} created." — its resx
+        // translation ("تم إنشاء المسودة...") rather than the old wording.
+        Assert.Contains("تم إنشاء المسودة", postBody);
 
         var englishBody = await client.GetStringAsync("/Admin/PlacementTests?culture=en");
         Assert.Contains("Placement Tests", englishBody);
-        Assert.Contains("Create a new draft version", englishBody);
+        Assert.Contains("Start a new draft test", englishBody);
     }
 
     /// <summary>Owner instruction (deeper pass, follow-up to Part 2): proves

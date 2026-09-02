@@ -133,7 +133,7 @@ public static class DisplayFormat
     {
         var code = string.IsNullOrWhiteSpace(currency) ? string.Empty : currency.Trim().ToUpperInvariant();
         var decimals = ThreeDecimalCurrencies.Contains(code) ? 3 : 2;
-        var formatted = amount.ToString("N" + decimals, Culture);
+        var formatted = amount.ToString("N" + decimals, MoneyCulture);
         return code.Length == 0 ? formatted : $"{formatted} {code}";
     }
 
@@ -162,6 +162,19 @@ public static class DisplayFormat
     }
 
     private static CultureInfo Culture => CultureInfo.CurrentUICulture;
+
+    /// <summary>A real, reported bug (2026-09-02): under CurrentUICulture
+    /// "ar-JO", decimal.ToString("N2"/"N3") renders Eastern Arabic-Indic
+    /// digits and Arabic-style separators (e.g. "١٢.٣٤" or "١٬٢٣٤٫٥٦٧")
+    /// instead of the ASCII figure an admin needs to compare against a
+    /// receipt or a bank transfer. Program.cs already pins
+    /// CultureInfo.CurrentCulture to en-US on every request for exactly this
+    /// class of problem (see its "Owner decision 2026-08-30" comment on the
+    /// bilingual amount/date split) — Money just wasn't using it. Dates keep
+    /// using CurrentUICulture above because "dddd" needs the reader's own
+    /// language for weekday names; money has no such need and must always be
+    /// unambiguous, so it is pinned separately here.</summary>
+    private static CultureInfo MoneyCulture => CultureInfo.CurrentCulture;
 
     private static bool IsUnset(LocalDate date) => date.Year <= 1;
 
