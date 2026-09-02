@@ -54,19 +54,28 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         await EnsureUserAsync(userManager, GuardianEmail, RoleNames.Guardian);
         await EnsureUserAsync(userManager, StudentEmail, RoleNames.Student);
 
-        // Security review 2026-09-02 (Stage 1 admin permissions): this file's
-        // AdminEmail account exercises the FULL Subscriptions and Payments
-        // screens (localization text on every form, plus recording a
-        // payment) — it represents "an ordinary admin using the page", not a
-        // permission-restriction scenario (that is ChangePasswordTests'
-        // sibling, AdminPermissionsTests), so it gets full Stage 1 access to
-        // those two screens rather than View-only. Idempotent, same
-        // reasoning as AuthorizationTests' own copy of this fix.
+        // Security review 2026-09-02/2026-09-03 (Stage 1 + Stage 2 admin
+        // permissions): this file's AdminEmail account exercises the FULL
+        // Subscriptions, Payments, and Students screens (localization text on
+        // every form, plus recording a payment) — it represents "an ordinary
+        // admin using the page", not a permission-restriction scenario (that
+        // is ChangePasswordTests' sibling, AdminPermissionTests), so it gets
+        // full access to those screens rather than View-only — in
+        // particular Students.Manage, since Admin_students_page_renders_...
+        // asserts on the "Register a guardian only" / "Register a student
+        // only" correction-card text, which only a Manage-holding admin
+        // sees. Idempotent, same reasoning as AuthorizationTests' own copy
+        // of this fix.
         var adminUser = await userManager.FindByEmailAsync(AdminEmail);
         if (adminUser is not null)
         {
             var existingKeys = (await userManager.GetClaimsAsync(adminUser)).Select(c => c.Value).ToHashSet();
-            foreach (var key in new[] { PermissionKeys.PaymentsView, PermissionKeys.PaymentsConfirm, PermissionKeys.SubscriptionsView, PermissionKeys.SubscriptionsManage })
+            foreach (var key in new[]
+            {
+                PermissionKeys.PaymentsView, PermissionKeys.PaymentsConfirm,
+                PermissionKeys.SubscriptionsView, PermissionKeys.SubscriptionsManage,
+                PermissionKeys.StudentsView, PermissionKeys.StudentsManage,
+            })
             {
                 if (!existingKeys.Contains(key))
                 {

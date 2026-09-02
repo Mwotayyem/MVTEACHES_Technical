@@ -74,17 +74,18 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         // Security review 2026-09-02 (Stage 1 admin permissions): this shared
         // AdminEmail account represents "a plain Admin" across dozens of
         // unrelated tests in this file (AdminOnlyPages() alone lists 12
-        // pages). Its own AuthorizationTests never exercise Payments/
-        // Payroll/Subscriptions mutation, only that the pages load — so it
-        // only needs the three View permissions to keep meaning what it
-        // always meant here ("a plain Admin can reach admin pages"), not
-        // every Stage 1 key. Idempotent: checks existing claims first, since
-        // InitializeAsync can run again against this same shared test DB.
+        // pages, plus the dedicated StudentDetails GET tests below). Its own
+        // AuthorizationTests never exercise Payments/Payroll/Subscriptions/
+        // Students mutation, only that the pages load — so it only needs the
+        // View permissions to keep meaning what it always meant here ("a
+        // plain Admin can reach admin pages"), not every key. Idempotent:
+        // checks existing claims first, since InitializeAsync can run again
+        // against this same shared test DB.
         var adminUser = await userManager.FindByEmailAsync(AdminEmail);
         if (adminUser is not null)
         {
             var existingKeys = (await userManager.GetClaimsAsync(adminUser)).Select(c => c.Value).ToHashSet();
-            foreach (var key in new[] { PermissionKeys.PaymentsView, PermissionKeys.PayrollView, PermissionKeys.SubscriptionsView })
+            foreach (var key in new[] { PermissionKeys.PaymentsView, PermissionKeys.PayrollView, PermissionKeys.SubscriptionsView, PermissionKeys.StudentsView })
             {
                 if (!existingKeys.Contains(key))
                 {

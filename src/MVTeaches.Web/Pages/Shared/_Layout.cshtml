@@ -27,6 +27,11 @@
     var canManagePaymentMethods = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsManage)).Succeeded;
     var canViewPayroll = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PayrollView)).Succeeded;
     var canViewSubscriptions = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.SubscriptionsView)).Succeeded;
+    // Stage 2 (2026-09-03): /Admin/AssistedRegistration requires Manage for
+    // its GET too (see its own class-level policy), not View — so its link
+    // is gated on canManageStudents, not canViewStudents.
+    var canViewStudents = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.StudentsView)).Succeeded;
+    var canManageStudents = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.StudentsManage)).Succeeded;
 }
 @functions {
     // Inline, single-colour line icons for the sidebar. Deliberately hand-written
@@ -135,8 +140,14 @@
                         <div class="app-nav-group">@T["Overview"]</div>
                         <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
                         <div class="app-nav-group">@T["Students and Guardians"]</div>
-                        <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@NavIcon("users")@T["Students"]</a>
-                        <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
+                        @if (canViewStudents)
+                        {
+                            <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@NavIcon("users")@T["Students"]</a>
+                        }
+                        @if (canManageStudents)
+                        {
+                            <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
+                        }
                         <div class="app-nav-group">@T["Teachers"]</div>
                         <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
                         <div class="app-nav-group">@T["Placement"]</div>
@@ -212,8 +223,14 @@
                     @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
                     {
                         <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
-                        <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@NavIcon("users")@T["Students"]</a>
-                        <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
+                        @if (canViewStudents)
+                        {
+                            <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@NavIcon("users")@T["Students"]</a>
+                        }
+                        @if (canManageStudents)
+                        {
+                            <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
+                        }
                         <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
                         <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
                         @if (canViewSubscriptions)

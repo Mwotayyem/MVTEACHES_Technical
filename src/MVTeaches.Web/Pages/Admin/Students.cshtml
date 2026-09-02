@@ -2,8 +2,15 @@
 @model MVTeaches.Web.Pages.Admin.StudentsModel
 @using MVTeaches.Web.Display
 @using MVTeaches.Domain.People
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Students"].Value;
+    // Server-side enforcement already lives on every OnPost handler in
+    // Students.cshtml.cs — this only hides the correction forms and buttons
+    // for a view-only admin so they are not shown a control that would
+    // refuse them.
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.StudentsManage)).Succeeded;
 }
 
 @functions {
@@ -23,18 +30,24 @@
     </div>
     <div class="app-page-actions">
         <a class="btn btn-outline-secondary btn-sm" asp-page="/Admin/Dashboard">@T["Dashboard"]</a>
-        <a class="btn btn-primary btn-sm" asp-page="/Admin/AssistedRegistration">@T["Register a family step by step"]</a>
+        @if (canManage)
+        {
+            <a class="btn btn-primary btn-sm" asp-page="/Admin/AssistedRegistration">@T["Register a family step by step"]</a>
+        }
     </div>
 </div>
 
 <div class="app-guide">
     <p class="app-guide-title">@T["What do I do on this screen?"]</p>
     <p>@T["This screen is the register: find a student, see where they stand, and open their file. The short forms further down are for one-off corrections."]</p>
-    <p>
-        <span class="app-guide-next">@T["Registering a new family?"]</span>
-        @T["Use"] <a asp-page="/Admin/AssistedRegistration">@T["Assisted Registration"]</a> —
-        @T["it walks the whole sequence in order: guardian, student, link, level, then the package and its payment."]
-    </p>
+    @if (canManage)
+    {
+        <p>
+            <span class="app-guide-next">@T["Registering a new family?"]</span>
+            @T["Use"] <a asp-page="/Admin/AssistedRegistration">@T["Assisted Registration"]</a> —
+            @T["it walks the whole sequence in order: guardian, student, link, level, then the package and its payment."]
+        </p>
+    }
 </div>
 
 @if (Model.StatusMessage is not null)
@@ -213,15 +226,15 @@
                         <div class="app-row-actions">
                             <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/StudentDetails" asp-route-id="@student.Id">@T["Open file"]</a>
                             <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>
-                            @if (student.CurrentLevelCode is null)
+                            @if (canManage && student.CurrentLevelCode is null)
                             {
                                 <a class="btn btn-sm btn-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">@T["Set the level now"]</a>
                             }
-                            @if (student.GuardianNames.Count == 0)
+                            @if (canManage && student.GuardianNames.Count == 0)
                             {
                                 <a class="btn btn-sm btn-outline-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="link-guardian">@T["Link a guardian"]</a>
                             }
-                            @if (student.Status == StudentStatus.PendingVerification)
+                            @if (canManage && student.Status == StudentStatus.PendingVerification)
                             {
                                 @* Renamed 2026-09-01. It used to read "Mark verified", which said
                                    nothing about WHAT was being verified - the person, the account,
@@ -246,7 +259,10 @@
                     <div class="app-empty">
                         <strong>@T["No students registered yet."]</strong>
                         <span>@T["Start with a guardian, then the student — the assisted registration screen does both in order."]</span>
-                        <span><a class="btn btn-primary btn-sm mt-2" asp-page="/Admin/AssistedRegistration">@T["Register a family step by step"]</a></span>
+                        @if (canManage)
+                        {
+                            <span><a class="btn btn-primary btn-sm mt-2" asp-page="/Admin/AssistedRegistration">@T["Register a family step by step"]</a></span>
+                        }
                     </div>
                 </td></tr>
             }
@@ -268,6 +284,8 @@
     </table>
 </div>
 
+@if (canManage)
+{
 <h2>@T["Single corrections"]</h2>
 <p class="text-muted">@T["Use these only for a one-off fix on somebody who already exists. A brand-new family belongs in assisted registration, which keeps the whole sequence in order."]</p>
 
@@ -451,3 +469,8 @@
         </div>
     </div>
 </div>
+}
+else
+{
+    <p class="text-muted small">@T["You have view-only access to students and cannot register a guardian or a student, link a guardian, assign a level, or confirm registration details."]</p>
+}

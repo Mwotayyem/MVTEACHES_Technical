@@ -14,6 +14,7 @@ using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Display;
+using MVTeaches.Web.Identity;
 
 namespace MVTeaches.Web.Pages.Admin;
 
@@ -25,20 +26,23 @@ namespace MVTeaches.Web.Pages.Admin;
 /// over already-tested services/tables — no new business logic here.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.StudentsView)]
 public class StudentDetailsModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly IEntitlementBalanceQuery _balances;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly NodaTime.IClock _clock;
+    private readonly IAuthorizationService _authorizationService;
 
     public StudentDetailsModel(MvTeachesDbContext db, IEntitlementBalanceQuery balances,
-        UserManager<ApplicationUser> userManager, NodaTime.IClock clock)
+        UserManager<ApplicationUser> userManager, NodaTime.IClock clock, IAuthorizationService authorizationService)
     {
         _db = db;
         _balances = balances;
         _userManager = userManager;
         _clock = clock;
+        _authorizationService = authorizationService;
     }
 
     public record GuardianRow(long GuardianId, string FullName, GuardianRelationship Relationship, bool IsPrimary, bool CanPay);
@@ -126,6 +130,15 @@ public class StudentDetailsModel : PageModel
 
     public IReadOnlyList<WrittenNoteRow> WrittenNotes { get; set; } = Array.Empty<WrittenNoteRow>();
 
+    /// <summary>Computed once in <see cref="LoadPageAsync"/> — the same
+    /// check the page needs anyway to decide whether to even QUERY
+    /// <see cref="WrittenNotes"/> (see its own remarks below), so the view
+    /// reads these instead of injecting IAuthorizationService a second time
+    /// and repeating the same two checks.</summary>
+    public bool CanViewStudentNotes { get; set; }
+
+    public bool CanManageStudentNotes { get; set; }
+
     [BindProperty]
     public NewNoteInput NewNote { get; set; } = new();
 
@@ -180,6 +193,11 @@ public class StudentDetailsModel : PageModel
     /// note. Nothing here touches money, levels, packages or attendance.</summary>
     public async Task<IActionResult> OnPostAddNoteAsync(long id)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.StudentNotesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewNote, nameof(NewNote)))
         {
@@ -378,12 +396,19 @@ public class StudentDetailsModel : PageModel
         }
         Notes = notes.OrderByDescending(n => n.AtUtc).ToList();
 
-        WrittenNotes = (await _db.StudentNotes.AsNoTracking()
-                .Where(note => note.StudentId == id)
-                .OrderByDescending(note => note.CreatedAtUtc).ThenByDescending(note => note.Id)
-                .ToListAsync())
-            .Select(note => new WrittenNoteRow(note.Id, note.Category, note.Text, note.AuthorName, note.CreatedAtUtc))
-            .ToList();
+        // Without Admin.StudentNotes.View, this admin must not see that a
+        // written note even exists, not merely its text — so the query is
+        // skipped entirely rather than fetched-then-hidden in the view.
+        CanViewStudentNotes = (await _authorizationService.AuthorizeAsync(User, PermissionKeys.StudentNotesView)).Succeeded;
+        CanManageStudentNotes = (await _authorizationService.AuthorizeAsync(User, PermissionKeys.StudentNotesManage)).Succeeded;
+        WrittenNotes = CanViewStudentNotes
+            ? (await _db.StudentNotes.AsNoTracking()
+                    .Where(note => note.StudentId == id)
+                    .OrderByDescending(note => note.CreatedAtUtc).ThenByDescending(note => note.Id)
+                    .ToListAsync())
+                .Select(note => new WrittenNoteRow(note.Id, note.Category, note.Text, note.AuthorName, note.CreatedAtUtc))
+                .ToList()
+            : Array.Empty<WrittenNoteRow>();
 
         var certificates = await _db.Certificates.Where(c => c.StudentId == id).OrderByDescending(c => c.Id).ToListAsync();
         Certificates = certificates.Select(c => new CertificateRow(c.CertificateNumber,

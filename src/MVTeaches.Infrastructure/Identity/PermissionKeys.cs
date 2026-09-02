@@ -13,13 +13,15 @@ namespace MVTeaches.Infrastructure.Identity;
 /// in to the Admin area, and must be granted each of these keys individually
 /// by a SystemAdmin from <c>/Admin/AdminUsers</c>.
 ///
-/// Deliberately scoped to the three financially-sensitive screens named in
-/// this rollout's Stage 1 (Payments, Payroll, Subscriptions) — see the prior
-/// permissions-audit report for the full 26-key design across every admin
-/// screen. Every other admin page (Students, Teachers, Schedules,
-/// Compensation, Certificates, PlacementTests, Posters, Dashboard) is
-/// UNCHANGED by this pass and keeps allowing any Admin/SystemAdmin account,
-/// exactly as before.
+/// Stage 1 was deliberately scoped to the three financially-sensitive
+/// screens (Payments, Payroll, Subscriptions). Stage 2 (2026-09-03, Review
+/// Required — Authorization) adds Students/StudentDetails/AssistedRegistration
+/// and the Student Notes written-record feature inside StudentDetails — see
+/// each key's own remarks below. Every other admin page (Teachers, Schedules,
+/// Compensation, Certificates, PlacementTests, Posters, Dashboard) remains
+/// UNCHANGED and keeps allowing any Admin/SystemAdmin account, exactly as
+/// before — see the prior permissions-audit report for the full design
+/// across every admin screen.
 ///
 /// Each key is stored as an <see cref="System.Security.Claims.Claim"/> with
 /// <see cref="ClaimType"/> as its type and one of these strings as its
@@ -64,8 +66,43 @@ public static class PermissionKeys
     /// for a student, grant one for free).</summary>
     public const string SubscriptionsManage = "Admin.Subscriptions.Manage";
 
-    /// <summary>Every Stage 1 key, in the order shown on /Admin/AdminUsers —
-    /// the single list both the permission-policy registration loop in
+    /// <summary>
+    /// Stage 2 (2026-09-03, Review Required — Authorization): the register
+    /// and the student profile. Covers /Admin/Students (list + GET) and
+    /// /Admin/StudentDetails (profile + GET) — a plain Admin with only this
+    /// key can read the whole register and every student's file but cannot
+    /// change anything on either page.
+    /// </summary>
+    public const string StudentsView = "Admin.Students.View";
+
+    /// <summary>Covers every student-data-mutating action reachable from
+    /// Students.cshtml.cs (registering a guardian or a student, linking a
+    /// guardian, confirming registration details, assigning a level) — and
+    /// the whole of /Admin/AssistedRegistration, whose every handler
+    /// (including the draft-package purchase and manual-payment/transfer
+    /// steps embedded in that one guided flow) exists only to carry a new
+    /// family through registration, so that page requires this key for its
+    /// GET as well as every POST, rather than a separate View tier of its
+    /// own.</summary>
+    public const string StudentsManage = "Admin.Students.Manage";
+
+    /// <summary>Gates only the WRITTEN notes an admin explicitly types about
+    /// a student (the <c>StudentNote</c> entity, shown as "Notes" on the
+    /// profile's Written record tab) — never the system-derived history
+    /// (level-change/package/compensation/payment reasons) on that same tab,
+    /// which is ordinary student data already covered by
+    /// <see cref="StudentsView"/>. Without this key, an Admin cannot see that
+    /// a written note exists at all, not merely its contents.</summary>
+    public const string StudentNotesView = "Admin.StudentNotes.View";
+
+    /// <summary>Covers adding a written note (today the only operation that
+    /// exists — StudentNotes are append-only, with no edit or delete
+    /// anywhere in the app; this key is named Manage rather than "Add" only
+    /// so it needs no rename if an edit/delete is ever added later).</summary>
+    public const string StudentNotesManage = "Admin.StudentNotes.Manage";
+
+    /// <summary>Every key, in the order shown on /Admin/AdminUsers — the
+    /// single list both the permission-policy registration loop in
     /// Program.cs and the AdminUsers editing screen iterate, so a key can
     /// never be wired into one and forgotten in the other.</summary>
     public static readonly IReadOnlyList<string> All = new[]
@@ -73,5 +110,7 @@ public static class PermissionKeys
         PaymentsView, PaymentsConfirm, PaymentsManage,
         PayrollView, PayrollApprove,
         SubscriptionsView, SubscriptionsManage,
+        StudentsView, StudentsManage,
+        StudentNotesView, StudentNotesManage,
     };
 }

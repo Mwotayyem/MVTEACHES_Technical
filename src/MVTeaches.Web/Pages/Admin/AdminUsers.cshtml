@@ -86,7 +86,7 @@ else
                         </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <strong class="small">@T["Subscriptions"]</strong>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Subscriptions.View" id="perm-@admin.Id-sv"
@@ -97,6 +97,34 @@ else
                             <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Subscriptions.Manage" id="perm-@admin.Id-sm"
                                    checked="@admin.GrantedPermissions.Contains("Admin.Subscriptions.Manage")" />
                             <label class="form-check-label" for="perm-@admin.Id-sm">@T["Create, purchase, or grant subscriptions"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <strong class="small">@T["Students"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Students.View" id="perm-@admin.Id-tv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Students.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-tv">@T["View the student register and student files"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Students.Manage" id="perm-@admin.Id-tm"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Students.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-tm">@T["Register, link, assign levels, confirm registration, and assisted registration"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong class="small">@T["Student notes"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.StudentNotes.View" id="perm-@admin.Id-nv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.StudentNotes.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-nv">@T["View the written notes on a student's file"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.StudentNotes.Manage" id="perm-@admin.Id-nm"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.StudentNotes.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-nm">@T["Add a written note to a student's file"]</label>
                         </div>
                     </div>
 

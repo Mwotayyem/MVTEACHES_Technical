@@ -11,6 +11,7 @@ using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Display;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using MVTeaches.Application.Ledger;
 using MVTeaches.Domain.Payments;
@@ -37,6 +38,7 @@ namespace MVTeaches.Web.Pages.Admin;
 /// documented in Teacher/PublishSlots.cshtml.cs.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.StudentsView)]
 public class StudentsModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
@@ -45,9 +47,11 @@ public class StudentsModel : PageModel
     private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly IEntitlementBalanceQuery _balances;
     private readonly IClock _clock;
+    private readonly IAuthorizationService _authorizationService;
 
     public StudentsModel(MvTeachesDbContext db, IStudentAdmissionService admissions, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer, IEntitlementBalanceQuery balances, IClock clock)
+        IStringLocalizer<SharedResource> localizer, IEntitlementBalanceQuery balances, IClock clock,
+        IAuthorizationService authorizationService)
     {
         _db = db;
         _admissions = admissions;
@@ -55,6 +59,7 @@ public class StudentsModel : PageModel
         _localizer = localizer;
         _balances = balances;
         _clock = clock;
+        _authorizationService = authorizationService;
     }
 
     /// <summary>One line of the register. Everything after GuardianNames is
@@ -209,6 +214,11 @@ public class StudentsModel : PageModel
 
     public async Task<IActionResult> OnPostRegisterGuardianAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.StudentsManage) is { } deny)
+        {
+            return deny;
+        }
+
         // Every [BindProperty] group on this page is bound and auto-validated on
         // every POST regardless of which named handler is invoked (a well-known
         // Razor Pages multi-form gotcha) — clearing the whole slate before
@@ -237,6 +247,11 @@ public class StudentsModel : PageModel
 
     public async Task<IActionResult> OnPostRegisterStudentAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.StudentsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewStudent, nameof(NewStudent)))
         {
@@ -264,6 +279,11 @@ public class StudentsModel : PageModel
 
     public async Task<IActionResult> OnPostLinkGuardianAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.StudentsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(Link, nameof(Link)))
         {
@@ -292,6 +312,11 @@ public class StudentsModel : PageModel
 
     public async Task<IActionResult> OnPostVerifyAsync(long studentId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.StudentsManage) is { } deny)
+        {
+            return deny;
+        }
+
         await _admissions.VerifyStudentAsync(studentId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Student marked verified."].Value;
         await LoadAsync();
@@ -300,6 +325,11 @@ public class StudentsModel : PageModel
 
     public async Task<IActionResult> OnPostAssignLevelAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.StudentsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(LevelAssignment, nameof(LevelAssignment)))
         {

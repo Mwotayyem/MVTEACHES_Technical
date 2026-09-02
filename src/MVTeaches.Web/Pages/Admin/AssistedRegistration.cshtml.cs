@@ -49,8 +49,21 @@ namespace MVTeaches.Web.Pages.Admin;
 /// audit-logged) — that capability is untouched and unexpanded; it is
 /// simply never surfaced or suggested anywhere in THIS page's own flow,
 /// since an onboarding registration is not a correction.
+///
+/// Security review 2026-09-03 (Review Required — Authorization), Stage 2:
+/// gated on Admin.Students.Manage for its GET as well as every POST, unlike
+/// Students/StudentDetails which split View (read) from Manage (write) —
+/// every handler here, including the draft-package purchase and the manual
+/// payment/transfer steps embedded in this one guided flow, exists only to
+/// carry a new family through registration, so there is no meaningful
+/// "view this page but change nothing" state to offer a View-only Admin. A
+/// single page-level policy therefore already protects every handler
+/// (Razor Pages applies [Authorize] to the whole page, GET and POST alike —
+/// see PageModelPermissionExtensions' own remarks), and no
+/// RequirePermissionAsync calls are needed on individual handlers.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.StudentsManage)]
 public class AssistedRegistrationModel : PageModel
 {
     private readonly MvTeachesDbContext _db;

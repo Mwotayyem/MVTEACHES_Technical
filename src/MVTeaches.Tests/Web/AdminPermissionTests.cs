@@ -129,6 +129,34 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         return (student.Id, payment.Id);
     }
 
+    /// <summary>Stage 2: a bare student with no package/payment/note of any
+    /// kind — the default StudentStatus is PendingVerification (see
+    /// Student's own constructor), which is exactly the state
+    /// OnPostVerifyAsync needs to act on.</summary>
+    private async Task<long> SeedStudentAsync(string label)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+
+        var countryId = await SeedCountryAsync(db);
+        var student = new Student(countryId, $"Permission Test Student {label}", new LocalDate(2005, 1, 1), userId: null);
+        db.Students.Add(student);
+        await db.SaveChangesAsync();
+        return student.Id;
+    }
+
+    /// <summary>Writes a StudentNote directly, bypassing OnPostAddNoteAsync —
+    /// so a "does this admin see an EXISTING note" test never depends on the
+    /// very handler a sibling test is busy proving is blocked.</summary>
+    private async Task SeedStudentNoteAsync(long studentId, string text)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        db.StudentNotes.Add(new StudentNote(studentId, StudentNoteCategory.Learning, text,
+            authorUserId: 1, authorName: "Seed", SystemClock.Instance.GetCurrentInstant()));
+        await db.SaveChangesAsync();
+    }
+
     private static long _idSeed = 80_000_000;
     private static long NextId() => Interlocked.Increment(ref _idSeed);
 
@@ -459,5 +487,265 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
 
         // Same client, same cookie, no logout/login in between.
         Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Payments")).StatusCode);
+    }
+
+    // =================================================================
+    // Stage 2 (2026-09-03, Review Required — Authorization): Students,
+    // StudentDetails, AssistedRegistration, and the Student Notes written
+    // record inside StudentDetails. Same PermissionAuthorizationHandler,
+    // same live-per-request DB check, same SystemAdmin bypass — these tests
+    // exercise the four new keys the same way the block above exercised the
+    // Stage 1 ones.
+    // =================================================================
+
+    // ---------------------------------------------------------------
+    // 11. SystemAdmin: sees and acts on Students/StudentDetails/
+    // AssistedRegistration with ZERO claims.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task SystemAdmin_views_and_manages_students_with_zero_permission_claims()
+    {
+        var email = await CreateUserAsync("sa-students", RoleNames.SystemAdmin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Students")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/AssistedRegistration")).StatusCode);
+
+        var studentId = await SeedStudentAsync("sa-verify-target");
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/Admin/StudentDetails/{studentId}")).StatusCode);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Students");
+        var response = await client.PostAsync("/Admin/Students?handler=Verify", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["studentId"] = studentId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var verified = await db.Students.FirstAsync(s => s.Id == studentId);
+        Assert.Equal(StudentStatus.PendingLevel, verified.Status);
+    }
+
+    // ---------------------------------------------------------------
+    // 12. Plain Admin, zero claims: forbidden from all three Stage 2 pages.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_no_permission_claims_is_forbidden_from_students_pages()
+    {
+        var email = await CreateUserAsync("no-claims-students", RoleNames.Admin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Students")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/StudentDetails/1")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/AssistedRegistration")).StatusCode);
+    }
+
+    // ---------------------------------------------------------------
+    // 13. Admin with only Students.View: sees the register and the profile,
+    // cannot mutate, and a direct POST writes nothing. AssistedRegistration
+    // (Manage-gated even for GET) stays refused too.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_students_view_only_sees_pages_but_cannot_verify_a_student_and_writes_nothing()
+    {
+        var email = await CreateUserAsync("students-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var studentId = await SeedStudentAsync("view-only-verify-target");
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Students")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/Admin/StudentDetails/{studentId}")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/AssistedRegistration")).StatusCode);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Students");
+        var response = await client.PostAsync("/Admin/Students?handler=Verify", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["studentId"] = studentId.ToString(),
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var stillPending = await db.Students.FirstAsync(s => s.Id == studentId);
+        Assert.Equal(StudentStatus.PendingVerification, stillPending.Status); // Verify never touched it
+    }
+
+    // ---------------------------------------------------------------
+    // 14. Admin with Students.View + Students.Manage: can actually verify a
+    // real student, and can reach AssistedRegistration.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_students_manage_can_verify_a_student_and_open_assisted_registration()
+    {
+        var email = await CreateUserAsync("students-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView, PermissionKeys.StudentsManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/AssistedRegistration")).StatusCode);
+
+        var studentId = await SeedStudentAsync("manage-verify-target");
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Students");
+        var response = await client.PostAsync("/Admin/Students?handler=Verify", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["studentId"] = studentId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var verified = await db.Students.FirstAsync(s => s.Id == studentId);
+        Assert.Equal(StudentStatus.PendingLevel, verified.Status);
+    }
+
+    // ---------------------------------------------------------------
+    // 15. Admin without AssistedRegistration Manage cannot open it, and a
+    // direct POST to one of its handlers is refused too — proving the
+    // single page-level policy really does cover every handler, not only
+    // the GET.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_students_view_only_cannot_post_to_assisted_registration()
+    {
+        var email = await CreateUserAsync("assisted-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        // Cannot even GET the page to fetch a real antiforgery token — a
+        // fabricated one is used instead, since the policy check happens
+        // before the handler (or the antiforgery check) ever runs.
+        var response = await client.PostAsync("/Admin/AssistedRegistration?handler=RegisterGuardian",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["NewGuardian.Email"] = $"permtest-{Guid.NewGuid():N}@test.mvteaches.local",
+                ["NewGuardian.Password"] = Password,
+                ["NewGuardian.FullName"] = "Should Not Be Created",
+            }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.False(await db.Guardians.AnyAsync(g => g.FullName == "Should Not Be Created"));
+    }
+
+    // ---------------------------------------------------------------
+    // 16. Student Notes: without StudentNotes.View, an existing written note
+    // is invisible — not merely un-editable.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_without_studentnotes_view_does_not_see_an_existing_written_note()
+    {
+        var email = await CreateUserAsync("notes-none", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var studentId = await SeedStudentAsync("notes-hidden-target");
+        var secretNoteText = $"Secret note {Guid.NewGuid():N}";
+        await SeedStudentNoteAsync(studentId, secretNoteText);
+
+        var body = await client.GetStringAsync($"/Admin/StudentDetails/{studentId}");
+        Assert.DoesNotContain(secretNoteText, body);
+    }
+
+    // ---------------------------------------------------------------
+    // 17. Student Notes: with StudentNotes.View but not Manage, an admin
+    // sees the note but a direct POST to add one is refused and writes
+    // nothing.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_studentnotes_view_only_sees_the_note_but_cannot_add_one()
+    {
+        var email = await CreateUserAsync("notes-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView, PermissionKeys.StudentNotesView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var studentId = await SeedStudentAsync("notes-view-target");
+        var existingNoteText = $"Visible note {Guid.NewGuid():N}";
+        await SeedStudentNoteAsync(studentId, existingNoteText);
+
+        var detailsPath = $"/Admin/StudentDetails/{studentId}";
+        var body = await client.GetStringAsync(detailsPath);
+        Assert.Contains(existingNoteText, body);
+
+        var token = await GetAntiforgeryTokenAsync(client, detailsPath);
+        var attemptedText = $"Should not be saved {Guid.NewGuid():N}";
+        var response = await client.PostAsync($"/Admin/StudentDetails/{studentId}?handler=AddNote", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["id"] = studentId.ToString(),
+            ["NewNote.Category"] = "Learning",
+            ["NewNote.Text"] = attemptedText,
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.False(await db.StudentNotes.AnyAsync(n => n.StudentId == studentId && n.Text == attemptedText));
+        Assert.Equal(1, await db.StudentNotes.CountAsync(n => n.StudentId == studentId)); // only the seeded one
+    }
+
+    // ---------------------------------------------------------------
+    // 18. Student Notes: with StudentNotes.Manage, an admin can actually add
+    // a note through the real handler.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_studentnotes_manage_can_add_a_note()
+    {
+        var email = await CreateUserAsync("notes-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView, PermissionKeys.StudentNotesView, PermissionKeys.StudentNotesManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var studentId = await SeedStudentAsync("notes-manage-target");
+        var detailsPath = $"/Admin/StudentDetails/{studentId}";
+        var token = await GetAntiforgeryTokenAsync(client, detailsPath);
+        var noteText = $"Added by the manage test {Guid.NewGuid():N}";
+        var response = await client.PostAsync($"/Admin/StudentDetails/{studentId}?handler=AddNote", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["id"] = studentId.ToString(),
+            ["NewNote.Category"] = "Learning",
+            ["NewNote.Text"] = noteText,
+        }));
+        // AddNote redirects back to itself on success (RedirectToPage), the
+        // same as a Forbid() redirect to AccessDenied would — so the
+        // authoritative proof is the DB row, not the status code alone.
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.DoesNotContain("AccessDenied", response.Headers.Location?.ToString() ?? string.Empty);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.True(await db.StudentNotes.AnyAsync(n => n.StudentId == studentId && n.Text == noteText));
+    }
+
+    // ---------------------------------------------------------------
+    // 19. Revoking Students.View takes effect on the very next request,
+    // with no logout/login.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Revoking_students_view_blocks_the_very_next_request_with_no_relogin()
+    {
+        var email = await CreateUserAsync("revoke-students-target", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Students")).StatusCode);
+
+        await RevokeAsync(email, PermissionKeys.StudentsView);
+
+        // Same client, same cookie, no logout/login in between.
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Students")).StatusCode);
     }
 }

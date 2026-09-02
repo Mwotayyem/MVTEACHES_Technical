@@ -577,44 +577,58 @@
                 <h2 class="h5">@T["Notes"]</h2>
                 <p class="text-muted small">@T["The centre's own working notes on this student. Internal — no student or guardian screen shows these. Notes are never edited or deleted; correct one by writing another."]</p>
 
-                <form method="post" asp-page-handler="AddNote" asp-route-id="@student.Id" class="row g-2 align-items-start mb-4">
-                    <div class="col-md-3">
-                        <label class="form-label" asp-for="NewNote.Category">@T["Kind of note"]</label>
-                        <select asp-for="NewNote.Category" class="form-select">
-                            @foreach (var value in Enum.GetValues<MVTeaches.Domain.People.StudentNoteCategory>())
-                            {
-                                <option value="@value">@T["StudentNoteCategory." + value]</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-7">
-                        <label class="form-label" asp-for="NewNote.Text">@T["Note"]<span class="app-required">*</span></label>
-                        <textarea asp-for="NewNote.Text" class="form-control" rows="2"
-                                  placeholder="@T["What happened, what was agreed, what to watch for…"]"></textarea>
-                        <span asp-validation-for="NewNote.Text" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label d-none d-md-block">&nbsp;</label>
-                        <button type="submit" class="btn btn-primary w-100">@T["Add the note"]</button>
-                    </div>
-                </form>
-
-                <ol class="app-timeline mb-4">
-                    @foreach (var n in Model.WrittenNotes)
-                    {
-                        <li>
-                            <span class="app-timeline-when">@T.DateUtc(n.CreatedAtUtc)</span>
-                            <span class="app-timeline-source">@T["StudentNoteCategory." + n.Category] · @n.AuthorName</span>
-                            <p>@n.Text</p>
-                        </li>
-                    }
-                </ol>
-                @if (Model.WrittenNotes.Count == 0)
+                @* Server-side enforcement already lives on OnPostAddNoteAsync
+                   (see StudentDetails.cshtml.cs) and on whether WrittenNotes
+                   was even queried — this only hides the form/list for an
+                   admin who lacks the matching StudentNotes permission. *@
+                @if (Model.CanManageStudentNotes)
                 {
-                    <div class="app-empty mb-4">
-                        <strong>@T["No notes written yet."]</strong>
-                        <span>@T["Use the box above. These stay inside the centre."]</span>
-                    </div>
+                    <form method="post" asp-page-handler="AddNote" asp-route-id="@student.Id" class="row g-2 align-items-start mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label" asp-for="NewNote.Category">@T["Kind of note"]</label>
+                            <select asp-for="NewNote.Category" class="form-select">
+                                @foreach (var value in Enum.GetValues<MVTeaches.Domain.People.StudentNoteCategory>())
+                                {
+                                    <option value="@value">@T["StudentNoteCategory." + value]</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label" asp-for="NewNote.Text">@T["Note"]<span class="app-required">*</span></label>
+                            <textarea asp-for="NewNote.Text" class="form-control" rows="2"
+                                      placeholder="@T["What happened, what was agreed, what to watch for…"]"></textarea>
+                            <span asp-validation-for="NewNote.Text" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label d-none d-md-block">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">@T["Add the note"]</button>
+                        </div>
+                    </form>
+                }
+
+                @if (Model.CanViewStudentNotes)
+                {
+                    <ol class="app-timeline mb-4">
+                        @foreach (var n in Model.WrittenNotes)
+                        {
+                            <li>
+                                <span class="app-timeline-when">@T.DateUtc(n.CreatedAtUtc)</span>
+                                <span class="app-timeline-source">@T["StudentNoteCategory." + n.Category] · @n.AuthorName</span>
+                                <p>@n.Text</p>
+                            </li>
+                        }
+                    </ol>
+                    @if (Model.WrittenNotes.Count == 0)
+                    {
+                        <div class="app-empty mb-4">
+                            <strong>@T["No notes written yet."]</strong>
+                            <span>@T["Use the box above. These stay inside the centre."]</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted small mb-4">@T["You do not have permission to view this student's written notes."]</p>
                 }
 
                 <h2 class="h5">@T["What people wrote about this student"]</h2>
