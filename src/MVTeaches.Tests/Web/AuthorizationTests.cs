@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -69,6 +70,28 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         await EnsureUserAsync(userManager, TeacherEmail, RoleNames.Teacher);
         await EnsureUserAsync(userManager, GuardianEmail, RoleNames.Guardian);
         await EnsureUserAsync(userManager, StudentEmail, RoleNames.Student);
+
+        // Security review 2026-09-02 (Stage 1 admin permissions): this shared
+        // AdminEmail account represents "a plain Admin" across dozens of
+        // unrelated tests in this file (AdminOnlyPages() alone lists 12
+        // pages). Its own AuthorizationTests never exercise Payments/
+        // Payroll/Subscriptions mutation, only that the pages load — so it
+        // only needs the three View permissions to keep meaning what it
+        // always meant here ("a plain Admin can reach admin pages"), not
+        // every Stage 1 key. Idempotent: checks existing claims first, since
+        // InitializeAsync can run again against this same shared test DB.
+        var adminUser = await userManager.FindByEmailAsync(AdminEmail);
+        if (adminUser is not null)
+        {
+            var existingKeys = (await userManager.GetClaimsAsync(adminUser)).Select(c => c.Value).ToHashSet();
+            foreach (var key in new[] { PermissionKeys.PaymentsView, PermissionKeys.PayrollView, PermissionKeys.SubscriptionsView })
+            {
+                if (!existingKeys.Contains(key))
+                {
+                    await userManager.AddClaimAsync(adminUser, new Claim(PermissionKeys.ClaimType, key));
+                }
+            }
+        }
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

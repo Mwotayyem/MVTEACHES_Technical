@@ -2241,4 +2241,88 @@
   <data name="Your password has been changed." xml:space="preserve">
     <value>Your password has been changed.</value>
   </data>
+  <data name="Access denied" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="Your account does not have permission to view this page or perform this action. If you believe this is wrong, ask a SystemAdmin to review your account's permissions." xml:space="preserve">
+    <value>Your account does not have permission to view this page or perform this action. If you believe this is wrong, ask a SystemAdmin to review your account's permissions.</value>
+  </data>
+  <data name="Back to home" xml:space="preserve">
+    <value>Back to home</value>
+  </data>
+  <data name="Admin accounts and permissions" xml:space="preserve">
+    <value>Admin accounts and permissions</value>
+  </data>
+  <data name="Only a SystemAdmin account can open this page. A plain Admin starts with no permissions at all — grant exactly what each one needs, screen by screen." xml:space="preserve">
+    <value>Only a SystemAdmin account can open this page. A plain Admin starts with no permissions at all — grant exactly what each one needs, screen by screen.</value>
+  </data>
+  <data name="Create a new Admin account" xml:space="preserve">
+    <value>Create a new Admin account</value>
+  </data>
+  <data name="Never SystemAdmin — this screen creates a plain Admin only. Who holds SystemAdmin is decided outside this app." xml:space="preserve">
+    <value>Never SystemAdmin — this screen creates a plain Admin only. Who holds SystemAdmin is decided outside this app.</value>
+  </data>
+  <data name="Tell this password to the new admin through a separate, secure channel — never write it here or in a chat message. They must open &quot;Change password&quot; after their first sign-in." xml:space="preserve">
+    <value>Tell this password to the new admin through a separate, secure channel — never write it here or in a chat message. They must open &quot;Change password&quot; after their first sign-in.</value>
+  </data>
+  <data name="Create Admin account" xml:space="preserve">
+    <value>Create Admin account</value>
+  </data>
+  <data name="Existing Admin accounts" xml:space="preserve">
+    <value>Existing Admin accounts</value>
+  </data>
+  <data name="No plain Admin accounts yet." xml:space="preserve">
+    <value>No plain Admin accounts yet.</value>
+  </data>
+  <data name="View payments" xml:space="preserve">
+    <value>View payments</value>
+  </data>
+  <data name="Confirm, reject, or record payments" xml:space="preserve">
+    <value>Confirm, reject, or record payments</value>
+  </data>
+  <data name="Manage payment methods" xml:space="preserve">
+    <value>Manage payment methods</value>
+  </data>
+  <data name="View payroll" xml:space="preserve">
+    <value>View payroll</value>
+  </data>
+  <data name="Verify, approve, and close payroll" xml:space="preserve">
+    <value>Verify, approve, and close payroll</value>
+  </data>
+  <data name="View subscriptions" xml:space="preserve">
+    <value>View subscriptions</value>
+  </data>
+  <data name="Create, purchase, or grant subscriptions" xml:space="preserve">
+    <value>Create, purchase, or grant subscriptions</value>
+  </data>
+  <data name="Save permissions" xml:space="preserve">
+    <value>Save permissions</value>
+  </data>
+  <data name="The password must be at least 10 characters." xml:space="preserve">
+    <value>The password must be at least 10 characters.</value>
+  </data>
+  <data name="Admin account created for {0} with no permissions yet — grant what they need below. Tell them the temporary password through a separate, secure channel (never this screen or a chat log), and that they must open &quot;Change password&quot; after their first sign-in." xml:space="preserve">
+    <value>Admin account created for {0} with no permissions yet — grant what they need below. Tell them the temporary password through a separate, secure channel (never this screen or a chat log), and that they must open &quot;Change password&quot; after their first sign-in.</value>
+  </data>
+  <data name="Account not found." xml:space="preserve">
+    <value>Account not found.</value>
+  </data>
+  <data name="Permissions updated. This takes effect on this admin's very next request — they do not need to sign out and back in." xml:space="preserve">
+    <value>Permissions updated. This takes effect on this admin's very next request — they do not need to sign out and back in.</value>
+  </data>
+  <data name="Administration" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="You have view-only access to payments and cannot record, confirm, or reject any." xml:space="preserve">
+    <value>You have view-only access to payments and cannot record, confirm, or reject any.</value>
+  </data>
+  <data name="You have view-only access to payments and cannot confirm or reject this." xml:space="preserve">
+    <value>You have view-only access to payments and cannot confirm or reject this.</value>
+  </data>
+  <data name="View only" xml:space="preserve">
+    <value>View only</value>
+  </data>
+  <data name="You have view-only access to subscriptions — publishing package prices, purchasing, and granting packages are not available to you." xml:space="preserve">
+    <value>You have view-only access to subscriptions — publishing package prices, purchasing, and granting packages are not available to you.</value>
+  </data>
 </root>

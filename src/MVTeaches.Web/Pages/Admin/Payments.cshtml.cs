@@ -13,6 +13,7 @@ using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Display;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -34,20 +35,23 @@ namespace MVTeaches.Web.Pages.Admin;
 /// it always meant: the full requested amount, in the requested currency.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.PaymentsView)]
 public class PaymentsModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly IPaymentService _payments;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly IAuthorizationService _authorizationService;
 
     public PaymentsModel(MvTeachesDbContext db, IPaymentService payments, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer)
+        IStringLocalizer<SharedResource> localizer, IAuthorizationService authorizationService)
     {
         _db = db;
         _payments = payments;
         _userManager = userManager;
         _localizer = localizer;
+        _authorizationService = authorizationService;
     }
 
     /// <summary><paramref name="SubscriptionId"/> and the three package
@@ -181,6 +185,11 @@ public class PaymentsModel : PageModel
 
     public async Task<IActionResult> OnPostRecordAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PaymentsConfirm) is { } deny)
+        {
+            return deny;
+        }
+
         // See StudentsModel's OnPostRegisterGuardianAsync remarks: with more than
         // one [BindProperty] group on a page, the whole slate must be cleared
         // before re-validating just this handler's own group.
@@ -206,6 +215,11 @@ public class PaymentsModel : PageModel
     /// in reaches IPaymentService.ConfirmAsync as a real override.</summary>
     public async Task<IActionResult> OnPostConfirmAsync(long paymentId, decimal? receivedAmount, string? receivedCurrency)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PaymentsConfirm) is { } deny)
+        {
+            return deny;
+        }
+
         // This handler does not use NewPayment at all, but Razor Pages
         // validates every [BindProperty] on the page regardless - so an
         // untouched recording form posted alongside a confirmation produced a
@@ -251,6 +265,11 @@ public class PaymentsModel : PageModel
 
     public async Task<IActionResult> OnPostRejectAsync(long paymentId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PaymentsConfirm) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear(); // same reason as OnPostConfirmAsync above
         var rejectedByUserId = long.Parse(_userManager.GetUserId(User)!);
         var reason = string.IsNullOrWhiteSpace(RejectReason) ? _localizer["No reason given"].Value : RejectReason;

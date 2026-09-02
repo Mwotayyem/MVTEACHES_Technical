@@ -2,8 +2,14 @@
 @model MVTeaches.Web.Pages.Admin.SubscriptionsModel
 @using MVTeaches.Domain.Catalog
 @using MVTeaches.Domain.Subscriptions
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Subscriptions"];
+    // Server-side enforcement already lives on OnPostCreatePlanAsync/
+    // OnPostPurchaseAsync/OnPostGrantAsync (see Subscriptions.cshtml.cs) —
+    // this only hides the forms for a view-only admin.
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.SubscriptionsManage)).Succeeded;
 }
 
 @functions {
@@ -73,6 +79,8 @@
     </div>
 }
 
+@if (canManage)
+{
 <div class="row g-4 mb-4">
     <div class="col-lg-6 d-flex flex-column gap-4">
         <p class="app-eyebrow mb-0">@T["For one student"]</p>
@@ -332,6 +340,11 @@
         </div>
     </div>
 </div>
+}
+else
+{
+    <p class="text-muted small">@T["You have view-only access to subscriptions — publishing package prices, purchasing, and granting packages are not available to you."]</p>
+}
 
 <h2>@T["Published package prices"]</h2>
 <p class="text-muted small">@T["These are offers, not purchases. They are not edited after publishing — publish a new one to sell at a different price."]</p>

@@ -25,6 +25,12 @@ namespace MVTeaches.Web.Pages.Admin;
 /// purchase/transfer pages are allowed to read from).
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+// One key for the whole page (view and edit together — a small settings
+// screen with nothing meaningful to view without also being able to change
+// it), so this page-level policy alone already covers OnGetAsync and both
+// OnPost handlers below; no separate per-handler check is needed here the
+// way Payments.cshtml.cs needs one (View and Confirm differ there).
+[Authorize(Policy = PermissionKeys.PaymentsManage)]
 public class PaymentMethodsModel : PageModel
 {
     private readonly IPaymentMethodConfigService _methods;

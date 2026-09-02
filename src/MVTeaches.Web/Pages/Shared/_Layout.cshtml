@@ -1,8 +1,10 @@
 ﻿@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.Extensions.Localization
 @using MVTeaches.Web.Resources
 @inject IStringLocalizer<SharedResource> T
 @inject IWebHostEnvironment Env
+@inject IAuthorizationService AuthorizationService
 @{
     var culture = CultureInfo.CurrentUICulture.Name;
     var isRtl = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft;
@@ -12,6 +14,19 @@
 
     bool IsCurrent(string page) => string.Equals(currentPage, page, StringComparison.OrdinalIgnoreCase);
     string NavClass(string page) => IsCurrent(page) ? "app-nav-link active" : "app-nav-link";
+
+    // Security review 2026-09-02 (Review Required — Authorization) Stage 1:
+    // this hides links only — the real enforcement is server-side on each
+    // page/handler (see PermissionAuthorizationHandler). Computed once here
+    // and reused by both the desktop sidebar and the mobile offcanvas below,
+    // rather than repeating the same four checks twice. Skipped entirely for
+    // non-admin accounts, since none of these links render for them anyway.
+    var isAdminRole = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin);
+    var isSystemAdmin = User.IsInRole(RoleNames.SystemAdmin);
+    var canViewPayments = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsView)).Succeeded;
+    var canManagePaymentMethods = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsManage)).Succeeded;
+    var canViewPayroll = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PayrollView)).Succeeded;
+    var canViewSubscriptions = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.SubscriptionsView)).Succeeded;
 }
 @functions {
     // Inline, single-colour line icons for the sidebar. Deliberately hand-written
@@ -127,19 +142,36 @@
                         <div class="app-nav-group">@T["Placement"]</div>
                         <a class="@NavClass("/Admin/PlacementTests")" asp-page="/Admin/PlacementTests">@NavIcon("clipboard")@T["Placement Tests"]</a>
                         <div class="app-nav-group">@T["Packages and Payments"]</div>
-                        <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@NavIcon("package")@T["Subscriptions"]</a>
-                        <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@NavIcon("card")@T["Payments"]</a>
-                        <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
+                        @if (canViewSubscriptions)
+                        {
+                            <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@NavIcon("package")@T["Subscriptions"]</a>
+                        }
+                        @if (canViewPayments)
+                        {
+                            <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@NavIcon("card")@T["Payments"]</a>
+                        }
+                        @if (canManagePaymentMethods)
+                        {
+                            <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
+                        }
                         <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
                         <div class="app-nav-group">@T["Scheduling and Attendance"]</div>
                         <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
                         <a class="@NavClass("/Admin/RescheduleSessions")" asp-page="/Admin/RescheduleSessions">@NavIcon("refresh")@T["Reschedule / Compensation"]</a>
                         <a class="@NavClass("/Admin/CompensationRequests")" asp-page="/Admin/CompensationRequests">@NavIcon("inbox")@T["Compensation Requests"]</a>
                         <div class="app-nav-group">@T["Payroll and Expenses"]</div>
-                        <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
+                        @if (canViewPayroll)
+                        {
+                            <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
+                        }
                         <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport">@NavIcon("chart")@T["Financial Report"]</a>
                         <div class="app-nav-group">@T["Certificates"]</div>
                         <a class="@NavClass("/Admin/Certificates")" asp-page="/Admin/Certificates">@NavIcon("award")@T["Certificates"]</a>
+                        @if (isSystemAdmin)
+                        {
+                            <div class="app-nav-group">@T["Administration"]</div>
+                            <a class="@NavClass("/Admin/AdminUsers")" asp-page="/Admin/AdminUsers">@NavIcon("shield")@T["Admin accounts and permissions"]</a>
+                        }
                     }
                     @if (User.IsInRole(RoleNames.Teacher))
                     {
@@ -184,11 +216,27 @@
                         <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
                         <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
                         <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
-                        <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@NavIcon("package")@T["Subscriptions"]</a>
-                        <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@NavIcon("card")@T["Payments"]</a>
-                        <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
+                        @if (canViewSubscriptions)
+                        {
+                            <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@NavIcon("package")@T["Subscriptions"]</a>
+                        }
+                        @if (canViewPayments)
+                        {
+                            <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@NavIcon("card")@T["Payments"]</a>
+                        }
+                        @if (canManagePaymentMethods)
+                        {
+                            <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
+                        }
                         <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
-                        <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
+                        @if (canViewPayroll)
+                        {
+                            <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
+                        }
+                        @if (isSystemAdmin)
+                        {
+                            <a class="@NavClass("/Admin/AdminUsers")" asp-page="/Admin/AdminUsers">@NavIcon("shield")@T["Admin accounts and permissions"]</a>
+                        }
                     }
                     @if (User.IsInRole(RoleNames.Teacher))
                     {

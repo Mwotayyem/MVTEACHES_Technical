@@ -1,0 +1,112 @@
+@page
+@model MVTeaches.Web.Pages.Admin.AdminUsersModel
+@{
+    ViewData["Title"] = T["Admin accounts and permissions"].Value;
+}
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Admin accounts and permissions"]</h1>
+        <p class="text-muted">@T["Only a SystemAdmin account can open this page. A plain Admin starts with no permissions at all — grant exactly what each one needs, screen by screen."]</p>
+    </div>
+</div>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<div class="card mb-4" style="max-width: 32rem;">
+    <div class="card-body">
+        <h2 class="card-title h5">@T["Create a new Admin account"]</h2>
+        <p class="text-muted small">@T["Never SystemAdmin — this screen creates a plain Admin only. Who holds SystemAdmin is decided outside this app."]</p>
+        <form method="post" asp-page-handler="CreateAdmin">
+            <div class="mb-3">
+                <label class="form-label" asp-for="NewAdmin.Email">@T["Email"]</label>
+                <input asp-for="NewAdmin.Email" class="form-control" autocomplete="off" />
+                <span asp-validation-for="NewAdmin.Email" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="NewAdmin.Password">@T["Temporary password"]</label>
+                <input asp-for="NewAdmin.Password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="NewAdmin.Password" class="text-danger"></span>
+                <div class="form-text">@T["Tell this password to the new admin through a separate, secure channel — never write it here or in a chat message. They must open \"Change password\" after their first sign-in."]</div>
+            </div>
+            <button type="submit" class="btn btn-primary">@T["Create Admin account"]</button>
+        </form>
+    </div>
+</div>
+
+<h2 class="h5">@T["Existing Admin accounts"]</h2>
+@if (Model.Admins.Count == 0)
+{
+    <p class="text-muted">@T["No plain Admin accounts yet."]</p>
+}
+else
+{
+    @foreach (var admin in Model.Admins)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h3 class="card-title h6">@admin.Email</h3>
+                <form method="post" asp-page-handler="SavePermissions">
+                    <input type="hidden" name="EditingAdminId" value="@admin.Id" />
+
+                    <div class="mb-2">
+                        <strong class="small">@T["Payments"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Payments.View" id="perm-@admin.Id-pv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Payments.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-pv">@T["View payments"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Payments.Confirm" id="perm-@admin.Id-pc"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Payments.Confirm")" />
+                            <label class="form-check-label" for="perm-@admin.Id-pc">@T["Confirm, reject, or record payments"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Payments.Manage" id="perm-@admin.Id-pm"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Payments.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-pm">@T["Manage payment methods"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <strong class="small">@T["Payroll"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Payroll.View" id="perm-@admin.Id-rv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Payroll.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-rv">@T["View payroll"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Payroll.Approve" id="perm-@admin.Id-ra"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Payroll.Approve")" />
+                            <label class="form-check-label" for="perm-@admin.Id-ra">@T["Verify, approve, and close payroll"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong class="small">@T["Subscriptions"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Subscriptions.View" id="perm-@admin.Id-sv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Subscriptions.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-sv">@T["View subscriptions"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Subscriptions.Manage" id="perm-@admin.Id-sm"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Subscriptions.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-sm">@T["Create, purchase, or grant subscriptions"]</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-primary btn-sm">@T["Save permissions"]</button>
+                </form>
+            </div>
+        </div>
+    }
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

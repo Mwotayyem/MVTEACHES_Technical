@@ -2241,4 +2241,88 @@
   <data name="Your password has been changed." xml:space="preserve">
     <value>تم تغيير كلمة مرورك.</value>
   </data>
+  <data name="Access denied" xml:space="preserve">
+    <value>الوصول مرفوض</value>
+  </data>
+  <data name="Your account does not have permission to view this page or perform this action. If you believe this is wrong, ask a SystemAdmin to review your account's permissions." xml:space="preserve">
+    <value>لا يملك حسابك صلاحية مشاهدة هذه الصفحة أو تنفيذ هذا الإجراء. إذا كنت تعتقد أن هذا خطأ، اطلب من SystemAdmin مراجعة صلاحيات حسابك.</value>
+  </data>
+  <data name="Back to home" xml:space="preserve">
+    <value>العودة للرئيسية</value>
+  </data>
+  <data name="Admin accounts and permissions" xml:space="preserve">
+    <value>حسابات الأدمن وصلاحياتهم</value>
+  </data>
+  <data name="Only a SystemAdmin account can open this page. A plain Admin starts with no permissions at all — grant exactly what each one needs, screen by screen." xml:space="preserve">
+    <value>هذه الصفحة يفتحها SystemAdmin فقط. يبدأ الأدمن العادي بلا أي صلاحيات إطلاقًا — امنح كل واحد ما يحتاجه بالضبط، شاشة بشاشة.</value>
+  </data>
+  <data name="Create a new Admin account" xml:space="preserve">
+    <value>إنشاء حساب أدمن جديد</value>
+  </data>
+  <data name="Never SystemAdmin — this screen creates a plain Admin only. Who holds SystemAdmin is decided outside this app." xml:space="preserve">
+    <value>لا يُنشئ SystemAdmin أبدًا — هذه الشاشة تنشئ أدمن عاديًا فقط. من يحمل صلاحية SystemAdmin يُقرَّر خارج هذا التطبيق.</value>
+  </data>
+  <data name="Tell this password to the new admin through a separate, secure channel — never write it here or in a chat message. They must open &quot;Change password&quot; after their first sign-in." xml:space="preserve">
+    <value>أخبر الأدمن الجديد بكلمة المرور هذه عبر قناة آمنة منفصلة — لا تكتبها هنا ولا في رسالة محادثة أبدًا. يجب عليه فتح «تغيير كلمة المرور» بعد أول دخول له.</value>
+  </data>
+  <data name="Create Admin account" xml:space="preserve">
+    <value>إنشاء حساب الأدمن</value>
+  </data>
+  <data name="Existing Admin accounts" xml:space="preserve">
+    <value>حسابات الأدمن الحالية</value>
+  </data>
+  <data name="No plain Admin accounts yet." xml:space="preserve">
+    <value>لا يوجد حسابات أدمن عادية بعد.</value>
+  </data>
+  <data name="View payments" xml:space="preserve">
+    <value>مشاهدة المدفوعات</value>
+  </data>
+  <data name="Confirm, reject, or record payments" xml:space="preserve">
+    <value>تأكيد أو رفض أو تسجيل المدفوعات</value>
+  </data>
+  <data name="Manage payment methods" xml:space="preserve">
+    <value>إدارة طرق الدفع</value>
+  </data>
+  <data name="View payroll" xml:space="preserve">
+    <value>مشاهدة الرواتب</value>
+  </data>
+  <data name="Verify, approve, and close payroll" xml:space="preserve">
+    <value>التحقق من الرواتب واعتمادها وإغلاقها</value>
+  </data>
+  <data name="View subscriptions" xml:space="preserve">
+    <value>مشاهدة الباقات</value>
+  </data>
+  <data name="Create, purchase, or grant subscriptions" xml:space="preserve">
+    <value>إنشاء الباقات أو شراؤها أو منحها</value>
+  </data>
+  <data name="Save permissions" xml:space="preserve">
+    <value>حفظ الصلاحيات</value>
+  </data>
+  <data name="The password must be at least 10 characters." xml:space="preserve">
+    <value>يجب ألا تقل كلمة المرور عن 10 أحرف.</value>
+  </data>
+  <data name="Admin account created for {0} with no permissions yet — grant what they need below. Tell them the temporary password through a separate, secure channel (never this screen or a chat log), and that they must open &quot;Change password&quot; after their first sign-in." xml:space="preserve">
+    <value>تم إنشاء حساب أدمن لـ{0} بلا صلاحيات بعد — امنحه ما يحتاجه أدناه. أخبره بكلمة المرور المؤقتة عبر قناة آمنة منفصلة (وليس هذه الشاشة أو سجل محادثة)، وأنه يجب عليه فتح «تغيير كلمة المرور» بعد أول دخول له.</value>
+  </data>
+  <data name="Account not found." xml:space="preserve">
+    <value>الحساب غير موجود.</value>
+  </data>
+  <data name="Permissions updated. This takes effect on this admin's very next request — they do not need to sign out and back in." xml:space="preserve">
+    <value>تم تحديث الصلاحيات. يسري التحديث من الطلب التالي مباشرة لهذا الأدمن — لا حاجة لتسجيل الخروج والدخول من جديد.</value>
+  </data>
+  <data name="Administration" xml:space="preserve">
+    <value>الإدارة</value>
+  </data>
+  <data name="You have view-only access to payments and cannot record, confirm, or reject any." xml:space="preserve">
+    <value>لديك صلاحية مشاهدة فقط للمدفوعات، ولا يمكنك تسجيل أو تأكيد أو رفض أي دفعة.</value>
+  </data>
+  <data name="You have view-only access to payments and cannot confirm or reject this." xml:space="preserve">
+    <value>لديك صلاحية مشاهدة فقط للمدفوعات، ولا يمكنك تأكيد أو رفض هذه الدفعة.</value>
+  </data>
+  <data name="View only" xml:space="preserve">
+    <value>مشاهدة فقط</value>
+  </data>
+  <data name="You have view-only access to subscriptions — publishing package prices, purchasing, and granting packages are not available to you." xml:space="preserve">
+    <value>لديك صلاحية مشاهدة فقط للباقات — نشر أسعار الباقات وشراؤها ومنحها غير متاح لك.</value>
+  </data>
 </root>

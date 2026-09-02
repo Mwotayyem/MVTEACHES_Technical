@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
@@ -115,6 +116,33 @@ builder.Services
     .AddEntityFrameworkStores<MvTeachesDbContext>()
     .AddDefaultTokenProviders()
     .AddErrorDescriber<MVTeaches.Web.Identity.LocalizedIdentityErrorDescriber>();
+
+// Security review 2026-09-02 (Review Required — Authorization) Stage 1: an
+// admin denied by a permission policy below gets Forbid()'d, and under
+// cookie auth that redirects to AccessDeniedPath — which nothing pointed at
+// a real page before now, so a denial would have landed on a 404. See
+// /Account/AccessDenied.cshtml.
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+
+// PermissionAuthorizationHandler takes a scoped MvTeachesDbContext (it checks
+// AspNetUserClaims live on every request — see its own remarks on why), so
+// it must be registered Scoped, not Singleton: ASP.NET Core resolves
+// authorization handlers from the current request's own service scope,
+// which is exactly what makes this safe.
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    // One policy per Stage 1 permission key, named identically to the key
+    // itself — a page/handler asks for "Admin.Payments.Confirm" and gets
+    // exactly that PermissionRequirement, nothing registered by hand per key.
+    foreach (var key in PermissionKeys.All)
+    {
+        options.AddPolicy(key, policy => policy.Requirements.Add(new PermissionRequirement(key)));
+    }
+});
 
 // Local Staging isolation: a browser cookie's identity is (name, domain,
 // path) — the PORT is not part of it. Running Development and Local

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -52,6 +53,27 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         await EnsureUserAsync(userManager, TeacherEmail, RoleNames.Teacher);
         await EnsureUserAsync(userManager, GuardianEmail, RoleNames.Guardian);
         await EnsureUserAsync(userManager, StudentEmail, RoleNames.Student);
+
+        // Security review 2026-09-02 (Stage 1 admin permissions): this file's
+        // AdminEmail account exercises the FULL Subscriptions and Payments
+        // screens (localization text on every form, plus recording a
+        // payment) — it represents "an ordinary admin using the page", not a
+        // permission-restriction scenario (that is ChangePasswordTests'
+        // sibling, AdminPermissionsTests), so it gets full Stage 1 access to
+        // those two screens rather than View-only. Idempotent, same
+        // reasoning as AuthorizationTests' own copy of this fix.
+        var adminUser = await userManager.FindByEmailAsync(AdminEmail);
+        if (adminUser is not null)
+        {
+            var existingKeys = (await userManager.GetClaimsAsync(adminUser)).Select(c => c.Value).ToHashSet();
+            foreach (var key in new[] { PermissionKeys.PaymentsView, PermissionKeys.PaymentsConfirm, PermissionKeys.SubscriptionsView, PermissionKeys.SubscriptionsManage })
+            {
+                if (!existingKeys.Contains(key))
+                {
+                    await userManager.AddClaimAsync(adminUser, new Claim(PermissionKeys.ClaimType, key));
+                }
+            }
+        }
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

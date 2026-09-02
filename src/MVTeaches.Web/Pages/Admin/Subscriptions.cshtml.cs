@@ -14,6 +14,7 @@ using MVTeaches.Domain.People;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -27,6 +28,7 @@ namespace MVTeaches.Web.Pages.Admin;
 /// /Admin/Payments screen is what confirms the payment that activates it.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.SubscriptionsView)]
 public class SubscriptionsModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
@@ -34,16 +36,18 @@ public class SubscriptionsModel : PageModel
     private readonly IEntitlementBalanceQuery _balances;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly IAuthorizationService _authorizationService;
 
     public SubscriptionsModel(MvTeachesDbContext db, ISubscriptionService subscriptions,
         IEntitlementBalanceQuery balances, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer)
+        IStringLocalizer<SharedResource> localizer, IAuthorizationService authorizationService)
     {
         _db = db;
         _subscriptions = subscriptions;
         _balances = balances;
         _userManager = userManager;
         _localizer = localizer;
+        _authorizationService = authorizationService;
     }
 
     public record PlanRow(long Id, string CountryName, string CourseName, int? LevelId, string? LevelCode,
@@ -167,6 +171,11 @@ public class SubscriptionsModel : PageModel
 
     public async Task<IActionResult> OnPostCreatePlanAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SubscriptionsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewPlan, nameof(NewPlan)))
         {
@@ -187,6 +196,11 @@ public class SubscriptionsModel : PageModel
 
     public async Task<IActionResult> OnPostPurchaseAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SubscriptionsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(Purchase, nameof(Purchase)))
         {
@@ -222,6 +236,11 @@ public class SubscriptionsModel : PageModel
 
     public async Task<IActionResult> OnPostGrantAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SubscriptionsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(Grant, nameof(Grant)))
         {

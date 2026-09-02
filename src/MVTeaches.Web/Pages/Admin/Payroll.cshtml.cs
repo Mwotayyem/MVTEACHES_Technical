@@ -13,6 +13,7 @@ using MVTeaches.Domain.People;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Display;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -26,20 +27,23 @@ namespace MVTeaches.Web.Pages.Admin;
 /// themselves at whatever stage they're in.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.PayrollView)]
 public class PayrollModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly IPayrollService _payroll;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly IAuthorizationService _authorizationService;
 
     public PayrollModel(MvTeachesDbContext db, IPayrollService payroll, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer)
+        IStringLocalizer<SharedResource> localizer, IAuthorizationService authorizationService)
     {
         _db = db;
         _payroll = payroll;
         _userManager = userManager;
         _localizer = localizer;
+        _authorizationService = authorizationService;
     }
 
     public record DeclaredRow(long SessionId, string TeacherName, string SessionLabel, int DeclaredMinutes, string? Note);
@@ -82,6 +86,11 @@ public class PayrollModel : PageModel
 
     public async Task<IActionResult> OnPostVerifyAsync(long sessionId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PayrollApprove) is { } deny)
+        {
+            return deny;
+        }
+
         var verifiedByUserId = long.Parse(_userManager.GetUserId(User)!);
 
         try
@@ -111,6 +120,11 @@ public class PayrollModel : PageModel
 
     public async Task<IActionResult> OnPostRejectAsync(long sessionId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PayrollApprove) is { } deny)
+        {
+            return deny;
+        }
+
         var rejectedByUserId = long.Parse(_userManager.GetUserId(User)!);
         var reason = string.IsNullOrWhiteSpace(RejectReason) ? _localizer["No reason given"].Value : RejectReason;
 
@@ -130,6 +144,11 @@ public class PayrollModel : PageModel
 
     public async Task<IActionResult> OnPostOpenPeriodAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PayrollApprove) is { } deny)
+        {
+            return deny;
+        }
+
         // See StudentsModel's OnPostRegisterGuardianAsync remarks.
         ModelState.Clear();
         if (!TryValidateModel(NewPeriod, nameof(NewPeriod)))
@@ -167,6 +186,11 @@ public class PayrollModel : PageModel
 
     public async Task<IActionResult> OnPostAggregateAsync(long periodId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PayrollApprove) is { } deny)
+        {
+            return deny;
+        }
+
         var created = await _payroll.AggregateVerifiedDeliveriesAsync(periodId, HttpContext.RequestAborted);
         StatusMessage = _localizer["{0} payroll line(s) added.", created].Value;
         await LoadAsync();
@@ -175,6 +199,11 @@ public class PayrollModel : PageModel
 
     public async Task<IActionResult> OnPostMoveToReviewAsync(long periodId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PayrollApprove) is { } deny)
+        {
+            return deny;
+        }
+
         try
         {
             await _payroll.MoveToReviewAsync(periodId, HttpContext.RequestAborted);
@@ -191,6 +220,11 @@ public class PayrollModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(long periodId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PayrollApprove) is { } deny)
+        {
+            return deny;
+        }
+
         var approvedByUserId = long.Parse(_userManager.GetUserId(User)!);
         try
         {
@@ -208,6 +242,11 @@ public class PayrollModel : PageModel
 
     public async Task<IActionResult> OnPostMarkPaidAsync(long periodId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PayrollApprove) is { } deny)
+        {
+            return deny;
+        }
+
         try
         {
             await _payroll.MarkPeriodPaidAsync(periodId, HttpContext.RequestAborted);
@@ -224,6 +263,11 @@ public class PayrollModel : PageModel
 
     public async Task<IActionResult> OnPostCloseAsync(long periodId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PayrollApprove) is { } deny)
+        {
+            return deny;
+        }
+
         try
         {
             await _payroll.ClosePeriodAsync(periodId, HttpContext.RequestAborted);

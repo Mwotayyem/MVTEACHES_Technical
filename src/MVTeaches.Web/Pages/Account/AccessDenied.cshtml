@@ -1,0 +1,10 @@
+@page
+@model MVTeaches.Web.Pages.Account.AccessDeniedModel
+@{
+    ViewData["Title"] = T["Access denied"].Value;
+}
+
+<h1>@T["Access denied"]</h1>
+<p class="text-muted">@T["Your account does not have permission to view this page or perform this action. If you believe this is wrong, ask a SystemAdmin to review your account's permissions."]</p>
+
+<a class="btn btn-outline-secondary btn-sm" asp-page="/Index">@T["Back to home"]</a>

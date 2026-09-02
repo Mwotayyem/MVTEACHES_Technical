@@ -1,8 +1,14 @@
 ﻿@page
 @model MVTeaches.Web.Pages.Admin.PaymentsModel
 @using MVTeaches.Domain.Payments
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Payments"].Value;
+    // Server-side enforcement already lives on OnPostRecordAsync/OnPostConfirmAsync/
+    // OnPostRejectAsync (see Payments.cshtml.cs) — this only hides the forms
+    // for a view-only admin so they are not shown a button that would refuse them.
+    var canConfirm = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsConfirm)).Succeeded;
 }
 
 @functions {
@@ -75,7 +81,7 @@
    option is no longer the path of least resistance: when this student owes on
    a package, that package is stated first, with a button that fills the form
    in for it. *@
-@if (Model.OwedPackagesForFilteredStudent.Count > 0 && Model.CompletingPackage is null)
+@if (Model.OwedPackagesForFilteredStudent.Count > 0 && Model.CompletingPackage is null && canConfirm)
 {
     <div class="app-callout is-warning">
         <div>
@@ -132,6 +138,8 @@
             <h2 class="card-title h5">@T["Record a manual package and payment"]</h2>
             <p class="text-muted small mb-2">@T["Use only for cash, bank transfer, or a correction — not as the routine way a student buys a package."]</p>
         }
+        @if (canConfirm)
+        {
         <form method="post" asp-page-handler="Record" class="row g-3 align-items-start">
             <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
             <div class="col-md-4">
@@ -199,6 +207,11 @@
                 <button type="submit" class="btn btn-primary">@T["Record"]</button>
             </div>
         </form>
+        }
+        else
+        {
+            <p class="text-muted small">@T["You have view-only access to payments and cannot record, confirm, or reject any."]</p>
+        }
     </div>
 </div>
 
@@ -265,6 +278,8 @@
                 {
                     <p class="small"><span class="app-status is-muted">@T["Not against any package"]</span></p>
                 }
+                @if (canConfirm)
+                {
                 <form method="post" asp-page-handler="Confirm" class="row g-2 align-items-end mb-2">
                     <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
                     <input type="hidden" name="paymentId" value="@p.Id" />
@@ -324,6 +339,11 @@
                            placeholder="@T["Reason the payer will read"]" aria-label="@T["Reason the payer will read"]" />
                     <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject / request correction"]</button>
                 </form>
+                }
+                else
+                {
+                    <p class="text-muted small">@T["You have view-only access to payments and cannot confirm or reject this."]</p>
+                }
             </div>
         </div>
     }

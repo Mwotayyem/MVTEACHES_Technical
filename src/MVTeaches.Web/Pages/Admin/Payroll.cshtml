@@ -1,8 +1,14 @@
 ﻿@page
 @model MVTeaches.Web.Pages.Admin.PayrollModel
 @using MVTeaches.Domain.Payroll
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Payroll"].Value;
+    // Server-side enforcement already lives on every OnPost handler in
+    // Payroll.cshtml.cs — this only hides the action forms for a view-only
+    // admin so they are not shown a button that would refuse them.
+    var canApprove = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PayrollApprove)).Succeeded;
 }
 
 @functions {
@@ -72,6 +78,8 @@
                     <td>@T.Minutes(d.DeclaredMinutes)</td>
                     <td>@(string.IsNullOrWhiteSpace(d.Note) ? T["Not specified"].Value : d.Note)</td>
                     <td>
+                        @if (canApprove)
+                        {
                         <div class="d-flex gap-2 flex-wrap align-items-center">
                             <form method="post" asp-page-handler="Verify">
                                 <input type="hidden" name="sessionId" value="@d.SessionId" />
@@ -85,6 +93,11 @@
                                 <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
                             </form>
                         </div>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">@T["View only"]</span>
+                        }
                     </td>
                 </tr>
             }
@@ -103,6 +116,8 @@
     </table>
 </div>
 
+@if (canApprove)
+{
 <div class="card mb-4">
     <div class="card-body">
         <h2 class="card-title h5">@T["Step 2 — open a payroll month"]</h2>
@@ -138,6 +153,7 @@
         </form>
     </div>
 </div>
+}
 
 <h2>@T["Step 3 — payroll months"]</h2>
 <div class="table-responsive">
@@ -163,6 +179,12 @@
                     </td>
                     <td>@T.Money(p.TotalAmount, p.CurrencyCode)</td>
                     <td class="d-flex gap-2 flex-wrap">
+                        @if (!canApprove)
+                        {
+                            <span class="text-muted small">@T["View only"]</span>
+                        }
+                        else
+                        {
                         @if (p.Status == PayrollPeriodStatus.Open)
                         {
                             <form method="post" asp-page-handler="Aggregate">
@@ -197,6 +219,7 @@
                                 <button type="submit" class="btn btn-sm btn-outline-secondary"
                                         data-mv-confirm="@T["Close this period for good?"]">@T["Close"]</button>
                             </form>
+                        }
                         }
                     </td>
                 </tr>
