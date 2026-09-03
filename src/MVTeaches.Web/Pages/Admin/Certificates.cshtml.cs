@@ -8,6 +8,7 @@ using MVTeaches.Application.Certificates;
 using MVTeaches.Domain.Certificates;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -18,19 +19,22 @@ namespace MVTeaches.Web.Pages.Admin;
 /// action; crossing the hour threshold alone never issues a certificate.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.CertificatesView)]
 public class CertificatesModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly ICertificateService _certificates;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuthorizationService _authorizationService;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public CertificatesModel(MvTeachesDbContext db, ICertificateService certificates, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer)
+        IAuthorizationService authorizationService, IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _certificates = certificates;
         _userManager = userManager;
+        _authorizationService = authorizationService;
         _localizer = localizer;
     }
 
@@ -49,6 +53,11 @@ public class CertificatesModel : PageModel
 
     public async Task<IActionResult> OnPostIssueAsync(long studentId, int levelId, long courseId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.CertificatesManage) is { } deny)
+        {
+            return deny;
+        }
+
         var issuedByUserId = long.Parse(_userManager.GetUserId(User)!);
         var result = await _certificates.IssueAsync(studentId, levelId, courseId, issuedByUserId, HttpContext.RequestAborted);
 
@@ -68,6 +77,11 @@ public class CertificatesModel : PageModel
 
     public async Task<IActionResult> OnPostRevokeAsync(long certificateId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.CertificatesManage) is { } deny)
+        {
+            return deny;
+        }
+
         await _certificates.RevokeAsync(certificateId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Certificate revoked."].Value;
         await LoadAsync();

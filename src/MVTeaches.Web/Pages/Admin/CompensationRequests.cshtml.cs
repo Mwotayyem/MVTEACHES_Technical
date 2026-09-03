@@ -9,6 +9,7 @@ using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Display;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -25,19 +26,23 @@ namespace MVTeaches.Web.Pages.Admin;
 /// identical either way.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.CompensationView)]
 public class CompensationRequestsModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly ICompensationRequestService _compensation;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuthorizationService _authorizationService;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public CompensationRequestsModel(MvTeachesDbContext db, ICompensationRequestService compensation,
-        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
+        UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _compensation = compensation;
         _userManager = userManager;
+        _authorizationService = authorizationService;
         _localizer = localizer;
     }
 
@@ -63,6 +68,11 @@ public class CompensationRequestsModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(long requestId, long replacementSessionId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.CompensationManage) is { } deny)
+        {
+            return deny;
+        }
+
         var approvedByUserId = long.Parse(_userManager.GetUserId(User)!);
         var result = await _compensation.ApproveAsync(requestId, replacementSessionId, approvedByUserId, HttpContext.RequestAborted);
 
@@ -89,6 +99,11 @@ public class CompensationRequestsModel : PageModel
 
     public async Task<IActionResult> OnPostRejectAsync(long requestId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.CompensationManage) is { } deny)
+        {
+            return deny;
+        }
+
         var rejectedByUserId = long.Parse(_userManager.GetUserId(User)!);
         var reason = string.IsNullOrWhiteSpace(RejectReason) ? _localizer["No reason given"].Value : RejectReason;
 

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MVTeaches.Domain.Catalog;
+using MVTeaches.Domain.Certificates;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.People;
 using MVTeaches.Domain.Scheduling;
@@ -219,7 +220,73 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         return schedule.Id;
     }
 
-    private static long _idSeed = 80_000_000;
+    /// <summary>Stage 2C: a real Pending CompensationRequest row against a
+    /// seeded student — no real ClassSession is required for
+    /// OriginalSessionId (CompensationRequestConfiguration declares no
+    /// foreign key to class_sessions), since these tests only exercise
+    /// Reject, which never reads the original session.</summary>
+    private async Task<long> SeedCompensationRequestAsync(string label)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+
+        // Unlike SeedStudentAsync's bare (userId: null) student, this one
+        // needs a real linked account: CompensationRequestService.RejectAsync
+        // always notifies the requesting student's own user (self-service
+        // requests only ever come from a real account — see the service's
+        // own remark), so a null UserId would throw before Reject could ever
+        // be reached by a Manage-holding admin's real POST.
+        var userId = await SeedBareUserAsync(db, label);
+        var countryId = await SeedCountryAsync(db);
+        var student = new Student(countryId, $"Permission Test Student {label}", new LocalDate(2005, 1, 1), userId);
+        db.Students.Add(student);
+        await db.SaveChangesAsync();
+
+        var request = new CompensationRequest(student.Id, NextId(), "Permission test", SystemClock.Instance.GetCurrentInstant());
+        db.CompensationRequests.Add(request);
+        await db.SaveChangesAsync();
+        return request.Id;
+    }
+
+    /// <summary>Stage 2C: a real, already-Issued Certificate row against a
+    /// seeded student/level/course — enough for OnPostRevokeAsync to act on,
+    /// without needing the eligibility/progress graph OnPostIssueAsync
+    /// itself would require.</summary>
+    private async Task<long> SeedCertificateAsync(string label)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+
+        var countryId = await SeedCountryAsync(db);
+        var student = new Student(countryId, $"Permission Test Student {label}", new LocalDate(2005, 1, 1), userId: null);
+        db.Students.Add(student);
+        var courseCode = $"PERMTEST-{NextId()}";
+        db.Courses.Add(new Course(courseCode, "دورة", "Course"));
+        var levelId = (int)NextId();
+        db.Levels.Add(new Level(levelId, $"L{levelId}", "مستوى", "Level", levelId));
+        await db.SaveChangesAsync();
+        var courseId = await db.Courses.Where(c => c.Code == courseCode).Select(c => c.Id).FirstAsync();
+
+        var certificate = new Certificate(student.Id, levelId, courseId, $"CERT-PERMTEST-{NextId()}",
+            minutesCompleted: 1800, SystemClock.Instance.GetCurrentInstant(), issuedByUserId: null);
+        db.Certificates.Add(certificate);
+        await db.SaveChangesAsync();
+        return certificate.Id;
+    }
+
+    // Stage 2C note: bumped from the 80_000_000 base every other test file in
+    // this suite copies verbatim (see the TwoLetterCode remark below) to a
+    // distinct range of its own. AgeGroup/Level ids (unlike Country's, which
+    // retries on a real unique-violation) are never retried, so two files
+    // whose per-class counters both start at the exact same literal and
+    // happen to reach the same relative offset can collide on a real
+    // "PK_age_groups"/"PK_levels" violation — not a race (this whole suite
+    // runs one test at a time in DatabaseCollection), a deterministic clash
+    // between two independent counters walking the same numbers. Stage 2C's
+    // three new NextId()-consuming tests shifted this file's own offsets
+    // just enough to land on one such clash; moving this file to its own
+    // range removes it without touching any other file's counter.
+    private static long _idSeed = 830_000_000;
     private static long NextId() => Interlocked.Increment(ref _idSeed);
 
     private static string TwoLetterCode(long seed)
@@ -1056,5 +1123,265 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
 
         // Same client, same cookie, no logout/login in between.
         Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Schedules")).StatusCode);
+    }
+
+    // =================================================================
+    // Stage 2C (2026-09-03, Review Required — Authorization): Compensation,
+    // PlacementTests, and Certificates. Same PermissionAuthorizationHandler,
+    // same live-per-request DB check, same SystemAdmin bypass.
+    // =================================================================
+
+    // ---------------------------------------------------------------
+    // 28. SystemAdmin: sees and acts on Compensation/PlacementTests/
+    // Certificates with ZERO claims.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task SystemAdmin_views_and_manages_compensation_placement_and_certificates_with_zero_permission_claims()
+    {
+        var email = await CreateUserAsync("sa-compensation-placement-certificates", RoleNames.SystemAdmin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/CompensationRequests")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/PlacementTests")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Certificates")).StatusCode);
+
+        var requestId = await SeedCompensationRequestAsync("sa-reject-target");
+        var rejectToken = await GetAntiforgeryTokenAsync(client, "/Admin/CompensationRequests");
+        var rejectResponse = await client.PostAsync("/Admin/CompensationRequests?handler=Reject", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = rejectToken,
+            ["requestId"] = requestId.ToString(),
+            ["RejectReason"] = "Not eligible",
+        }));
+        Assert.Equal(HttpStatusCode.OK, rejectResponse.StatusCode);
+
+        var createVersionToken = await GetAntiforgeryTokenAsync(client, "/Admin/PlacementTests");
+        var createVersionResponse = await client.PostAsync("/Admin/PlacementTests?handler=CreateVersion", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = createVersionToken,
+            ["NewVersion.Title"] = "SystemAdmin Created Version",
+        }));
+        Assert.Equal(HttpStatusCode.OK, createVersionResponse.StatusCode);
+
+        var certificateId = await SeedCertificateAsync("sa-revoke-target");
+        var revokeToken = await GetAntiforgeryTokenAsync(client, "/Admin/Certificates");
+        var revokeResponse = await client.PostAsync("/Admin/Certificates?handler=Revoke", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = revokeToken,
+            ["certificateId"] = certificateId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.OK, revokeResponse.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.Equal(CompensationRequestStatus.Rejected, (await db.CompensationRequests.FirstAsync(r => r.Id == requestId)).Status);
+        Assert.True(await db.PlacementTestVersions.AnyAsync(v => v.Title == "SystemAdmin Created Version"));
+        Assert.Equal(CertificateStatus.Revoked, (await db.Certificates.FirstAsync(c => c.Id == certificateId)).Status);
+    }
+
+    // ---------------------------------------------------------------
+    // 29. Plain Admin, zero claims: forbidden from all three Stage 2C pages.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_no_permission_claims_is_forbidden_from_compensation_placement_and_certificates_pages()
+    {
+        var email = await CreateUserAsync("no-claims-compensation-placement-certificates", RoleNames.Admin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/CompensationRequests")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/PlacementTests")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Certificates")).StatusCode);
+    }
+
+    // ---------------------------------------------------------------
+    // 30. Admin with only Compensation.View: sees the queue, cannot reject,
+    // and a direct POST writes nothing.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_compensation_view_only_sees_the_page_but_cannot_reject_and_writes_nothing()
+    {
+        var email = await CreateUserAsync("compensation-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.CompensationView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var requestId = await SeedCompensationRequestAsync("view-only-reject-target");
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/CompensationRequests")).StatusCode);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/CompensationRequests");
+        var response = await client.PostAsync("/Admin/CompensationRequests?handler=Reject", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["requestId"] = requestId.ToString(),
+            ["RejectReason"] = "Should not apply",
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var stillPending = await db.CompensationRequests.FirstAsync(r => r.Id == requestId);
+        Assert.Equal(CompensationRequestStatus.Pending, stillPending.Status); // Reject never touched it
+    }
+
+    // ---------------------------------------------------------------
+    // 31. Admin with Compensation.View + Compensation.Manage: can actually
+    // reject a real request.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_compensation_manage_can_reject_a_request()
+    {
+        var email = await CreateUserAsync("compensation-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.CompensationView, PermissionKeys.CompensationManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var requestId = await SeedCompensationRequestAsync("manage-reject-target");
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/CompensationRequests");
+        var response = await client.PostAsync("/Admin/CompensationRequests?handler=Reject", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["requestId"] = requestId.ToString(),
+            ["RejectReason"] = "Not eligible",
+        }));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var rejected = await db.CompensationRequests.FirstAsync(r => r.Id == requestId);
+        Assert.Equal(CompensationRequestStatus.Rejected, rejected.Status);
+    }
+
+    // ---------------------------------------------------------------
+    // 32. Admin with only PlacementTests.View: sees the tests, cannot create
+    // a draft, and a direct POST writes nothing.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_placementtests_view_only_sees_the_page_but_cannot_create_a_version()
+    {
+        var email = await CreateUserAsync("placementtests-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.PlacementTestsView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/PlacementTests")).StatusCode);
+
+        var title = $"Should not be created {Guid.NewGuid():N}";
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/PlacementTests");
+        var response = await client.PostAsync("/Admin/PlacementTests?handler=CreateVersion", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["NewVersion.Title"] = title,
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.False(await db.PlacementTestVersions.AnyAsync(v => v.Title == title));
+    }
+
+    // ---------------------------------------------------------------
+    // 33. Admin with PlacementTests.View + PlacementTests.Manage: can
+    // actually create a draft version through the real handler.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_placementtests_manage_can_create_a_version()
+    {
+        var email = await CreateUserAsync("placementtests-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.PlacementTestsView, PermissionKeys.PlacementTestsManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var title = $"Manage Test Version {Guid.NewGuid():N}";
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/PlacementTests");
+        var response = await client.PostAsync("/Admin/PlacementTests?handler=CreateVersion", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["NewVersion.Title"] = title,
+        }));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.True(await db.PlacementTestVersions.AnyAsync(v => v.Title == title));
+    }
+
+    // ---------------------------------------------------------------
+    // 34. Admin with only Certificates.View: sees progress and issued
+    // certificates, cannot revoke, and a direct POST writes nothing.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_certificates_view_only_sees_the_page_but_cannot_revoke_and_writes_nothing()
+    {
+        var email = await CreateUserAsync("certificates-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.CertificatesView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var certificateId = await SeedCertificateAsync("view-only-revoke-target");
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Certificates")).StatusCode);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Certificates");
+        var response = await client.PostAsync("/Admin/Certificates?handler=Revoke", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["certificateId"] = certificateId.ToString(),
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var stillIssued = await db.Certificates.FirstAsync(c => c.Id == certificateId);
+        Assert.Equal(CertificateStatus.Issued, stillIssued.Status); // Revoke never touched it
+    }
+
+    // ---------------------------------------------------------------
+    // 35. Admin with Certificates.View + Certificates.Manage: can actually
+    // revoke a real certificate through the real handler.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_certificates_manage_can_revoke_a_certificate()
+    {
+        var email = await CreateUserAsync("certificates-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.CertificatesView, PermissionKeys.CertificatesManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var certificateId = await SeedCertificateAsync("manage-revoke-target");
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Certificates");
+        var response = await client.PostAsync("/Admin/Certificates?handler=Revoke", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["certificateId"] = certificateId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var revoked = await db.Certificates.FirstAsync(c => c.Id == certificateId);
+        Assert.Equal(CertificateStatus.Revoked, revoked.Status);
+    }
+
+    // ---------------------------------------------------------------
+    // 36. Revoking Compensation.View takes effect on the very next request,
+    // with no logout/login.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Revoking_compensation_view_blocks_the_very_next_request_with_no_relogin()
+    {
+        var email = await CreateUserAsync("revoke-compensation-target", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.CompensationView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/CompensationRequests")).StatusCode);
+
+        await RevokeAsync(email, PermissionKeys.CompensationView);
+
+        // Same client, same cookie, no logout/login in between.
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/CompensationRequests")).StatusCode);
     }
 }

@@ -17,12 +17,13 @@ namespace MVTeaches.Infrastructure.Identity;
 /// screens (Payments, Payroll, Subscriptions). Stage 2A (2026-09-03, Review
 /// Required — Authorization) added Students/StudentDetails/AssistedRegistration
 /// and the Student Notes written-record feature inside StudentDetails. Stage
-/// 2B (2026-09-03, same day, same classification) adds
-/// Teachers/Schedules/RescheduleSessions — see each key's own remarks below.
-/// Every other admin page (Compensation, Certificates, PlacementTests,
-/// Posters, Dashboard) remains UNCHANGED and keeps allowing any
-/// Admin/SystemAdmin account, exactly as before — see the prior
-/// permissions-audit report for the full design across every admin screen.
+/// 2B (2026-09-03, same day, same classification) added
+/// Teachers/Schedules/RescheduleSessions. Stage 2C (2026-09-03, same day,
+/// same classification) adds Compensation/PlacementTests/Certificates — see
+/// each key's own remarks below. Every other admin page (Posters, Reports,
+/// Dashboard) remains UNCHANGED and keeps allowing any Admin/SystemAdmin
+/// account, exactly as before — see the prior permissions-audit report for
+/// the full design across every admin screen.
 ///
 /// Each key is stored as an <see cref="System.Security.Claims.Claim"/> with
 /// <see cref="ClaimType"/> as its type and one of these strings as its
@@ -140,6 +141,46 @@ public static class PermissionKeys
     /// reached from a different page.</summary>
     public const string SchedulesManage = "Admin.Schedules.Manage";
 
+    /// <summary>
+    /// Stage 2C (2026-09-03, Review Required — Authorization): covers
+    /// /Admin/CompensationRequests' GET — the queue of student-submitted
+    /// replacement requests, with each pending request's candidate
+    /// replacement sessions and recently-resolved history, all read-only.
+    /// </summary>
+    public const string CompensationView = "Admin.Compensation.View";
+
+    /// <summary>Covers CompensationRequests.cshtml.cs's two mutating
+    /// handlers: approving a replacement request (which claims a seat on the
+    /// chosen session) and rejecting one.</summary>
+    public const string CompensationManage = "Admin.Compensation.Manage";
+
+    /// <summary>
+    /// Stage 2C (2026-09-03, Review Required — Authorization): covers
+    /// /Admin/PlacementTests' GET — the list of test versions, an opened
+    /// version's questions/choices and score ranges, and the pending retake
+    /// requests queue, all read-only.
+    /// </summary>
+    public const string PlacementTestsView = "Admin.PlacementTests.View";
+
+    /// <summary>Covers every mutating handler on PlacementTests.cshtml.cs:
+    /// creating a draft version, adding/removing a question, adding/removing
+    /// a score range, publishing a version, activating a published version,
+    /// and approving or rejecting a retake request.</summary>
+    public const string PlacementTestsManage = "Admin.PlacementTests.Manage";
+
+    /// <summary>
+    /// Stage 2C (2026-09-03, Review Required — Authorization): covers
+    /// /Admin/Certificates' GET — each student's live progress toward a
+    /// certificate and the list of certificates already issued, all
+    /// read-only. Progress itself is never snapshotted (D-30/D-51); this key
+    /// only gates who may look at it.
+    /// </summary>
+    public const string CertificatesView = "Admin.Certificates.View";
+
+    /// <summary>Covers Certificates.cshtml.cs's two mutating handlers:
+    /// issuing a certificate and revoking one.</summary>
+    public const string CertificatesManage = "Admin.Certificates.Manage";
+
     /// <summary>Every key, in the order shown on /Admin/AdminUsers — the
     /// single list both the permission-policy registration loop in
     /// Program.cs and the AdminUsers editing screen iterate, so a key can
@@ -153,5 +194,8 @@ public static class PermissionKeys
         StudentNotesView, StudentNotesManage,
         TeachersView, TeachersManage,
         SchedulesView, SchedulesManage,
+        CompensationView, CompensationManage,
+        PlacementTestsView, PlacementTestsManage,
+        CertificatesView, CertificatesManage,
     };
 }

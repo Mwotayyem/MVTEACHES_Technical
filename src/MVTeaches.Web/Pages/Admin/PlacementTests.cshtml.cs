@@ -10,6 +10,7 @@ using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Placement;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 
 namespace MVTeaches.Web.Pages.Admin;
@@ -26,19 +27,22 @@ namespace MVTeaches.Web.Pages.Admin;
 /// (possibly multiple) validation errors.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.PlacementTestsView)]
 public class PlacementTestsModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly IPlacementTestAdminService _admin;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuthorizationService _authorizationService;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public PlacementTestsModel(MvTeachesDbContext db, IPlacementTestAdminService admin, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer)
+        IAuthorizationService authorizationService, IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _admin = admin;
         _userManager = userManager;
+        _authorizationService = authorizationService;
         _localizer = localizer;
     }
 
@@ -184,6 +188,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostCreateVersionAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewVersion, nameof(NewVersion)))
         {
@@ -201,6 +210,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostAddQuestionAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewQuestion, nameof(NewQuestion)))
         {
@@ -255,6 +269,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostRemoveQuestionAsync(long questionId, long versionId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         await _admin.RemoveQuestionAsync(questionId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Question removed."].Value;
         await LoadAsync(versionId);
@@ -263,6 +282,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostAddScoreRangeAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewScoreRange, nameof(NewScoreRange)))
         {
@@ -305,6 +329,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostRemoveScoreRangeAsync(long scoreRangeId, long versionId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         await _admin.RemoveScoreRangeAsync(scoreRangeId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Score range removed."].Value;
         await LoadAsync(versionId);
@@ -313,6 +342,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostPublishAsync(long versionId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         var actingUserId = GetCurrentUserId();
         var result = await _admin.PublishAsync(versionId, actingUserId, HttpContext.RequestAborted);
 
@@ -338,6 +372,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostActivateAsync(long versionId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         var result = await _admin.ActivateAsync(versionId, HttpContext.RequestAborted);
         StatusMessage = result == ActivateOutcome.Activated ? _localizer["Version activated — new attempts will use it."].Value : null;
         ErrorMessage = result switch
@@ -353,6 +392,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostApproveRetakeAsync(long retakeRequestId, string? reason)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         var actingUserId = GetCurrentUserId();
         var result = await _admin.ApproveRetakeAsync(retakeRequestId, actingUserId, reason, HttpContext.RequestAborted);
         StatusMessage = result == RetakeDecisionOutcome.Decided ? _localizer["Retake approved."].Value : null;
@@ -364,6 +408,11 @@ public class PlacementTestsModel : PageModel
 
     public async Task<IActionResult> OnPostRejectRetakeAsync(long retakeRequestId, string reason)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PlacementTestsManage) is { } deny)
+        {
+            return deny;
+        }
+
         var actingUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(reason))
         {

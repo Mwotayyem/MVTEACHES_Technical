@@ -2370,4 +2370,34 @@
   <data name="Create, enroll, cancel, reassign, pause/resume, reschedule, and approve make-up lessons" xml:space="preserve">
     <value>إنشاء الحصص وتسجيل الطلاب فيها وإلغاؤها ونقلها لمعلم آخر وإيقافها/استئنافها، ونقل الحصص واعتماد الحصص التعويضية</value>
   </data>
+  <data name="Compensation" xml:space="preserve">
+    <value>التعويضات</value>
+  </data>
+  <data name="View make-up (compensation) requests" xml:space="preserve">
+    <value>عرض طلبات التعويض (الحصص البديلة)</value>
+  </data>
+  <data name="Approve or reject a make-up (compensation) request" xml:space="preserve">
+    <value>قبول أو رفض طلب تعويض (حصة بديلة)</value>
+  </data>
+  <data name="View placement tests, questions, score bands, and retake requests" xml:space="preserve">
+    <value>عرض اختبارات تحديد المستوى، الأسئلة، نطاقات الدرجات، وطلبات إعادة الاختبار</value>
+  </data>
+  <data name="Create, edit, publish, or activate a placement test, and decide retake requests" xml:space="preserve">
+    <value>إنشاء أو تعديل أو نشر أو تفعيل اختبار تحديد المستوى، والبت في طلبات إعادة الاختبار</value>
+  </data>
+  <data name="View student progress and issued certificates" xml:space="preserve">
+    <value>عرض تقدّم الطلاب والشهادات الصادرة</value>
+  </data>
+  <data name="Issue or revoke a certificate" xml:space="preserve">
+    <value>إصدار أو إلغاء شهادة</value>
+  </data>
+  <data name="You have view-only access to make-up requests and cannot approve or reject this one." xml:space="preserve">
+    <value>لديك صلاحية عرض فقط لطلبات التعويض، ولا يمكنك قبول أو رفض هذا الطلب.</value>
+  </data>
+  <data name="You have view-only access to placement tests and cannot create, edit, publish, or activate one." xml:space="preserve">
+    <value>لديك صلاحية عرض فقط لاختبارات تحديد المستوى، ولا يمكنك إنشاء أو تعديل أو نشر أو تفعيل أي اختبار.</value>
+  </data>
+  <data name="You have view-only access to placement tests and cannot add, edit, or delete a question or score band." xml:space="preserve">
+    <value>لديك صلاحية عرض فقط لاختبارات تحديد المستوى، ولا يمكنك إضافة أو تعديل أو حذف سؤال أو نطاق درجات.</value>
+  </data>
 </root>

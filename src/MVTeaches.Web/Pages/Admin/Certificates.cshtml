@@ -1,7 +1,11 @@
 ﻿@page
 @model MVTeaches.Web.Pages.Admin.CertificatesModel
+@using Microsoft.AspNetCore.Authorization
+@using MVTeaches.Infrastructure.Identity
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Certificates"].Value;
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.CertificatesManage)).Succeeded;
 }
 
 <h1>@T["Certificates"]</h1>
@@ -50,7 +54,7 @@
                         {
                             <span class="text-muted">@T["Already issued"]</span>
                         }
-                        else if (p.IsEligible)
+                        else if (p.IsEligible && canManage)
                         {
                             <form method="post" asp-page-handler="Issue">
                                 <input type="hidden" name="studentId" value="@p.StudentId" />
@@ -58,6 +62,10 @@
                                 <input type="hidden" name="courseId" value="@p.CourseId" />
                                 <button type="submit" class="btn btn-sm btn-success">@T["Issue"]</button>
                             </form>
+                        }
+                        else if (p.IsEligible)
+                        {
+                            <span class="text-muted small">@T["View only"]</span>
                         }
                     </td>
                 </tr>
@@ -86,13 +94,17 @@
                     <td>@c.LevelCode</td>
                     <td>@T["CertificateStatus." + c.Status]</td>
                     <td>
-                        @if (c.Status == MVTeaches.Domain.Certificates.CertificateStatus.Issued)
+                        @if (c.Status == MVTeaches.Domain.Certificates.CertificateStatus.Issued && canManage)
                         {
                             <form method="post" asp-page-handler="Revoke">
                                 <input type="hidden" name="certificateId" value="@c.Id" />
                                 <button type="submit" class="btn btn-sm btn-outline-danger"
                                         data-mv-confirm="@T["Revoke this certificate?"]">@T["Revoke"]</button>
                             </form>
+                        }
+                        else if (c.Status == MVTeaches.Domain.Certificates.CertificateStatus.Issued)
+                        {
+                            <span class="text-muted small">@T["View only"]</span>
                         }
                     </td>
                 </tr>

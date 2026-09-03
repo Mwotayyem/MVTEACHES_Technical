@@ -1,8 +1,12 @@
 ﻿@page
 @model MVTeaches.Web.Pages.Admin.CompensationRequestsModel
 @using MVTeaches.Domain.Scheduling
+@using Microsoft.AspNetCore.Authorization
+@using MVTeaches.Infrastructure.Identity
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Compensation Requests"].Value;
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.CompensationManage)).Succeeded;
 }
 
 @functions {
@@ -70,51 +74,58 @@
                     <dd class="col-sm-9">@T.DateTimeUtc(r.RequestedAtUtc)</dd>
                 </dl>
 
-                <div class="row g-3">
-                    <div class="col-lg-7">
-                        @if (r.CandidateReplacementSessions.Count == 0)
-                        {
-                            @* Nothing can be approved into, so neither the empty
-                               picker nor the button that needs it is shown at all —
-                               an "choose…" list with no choices in it, beside a
-                               button that can only fail, told the admin nothing. *@
-                            <div class="app-empty text-start">
-                                <strong>@T["This request cannot be approved yet."]</strong>
-                                <span>@T["There is no upcoming lesson at this student's level with a free seat. Add one, then come back — the request stays here waiting."]</span>
-                                <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Schedules">@T["Open schedules"]</a></span>
-                            </div>
-                        }
-                        else
-                        {
-                            <form method="post" asp-page-handler="Approve" class="d-flex gap-2 flex-wrap align-items-end">
+                @if (!canManage)
+                {
+                    <p class="text-muted small mb-0">@T["You have view-only access to make-up requests and cannot approve or reject this one."]</p>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        <div class="col-lg-7">
+                            @if (r.CandidateReplacementSessions.Count == 0)
+                            {
+                                @* Nothing can be approved into, so neither the empty
+                                   picker nor the button that needs it is shown at all —
+                                   an "choose…" list with no choices in it, beside a
+                                   button that can only fail, told the admin nothing. *@
+                                <div class="app-empty text-start">
+                                    <strong>@T["This request cannot be approved yet."]</strong>
+                                    <span>@T["There is no upcoming lesson at this student's level with a free seat. Add one, then come back — the request stays here waiting."]</span>
+                                    <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Schedules">@T["Open schedules"]</a></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Approve" class="d-flex gap-2 flex-wrap align-items-end">
+                                    <input type="hidden" name="requestId" value="@r.RequestId" />
+                                    <div class="flex-grow-1">
+                                        <label class="form-label small mb-0" for="replacement-@r.RequestId">@T["Which lesson do they get instead?"]<span class="app-required">*</span></label>
+                                        <select id="replacement-@r.RequestId" name="replacementSessionId" class="form-select form-select-sm" required>
+                                            <option value="">@T["Select placeholder"]</option>
+                                            @foreach (var opt in r.CandidateReplacementSessions)
+                                            {
+                                                <option value="@opt.Id">@opt.Label</option>
+                                            }
+                                        </select>
+                                        <div class="form-text">@T["Only upcoming lessons at this student's own level, with a free seat."]</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-primary"
+                                            data-mv-confirm="@T["Enrol this student into that lesson for free? Their missed lesson stays as it is."]">@T["Approve"]</button>
+                                </form>
+                            }
+                        </div>
+                        <div class="col-lg-5">
+                            <form method="post" asp-page-handler="Reject" class="d-flex gap-2 flex-wrap align-items-end">
                                 <input type="hidden" name="requestId" value="@r.RequestId" />
                                 <div class="flex-grow-1">
-                                    <label class="form-label small mb-0" for="replacement-@r.RequestId">@T["Which lesson do they get instead?"]<span class="app-required">*</span></label>
-                                    <select id="replacement-@r.RequestId" name="replacementSessionId" class="form-select form-select-sm" required>
-                                        <option value="">@T["Select placeholder"]</option>
-                                        @foreach (var opt in r.CandidateReplacementSessions)
-                                        {
-                                            <option value="@opt.Id">@opt.Label</option>
-                                        }
-                                    </select>
-                                    <div class="form-text">@T["Only upcoming lessons at this student's own level, with a free seat."]</div>
+                                    <label class="form-label small mb-0" for="reject-@r.RequestId">@T["Reason the student will read"]<span class="app-required">*</span></label>
+                                    <input type="text" id="reject-@r.RequestId" name="RejectReason" class="form-control form-control-sm" />
                                 </div>
-                                <button type="submit" class="btn btn-sm btn-primary"
-                                        data-mv-confirm="@T["Enrol this student into that lesson for free? Their missed lesson stays as it is."]">@T["Approve"]</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
                             </form>
-                        }
+                        </div>
                     </div>
-                    <div class="col-lg-5">
-                        <form method="post" asp-page-handler="Reject" class="d-flex gap-2 flex-wrap align-items-end">
-                            <input type="hidden" name="requestId" value="@r.RequestId" />
-                            <div class="flex-grow-1">
-                                <label class="form-label small mb-0" for="reject-@r.RequestId">@T["Reason the student will read"]<span class="app-required">*</span></label>
-                                <input type="text" id="reject-@r.RequestId" name="RejectReason" class="form-control form-control-sm" />
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject"]</button>
-                        </form>
-                    </div>
-                </div>
+                }
             </div>
         </div>
     }

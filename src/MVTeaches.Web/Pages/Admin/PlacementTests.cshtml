@@ -1,10 +1,14 @@
 @page
 @model MVTeaches.Web.Pages.Admin.PlacementTestsModel
 @using MVTeaches.Domain.Placement
+@using Microsoft.AspNetCore.Authorization
+@using MVTeaches.Infrastructure.Identity
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Placement Tests"].Value;
     var editingQuestion = Model.EditingQuestionId is not null;
     var editingRange = Model.EditingScoreRangeId is not null;
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PlacementTestsManage)).Succeeded;
 }
 
 @functions {
@@ -69,21 +73,28 @@
     </div>
 }
 
-<div class="card mb-4">
-    <div class="card-body">
-        <h2 class="card-title h5">@T["Start a new draft test"]</h2>
-        <form method="post" asp-page-handler="CreateVersion" class="row g-2 align-items-end">
-            <div class="col-md-8">
-                <label class="form-label" asp-for="NewVersion.Title">@T["Name it so you can tell versions apart"]<span class="app-required">*</span></label>
-                <input asp-for="NewVersion.Title" class="form-control" placeholder="@T["e.g. English Placement v3"]" />
-                <span asp-validation-for="NewVersion.Title" class="text-danger small"></span>
-            </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-primary">@T["Create draft"]</button>
-            </div>
-        </form>
+@if (canManage)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title h5">@T["Start a new draft test"]</h2>
+            <form method="post" asp-page-handler="CreateVersion" class="row g-2 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label" asp-for="NewVersion.Title">@T["Name it so you can tell versions apart"]<span class="app-required">*</span></label>
+                    <input asp-for="NewVersion.Title" class="form-control" placeholder="@T["e.g. English Placement v3"]" />
+                    <span asp-validation-for="NewVersion.Title" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">@T["Create draft"]</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
+}
+else
+{
+    <p class="text-muted">@T["You have view-only access to placement tests and cannot create, edit, publish, or activate one."]</p>
+}
 
 <h2>@T["Tests"]</h2>
 <div class="table-responsive mb-4">
@@ -110,7 +121,7 @@
                             <a asp-page="/Admin/PlacementTests" asp-route-versionId="@v.Id" class="btn btn-sm btn-outline-primary">
                                 @(v.Status == PlacementTestStatus.Draft ? T["Open and edit"].Value : T["Open"].Value)
                             </a>
-                            @if (v.Status == PlacementTestStatus.Draft)
+                            @if (canManage && v.Status == PlacementTestStatus.Draft)
                             {
                                 <form method="post" asp-page-handler="Publish" class="d-inline">
                                     <input type="hidden" name="versionId" value="@v.Id" />
@@ -118,7 +129,7 @@
                                             data-mv-confirm="@T["Publish this test? Its questions can never be changed again."]">@T["Publish"]</button>
                                 </form>
                             }
-                            @if (v.Status == PlacementTestStatus.Published && !v.IsActive)
+                            @if (canManage && v.Status == PlacementTestStatus.Published && !v.IsActive)
                             {
                                 <form method="post" asp-page-handler="Activate" class="d-inline">
                                     <input type="hidden" name="versionId" value="@v.Id" />
@@ -154,7 +165,11 @@
         <div class="alert alert-info">@T["This test is published, so its questions and score bands are frozen. To change anything, create a new draft."]</div>
     }
 
-    @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
+    @if (Model.EditingVersion.Status == PlacementTestStatus.Draft && !canManage)
+    {
+        <p class="text-muted">@T["You have view-only access to placement tests and cannot add, edit, or delete a question or score band."]</p>
+    }
+    @if (Model.EditingVersion.Status == PlacementTestStatus.Draft && canManage)
     {
         <div class="card mb-3" id="question-form">
             <div class="card-body">
@@ -301,7 +316,7 @@
                             }
                         </td>
                         <td>
-                            @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
+                            @if (canManage && Model.EditingVersion.Status == PlacementTestStatus.Draft)
                             {
                                 <div class="d-flex gap-1 flex-wrap">
                                     <a class="btn btn-sm btn-outline-primary"
@@ -345,7 +360,7 @@
                         <td>@r.MaxScore</td>
                         <td>@Model.LevelCode(r.LevelId)</td>
                         <td>
-                            @if (Model.EditingVersion.Status == PlacementTestStatus.Draft)
+                            @if (canManage && Model.EditingVersion.Status == PlacementTestStatus.Draft)
                             {
                                 <div class="d-flex gap-1 flex-wrap">
                                     <a class="btn btn-sm btn-outline-primary"
@@ -390,21 +405,28 @@
                     <td>@Model.StudentNamesById.GetValueOrDefault(r.StudentId, T["Not specified"].Value)</td>
                     <td>@T.DateTimeUtc(r.RequestedAtUtc)</td>
                     <td>
-                        <div class="d-flex gap-2 flex-wrap align-items-end">
-                            <form method="post" asp-page-handler="ApproveRetake">
-                                <input type="hidden" name="retakeRequestId" value="@r.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-success"
-                                        data-mv-confirm="@T["Let this student sit the test again?"]">@T["Allow it"]</button>
-                            </form>
-                            <form method="post" asp-page-handler="RejectRetake" class="d-flex gap-1 align-items-end">
-                                <input type="hidden" name="retakeRequestId" value="@r.Id" />
-                                <div>
-                                    <label class="form-label small mb-0" for="retakeReason-@r.Id">@T["Reason the student will read"]<span class="app-required">*</span></label>
-                                    <input type="text" id="retakeReason-@r.Id" name="reason" class="form-control form-control-sm" style="width:16rem" />
-                                </div>
-                                <button type="submit" class="btn btn-sm btn-outline-danger">@T["Refuse"]</button>
-                            </form>
-                        </div>
+                        @if (!canManage)
+                        {
+                            <span class="text-muted small">@T["View only"]</span>
+                        }
+                        else
+                        {
+                            <div class="d-flex gap-2 flex-wrap align-items-end">
+                                <form method="post" asp-page-handler="ApproveRetake">
+                                    <input type="hidden" name="retakeRequestId" value="@r.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success"
+                                            data-mv-confirm="@T["Let this student sit the test again?"]">@T["Allow it"]</button>
+                                </form>
+                                <form method="post" asp-page-handler="RejectRetake" class="d-flex gap-1 align-items-end">
+                                    <input type="hidden" name="retakeRequestId" value="@r.Id" />
+                                    <div>
+                                        <label class="form-label small mb-0" for="retakeReason-@r.Id">@T["Reason the student will read"]<span class="app-required">*</span></label>
+                                        <input type="text" id="retakeReason-@r.Id" name="reason" class="form-control form-control-sm" style="width:16rem" />
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["Refuse"]</button>
+                                </form>
+                            </div>
+                        }
                     </td>
                 </tr>
             }

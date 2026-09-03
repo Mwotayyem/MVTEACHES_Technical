@@ -156,6 +156,48 @@ else
                         </div>
                     </div>
 
+                    <div class="mb-2">
+                        <strong class="small">@T["Compensation"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Compensation.View" id="perm-@admin.Id-cov"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Compensation.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-cov">@T["View make-up (compensation) requests"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Compensation.Manage" id="perm-@admin.Id-com"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Compensation.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-com">@T["Approve or reject a make-up (compensation) request"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <strong class="small">@T["Placement Tests"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.PlacementTests.View" id="perm-@admin.Id-ptv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.PlacementTests.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-ptv">@T["View placement tests, questions, score bands, and retake requests"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.PlacementTests.Manage" id="perm-@admin.Id-ptm"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.PlacementTests.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-ptm">@T["Create, edit, publish, or activate a placement test, and decide retake requests"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong class="small">@T["Certificates"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Certificates.View" id="perm-@admin.Id-crv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Certificates.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-crv">@T["View student progress and issued certificates"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Certificates.Manage" id="perm-@admin.Id-crm"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Certificates.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-crm">@T["Issue or revoke a certificate"]</label>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-outline-primary btn-sm">@T["Save permissions"]</button>
                 </form>
             </div>

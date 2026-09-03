@@ -2370,4 +2370,34 @@
   <data name="Create, enroll, cancel, reassign, pause/resume, reschedule, and approve make-up lessons" xml:space="preserve">
     <value>Create, enroll, cancel, reassign, pause/resume, reschedule, and approve make-up lessons</value>
   </data>
+  <data name="Compensation" xml:space="preserve">
+    <value>Compensation</value>
+  </data>
+  <data name="View make-up (compensation) requests" xml:space="preserve">
+    <value>View make-up (compensation) requests</value>
+  </data>
+  <data name="Approve or reject a make-up (compensation) request" xml:space="preserve">
+    <value>Approve or reject a make-up (compensation) request</value>
+  </data>
+  <data name="View placement tests, questions, score bands, and retake requests" xml:space="preserve">
+    <value>View placement tests, questions, score bands, and retake requests</value>
+  </data>
+  <data name="Create, edit, publish, or activate a placement test, and decide retake requests" xml:space="preserve">
+    <value>Create, edit, publish, or activate a placement test, and decide retake requests</value>
+  </data>
+  <data name="View student progress and issued certificates" xml:space="preserve">
+    <value>View student progress and issued certificates</value>
+  </data>
+  <data name="Issue or revoke a certificate" xml:space="preserve">
+    <value>Issue or revoke a certificate</value>
+  </data>
+  <data name="You have view-only access to make-up requests and cannot approve or reject this one." xml:space="preserve">
+    <value>You have view-only access to make-up requests and cannot approve or reject this one.</value>
+  </data>
+  <data name="You have view-only access to placement tests and cannot create, edit, publish, or activate one." xml:space="preserve">
+    <value>You have view-only access to placement tests and cannot create, edit, publish, or activate one.</value>
+  </data>
+  <data name="You have view-only access to placement tests and cannot add, edit, or delete a question or score band." xml:space="preserve">
+    <value>You have view-only access to placement tests and cannot add, edit, or delete a question or score band.</value>
+  </data>
 </root>
