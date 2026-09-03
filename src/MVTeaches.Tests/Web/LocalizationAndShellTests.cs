@@ -76,14 +76,22 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         // and FinancialReport.Manage, since
         // An_operating_expense_submitted_from_an_arabic_language_page_...
         // POSTs RecordExpense and expects 200 OK — all of which only a
-        // Manage-holding admin can reach. Idempotent, same reasoning as
-        // AuthorizationTests' own copy of this fix.
+        // Manage-holding admin can reach. Also Dashboard.View: root-redirect
+        // fix (2026-09-03, follows Stage 2D) made `/`'s landing page
+        // permission-aware — Authenticated_root_redirects_to_the_role_workspace
+        // expects THIS ordinary full-access admin to land on
+        // /Admin/Dashboard specifically, which now requires holding that key
+        // (previously root always redirected Admin/SystemAdmin to Dashboard
+        // unconditionally, so no key was needed for that assertion to hold).
+        // Idempotent, same reasoning as AuthorizationTests' own copy of this
+        // fix.
         var adminUser = await userManager.FindByEmailAsync(AdminEmail);
         if (adminUser is not null)
         {
             var existingKeys = (await userManager.GetClaimsAsync(adminUser)).Select(c => c.Value).ToHashSet();
             foreach (var key in new[]
             {
+                PermissionKeys.DashboardView,
                 PermissionKeys.PaymentsView, PermissionKeys.PaymentsConfirm,
                 PermissionKeys.SubscriptionsView, PermissionKeys.SubscriptionsManage,
                 PermissionKeys.StudentsView, PermissionKeys.StudentsManage,

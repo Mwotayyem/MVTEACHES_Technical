@@ -1651,4 +1651,94 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         // Same client, same cookie, no logout/login in between.
         Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Dashboard")).StatusCode);
     }
+
+    // =================================================================
+    // Root-redirect fix (2026-09-03, Review Required — Authorization,
+    // follows Stage 2D): `/` used to send every Admin/SystemAdmin
+    // unconditionally to /Admin/Dashboard, regardless of Dashboard.View —
+    // an owner-reported UX/routing bug found during the Local Staging
+    // permission check. Index.cshtml.cs now tries each admin screen's own
+    // View key in a fixed priority order (Dashboard first) via the SAME
+    // AuthorizationService.AuthorizeAsync mechanism every other permission
+    // check in the app already uses, and lands on the first one this
+    // specific account actually holds. These tests exercise that new
+    // landing logic — a pure routing change, no new permission key, no
+    // change to what any single page itself requires.
+    // =================================================================
+
+    [Fact]
+    public async Task SystemAdmin_opening_root_lands_on_dashboard_with_zero_permission_claims()
+    {
+        var email = await CreateUserAsync("sa-root-redirect", RoleNames.SystemAdmin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var response = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/Admin/Dashboard", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task Admin_with_dashboard_view_opening_root_lands_on_dashboard()
+    {
+        var email = await CreateUserAsync("root-redirect-dashboard-view", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.DashboardView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var response = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/Admin/Dashboard", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task Admin_with_only_payments_permissions_opening_root_lands_on_payments_not_access_denied()
+    {
+        var email = await CreateUserAsync("root-redirect-payments-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.PaymentsView, PermissionKeys.PaymentsConfirm);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var response = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/Admin/Payments", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task Admin_with_only_students_view_opening_root_lands_on_students()
+    {
+        var email = await CreateUserAsync("root-redirect-students-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var response = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/Admin/Students", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task Admin_with_no_permission_claims_opening_root_lands_on_access_denied()
+    {
+        var email = await CreateUserAsync("root-redirect-no-claims", RoleNames.Admin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var response = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/Account/AccessDenied", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task Revoking_dashboard_view_moves_the_root_redirect_to_the_next_held_permission_with_no_relogin()
+    {
+        var email = await CreateUserAsync("root-redirect-revoke-dashboard", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.DashboardView, PermissionKeys.PaymentsView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var beforeResponse = await client.GetAsync("/");
+        Assert.Equal("/Admin/Dashboard", beforeResponse.Headers.Location?.ToString());
+
+        await RevokeAsync(email, PermissionKeys.DashboardView);
+
+        // Same client, same cookie, no logout/login in between.
+        var afterResponse = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.Redirect, afterResponse.StatusCode);
+        Assert.Equal("/Admin/Payments", afterResponse.Headers.Location?.ToString());
+    }
 }
