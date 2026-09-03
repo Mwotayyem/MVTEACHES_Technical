@@ -2839,3 +2839,18 @@ a.app-kpi:hover {
   margin-bottom: 0.15rem;
   font-variant-numeric: tabular-nums;
 }
+
+/* /Admin/Students UX pass (2026-09-03) — plain Bootstrap accordion for the
+   "Single corrections" forms. The vendored bootstrap.min.css is the LTR
+   build only (the app flips direction via [dir="rtl"] on <html>, not via a
+   separate RTL stylesheet — see every other [dir="rtl"] rule in this file),
+   so the accordion header's own left-aligned text and left-pushed chevron
+   need the same manual mirroring already used elsewhere in this file. */
+[dir="rtl"] .accordion-button {
+  text-align: right;
+}
+
+[dir="rtl"] .accordion-button::after {
+  margin-left: 0;
+  margin-right: auto;
+}

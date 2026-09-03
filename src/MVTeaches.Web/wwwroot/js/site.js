@@ -713,6 +713,38 @@
             : "Copied";
     }
 
+    // --- Open the right accordion section on a deep link ---------------------
+    // /Admin/Students UX pass (2026-09-03): a collapsed Bootstrap accordion
+    // panel is `display:none`, so the browser's own fragment navigation has no
+    // box to scroll to — a link like /Admin/Students?studentId=12#link-guardian
+    // would land on the page with every section still collapsed and nothing
+    // visibly different. This finds the accordion panel matching the current
+    // #hash, opens it the same way clicking its header would (so any sibling
+    // panel sharing its data-bs-parent still closes), and scrolls it into
+    // view. Every panel still opens and closes by hand with JavaScript
+    // disabled — this only fixes the one case a bare fragment cannot: a
+    // target that starts collapsed.
+    function wireHashAccordion() {
+        if (!window.location.hash) { return; }
+        var target;
+        try {
+            target = document.querySelector(window.location.hash);
+        } catch (e) {
+            return; // an unrelated, non-selector hash elsewhere on the site
+        }
+        if (!target || !target.classList.contains("accordion-collapse")) { return; }
+
+        if (window.bootstrap && window.bootstrap.Collapse) {
+            window.bootstrap.Collapse.getOrCreateInstance(target, { toggle: false }).show();
+        } else {
+            target.classList.add("show");
+        }
+
+        window.requestAnimationFrame(function () {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         wireTableFilters();
         wireSelectFilters();
@@ -725,6 +757,7 @@
         wireConfirmations();
         wireFileModals();
         wireMessageDrafts();
+        wireHashAccordion();
         focusFirstInvalidField();
     });
 })();

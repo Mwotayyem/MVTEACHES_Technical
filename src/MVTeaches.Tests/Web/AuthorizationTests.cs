@@ -111,6 +111,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
     private const string OtherTeacherEmail = "authtest-teacher2@test.mvteaches.local";
     private const string GuardianEmail = "authtest-guardian@test.mvteaches.local";
     private const string StudentEmail = "authtest-student@test.mvteaches.local";
+    private const string DuesTeacherEmail = "authtest-teacher-dues@test.mvteaches.local";
 
     private static async Task<Teacher> EnsureLinkedTeacherAsync(MvTeachesDbContext db, long userId, string fullName)
     {
@@ -434,6 +435,107 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("12.34", body);
         Assert.DoesNotContain("99.99", body);
+    }
+
+    /// <summary>Owner decision 2026-09-04 (Payroll-simplification, Review
+    /// Required — this reads TeacherRate/ClassSession but writes nothing
+    /// payroll-related): FinancialReportModel's "Teacher dues" section must
+    /// (a) actually compute the right figure from a real Completed session
+    /// and a real TeacherRate, (b) ignore a same-teacher/same-window session
+    /// that has not been finalized (still Scheduled — "not yet delivered"),
+    /// and (c) never create a PayrollPeriod or a PayrollLine merely by being
+    /// viewed, since the owner explicitly does not want the open-period/
+    /// declare/verify workflow to be a prerequisite for this number.</summary>
+    [Fact]
+    public async Task Financial_report_teacher_dues_is_computed_live_from_completed_sessions_and_creates_no_payroll_rows()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        await EnsureUserAsync(userManager, DuesTeacherEmail, RoleNames.Teacher);
+        var duesTeacherUser = await userManager.FindByEmailAsync(DuesTeacherEmail);
+        var duesTeacher = await EnsureLinkedTeacherAsync(db, duesTeacherUser!.Id, "Dues Report Teacher");
+
+        // Reuses the exact (id, code) = (90_000_001, "ZY") pair already
+        // established elsewhere in this file — Country.Code has a real
+        // unique DB constraint (IX_countries_code), so a NEW id paired with
+        // this already-claimed code would collide; reusing the established
+        // pair outright is what this file's own tests already do.
+        var countryId = 90_000_001;
+        if (!await db.Countries.AnyAsync(c => c.Id == countryId))
+        {
+            db.Countries.Add(new Country(countryId, "ZY", "دولة", "Country", "JOD", "+962", "Asia/Amman"));
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Courses.AnyAsync(c => c.Code == "DUES-COURSE"))
+        {
+            db.Courses.Add(new Course("DUES-COURSE", "دورة", "Course"));
+            await db.SaveChangesAsync();
+        }
+        var courseId = await db.Courses.Where(c => c.Code == "DUES-COURSE").Select(c => c.Id).FirstAsync();
+
+        // 90_000_006 — distinct from every Level/AgeGroup id already claimed
+        // elsewhere in this file (90_000_001 through 90_000_005).
+        var levelId = 90_000_006;
+        if (!await db.Levels.AnyAsync(l => l.Id == levelId))
+        {
+            db.Levels.Add(new Level(levelId, "DUES-LVL", "مستوى", "Level", levelId));
+            await db.SaveChangesAsync();
+        }
+
+        var ageGroupId = 90_000_006;
+        if (!await db.AgeGroups.AnyAsync(a => a.Id == ageGroupId))
+        {
+            db.AgeGroups.Add(new AgeGroup(ageGroupId, "DUES-AGE", 5, 12, true));
+            await db.SaveChangesAsync();
+        }
+
+        // A distinctive rate: 1 hour at 37.50/hr, so the exact figure below
+        // can only appear on the page if this session actually resolved
+        // against it (never SessionDelivery.RateAmount — no SessionDelivery
+        // row exists at all in this test).
+        db.TeacherRates.Add(new TeacherRate(duesTeacher.Id, courseId, levelId, ageGroupId,
+            new Money(37.50m, "JOD"), RateUnit.PerHour, new LocalDate(2020, 1, 1), createdByUserId: 1));
+        await db.SaveChangesAsync();
+
+        var now = SystemClock.Instance.GetCurrentInstant();
+
+        // Actually delivered: 60 minutes, ended in the past, finalized to Completed.
+        var deliveredSession = new ClassSession(countryId, null, courseId, levelId, ageGroupId, duesTeacher.Id,
+            now.Minus(Duration.FromHours(3)), now.Minus(Duration.FromHours(2)), "Asia/Amman", "10:00",
+            SessionType.Private, createdAtUtc: now);
+        deliveredSession.MarkCompleted();
+
+        // Same teacher/course/level, inside the same query window below, but
+        // never finalized — still Scheduled. Must contribute zero minutes and
+        // zero dues even though its own start time already sits in range.
+        var notYetDeliveredSession = new ClassSession(countryId, null, courseId, levelId, ageGroupId, duesTeacher.Id,
+            now.Plus(Duration.FromHours(1)), now.Plus(Duration.FromHours(2)), "Asia/Amman", "10:00",
+            SessionType.Private, createdAtUtc: now);
+
+        db.ClassSessions.AddRange(deliveredSession, notYetDeliveredSession);
+        await db.SaveChangesAsync();
+
+        var payrollPeriodCountBefore = await db.PayrollPeriods.CountAsync();
+        var payrollLineCountBefore = await db.PayrollLines.CountAsync();
+
+        var client = await CreateAuthenticatedClientAsync(SystemAdminEmail);
+        var from = now.Minus(Duration.FromDays(1)).InUtc().Date;
+        var to = now.Plus(Duration.FromDays(1)).InUtc().Date;
+        var response = await client.GetAsync(
+            $"/Admin/FinancialReport?From={from.Year:D4}-{from.Month:D2}-{from.Day:D2}&To={to.Year:D4}-{to.Month:D2}-{to.Day:D2}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Dues Report Teacher", body);
+        Assert.Contains("37.50", body); // 1 delivered hour × 37.50/hr — the not-yet-delivered session contributes nothing.
+
+        // The one thing that must never happen: viewing this report must
+        // never write a payroll row.
+        Assert.Equal(payrollPeriodCountBefore, await db.PayrollPeriods.CountAsync());
+        Assert.Equal(payrollLineCountBefore, await db.PayrollLines.CountAsync());
     }
 
     [Fact]

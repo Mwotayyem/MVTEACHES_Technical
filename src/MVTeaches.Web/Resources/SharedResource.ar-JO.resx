@@ -597,6 +597,13 @@
   <data name="Revenue (previous)" xml:space="preserve"><value>الإيرادات (السابقة)</value></data>
   <data name="Net profit (this period)" xml:space="preserve"><value>صافي الربح (هذه الفترة)</value></data>
   <data name="Net profit (previous)" xml:space="preserve"><value>صافي الربح (السابقة)</value></data>
+  <data name="Teacher dues — read only" xml:space="preserve"><value>مستحقات المعلمين — قراءة فقط</value></data>
+  <data name="Based only on lessons that already happened in this range (no payroll period needed). Actual pay is arranged outside the system." xml:space="preserve"><value>محسوبة فقط من الدروس التي حدثت فعليًا خلال هذا النطاق (بلا حاجة لفتح فترة رواتب). الصرف الفعلي يتم يدويًا خارج النظام.</value></data>
+  <data name="No completed lessons in this range yet." xml:space="preserve"><value>لا توجد دروس منتهية بعد ضمن هذا النطاق.</value></data>
+  <data name="Hours delivered" xml:space="preserve"><value>الساعات الفعلية</value></data>
+  <data name="Amount due" xml:space="preserve"><value>المبلغ المستحق</value></data>
+  <data name="No rate configured" xml:space="preserve"><value>لا يوجد سعر معتمد</value></data>
+  <data name="{0} lesson(s) have no rate configured yet and are not included above." xml:space="preserve"><value>{0} من الدروس بلا سعر معتمد بعد، وغير مُدرجة ضمن المبلغ أعلاه.</value></data>
   <data name="Record an operating expense" xml:space="preserve"><value>تسجيل مصروف تشغيلي</value></data>
   <data name="Teacher payroll can never be entered here — it is already counted automatically from payroll lines." xml:space="preserve"><value>لا يمكن إدخال رواتب المعلمين هنا أبدًا — تُحتسب تلقائيًا من سطور الرواتب.</value></data>
   <data name="Country Id" xml:space="preserve"><value>رقم الدولة</value></data>

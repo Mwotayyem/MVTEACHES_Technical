@@ -597,6 +597,13 @@
   <data name="Revenue (previous)" xml:space="preserve"><value>Revenue (previous)</value></data>
   <data name="Net profit (this period)" xml:space="preserve"><value>Net profit (this period)</value></data>
   <data name="Net profit (previous)" xml:space="preserve"><value>Net profit (previous)</value></data>
+  <data name="Teacher dues — read only" xml:space="preserve"><value>Teacher dues — read only</value></data>
+  <data name="Based only on lessons that already happened in this range (no payroll period needed). Actual pay is arranged outside the system." xml:space="preserve"><value>Based only on lessons that already happened in this range (no payroll period needed). Actual pay is arranged outside the system.</value></data>
+  <data name="No completed lessons in this range yet." xml:space="preserve"><value>No completed lessons in this range yet.</value></data>
+  <data name="Hours delivered" xml:space="preserve"><value>Hours delivered</value></data>
+  <data name="Amount due" xml:space="preserve"><value>Amount due</value></data>
+  <data name="No rate configured" xml:space="preserve"><value>No rate configured</value></data>
+  <data name="{0} lesson(s) have no rate configured yet and are not included above." xml:space="preserve"><value>{0} lesson(s) have no rate configured yet and are not included above.</value></data>
   <data name="Record an operating expense" xml:space="preserve"><value>Record an operating expense</value></data>
   <data name="Teacher payroll can never be entered here — it is already counted automatically from payroll lines." xml:space="preserve"><value>Teacher payroll can never be entered here — it is already counted automatically from payroll lines.</value></data>
   <data name="Country Id" xml:space="preserve"><value>Country Id</value></data>

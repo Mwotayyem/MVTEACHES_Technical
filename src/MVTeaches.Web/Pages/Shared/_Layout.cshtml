@@ -24,8 +24,21 @@
     var isAdminRole = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin);
     var isSystemAdmin = User.IsInRole(RoleNames.SystemAdmin);
     var canViewPayments = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsView)).Succeeded;
-    var canManagePaymentMethods = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsManage)).Succeeded;
-    var canViewPayroll = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PayrollView)).Succeeded;
+    // Owner UX-simplification decision (2026-09-03): Payment Methods is a
+    // technical/financial setting, not daily admin work, so its nav link is
+    // now restricted to SystemAdmin regardless of who else holds
+    // Payments.Manage — the page's own [Authorize(Policy=PaymentsManage)] is
+    // completely untouched, so any Admin who was granted that claim can still
+    // open it directly by URL exactly as before; only the sidebar entry point
+    // for the day-to-day Admin role is gone.
+    var canManagePaymentMethods = isSystemAdmin && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsManage)).Succeeded;
+    // Owner UX-simplification decision (2026-09-03): /Admin/Payroll's own
+    // open-period/approve/pay workflow is intentionally not part of the daily
+    // admin nav in this MVP stage (see FinancialReport's read-only "Teacher
+    // dues" section for the number admins actually need day to day). No nav
+    // flag is computed for it anymore — this only removes the sidebar entry
+    // point; the page itself, its [Authorize(Policy=PayrollView)], and every
+    // OnPost handler are completely untouched and still reachable by URL.
     var canViewSubscriptions = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.SubscriptionsView)).Succeeded;
     // Stage 2 (2026-09-03): /Admin/AssistedRegistration requires Manage for
     // its GET too (see its own class-level policy), not View — so its link
@@ -195,17 +208,22 @@
                         @if (canViewSchedules)
                         {
                             <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
-                            <a class="@NavClass("/Admin/RescheduleSessions")" asp-page="/Admin/RescheduleSessions">@NavIcon("refresh")@T["Reschedule / Compensation"]</a>
                         }
                         @if (canViewCompensation)
                         {
                             <a class="@NavClass("/Admin/CompensationRequests")" asp-page="/Admin/CompensationRequests">@NavIcon("inbox")@T["Compensation Requests"]</a>
                         }
+                        @* Owner UX-simplification decision (2026-09-03): Reschedule / Compensation
+                           is not part of the daily nav in this MVP stage — the student/guardian
+                           compensation-request flow above is the simpler path the owner wants
+                           surfaced. The page, its [Authorize(Policy=SchedulesView)], and both
+                           OnPost handlers (OnPostRescheduleAsync/OnPostApproveAsync) are untouched;
+                           it is still reachable directly by URL for anyone holding that permission. *@
                         <div class="app-nav-group">@T["Payroll and Expenses"]</div>
-                        @if (canViewPayroll)
-                        {
-                            <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
-                        }
+                        @* Owner UX-simplification decision (2026-09-03): /Admin/Payroll's
+                           period-based workflow link is intentionally not shown here.
+                           FinancialReport's own "Teacher dues" section is the read-only
+                           number admins need day to day. *@
                         @if (canViewFinancialReport)
                         {
                             <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport">@NavIcon("chart")@T["Financial Report"]</a>
@@ -294,10 +312,6 @@
                         @if (canViewPosters)
                         {
                             <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
-                        }
-                        @if (canViewPayroll)
-                        {
-                            <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
                         }
                         @if (isSystemAdmin)
                         {

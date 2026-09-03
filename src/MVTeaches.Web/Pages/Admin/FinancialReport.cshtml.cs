@@ -4,9 +4,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
+using MVTeaches.Application.Payroll;
 using MVTeaches.Application.Reports;
 using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Finance;
+using MVTeaches.Domain.Payroll;
+using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
@@ -20,6 +23,19 @@ namespace MVTeaches.Web.Pages.Admin;
 /// is a later, explicit, dated instruction naming five more figures by name;
 /// this page's extension follows that instruction, not a reversal of the
 /// original discipline (see IFinancialReportService's own updated remarks).
+///
+/// Owner decision 2026-09-04 (Payroll-simplification, Review Required —
+/// this reads TeacherRate/ClassSession but writes nothing payroll-related):
+/// the owner does not want the open-period/declare/verify/approve/pay
+/// workflow to be part of daily admin work in this MVP stage — disbursement
+/// happens by hand, outside the system. What the owner still needs day to
+/// day is a plain number: a teacher actually gave X hours, the rate is Y,
+/// so Z is owed. <see cref="TeacherDues"/> is exactly and only that — a
+/// read-only projection computed fresh on every page load. It is entirely
+/// independent of PayrollPeriod/PayrollLine/SessionDelivery: no period is
+/// ever opened, no delivery is ever declared or verified, nothing here
+/// writes a single row. See LoadTeacherDuesAsync for exactly what counts as
+/// "actually delivered" and how the rate is found.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
 [Authorize(Policy = PermissionKeys.FinancialReportView)]
@@ -27,18 +43,20 @@ public class FinancialReportModel : PageModel
 {
     private readonly IFinancialReportService _reports;
     private readonly IOperatingExpenseService _expenses;
+    private readonly IPayrollRateResolver _rateResolver;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuthorizationService _authorizationService;
     private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly MVTeaches.Infrastructure.Persistence.MvTeachesDbContext _db;
 
     public FinancialReportModel(IFinancialReportService reports, IOperatingExpenseService expenses,
-        UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService,
-        IStringLocalizer<SharedResource> localizer,
+        IPayrollRateResolver rateResolver, UserManager<ApplicationUser> userManager,
+        IAuthorizationService authorizationService, IStringLocalizer<SharedResource> localizer,
         MVTeaches.Infrastructure.Persistence.MvTeachesDbContext db)
     {
         _reports = reports;
         _expenses = expenses;
+        _rateResolver = rateResolver;
         _userManager = userManager;
         _authorizationService = authorizationService;
         _localizer = localizer;
@@ -60,6 +78,19 @@ public class FinancialReportModel : PageModel
     public FinancialReport? PreviousPeriodReport { get; set; }
 
     public IReadOnlyList<OperatingExpense> Expenses { get; set; } = Array.Empty<OperatingExpense>();
+
+    /// <summary>One teacher's read-only dues for the report period — see the
+    /// class remarks and <see cref="LoadTeacherDuesAsync"/>. <see cref="SessionsMissingRate"/>
+    /// counts delivered sessions that could not be priced at all (no
+    /// TeacherRate covers that teacher/course/level/age-group combination
+    /// yet) — their minutes are still included in <see cref="DeliveredMinutes"/>
+    /// so the hour count stays honest, but they contribute nothing to
+    /// <see cref="DueByCurrency"/>, which the page must flag rather than
+    /// silently understate.</summary>
+    public record TeacherDuesRow(long TeacherId, string TeacherName, int SessionCount, int DeliveredMinutes,
+        IReadOnlyList<CurrencyAmount> DueByCurrency, int SessionsMissingRate);
+
+    public IReadOnlyList<TeacherDuesRow> TeacherDues { get; set; } = Array.Empty<TeacherDuesRow>();
 
     /// <summary>The expense form used to ask for a raw "Country Id" and a
     /// typed currency code; both are now picked from configured data.</summary>
@@ -161,10 +192,106 @@ public class FinancialReportModel : PageModel
         var periodEnd = new LocalDate(To.Year, To.Month, To.Day);
         Report = await _reports.GenerateAsync(periodStart, periodEnd, HttpContext.RequestAborted);
         Expenses = await _expenses.ListAsync(periodStart, periodEnd, HttpContext.RequestAborted);
+        await LoadTeacherDuesAsync(periodStart, periodEnd, HttpContext.RequestAborted);
 
         var periodLengthDays = Period.Between(periodStart, periodEnd.PlusDays(1), PeriodUnits.Days).Days;
         var previousPeriodEnd = periodStart.PlusDays(-1);
         var previousPeriodStart = previousPeriodEnd.PlusDays(-(periodLengthDays - 1));
         PreviousPeriodReport = await _reports.GenerateAsync(previousPeriodStart, previousPeriodEnd, HttpContext.RequestAborted);
+    }
+
+    /// <summary>Owner decision 2026-09-04 — see the class remarks. Pure read:
+    /// no PayrollPeriod, PayrollLine, or SessionDelivery row is read, written,
+    /// or required to exist.
+    ///
+    /// "Actually delivered" = <see cref="ClassSessionStatus.Completed"/> —
+    /// the exact, already-existing signal SessionFinalizationService's own
+    /// attendance sweep sets once a session's end time has passed without it
+    /// having been cancelled (see ClassSession.MarkCompleted's remarks). A
+    /// session still Scheduled (hasn't happened yet), Cancelled, or
+    /// NotDelivered contributes zero minutes and zero dues — this is
+    /// deliberately narrower than the report's own ScheduledTeachingMinutes
+    /// figure above (which counts every non-cancelled session, past or
+    /// future) precisely because dues must never count a lesson that has not
+    /// actually happened yet.
+    ///
+    /// The rate is resolved LIVE for each session's own (course, level, age
+    /// group) via the same IPayrollRateResolver/most-specific-wins rule
+    /// SessionDelivery.Verify uses (§9.2/D-27) — never a snapshotted
+    /// SessionDelivery.RateAmount, since this reading must work for a centre
+    /// that never opens the Declare/Verify workflow at all. The PerHour/
+    /// PerSession amount formula and its 3-decimal rounding are copied
+    /// exactly from SessionDelivery.Verify so the two pipelines can never
+    /// silently disagree on what a delivered hour is worth.</summary>
+    private async Task LoadTeacherDuesAsync(LocalDate periodStart, LocalDate periodEnd, CancellationToken cancellationToken)
+    {
+        var startInstant = periodStart.AtMidnight().InUtc().ToInstant();
+        var endInstant = periodEnd.PlusDays(1).AtMidnight().InUtc().ToInstant();
+
+        var deliveredSessions = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            _db.ClassSessions
+                .Where(s => s.Status == ClassSessionStatus.Completed
+                            && s.StartsAtUtc >= startInstant && s.StartsAtUtc < endInstant)
+                .Select(s => new
+                {
+                    s.TeacherId,
+                    s.CourseId,
+                    s.LevelId,
+                    s.AgeGroupId,
+                    s.DurationMinutes,
+                    s.StartsAtUtc,
+                }),
+            cancellationToken);
+
+        if (deliveredSessions.Count == 0)
+        {
+            TeacherDues = Array.Empty<TeacherDuesRow>();
+            return;
+        }
+
+        var teacherIds = deliveredSessions.Select(s => s.TeacherId).Distinct().ToList();
+        var teacherNames = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToDictionaryAsync(
+            _db.Teachers.Where(t => teacherIds.Contains(t.Id)), t => t.Id, t => t.FullName, cancellationToken);
+
+        var rows = new List<TeacherDuesRow>();
+        foreach (var teacherId in teacherIds)
+        {
+            var sessions = deliveredSessions.Where(s => s.TeacherId == teacherId).ToList();
+            var dueByCurrency = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var missingRate = 0;
+
+            foreach (var session in sessions)
+            {
+                var onDate = session.StartsAtUtc.InUtc().Date;
+                var resolved = await _rateResolver.ResolveAsync(
+                    teacherId, session.CourseId, session.LevelId, session.AgeGroupId, onDate, cancellationToken);
+                if (resolved is null)
+                {
+                    missingRate++;
+                    continue;
+                }
+
+                // Same formula as SessionDelivery.Verify — a PerHour rate
+                // scales with the session's own duration, a PerSession rate
+                // is a flat amount regardless of duration.
+                var amount = resolved.Unit == RateUnit.PerSession
+                    ? Math.Round(resolved.Rate.Amount, 3)
+                    : Math.Round(session.DurationMinutes / 60m * resolved.Rate.Amount, 3);
+
+                dueByCurrency[resolved.Rate.Currency] = dueByCurrency.TryGetValue(resolved.Rate.Currency, out var existing)
+                    ? existing + amount
+                    : amount;
+            }
+
+            rows.Add(new TeacherDuesRow(
+                teacherId,
+                teacherNames.GetValueOrDefault(teacherId, $"#{teacherId}"),
+                sessions.Count,
+                sessions.Sum(s => s.DurationMinutes),
+                dueByCurrency.Select(kv => new CurrencyAmount(kv.Key, kv.Value)).OrderBy(c => c.Currency).ToList(),
+                missingRate));
+        }
+
+        TeacherDues = rows.OrderByDescending(r => r.DeliveredMinutes).ToList();
     }
 }

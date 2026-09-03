@@ -184,6 +184,65 @@
         </div>
     }
 
+    @*
+        Owner decision 2026-09-04 (Payroll-simplification, Review Required):
+        a plain read-only reading of what each teacher is actually owed —
+        delivered hours × the applicable rate — with no PayrollPeriod,
+        PayrollLine, or SessionDelivery involved at all. See
+        FinancialReportModel.LoadTeacherDuesAsync for exactly what counts as
+        "delivered" and how the rate is found. Disbursement itself still
+        happens by hand, outside the system — this table only calculates
+        and displays.
+    *@
+    <h2>@T["Teacher dues — read only"]</h2>
+    <p class="text-muted small">@T["Based only on lessons that already happened in this range (no payroll period needed). Actual pay is arranged outside the system."]</p>
+    @if (Model.TeacherDues.Count == 0)
+    {
+        <p class="text-muted mb-4">@T["No completed lessons in this range yet."]</p>
+    }
+    else
+    {
+        <div class="table-responsive mb-4">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>@T["Teacher"]</th>
+                        <th>@T["Lessons"]</th>
+                        <th>@T["Hours delivered"]</th>
+                        <th>@T["Amount due"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.TeacherDues)
+                    {
+                        <tr>
+                            <td>@row.TeacherName</td>
+                            <td>@row.SessionCount</td>
+                            <td>@((row.DeliveredMinutes / 60.0).ToString("N1", System.Globalization.CultureInfo.InvariantCulture))</td>
+                            <td>
+                                @if (row.DueByCurrency.Count == 0)
+                                {
+                                    <span class="text-muted">@T["No rate configured"]</span>
+                                }
+                                else
+                                {
+                                    @foreach (var amount in row.DueByCurrency)
+                                    {
+                                        <div>@T.Money(amount.Amount, amount.Currency)</div>
+                                    }
+                                }
+                                @if (row.SessionsMissingRate > 0)
+                                {
+                                    <div class="text-warning small">@T["{0} lesson(s) have no rate configured yet and are not included above.", row.SessionsMissingRate]</div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">@T["Record a running cost"]</h5>

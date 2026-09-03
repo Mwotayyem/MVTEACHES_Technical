@@ -298,11 +298,32 @@
     </div>
 }
 
-<div class="row g-4 mb-4">
-    <div class="col-lg-6" id="assign-level">
-        <div class="card h-100">
-            <div class="card-body">
-                <h3 class="card-title h5">@T["Set or change a student's level"]</h3>
+@*
+    UX pass (2026-09-03, owner-requested nav/screen simplification): these four
+    forms used to sit as four equally-loud cards in two rows — a one-off "set
+    this student's level" errand looked exactly as important as "register a
+    brand-new guardian," which the owner reported as confusing. An accordion
+    (plain Bootstrap, already loaded — no new library) keeps every form
+    exactly as it was: same handler, same asp-for bindings, same validation —
+    only which ones are visible at once has changed. "Set or change a level"
+    (the most common single correction, and the one the owner specifically
+    asked to make clearer) opens by default; the other three start collapsed
+    behind their own header. The existing #assign-level / #link-guardian deep
+    links from AssistedRegistration, Schedules, and StudentDetails still work
+    unchanged — those ids are untouched — and wireHashAccordion() in site.js
+    (progressive enhancement, degrades to "assign-level open" with JS off)
+    opens whichever section the link actually pointed at.
+*@
+<div class="accordion mb-4" id="studentCorrectionsAccordion">
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="assign-level-heading">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#assign-level" aria-expanded="true" aria-controls="assign-level">
+                @T["Set or change a student's level"]
+            </button>
+        </h3>
+        <div id="assign-level" class="accordion-collapse collapse show" aria-labelledby="assign-level-heading" data-bs-parent="#studentCorrectionsAccordion">
+            <div class="accordion-body">
                 <p class="text-muted small">@T["A student cannot buy any package before a level is set. Normally the level comes from the placement test the student takes themselves; setting it here is an explicit, recorded override."]</p>
                 <form method="post" asp-page-handler="AssignLevel">
                     <div class="mb-2">
@@ -342,10 +363,15 @@
         </div>
     </div>
 
-    <div class="col-lg-6" id="link-guardian">
-        <div class="card h-100">
-            <div class="card-body">
-                <h3 class="card-title h5">@T["Link a guardian to a student"]</h3>
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="link-guardian-heading">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#link-guardian" aria-expanded="false" aria-controls="link-guardian">
+                @T["Link a guardian to a student"]
+            </button>
+        </h3>
+        <div id="link-guardian" class="accordion-collapse collapse" aria-labelledby="link-guardian-heading" data-bs-parent="#studentCorrectionsAccordion">
+            <div class="accordion-body">
                 <p class="text-muted small">@T["Pick both by name — start typing to narrow a long list."]</p>
                 <form method="post" asp-page-handler="LinkGuardian">
                     <div class="mb-2">
@@ -393,13 +419,16 @@
             </div>
         </div>
     </div>
-</div>
 
-<div class="row g-4 mb-4">
-    <div class="col-lg-6" id="register-guardian">
-        <div class="card h-100">
-            <div class="card-body">
-                <h3 class="card-title h5">@T["Register a guardian only"]</h3>
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="register-guardian-heading">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#register-guardian" aria-expanded="false" aria-controls="register-guardian">
+                @T["Register a guardian only"]
+            </button>
+        </h3>
+        <div id="register-guardian" class="accordion-collapse collapse" aria-labelledby="register-guardian-heading" data-bs-parent="#studentCorrectionsAccordion">
+            <div class="accordion-body">
                 <p class="text-muted small">@T["A guardian always signs in with an email and a password. Give them a temporary one; they change it after the first sign-in."]</p>
                 <form method="post" asp-page-handler="RegisterGuardian">
                     <div class="mb-2">
@@ -424,10 +453,15 @@
         </div>
     </div>
 
-    <div class="col-lg-6" id="register-student">
-        <div class="card h-100">
-            <div class="card-body">
-                <h3 class="card-title h5">@T["Register a student only"]</h3>
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="register-student-heading">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#register-student" aria-expanded="false" aria-controls="register-student">
+                @T["Register a student only"]
+            </button>
+        </h3>
+        <div id="register-student" class="accordion-collapse collapse" aria-labelledby="register-student-heading" data-bs-parent="#studentCorrectionsAccordion">
+            <div class="accordion-body">
                 <p class="text-muted small">@T["Most children have no sign-in of their own: leave the last two fields empty and the child is reached entirely through their guardian's account."]</p>
                 <form method="post" asp-page-handler="RegisterStudent">
                     <div class="mb-2">
