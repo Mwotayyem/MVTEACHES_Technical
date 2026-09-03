@@ -2346,4 +2346,28 @@
   <data name="You have view-only access to students and cannot register a guardian or a student, link a guardian, assign a level, or confirm registration details." xml:space="preserve">
     <value>You have view-only access to students and cannot register a guardian or a student, link a guardian, assign a level, or confirm registration details.</value>
   </data>
+  <data name="You have view-only access to teachers and cannot register one, set a pay rate, manage allowed levels, or deactivate/reactivate an account." xml:space="preserve">
+    <value>You have view-only access to teachers and cannot register one, set a pay rate, manage allowed levels, or deactivate/reactivate an account.</value>
+  </data>
+  <data name="You have view-only access to schedules and cannot create, enroll into, cancel, or reassign a session." xml:space="preserve">
+    <value>You have view-only access to schedules and cannot create, enroll into, cancel, or reassign a session.</value>
+  </data>
+  <data name="You have view-only access to schedules and cannot move this lesson." xml:space="preserve">
+    <value>You have view-only access to schedules and cannot move this lesson.</value>
+  </data>
+  <data name="You have view-only access to schedules and cannot approve a replacement lesson." xml:space="preserve">
+    <value>You have view-only access to schedules and cannot approve a replacement lesson.</value>
+  </data>
+  <data name="View teachers, pay rates, and allowed levels" xml:space="preserve">
+    <value>View teachers, pay rates, and allowed levels</value>
+  </data>
+  <data name="Register teachers, set pay rates, manage allowed levels, and deactivate/reactivate them" xml:space="preserve">
+    <value>Register teachers, set pay rates, manage allowed levels, and deactivate/reactivate them</value>
+  </data>
+  <data name="View weekly classes, upcoming sessions, and rosters" xml:space="preserve">
+    <value>View weekly classes, upcoming sessions, and rosters</value>
+  </data>
+  <data name="Create, enroll, cancel, reassign, pause/resume, reschedule, and approve make-up lessons" xml:space="preserve">
+    <value>Create, enroll, cancel, reassign, pause/resume, reschedule, and approve make-up lessons</value>
+  </data>
 </root>

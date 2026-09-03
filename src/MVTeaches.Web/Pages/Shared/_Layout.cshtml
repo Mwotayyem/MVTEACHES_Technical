@@ -32,6 +32,11 @@
     // is gated on canManageStudents, not canViewStudents.
     var canViewStudents = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.StudentsView)).Succeeded;
     var canManageStudents = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.StudentsManage)).Succeeded;
+    // Stage 2B (2026-09-03): /Admin/RescheduleSessions shares Schedules'
+    // View key for its own GET (see its own class-level policy) — one flag
+    // gates both links.
+    var canViewTeachers = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.TeachersView)).Succeeded;
+    var canViewSchedules = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.SchedulesView)).Succeeded;
 }
 @functions {
     // Inline, single-colour line icons for the sidebar. Deliberately hand-written
@@ -149,7 +154,10 @@
                             <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
                         }
                         <div class="app-nav-group">@T["Teachers"]</div>
-                        <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
+                        @if (canViewTeachers)
+                        {
+                            <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
+                        }
                         <div class="app-nav-group">@T["Placement"]</div>
                         <a class="@NavClass("/Admin/PlacementTests")" asp-page="/Admin/PlacementTests">@NavIcon("clipboard")@T["Placement Tests"]</a>
                         <div class="app-nav-group">@T["Packages and Payments"]</div>
@@ -167,8 +175,11 @@
                         }
                         <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
                         <div class="app-nav-group">@T["Scheduling and Attendance"]</div>
-                        <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
-                        <a class="@NavClass("/Admin/RescheduleSessions")" asp-page="/Admin/RescheduleSessions">@NavIcon("refresh")@T["Reschedule / Compensation"]</a>
+                        @if (canViewSchedules)
+                        {
+                            <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
+                            <a class="@NavClass("/Admin/RescheduleSessions")" asp-page="/Admin/RescheduleSessions">@NavIcon("refresh")@T["Reschedule / Compensation"]</a>
+                        }
                         <a class="@NavClass("/Admin/CompensationRequests")" asp-page="/Admin/CompensationRequests">@NavIcon("inbox")@T["Compensation Requests"]</a>
                         <div class="app-nav-group">@T["Payroll and Expenses"]</div>
                         @if (canViewPayroll)
@@ -231,8 +242,14 @@
                         {
                             <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
                         }
-                        <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
-                        <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
+                        @if (canViewTeachers)
+                        {
+                            <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
+                        }
+                        @if (canViewSchedules)
+                        {
+                            <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
+                        }
                         @if (canViewSubscriptions)
                         {
                             <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@NavIcon("package")@T["Subscriptions"]</a>

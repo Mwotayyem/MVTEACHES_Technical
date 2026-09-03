@@ -1,8 +1,14 @@
 ﻿@page
 @model MVTeaches.Web.Pages.Admin.TeachersModel
 @using MVTeaches.Domain.Payroll
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Teachers"].Value;
+    // Server-side enforcement already lives on every OnPost handler in
+    // Teachers.cshtml.cs — this only hides the forms/buttons for a
+    // view-only admin so they are not shown a control that would refuse them.
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.TeachersManage)).Succeeded;
 }
 
 <nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
@@ -38,6 +44,8 @@
     </div>
 }
 
+@if (canManage)
+{
 <div class="card mb-4">
     <div class="card-body">
         <h2 class="card-title h5">@T["Register a teacher"]</h2>
@@ -78,6 +86,11 @@
         </form>
     </div>
 </div>
+}
+else
+{
+    <p class="text-muted small">@T["You have view-only access to teachers and cannot register one, set a pay rate, manage allowed levels, or deactivate/reactivate an account."]</p>
+}
 
 <div class="app-guide">
     <p class="app-guide-title">@T["Two different things, often confused"]</p>
@@ -88,6 +101,8 @@
     <p>@T["A teacher needs both: without a pay rate a delivered session cannot be verified for payment, and without at least one allowed level they cannot publish any session."]</p>
 </div>
 
+@if (canManage)
+{
 <div class="card mb-4" id="pay-rate">
     <div class="card-body">
         <h2 class="card-title h5">@T["How much is this teacher paid?"]</h2>
@@ -174,6 +189,7 @@
         </form>
     </div>
 </div>
+}
 
 <h2>@T["Pay rates in force"]</h2>
 <div class="table-responsive mb-4">
@@ -208,6 +224,8 @@
     </table>
 </div>
 
+@if (canManage)
+{
 <div class="card mb-4" id="allowed-levels">
     <div class="card-body">
         <h2 class="card-title h5">@T["Which levels may this teacher teach?"]</h2>
@@ -246,6 +264,7 @@
         </form>
     </div>
 </div>
+}
 
 <h2>@T["Teachers"]</h2>
 <div class="app-toolbar">
@@ -289,12 +308,19 @@
                         {
                             foreach (var l in levels)
                             {
-                                <form method="post" asp-page-handler="RevokeLevel" class="d-inline-block me-1 mb-1">
-                                    <input type="hidden" name="teacherId" value="@t.Id" />
-                                    <input type="hidden" name="levelId" value="@l.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="@T["Revoke this level"]"
-                                            data-mv-confirm="@T["Revoke this level from this teacher?"]">@l.Code &times;</button>
-                                </form>
+                                @if (canManage)
+                                {
+                                    <form method="post" asp-page-handler="RevokeLevel" class="d-inline-block me-1 mb-1">
+                                        <input type="hidden" name="teacherId" value="@t.Id" />
+                                        <input type="hidden" name="levelId" value="@l.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="@T["Revoke this level"]"
+                                                data-mv-confirm="@T["Revoke this level from this teacher?"]">@l.Code &times;</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="app-chip me-1">@l.Code</span>
+                                }
                             }
                         }
                         else
@@ -303,7 +329,11 @@
                         }
                     </td>
                     <td>
-                        @if (t.IsActive)
+                        @if (!canManage)
+                        {
+                            <span class="text-muted small">@T["View only"]</span>
+                        }
+                        else if (t.IsActive)
                         {
                             <form method="post" asp-page-handler="Deactivate">
                                 <input type="hidden" name="teacherId" value="@t.Id" />

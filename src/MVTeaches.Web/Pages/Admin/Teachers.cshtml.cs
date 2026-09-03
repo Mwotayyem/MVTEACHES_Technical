@@ -12,6 +12,7 @@ using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Payroll;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -22,8 +23,15 @@ namespace MVTeaches.Web.Pages.Admin;
 /// anywhere in the application, which meant the whole payroll surface
 /// (declare/verify/pay) had nothing real to operate on. Mirrors the
 /// guardian-registration pattern on /Admin/Students exactly.
+///
+/// Security review 2026-09-03 (Review Required — Authorization), Stage 2B:
+/// [Authorize(Policy=TeachersView)] gates the GET; every mutating handler
+/// below (Register/CreateRate/GrantLevel/RevokeLevel/Deactivate/Reactivate)
+/// requires TeachersManage explicitly, the same RequirePermissionAsync
+/// pattern used since Stage 1.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.TeachersView)]
 public class TeachersModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
@@ -32,10 +40,11 @@ public class TeachersModel : PageModel
     private readonly ITeacherLevelAuthorizationService _levelAuthorization;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly IAuthorizationService _authorizationService;
 
     public TeachersModel(MvTeachesDbContext db, ITeacherAdmissionService teachers, ITeacherRateService rates,
         ITeacherLevelAuthorizationService levelAuthorization, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer)
+        IStringLocalizer<SharedResource> localizer, IAuthorizationService authorizationService)
     {
         _db = db;
         _teachers = teachers;
@@ -43,6 +52,7 @@ public class TeachersModel : PageModel
         _levelAuthorization = levelAuthorization;
         _userManager = userManager;
         _localizer = localizer;
+        _authorizationService = authorizationService;
     }
 
     // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Teacher namespace.
@@ -146,6 +156,11 @@ public class TeachersModel : PageModel
 
     public async Task<IActionResult> OnPostRegisterAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.TeachersManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewTeacher, nameof(NewTeacher)))
         {
@@ -171,6 +186,11 @@ public class TeachersModel : PageModel
 
     public async Task<IActionResult> OnPostCreateRateAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.TeachersManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewRate, nameof(NewRate)))
         {
@@ -205,6 +225,11 @@ public class TeachersModel : PageModel
     /// merely by hiding an already-granted level in this form.</summary>
     public async Task<IActionResult> OnPostGrantLevelAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.TeachersManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(LevelGrant, nameof(LevelGrant)))
         {
@@ -268,6 +293,11 @@ public class TeachersModel : PageModel
     /// ITeacherLevelAuthorizationService's own remarks on why.</summary>
     public async Task<IActionResult> OnPostRevokeLevelAsync(long teacherId, int levelId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.TeachersManage) is { } deny)
+        {
+            return deny;
+        }
+
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
         var outcome = await _levelAuthorization.RevokeAsync(teacherId, levelId, actingUserId, HttpContext.RequestAborted);
         StatusMessage = outcome == TeacherLevelRevokeOutcome.Revoked ? _localizer["Level revoked."].Value : null;
@@ -285,6 +315,11 @@ public class TeachersModel : PageModel
 
     public async Task<IActionResult> OnPostDeactivateAsync(long teacherId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.TeachersManage) is { } deny)
+        {
+            return deny;
+        }
+
         await _teachers.DeactivateAsync(teacherId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Teacher deactivated."].Value;
         await LoadAsync();
@@ -293,6 +328,11 @@ public class TeachersModel : PageModel
 
     public async Task<IActionResult> OnPostReactivateAsync(long teacherId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.TeachersManage) is { } deny)
+        {
+            return deny;
+        }
+
         await _teachers.ReactivateAsync(teacherId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Teacher reactivated."].Value;
         await LoadAsync();

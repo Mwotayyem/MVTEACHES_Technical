@@ -1,7 +1,14 @@
 ﻿@page
 @model MVTeaches.Web.Pages.Admin.RescheduleSessionsModel
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Reschedule / Compensation"].Value;
+    // Server-side enforcement already lives on OnPostRescheduleAsync/
+    // OnPostApproveAsync (see RescheduleSessions.cshtml.cs) — this only
+    // hides the two forms for a view-only admin so they are not shown a
+    // control that would refuse them.
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.SchedulesManage)).Succeeded;
 }
 
 <nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
@@ -102,6 +109,12 @@
     <li><span class="app-step-label">@T["Check, then confirm"]</span></li>
 </ol>
 
+@if (!canManage)
+{
+    <p class="text-muted small">@T["You have view-only access to schedules and cannot move this lesson."]</p>
+}
+else
+{
 <form method="post" asp-page-handler="Reschedule">
     <section class="app-step-panel" data-mv-step-panel="1">
         <h2><span class="app-step-badge">1</span>@T["Which student?"]</h2>
@@ -217,6 +230,7 @@
         <div class="app-outcome mt-3">@T["The student comes off the old lesson and onto the new one. No hours are added or taken away."]</div>
     </section>
 </form>
+}
 
         </div>
         <div class="tab-pane fade @(Model.ActiveTab == "makeup" ? "show active" : null)" id="panel-makeup"
@@ -231,6 +245,12 @@
     <li><span class="app-step-label">@T["Check, then confirm"]</span></li>
 </ol>
 
+@if (!canManage)
+{
+    <p class="text-muted small">@T["You have view-only access to schedules and cannot approve a replacement lesson."]</p>
+}
+else
+{
 <form method="post" asp-page-handler="Approve">
     <section class="app-step-panel" data-mv-step-panel="5">
         <h2><span class="app-step-badge">1</span>@T["Which student?"]</h2>
@@ -346,6 +366,7 @@
         <div class="app-outcome mt-3">@T["When the student joins that lesson, nothing is taken off their balance. It can be used once."]</div>
     </section>
 </form>
+}
         </div>
     </div>
 </div>

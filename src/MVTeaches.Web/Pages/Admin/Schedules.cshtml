@@ -2,8 +2,14 @@
 @model MVTeaches.Web.Pages.Admin.SchedulesModel
 @using MVTeaches.Domain.Scheduling
 @using NodaTime
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Schedules"].Value;
+    // Server-side enforcement already lives on every OnPost handler in
+    // Schedules.cshtml.cs — this only hides the mutating forms/buttons for a
+    // view-only admin so they are not shown a control that would refuse them.
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.SchedulesManage)).Succeeded;
 }
 
 <nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
@@ -64,7 +70,12 @@
 @* The four actions this screen performs are unrelated to each other and
    were previously stacked one under the other, so an admin who came to do
    one of them scrolled past the other three. Tabs only — every form,
-   handler and rule below is exactly the one that was already here. *@
+   handler and rule below is exactly the one that was already here.
+   All four are mutating (create/enroll/cancel/reassign), so the whole
+   block is hidden for a view-only admin — server-side enforcement lives
+   on each OnPost handler in Schedules.cshtml.cs regardless. *@
+@if (canManage)
+{
 <div class="app-tabs">
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -340,6 +351,11 @@
         </div>
     </div>
 </div>
+}
+else
+{
+    <p class="text-muted small">@T["You have view-only access to schedules and cannot create, enroll into, cancel, or reassign a session."]</p>
+}
 
 <h2>@T["Upcoming sessions (next 14 days)"]</h2>
 <partial name="_SessionFlowGuide" />
@@ -422,7 +438,11 @@
                     <td>@T.Minutes(s.DurationMinutes)</td>
                     <td>@T["RecurringScheduleStatus." + s.Status]</td>
                     <td>
-                        @if (s.Status == RecurringScheduleStatus.Active)
+                        @if (!canManage)
+                        {
+                            <span class="text-muted small">@T["View only"]</span>
+                        }
+                        else if (s.Status == RecurringScheduleStatus.Active)
                         {
                             <form method="post" asp-page-handler="Pause">
                                 <input type="hidden" name="scheduleId" value="@s.Id" />

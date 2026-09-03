@@ -10,6 +10,7 @@ using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Display;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -32,7 +33,15 @@ namespace MVTeaches.Web.Pages.Admin;
 ///    real replacement session, usable exactly once, same as any
 ///    enrollment.
 /// </summary>
+/// <summary>
+/// Security review 2026-09-03 (Review Required — Authorization), Stage 2B:
+/// [Authorize(Policy=SchedulesView)] gates the GET — same key as
+/// /Admin/Schedules, since both forms here are schedule/enrollment writes
+/// reached from a different page. RequirePermissionAsync(SchedulesManage)
+/// guards both OnPostRescheduleAsync and OnPostApproveAsync.
+/// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.SchedulesView)]
 public class RescheduleSessionsModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
@@ -40,15 +49,18 @@ public class RescheduleSessionsModel : PageModel
     private readonly IClock _clock;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly IAuthorizationService _authorizationService;
 
     public RescheduleSessionsModel(MvTeachesDbContext db, IEnrollmentService enrollments, IClock clock,
-        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer,
+        IAuthorizationService authorizationService)
     {
         _db = db;
         _enrollments = enrollments;
         _clock = clock;
         _userManager = userManager;
         _localizer = localizer;
+        _authorizationService = authorizationService;
     }
 
     /// <summary><paramref name="EnrolledStudentIds"/> lets the page narrow the
@@ -164,6 +176,11 @@ public class RescheduleSessionsModel : PageModel
 
     public async Task<IActionResult> OnPostRescheduleAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ActiveTab = "move";
         ModelState.Clear();
         if (!TryValidateModel(Reschedule, nameof(Reschedule)))
@@ -201,6 +218,11 @@ public class RescheduleSessionsModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ActiveTab = "makeup";
         ModelState.Clear();
         if (!TryValidateModel(Approve, nameof(Approve)))

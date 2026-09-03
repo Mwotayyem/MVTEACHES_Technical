@@ -76,16 +76,20 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         // unrelated tests in this file (AdminOnlyPages() alone lists 12
         // pages, plus the dedicated StudentDetails GET tests below). Its own
         // AuthorizationTests never exercise Payments/Payroll/Subscriptions/
-        // Students mutation, only that the pages load — so it only needs the
-        // View permissions to keep meaning what it always meant here ("a
-        // plain Admin can reach admin pages"), not every key. Idempotent:
-        // checks existing claims first, since InitializeAsync can run again
-        // against this same shared test DB.
+        // Students/Teachers/Schedules mutation, only that the pages load —
+        // so it only needs the View permissions to keep meaning what it
+        // always meant here ("a plain Admin can reach admin pages"), not
+        // every key. Idempotent: checks existing claims first, since
+        // InitializeAsync can run again against this same shared test DB.
         var adminUser = await userManager.FindByEmailAsync(AdminEmail);
         if (adminUser is not null)
         {
             var existingKeys = (await userManager.GetClaimsAsync(adminUser)).Select(c => c.Value).ToHashSet();
-            foreach (var key in new[] { PermissionKeys.PaymentsView, PermissionKeys.PayrollView, PermissionKeys.SubscriptionsView, PermissionKeys.StudentsView })
+            foreach (var key in new[]
+            {
+                PermissionKeys.PaymentsView, PermissionKeys.PayrollView, PermissionKeys.SubscriptionsView,
+                PermissionKeys.StudentsView, PermissionKeys.TeachersView, PermissionKeys.SchedulesView,
+            })
             {
                 if (!existingKeys.Contains(key))
                 {

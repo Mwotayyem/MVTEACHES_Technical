@@ -14,14 +14,15 @@ namespace MVTeaches.Infrastructure.Identity;
 /// by a SystemAdmin from <c>/Admin/AdminUsers</c>.
 ///
 /// Stage 1 was deliberately scoped to the three financially-sensitive
-/// screens (Payments, Payroll, Subscriptions). Stage 2 (2026-09-03, Review
-/// Required — Authorization) adds Students/StudentDetails/AssistedRegistration
-/// and the Student Notes written-record feature inside StudentDetails — see
-/// each key's own remarks below. Every other admin page (Teachers, Schedules,
-/// Compensation, Certificates, PlacementTests, Posters, Dashboard) remains
-/// UNCHANGED and keeps allowing any Admin/SystemAdmin account, exactly as
-/// before — see the prior permissions-audit report for the full design
-/// across every admin screen.
+/// screens (Payments, Payroll, Subscriptions). Stage 2A (2026-09-03, Review
+/// Required — Authorization) added Students/StudentDetails/AssistedRegistration
+/// and the Student Notes written-record feature inside StudentDetails. Stage
+/// 2B (2026-09-03, same day, same classification) adds
+/// Teachers/Schedules/RescheduleSessions — see each key's own remarks below.
+/// Every other admin page (Compensation, Certificates, PlacementTests,
+/// Posters, Dashboard) remains UNCHANGED and keeps allowing any
+/// Admin/SystemAdmin account, exactly as before — see the prior
+/// permissions-audit report for the full design across every admin screen.
 ///
 /// Each key is stored as an <see cref="System.Security.Claims.Claim"/> with
 /// <see cref="ClaimType"/> as its type and one of these strings as its
@@ -101,6 +102,44 @@ public static class PermissionKeys
     /// so it needs no rename if an edit/delete is ever added later).</summary>
     public const string StudentNotesManage = "Admin.StudentNotes.Manage";
 
+    /// <summary>
+    /// Stage 2B (2026-09-03, Review Required — Authorization): covers
+    /// /Admin/Teachers' GET (the teacher list, pay rates in force, and each
+    /// teacher's allowed levels). Also covers reading the "who is not ready
+    /// for online sessions" flag surfaced on both this page and
+    /// /Admin/Schedules — that flag is derived read-only data about
+    /// teachers, not scheduling, so it travels with TeachersView wherever it
+    /// is shown.
+    /// </summary>
+    public const string TeachersView = "Admin.Teachers.View";
+
+    /// <summary>Covers every teacher-data-mutating handler on
+    /// Teachers.cshtml.cs: registering a teacher, setting a pay rate,
+    /// granting or revoking an allowed level, and deactivating/reactivating
+    /// a teacher account. Pay ("how much") and levels ("what they may
+    /// teach") are two different concerns per that page's own guide text,
+    /// but the owner's Stage 2B scope names only View and Manage for
+    /// Teachers, with no finer split.</summary>
+    public const string TeachersManage = "Admin.Teachers.Manage";
+
+    /// <summary>Covers /Admin/Schedules' GET (weekly classes, upcoming
+    /// sessions, and each session's roster/student list shown in its "see
+    /// the students" modal — all read-only) and /Admin/RescheduleSessions'
+    /// GET (both step-by-step forms are visible, but see
+    /// <see cref="SchedulesManage"/> for why submitting either is refused
+    /// without it).</summary>
+    public const string SchedulesView = "Admin.Schedules.View";
+
+    /// <summary>Covers every schedule/session-mutating handler across both
+    /// pages: creating a weekly class, enrolling a student into one,
+    /// cancelling a session, reassigning a session's teacher, pausing or
+    /// resuming a weekly class (Schedules.cshtml.cs) — and, on
+    /// RescheduleSessions.cshtml.cs, moving an unattended lesson and
+    /// approving a replacement (make-up) lesson, since both are schedule/
+    /// enrollment writes exactly like the ones on Schedules.cshtml.cs, just
+    /// reached from a different page.</summary>
+    public const string SchedulesManage = "Admin.Schedules.Manage";
+
     /// <summary>Every key, in the order shown on /Admin/AdminUsers — the
     /// single list both the permission-policy registration loop in
     /// Program.cs and the AdminUsers editing screen iterate, so a key can
@@ -112,5 +151,7 @@ public static class PermissionKeys
         SubscriptionsView, SubscriptionsManage,
         StudentsView, StudentsManage,
         StudentNotesView, StudentNotesManage,
+        TeachersView, TeachersManage,
+        SchedulesView, SchedulesManage,
     };
 }

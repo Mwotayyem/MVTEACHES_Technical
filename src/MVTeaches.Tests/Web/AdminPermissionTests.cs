@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.People;
+using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using NodaTime;
@@ -155,6 +156,67 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         db.StudentNotes.Add(new StudentNote(studentId, StudentNoteCategory.Learning, text,
             authorUserId: 1, authorName: "Seed", SystemClock.Instance.GetCurrentInstant()));
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>A bare login row with no role/password of its own — Teacher's
+    /// own UserId column just needs a real AspNetUsers row to satisfy the FK;
+    /// nothing here ever signs in as this user. Same pattern
+    /// ScheduleGenerationServiceTests already uses for the same reason.</summary>
+    private static async Task<long> SeedBareUserAsync(MvTeachesDbContext db, string label)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = $"{label}-{Guid.NewGuid():N}",
+            NormalizedUserName = $"{label}-{Guid.NewGuid():N}".ToUpperInvariant(),
+            Email = $"{Guid.NewGuid():N}@test.mvteaches.local",
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user.Id;
+    }
+
+    /// <summary>Stage 2B: a real, active Teacher row with no rate/level/
+    /// meeting-connection of its own — exactly what OnPostDeactivateAsync
+    /// needs to act on.</summary>
+    private async Task<long> SeedTeacherAsync(string label)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var userId = await SeedBareUserAsync(db, label);
+        var teacher = new Teacher(userId, $"Permission Test Teacher {label}", "Asia/Amman");
+        db.Teachers.Add(teacher);
+        await db.SaveChangesAsync();
+        return teacher.Id;
+    }
+
+    /// <summary>Stage 2B: a real, Active RecurringSchedule row — enough for
+    /// OnPostPauseAsync/OnPostResumeAsync to act on, without needing the
+    /// teacher-meeting-connection/level-authorization graph OnPostCreateAsync
+    /// itself would require.</summary>
+    private async Task<long> SeedRecurringScheduleAsync(string label)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+
+        var countryId = await SeedCountryAsync(db);
+        var courseCode = $"PERMTEST-{NextId()}";
+        db.Courses.Add(new Course(courseCode, "دورة", "Course"));
+        var levelId = (int)NextId();
+        db.Levels.Add(new Level(levelId, $"L{levelId}", "مستوى", "Level", levelId));
+        var ageGroupId = (int)NextId();
+        db.AgeGroups.Add(new AgeGroup(ageGroupId, $"A{ageGroupId}", 5, 12, true));
+        var userId = await SeedBareUserAsync(db, label);
+        var teacher = new Teacher(userId, $"Permission Test Teacher {label}", "Asia/Amman");
+        db.Teachers.Add(teacher);
+        await db.SaveChangesAsync();
+        var courseId = await db.Courses.Where(c => c.Code == courseCode).Select(c => c.Id).FirstAsync();
+
+        var schedule = new RecurringSchedule(countryId, courseId, levelId, ageGroupId, teacher.Id,
+            new[] { NodaTime.IsoDayOfWeek.Monday }, new LocalTime(18, 0), 60, "Asia/Amman",
+            new LocalDate(2026, 1, 5), capacity: 4, createdByUserId: 0);
+        db.RecurringSchedules.Add(schedule);
+        await db.SaveChangesAsync();
+        return schedule.Id;
     }
 
     private static long _idSeed = 80_000_000;
@@ -747,5 +809,252 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
 
         // Same client, same cookie, no logout/login in between.
         Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Students")).StatusCode);
+    }
+
+    // =================================================================
+    // Stage 2B (2026-09-03, Review Required — Authorization): Teachers,
+    // Schedules, and RescheduleSessions. Same PermissionAuthorizationHandler,
+    // same live-per-request DB check, same SystemAdmin bypass.
+    // =================================================================
+
+    // ---------------------------------------------------------------
+    // 20. SystemAdmin: sees and acts on Teachers/Schedules/
+    // RescheduleSessions with ZERO claims.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task SystemAdmin_views_and_manages_teachers_and_schedules_with_zero_permission_claims()
+    {
+        var email = await CreateUserAsync("sa-teachers-schedules", RoleNames.SystemAdmin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Teachers")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Schedules")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/RescheduleSessions")).StatusCode);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Teachers");
+        var newTeacherEmail = $"permtest-teacher-{Guid.NewGuid():N}@test.mvteaches.local";
+        var response = await client.PostAsync("/Admin/Teachers?handler=Register", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["NewTeacher.FullName"] = "SystemAdmin Created Teacher",
+            ["NewTeacher.Email"] = newTeacherEmail,
+            ["NewTeacher.Password"] = Password,
+            ["NewTeacher.TimeZoneId"] = "Asia/Amman",
+        }));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.True(await db.Teachers.AnyAsync(t => t.FullName == "SystemAdmin Created Teacher"));
+    }
+
+    // ---------------------------------------------------------------
+    // 21. Plain Admin, zero claims: forbidden from all three Stage 2B pages.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_no_permission_claims_is_forbidden_from_teachers_and_schedules_pages()
+    {
+        var email = await CreateUserAsync("no-claims-teachers-schedules", RoleNames.Admin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Teachers")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Schedules")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/RescheduleSessions")).StatusCode);
+    }
+
+    // ---------------------------------------------------------------
+    // 22. Admin with only Teachers.View: sees teachers, cannot deactivate,
+    // and a direct POST writes nothing.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_teachers_view_only_sees_teachers_but_cannot_deactivate_and_writes_nothing()
+    {
+        var email = await CreateUserAsync("teachers-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.TeachersView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var teacherId = await SeedTeacherAsync("view-only-deactivate-target");
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Teachers")).StatusCode);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Teachers");
+        var response = await client.PostAsync("/Admin/Teachers?handler=Deactivate", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["teacherId"] = teacherId.ToString(),
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var stillActive = await db.Teachers.FirstAsync(t => t.Id == teacherId);
+        Assert.True(stillActive.IsActive); // Deactivate never touched it
+    }
+
+    // ---------------------------------------------------------------
+    // 23. Admin with Teachers.View + Teachers.Manage: can register a
+    // teacher and deactivate one through the real handlers.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_teachers_manage_can_register_and_deactivate_a_teacher()
+    {
+        var email = await CreateUserAsync("teachers-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.TeachersView, PermissionKeys.TeachersManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Teachers");
+        var newTeacherEmail = $"permtest-teacher-{Guid.NewGuid():N}@test.mvteaches.local";
+        var registerResponse = await client.PostAsync("/Admin/Teachers?handler=Register", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["NewTeacher.FullName"] = "Manage Test Teacher",
+            ["NewTeacher.Email"] = newTeacherEmail,
+            ["NewTeacher.Password"] = Password,
+            ["NewTeacher.TimeZoneId"] = "Asia/Amman",
+        }));
+        Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
+
+        long teacherId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+            var created = await db.Teachers.FirstAsync(t => t.FullName == "Manage Test Teacher");
+            teacherId = created.Id;
+        }
+
+        var deactivateToken = await GetAntiforgeryTokenAsync(client, "/Admin/Teachers");
+        var deactivateResponse = await client.PostAsync("/Admin/Teachers?handler=Deactivate", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = deactivateToken,
+            ["teacherId"] = teacherId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.OK, deactivateResponse.StatusCode);
+
+        using var verifyScope = _factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var deactivated = await verifyDb.Teachers.FirstAsync(t => t.Id == teacherId);
+        Assert.False(deactivated.IsActive);
+    }
+
+    // ---------------------------------------------------------------
+    // 24. Admin with only Schedules.View: sees schedules and reschedule
+    // sessions, cannot pause a schedule, and a direct POST writes nothing.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_schedules_view_only_sees_schedules_but_cannot_pause_and_writes_nothing()
+    {
+        var email = await CreateUserAsync("schedules-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.SchedulesView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var scheduleId = await SeedRecurringScheduleAsync("view-only-pause-target");
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Schedules")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/RescheduleSessions")).StatusCode);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/Schedules");
+        var response = await client.PostAsync("/Admin/Schedules?handler=Pause", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["scheduleId"] = scheduleId.ToString(),
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var stillActive = await db.RecurringSchedules.FirstAsync(s => s.Id == scheduleId);
+        Assert.Equal(RecurringScheduleStatus.Active, stillActive.Status); // Pause never touched it
+    }
+
+    // ---------------------------------------------------------------
+    // 25. Admin with Schedules.View + Schedules.Manage: can pause and
+    // resume a real schedule through the real handlers.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_schedules_manage_can_pause_and_resume_a_schedule()
+    {
+        var email = await CreateUserAsync("schedules-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.SchedulesView, PermissionKeys.SchedulesManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var scheduleId = await SeedRecurringScheduleAsync("manage-pause-target");
+
+        var pauseToken = await GetAntiforgeryTokenAsync(client, "/Admin/Schedules");
+        var pauseResponse = await client.PostAsync("/Admin/Schedules?handler=Pause", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = pauseToken,
+            ["scheduleId"] = scheduleId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.OK, pauseResponse.StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+            var paused = await db.RecurringSchedules.FirstAsync(s => s.Id == scheduleId);
+            Assert.Equal(RecurringScheduleStatus.Paused, paused.Status);
+        }
+
+        var resumeToken = await GetAntiforgeryTokenAsync(client, "/Admin/Schedules");
+        var resumeResponse = await client.PostAsync("/Admin/Schedules?handler=Resume", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = resumeToken,
+            ["scheduleId"] = scheduleId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.OK, resumeResponse.StatusCode);
+
+        using var verifyScope = _factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var resumed = await verifyDb.RecurringSchedules.FirstAsync(s => s.Id == scheduleId);
+        Assert.Equal(RecurringScheduleStatus.Active, resumed.Status);
+    }
+
+    // ---------------------------------------------------------------
+    // 26. Admin with only Schedules.View cannot POST to
+    // RescheduleSessions' handlers either — proving the shared
+    // SchedulesManage guard covers both pages, not just Schedules.cshtml.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_schedules_view_only_cannot_post_to_reschedule_sessions()
+    {
+        var email = await CreateUserAsync("reschedule-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.SchedulesView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/RescheduleSessions");
+        var response = await client.PostAsync("/Admin/RescheduleSessions?handler=Reschedule", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["Reschedule.StudentId"] = "1",
+            ["Reschedule.OriginalSessionId"] = "1",
+            ["Reschedule.ReplacementSessionId"] = "2",
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    // ---------------------------------------------------------------
+    // 27. Revoking Schedules.View takes effect on the very next request,
+    // with no logout/login.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Revoking_schedules_view_blocks_the_very_next_request_with_no_relogin()
+    {
+        var email = await CreateUserAsync("revoke-schedules-target", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.SchedulesView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Schedules")).StatusCode);
+
+        await RevokeAsync(email, PermissionKeys.SchedulesView);
+
+        // Same client, same cookie, no logout/login in between.
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Schedules")).StatusCode);
     }
 }

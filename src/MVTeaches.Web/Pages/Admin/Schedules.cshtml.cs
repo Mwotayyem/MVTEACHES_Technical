@@ -13,6 +13,7 @@ using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Display;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -31,8 +32,15 @@ namespace MVTeaches.Web.Pages.Admin;
 /// docs/deployment/STATUS.md, the manual-run path for that generator is the
 /// Hangfire dashboard's own admin-only "Trigger now" button on the
 /// "schedule-generation" job — deliberately NOT a second code path here.
+///
+/// Security review 2026-09-03 (Review Required — Authorization), Stage 2B:
+/// [Authorize(Policy=SchedulesView)] gates the GET (weekly classes, upcoming
+/// sessions, and each session's roster are all read-only); every mutating
+/// handler (Create/Enroll/Cancel/Reassign/Pause/Resume) requires
+/// SchedulesManage explicitly.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.SchedulesView)]
 public class SchedulesModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
@@ -43,12 +51,14 @@ public class SchedulesModel : PageModel
     private readonly IClock _clock;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly IAuthorizationService _authorizationService;
 
     private readonly SessionRosterReader _rosters;
 
     public SchedulesModel(MvTeachesDbContext db, IRecurringScheduleService schedules, IEnrollmentService enrollments,
         ISessionCancellationService cancellations, IMeetingProvisioningService meetings, IClock clock,
-        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer, SessionRosterReader rosters)
+        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer, SessionRosterReader rosters,
+        IAuthorizationService authorizationService)
     {
         _db = db;
         _schedules = schedules;
@@ -59,6 +69,7 @@ public class SchedulesModel : PageModel
         _userManager = userManager;
         _localizer = localizer;
         _rosters = rosters;
+        _authorizationService = authorizationService;
     }
 
     public record ScheduleRow(long Id, string TeacherName, string CourseName, int LevelId, string LevelCode, string AgeGroupCode,
@@ -194,6 +205,11 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostCreateAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ActiveTab = "create";
         ModelState.Clear();
         if (!TryValidateModel(NewSchedule, nameof(NewSchedule)))
@@ -235,6 +251,11 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostEnrollAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ActiveTab = "enroll";
         ModelState.Clear();
         if (!TryValidateModel(Enroll, nameof(Enroll)))
@@ -254,6 +275,11 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostCancelAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ActiveTab = "cancel";
         ModelState.Clear();
         if (!TryValidateModel(Cancel, nameof(Cancel)))
@@ -305,6 +331,11 @@ public class SchedulesModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostReassignAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ActiveTab = "reassign";
         ModelState.Clear();
         if (!TryValidateModel(Reassign, nameof(Reassign)))
@@ -340,6 +371,11 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostPauseAsync(long scheduleId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ActiveTab = "create";
         await _schedules.PauseAsync(scheduleId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Schedule paused — future occurrences stop generating; nothing already generated is affected."].Value;
@@ -349,6 +385,11 @@ public class SchedulesModel : PageModel
 
     public async Task<IActionResult> OnPostResumeAsync(long scheduleId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
         ActiveTab = "create";
         await _schedules.ResumeAsync(scheduleId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Schedule resumed."].Value;
