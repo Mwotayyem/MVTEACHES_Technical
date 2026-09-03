@@ -19,11 +19,12 @@ namespace MVTeaches.Infrastructure.Identity;
 /// and the Student Notes written-record feature inside StudentDetails. Stage
 /// 2B (2026-09-03, same day, same classification) added
 /// Teachers/Schedules/RescheduleSessions. Stage 2C (2026-09-03, same day,
-/// same classification) adds Compensation/PlacementTests/Certificates — see
-/// each key's own remarks below. Every other admin page (Posters, Reports,
-/// Dashboard) remains UNCHANGED and keeps allowing any Admin/SystemAdmin
-/// account, exactly as before — see the prior permissions-audit report for
-/// the full design across every admin screen.
+/// same classification) added Compensation/PlacementTests/Certificates. Stage
+/// 2D (2026-09-03, same day, same classification) adds
+/// Dashboard/FinancialReport/Posters — see each key's own remarks below. This
+/// closes the admin-permissions rollout: every admin screen now has granular
+/// keys, and no admin page still falls back to the bare
+/// Admin/SystemAdmin-role check.
 ///
 /// Each key is stored as an <see cref="System.Security.Claims.Claim"/> with
 /// <see cref="ClaimType"/> as its type and one of these strings as its
@@ -181,6 +182,39 @@ public static class PermissionKeys
     /// issuing a certificate and revoking one.</summary>
     public const string CertificatesManage = "Admin.Certificates.Manage";
 
+    /// <summary>
+    /// Stage 2D (2026-09-03, Review Required — Authorization): covers
+    /// /Admin/Dashboard's GET — every live count and figure on that page.
+    /// The page has no mutating handler at all (it only ever reads), so
+    /// there is no Dashboard.Manage key — View is the whole of it.
+    /// </summary>
+    public const string DashboardView = "Admin.Dashboard.View";
+
+    /// <summary>
+    /// Stage 2D (2026-09-03, Review Required — Authorization): covers
+    /// /Admin/FinancialReport's GET — the revenue/payroll/profit figures,
+    /// the month-over-month comparison, and the running-costs list, all
+    /// read-only.
+    /// </summary>
+    public const string FinancialReportView = "Admin.FinancialReport.View";
+
+    /// <summary>Covers FinancialReport.cshtml.cs's one mutating handler:
+    /// recording a running cost (OnPostRecordExpenseAsync). Reading the
+    /// report itself never requires this.</summary>
+    public const string FinancialReportManage = "Admin.FinancialReport.Manage";
+
+    /// <summary>
+    /// Stage 2D (2026-09-03, Review Required — Authorization): covers
+    /// /Admin/Posters' GET — the list of offer posters and the live preview
+    /// of what a student would see, all read-only.
+    /// </summary>
+    public const string PostersView = "Admin.Posters.View";
+
+    /// <summary>Covers Posters.cshtml.cs's two mutating handlers: creating
+    /// or editing a poster (OnPostSaveAsync, which also covers uploading a
+    /// replacement image) and showing/hiding one (OnPostToggleAsync).</summary>
+    public const string PostersManage = "Admin.Posters.Manage";
+
     /// <summary>Every key, in the order shown on /Admin/AdminUsers — the
     /// single list both the permission-policy registration loop in
     /// Program.cs and the AdminUsers editing screen iterate, so a key can
@@ -197,5 +231,8 @@ public static class PermissionKeys
         CompensationView, CompensationManage,
         PlacementTestsView, PlacementTestsManage,
         CertificatesView, CertificatesManage,
+        DashboardView,
+        FinancialReportView, FinancialReportManage,
+        PostersView, PostersManage,
     };
 }

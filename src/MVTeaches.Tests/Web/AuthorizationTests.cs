@@ -71,17 +71,17 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         await EnsureUserAsync(userManager, GuardianEmail, RoleNames.Guardian);
         await EnsureUserAsync(userManager, StudentEmail, RoleNames.Student);
 
-        // Security review 2026-09-02 (Stage 1 admin permissions): this shared
-        // AdminEmail account represents "a plain Admin" across dozens of
-        // unrelated tests in this file (AdminOnlyPages() alone lists 12
-        // pages, plus the dedicated StudentDetails GET tests below). Its own
-        // AuthorizationTests never exercise Payments/Payroll/Subscriptions/
-        // Students/Teachers/Schedules/Compensation/PlacementTests/Certificates
-        // mutation, only that the pages load — so it only needs the View
-        // permissions to keep meaning what it always meant here ("a plain
-        // Admin can reach admin pages"), not every key. Idempotent: checks
-        // existing claims first, since InitializeAsync can run again against
-        // this same shared test DB.
+        // Security review 2026-09-02/2026-09-03 (Stage 1 + Stage 2D admin
+        // permissions): this shared AdminEmail account represents "a plain
+        // Admin" across dozens of unrelated tests in this file (AdminOnlyPages()
+        // alone lists 12 pages, plus the dedicated StudentDetails GET tests
+        // below). Its own AuthorizationTests never exercise Payments/Payroll/
+        // Subscriptions/Students/Teachers/Schedules/Compensation/
+        // PlacementTests/Certificates/FinancialReport/Dashboard mutation, only
+        // that the pages load — so it only needs the View permissions to keep
+        // meaning what it always meant here ("a plain Admin can reach admin
+        // pages"), not every key. Idempotent: checks existing claims first,
+        // since InitializeAsync can run again against this same shared test DB.
         var adminUser = await userManager.FindByEmailAsync(AdminEmail);
         if (adminUser is not null)
         {
@@ -91,6 +91,7 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
                 PermissionKeys.PaymentsView, PermissionKeys.PayrollView, PermissionKeys.SubscriptionsView,
                 PermissionKeys.StudentsView, PermissionKeys.TeachersView, PermissionKeys.SchedulesView,
                 PermissionKeys.CompensationView, PermissionKeys.PlacementTestsView, PermissionKeys.CertificatesView,
+                PermissionKeys.DashboardView, PermissionKeys.FinancialReportView,
             })
             {
                 if (!existingKeys.Contains(key))

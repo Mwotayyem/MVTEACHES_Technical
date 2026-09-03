@@ -184,7 +184,7 @@ else
                         </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <strong class="small">@T["Certificates"]</strong>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Certificates.View" id="perm-@admin.Id-crv"
@@ -195,6 +195,43 @@ else
                             <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Certificates.Manage" id="perm-@admin.Id-crm"
                                    checked="@admin.GrantedPermissions.Contains("Admin.Certificates.Manage")" />
                             <label class="form-check-label" for="perm-@admin.Id-crm">@T["Issue or revoke a certificate"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <strong class="small">@T["Dashboard"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Dashboard.View" id="perm-@admin.Id-dbv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Dashboard.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-dbv">@T["View the dashboard"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <strong class="small">@T["Financial Report"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.FinancialReport.View" id="perm-@admin.Id-frv"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.FinancialReport.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-frv">@T["View the financial report"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.FinancialReport.Manage" id="perm-@admin.Id-frm"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.FinancialReport.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-frm">@T["Record a running cost"]</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong class="small">@T["Offer posters"]</strong>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Posters.View" id="perm-@admin.Id-pov"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Posters.View")" />
+                            <label class="form-check-label" for="perm-@admin.Id-pov">@T["View offer posters"]</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Posters.Manage" id="perm-@admin.Id-pom"
+                                   checked="@admin.GrantedPermissions.Contains("Admin.Posters.Manage")" />
+                            <label class="form-check-label" for="perm-@admin.Id-pom">@T["Create, edit, show, or hide a poster"]</label>
                         </div>
                     </div>
 

@@ -9,6 +9,7 @@ using MVTeaches.Application.Files;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -29,20 +30,23 @@ namespace MVTeaches.Web.Pages.Admin;
 /// with every version a poster has ever had. That was an explicit ask.
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.PostersView)]
 public class PostersModel : PageModel
 {
     private readonly MvTeachesDbContext _db;
     private readonly IFileStorageService _files;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuthorizationService _authorizationService;
     private readonly IClock _clock;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public PostersModel(MvTeachesDbContext db, IFileStorageService files, UserManager<ApplicationUser> userManager,
-        IClock clock, IStringLocalizer<SharedResource> localizer)
+        IAuthorizationService authorizationService, IClock clock, IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _files = files;
         _userManager = userManager;
+        _authorizationService = authorizationService;
         _clock = clock;
         _localizer = localizer;
     }
@@ -120,6 +124,11 @@ public class PostersModel : PageModel
 
     public async Task<IActionResult> OnPostSaveAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PostersManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(Input, nameof(Input)))
         {
@@ -193,6 +202,11 @@ public class PostersModel : PageModel
 
     public async Task<IActionResult> OnPostToggleAsync(long posterId)
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PostersManage) is { } deny)
+        {
+            return deny;
+        }
+
         var poster = await _db.PromotionalPosters.FirstOrDefaultAsync(p => p.Id == posterId);
         if (poster is not null)
         {

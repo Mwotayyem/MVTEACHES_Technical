@@ -29,6 +29,7 @@ namespace MVTeaches.Web.Pages.Admin;
 /// are admin settings that do not exist yet, so nothing pretends to use them).
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.DashboardView)]
 public class DashboardModel : PageModel
 {
     private readonly MvTeachesDbContext _db;

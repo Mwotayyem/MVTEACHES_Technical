@@ -40,6 +40,11 @@
     var canViewCompensation = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.CompensationView)).Succeeded;
     var canViewPlacementTests = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PlacementTestsView)).Succeeded;
     var canViewCertificates = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.CertificatesView)).Succeeded;
+    // Stage 2D (2026-09-03): the last three admin pages that still fell back
+    // to the bare Admin/SystemAdmin-role check.
+    var canViewDashboard = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.DashboardView)).Succeeded;
+    var canViewFinancialReport = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.FinancialReportView)).Succeeded;
+    var canViewPosters = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PostersView)).Succeeded;
 }
 @functions {
     // Inline, single-colour line icons for the sidebar. Deliberately hand-written
@@ -146,7 +151,10 @@
                     @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
                     {
                         <div class="app-nav-group">@T["Overview"]</div>
-                        <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
+                        @if (canViewDashboard)
+                        {
+                            <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
+                        }
                         <div class="app-nav-group">@T["Students and Guardians"]</div>
                         @if (canViewStudents)
                         {
@@ -179,7 +187,10 @@
                         {
                             <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
                         }
-                        <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
+                        @if (canViewPosters)
+                        {
+                            <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
+                        }
                         <div class="app-nav-group">@T["Scheduling and Attendance"]</div>
                         @if (canViewSchedules)
                         {
@@ -195,7 +206,10 @@
                         {
                             <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>
                         }
-                        <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport">@NavIcon("chart")@T["Financial Report"]</a>
+                        @if (canViewFinancialReport)
+                        {
+                            <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport">@NavIcon("chart")@T["Financial Report"]</a>
+                        }
                         <div class="app-nav-group">@T["Certificates"]</div>
                         @if (canViewCertificates)
                         {
@@ -245,7 +259,10 @@
                     <a class="@NavClass("/Index")" asp-page="/Index">@NavIcon("home")@T["Home"]</a>
                     @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
                     {
-                        <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
+                        @if (canViewDashboard)
+                        {
+                            <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
+                        }
                         @if (canViewStudents)
                         {
                             <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@NavIcon("users")@T["Students"]</a>
@@ -274,7 +291,10 @@
                         {
                             <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
                         }
-                        <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
+                        @if (canViewPosters)
+                        {
+                            <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
+                        }
                         @if (canViewPayroll)
                         {
                             <a class="@NavClass("/Admin/Payroll")" asp-page="/Admin/Payroll">@NavIcon("banknote")@T["Payroll"]</a>

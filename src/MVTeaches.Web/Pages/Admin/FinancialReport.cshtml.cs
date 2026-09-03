@@ -8,6 +8,7 @@ using MVTeaches.Application.Reports;
 using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Finance;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -21,21 +22,25 @@ namespace MVTeaches.Web.Pages.Admin;
 /// original discipline (see IFinancialReportService's own updated remarks).
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
+[Authorize(Policy = PermissionKeys.FinancialReportView)]
 public class FinancialReportModel : PageModel
 {
     private readonly IFinancialReportService _reports;
     private readonly IOperatingExpenseService _expenses;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuthorizationService _authorizationService;
     private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly MVTeaches.Infrastructure.Persistence.MvTeachesDbContext _db;
 
     public FinancialReportModel(IFinancialReportService reports, IOperatingExpenseService expenses,
-        UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer,
+        UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService,
+        IStringLocalizer<SharedResource> localizer,
         MVTeaches.Infrastructure.Persistence.MvTeachesDbContext db)
     {
         _reports = reports;
         _expenses = expenses;
         _userManager = userManager;
+        _authorizationService = authorizationService;
         _localizer = localizer;
         _db = db;
     }
@@ -96,6 +101,11 @@ public class FinancialReportModel : PageModel
 
     public async Task<IActionResult> OnPostRecordExpenseAsync()
     {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.FinancialReportManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(NewExpense, nameof(NewExpense)))
         {

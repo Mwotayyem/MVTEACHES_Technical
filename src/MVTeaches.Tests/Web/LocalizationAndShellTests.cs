@@ -54,27 +54,30 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         await EnsureUserAsync(userManager, GuardianEmail, RoleNames.Guardian);
         await EnsureUserAsync(userManager, StudentEmail, RoleNames.Student);
 
-        // Security review 2026-09-02/2026-09-03 (Stage 1 + Stage 2A/2B/2C
+        // Security review 2026-09-02/2026-09-03 (Stage 1 + Stage 2A/2B/2C/2D
         // admin permissions): this file's AdminEmail account exercises the
-        // FULL Subscriptions, Payments, Students, Teachers, Schedules, and
-        // PlacementTests screens (localization text on every form, plus
-        // recording a payment/creating a draft version) — it represents "an
-        // ordinary admin using the page", not a permission-restriction
-        // scenario (that is ChangePasswordTests' sibling,
-        // AdminPermissionTests), so it gets full access to those screens
-        // rather than View-only — in particular Students.Manage, since
-        // Admin_students_page_renders_... asserts on the "Register a
-        // guardian only" / "Register a student only" correction-card text;
-        // Teachers.Manage, since Admin_teachers_page_renders_... asserts on
-        // the "Register a teacher" form and "How much is this teacher
-        // paid?" pay-rate card; Schedules.Manage, since
-        // Admin_schedules_page_renders_... asserts on the "Create a weekly
-        // class" tab; and PlacementTests.Manage, since
+        // FULL Subscriptions, Payments, Students, Teachers, Schedules,
+        // PlacementTests, and FinancialReport screens (localization text on
+        // every form, plus recording a payment/creating a draft version/
+        // recording an operating expense) — it represents "an ordinary admin
+        // using the page", not a permission-restriction scenario (that is
+        // ChangePasswordTests' sibling, AdminPermissionTests), so it gets
+        // full access to those screens rather than View-only — in particular
+        // Students.Manage, since Admin_students_page_renders_... asserts on
+        // the "Register a guardian only" / "Register a student only"
+        // correction-card text; Teachers.Manage, since
+        // Admin_teachers_page_renders_... asserts on the "Register a
+        // teacher" form and "How much is this teacher paid?" pay-rate card;
+        // Schedules.Manage, since Admin_schedules_page_renders_... asserts on
+        // the "Create a weekly class" tab; PlacementTests.Manage, since
         // Admin_placement_tests_page_renders_... and
         // An_infrastructure_layer_validation_message_... both POST
-        // CreateVersion and expect 200 OK with the resulting status message,
-        // all of which only a Manage-holding admin can reach. Idempotent,
-        // same reasoning as AuthorizationTests' own copy of this fix.
+        // CreateVersion and expect 200 OK with the resulting status message;
+        // and FinancialReport.Manage, since
+        // An_operating_expense_submitted_from_an_arabic_language_page_...
+        // POSTs RecordExpense and expects 200 OK — all of which only a
+        // Manage-holding admin can reach. Idempotent, same reasoning as
+        // AuthorizationTests' own copy of this fix.
         var adminUser = await userManager.FindByEmailAsync(AdminEmail);
         if (adminUser is not null)
         {
@@ -87,6 +90,7 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
                 PermissionKeys.TeachersView, PermissionKeys.TeachersManage,
                 PermissionKeys.SchedulesView, PermissionKeys.SchedulesManage,
                 PermissionKeys.PlacementTestsView, PermissionKeys.PlacementTestsManage,
+                PermissionKeys.FinancialReportView, PermissionKeys.FinancialReportManage,
             })
             {
                 if (!existingKeys.Contains(key))

@@ -274,6 +274,22 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         return certificate.Id;
     }
 
+    /// <summary>Stage 2D: a real, active PromotionalPoster row tied to no
+    /// level/plan — enough for OnPostToggleAsync to act on, without needing
+    /// the level/pricing-plan graph a fuller poster would carry.</summary>
+    private async Task<long> SeedPosterAsync(string label)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+
+        var createdByUserId = await SeedBareUserAsync(db, label);
+        var poster = new PromotionalPoster($"Permission Test Poster {label}", details: null, isActive: true,
+            sortOrder: 0, levelId: null, pricingPlanId: null, createdByUserId, SystemClock.Instance.GetCurrentInstant());
+        db.PromotionalPosters.Add(poster);
+        await db.SaveChangesAsync();
+        return poster.Id;
+    }
+
     // Stage 2C note: bumped from the 80_000_000 base every other test file in
     // this suite copies verbatim (see the TwoLetterCode remark below) to a
     // distinct range of its own. AgeGroup/Level ids (unlike Country's, which
@@ -1383,5 +1399,256 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
 
         // Same client, same cookie, no logout/login in between.
         Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/CompensationRequests")).StatusCode);
+    }
+
+    // =================================================================
+    // Stage 2D (2026-09-03, Review Required — Authorization): Dashboard,
+    // FinancialReport, and Posters — the last three admin pages that still
+    // fell back to the bare Admin/SystemAdmin-role check. Same
+    // PermissionAuthorizationHandler, same live-per-request DB check, same
+    // SystemAdmin bypass. This closes the admin-permissions rollout.
+    // =================================================================
+
+    // ---------------------------------------------------------------
+    // 37. SystemAdmin: sees and acts on Dashboard/FinancialReport/Posters
+    // with ZERO claims.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task SystemAdmin_views_and_manages_dashboard_financialreport_and_posters_with_zero_permission_claims()
+    {
+        var email = await CreateUserAsync("sa-dashboard-financial-posters", RoleNames.SystemAdmin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Dashboard")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/FinancialReport")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Posters")).StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var countryId = await SeedCountryAsync(db);
+
+        var expenseToken = await GetAntiforgeryTokenAsync(client, "/Admin/FinancialReport");
+        var expenseResponse = await client.PostAsync("/Admin/FinancialReport?handler=RecordExpense", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = expenseToken,
+            ["NewExpense.CountryId"] = countryId.ToString(),
+            ["NewExpense.Category"] = "Marketing",
+            ["NewExpense.Amount"] = "42",
+            ["NewExpense.Currency"] = "JOD",
+            ["NewExpense.IncurredOn"] = "2026-01-15",
+        }));
+        Assert.Equal(HttpStatusCode.OK, expenseResponse.StatusCode);
+        Assert.True(await db.OperatingExpenses.AnyAsync(e => e.CountryId == countryId && e.Amount.Amount == 42m));
+
+        var posterId = await SeedPosterAsync("sa-toggle-target");
+        var toggleToken = await GetAntiforgeryTokenAsync(client, "/Admin/Posters");
+        var toggleResponse = await client.PostAsync("/Admin/Posters?handler=Toggle", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = toggleToken,
+            ["posterId"] = posterId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, toggleResponse.StatusCode);
+        var toggled = await db.PromotionalPosters.FirstAsync(p => p.Id == posterId);
+        Assert.False(toggled.IsActive);
+    }
+
+    // ---------------------------------------------------------------
+    // 38. Plain Admin, zero claims: forbidden from all three Stage 2D pages.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_no_permission_claims_is_forbidden_from_dashboard_financialreport_and_posters_pages()
+    {
+        var email = await CreateUserAsync("no-claims-dashboard-financial-posters", RoleNames.Admin);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Dashboard")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/FinancialReport")).StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Posters")).StatusCode);
+    }
+
+    // ---------------------------------------------------------------
+    // 39. Admin with only Dashboard.View can open the dashboard. Dashboard
+    // has no mutating handler at all, so there is nothing further to prove
+    // View-only cannot do.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_only_dashboard_view_can_open_the_dashboard()
+    {
+        var email = await CreateUserAsync("dashboard-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.DashboardView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Dashboard")).StatusCode);
+    }
+
+    // ---------------------------------------------------------------
+    // 40. Admin with only FinancialReport.View: sees the report, cannot
+    // record an expense, and a direct POST writes nothing.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_financialreport_view_only_sees_the_page_but_cannot_record_an_expense_and_writes_nothing()
+    {
+        var email = await CreateUserAsync("financialreport-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.FinancialReportView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/FinancialReport")).StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var countryId = await SeedCountryAsync(db);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/FinancialReport");
+        var response = await client.PostAsync("/Admin/FinancialReport?handler=RecordExpense", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["NewExpense.CountryId"] = countryId.ToString(),
+            ["NewExpense.Category"] = "Marketing",
+            ["NewExpense.Amount"] = "99",
+            ["NewExpense.Currency"] = "JOD",
+            ["NewExpense.IncurredOn"] = "2026-01-15",
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        Assert.False(await db.OperatingExpenses.AnyAsync(e => e.CountryId == countryId && e.Amount.Amount == 99m));
+    }
+
+    // ---------------------------------------------------------------
+    // 41. Admin with FinancialReport.View + FinancialReport.Manage: can
+    // actually record an expense through the real handler.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_financialreport_manage_can_record_an_expense()
+    {
+        var email = await CreateUserAsync("financialreport-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.FinancialReportView, PermissionKeys.FinancialReportManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var countryId = await SeedCountryAsync(db);
+
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/FinancialReport");
+        var response = await client.PostAsync("/Admin/FinancialReport?handler=RecordExpense", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["NewExpense.CountryId"] = countryId.ToString(),
+            ["NewExpense.Category"] = "Marketing",
+            ["NewExpense.Amount"] = "77",
+            ["NewExpense.Currency"] = "JOD",
+            ["NewExpense.IncurredOn"] = "2026-01-15",
+        }));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        Assert.True(await db.OperatingExpenses.AnyAsync(e => e.CountryId == countryId && e.Amount.Amount == 77m));
+    }
+
+    // ---------------------------------------------------------------
+    // 42. Admin with only Posters.View: sees the posters, cannot save a new
+    // one or toggle an existing one, and a direct POST writes nothing.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_posters_view_only_sees_the_page_but_cannot_save_or_toggle_and_writes_nothing()
+    {
+        var email = await CreateUserAsync("posters-view-only", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.PostersView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var posterId = await SeedPosterAsync("view-only-toggle-target");
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Posters")).StatusCode);
+
+        var title = $"Should not be created {Guid.NewGuid():N}";
+        var saveToken = await GetAntiforgeryTokenAsync(client, "/Admin/Posters");
+        var saveResponse = await client.PostAsync("/Admin/Posters?handler=Save", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = saveToken,
+            ["Input.Title"] = title,
+            ["Input.SortOrder"] = "0",
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, saveResponse.StatusCode);
+
+        var toggleToken = await GetAntiforgeryTokenAsync(client, "/Admin/Posters");
+        var toggleResponse = await client.PostAsync("/Admin/Posters?handler=Toggle", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = toggleToken,
+            ["posterId"] = posterId.ToString(),
+        }));
+        Assert.NotEqual(HttpStatusCode.OK, toggleResponse.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.False(await db.PromotionalPosters.AnyAsync(p => p.Title == title)); // Save never wrote
+        var stillActive = await db.PromotionalPosters.FirstAsync(p => p.Id == posterId);
+        Assert.True(stillActive.IsActive); // Toggle never touched it
+    }
+
+    // ---------------------------------------------------------------
+    // 43. Admin with Posters.View + Posters.Manage: can actually save a new
+    // poster and toggle one through the real handlers.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_posters_manage_can_save_and_toggle_a_poster()
+    {
+        var email = await CreateUserAsync("posters-manage", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.PostersView, PermissionKeys.PostersManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var title = $"Manage Test Poster {Guid.NewGuid():N}";
+        var saveToken = await GetAntiforgeryTokenAsync(client, "/Admin/Posters");
+        var saveResponse = await client.PostAsync("/Admin/Posters?handler=Save", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = saveToken,
+            ["Input.Title"] = title,
+            ["Input.SortOrder"] = "0",
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, saveResponse.StatusCode);
+
+        long posterId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+            posterId = (await db.PromotionalPosters.FirstAsync(p => p.Title == title)).Id;
+        }
+
+        var toggleToken = await GetAntiforgeryTokenAsync(client, "/Admin/Posters");
+        var toggleResponse = await client.PostAsync("/Admin/Posters?handler=Toggle", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = toggleToken,
+            ["posterId"] = posterId.ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, toggleResponse.StatusCode);
+
+        using var verifyScope = _factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var toggled = await verifyDb.PromotionalPosters.FirstAsync(p => p.Id == posterId);
+        Assert.False(toggled.IsActive); // created Active (default), Toggle flipped it
+    }
+
+    // ---------------------------------------------------------------
+    // 44. Revoking Dashboard.View takes effect on the very next request,
+    // with no logout/login.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Revoking_dashboard_view_blocks_the_very_next_request_with_no_relogin()
+    {
+        var email = await CreateUserAsync("revoke-dashboard-target", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.DashboardView);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin/Dashboard")).StatusCode);
+
+        await RevokeAsync(email, PermissionKeys.DashboardView);
+
+        // Same client, same cookie, no logout/login in between.
+        Assert.NotEqual(HttpStatusCode.OK, (await client.GetAsync("/Admin/Dashboard")).StatusCode);
     }
 }

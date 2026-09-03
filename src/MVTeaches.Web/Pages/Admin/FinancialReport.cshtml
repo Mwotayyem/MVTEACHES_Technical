@@ -1,7 +1,11 @@
 ﻿@page
 @model MVTeaches.Web.Pages.Admin.FinancialReportModel
+@using Microsoft.AspNetCore.Authorization
+@using MVTeaches.Infrastructure.Identity
+@inject IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = T["Financial Report"].Value;
+    var canManage = (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.FinancialReportManage)).Succeeded;
 }
 
 <nav class="app-crumbs" aria-label="@T["Breadcrumb"]">
@@ -192,62 +196,69 @@
             {
                 <div class="alert alert-danger">@Model.ErrorMessage</div>
             }
-            <form method="post" asp-page-handler="RecordExpense" class="row g-2">
-                <div class="col-md-2">
-                    <label class="form-label" asp-for="NewExpense.CountryId">@T["Country"]<span class="app-required">*</span></label>
-                    <select asp-for="NewExpense.CountryId" class="form-select">
-                        <option value="">@T["Select placeholder"]</option>
-                        @foreach (var country in Model.Countries)
-                        {
-                            <option value="@country.Id">@Model.DisplayCountry(country)</option>
-                        }
-                    </select>
-                    <span asp-validation-for="NewExpense.CountryId" class="text-danger small"></span>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label" asp-for="NewExpense.Category">@T["What was it for?"]<span class="app-required">*</span></label>
-                    <input asp-for="NewExpense.Category" class="form-control" list="expenseCategories"
-                           placeholder="@T["e.g. Rent, Marketing"]" autocomplete="off" />
-                    <datalist id="expenseCategories">
-                        @foreach (var category in Model.KnownCategories)
-                        {
-                            <option value="@category"></option>
-                        }
-                    </datalist>
-                    <div class="form-text">@T["Reuse the same wording each month so the totals group together."]</div>
-                    <span asp-validation-for="NewExpense.Category" class="text-danger small"></span>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label" asp-for="NewExpense.Amount">@T["Amount"]<span class="app-required">*</span></label>
-                    <input asp-for="NewExpense.Amount" class="form-control" inputmode="decimal" />
-                    <span asp-validation-for="NewExpense.Amount" class="text-danger small"></span>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label" asp-for="NewExpense.Currency">@T["Currency"]<span class="app-required">*</span></label>
-                    <select asp-for="NewExpense.Currency" class="form-select">
-                        @foreach (var code in Model.Currencies)
-                        {
-                            <option value="@code">@code</option>
-                        }
-                    </select>
-                    <span asp-validation-for="NewExpense.Currency" class="text-danger small"></span>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label" asp-for="NewExpense.IncurredOn">@T["Date it was paid"]<span class="app-required">*</span></label>
-                    <input asp-for="NewExpense.IncurredOn" type="date" class="form-control" />
-                    <span asp-validation-for="NewExpense.IncurredOn" class="text-danger small"></span>
-                </div>
-                <div class="col-md-8">
-                    <label class="form-label" asp-for="NewExpense.Note">@T["Note (optional)"]</label>
-                    <input asp-for="NewExpense.Note" class="form-control" />
-                </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary">@T["Record it"]</button>
-                </div>
-                <div class="col-12">
-                    <div class="app-outcome">@T["It is counted against the dates chosen at the top of this page, and comes off the profit figure."]</div>
-                </div>
-            </form>
+            @if (canManage)
+            {
+                <form method="post" asp-page-handler="RecordExpense" class="row g-2">
+                    <div class="col-md-2">
+                        <label class="form-label" asp-for="NewExpense.CountryId">@T["Country"]<span class="app-required">*</span></label>
+                        <select asp-for="NewExpense.CountryId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var country in Model.Countries)
+                            {
+                                <option value="@country.Id">@Model.DisplayCountry(country)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="NewExpense.CountryId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewExpense.Category">@T["What was it for?"]<span class="app-required">*</span></label>
+                        <input asp-for="NewExpense.Category" class="form-control" list="expenseCategories"
+                               placeholder="@T["e.g. Rent, Marketing"]" autocomplete="off" />
+                        <datalist id="expenseCategories">
+                            @foreach (var category in Model.KnownCategories)
+                            {
+                                <option value="@category"></option>
+                            }
+                        </datalist>
+                        <div class="form-text">@T["Reuse the same wording each month so the totals group together."]</div>
+                        <span asp-validation-for="NewExpense.Category" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" asp-for="NewExpense.Amount">@T["Amount"]<span class="app-required">*</span></label>
+                        <input asp-for="NewExpense.Amount" class="form-control" inputmode="decimal" />
+                        <span asp-validation-for="NewExpense.Amount" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" asp-for="NewExpense.Currency">@T["Currency"]<span class="app-required">*</span></label>
+                        <select asp-for="NewExpense.Currency" class="form-select">
+                            @foreach (var code in Model.Currencies)
+                            {
+                                <option value="@code">@code</option>
+                            }
+                        </select>
+                        <span asp-validation-for="NewExpense.Currency" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NewExpense.IncurredOn">@T["Date it was paid"]<span class="app-required">*</span></label>
+                        <input asp-for="NewExpense.IncurredOn" type="date" class="form-control" />
+                        <span asp-validation-for="NewExpense.IncurredOn" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label" asp-for="NewExpense.Note">@T["Note (optional)"]</label>
+                        <input asp-for="NewExpense.Note" class="form-control" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">@T["Record it"]</button>
+                    </div>
+                    <div class="col-12">
+                        <div class="app-outcome">@T["It is counted against the dates chosen at the top of this page, and comes off the profit figure."]</div>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <p class="text-muted small mb-0">@T["View only"]</p>
+            }
         </div>
     </div>
 

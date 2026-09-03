@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -163,6 +164,20 @@ public class MfaTests : IClassFixture<AuthorizationTests.Factory>, IAsyncLifetim
     public async Task Full_enrollment_and_challenge_round_trip_with_a_real_totp_code()
     {
         var (_, email) = await CreateUserAsync("full", RoleNames.Admin);
+        // Stage 2D (2026-09-03): Step 6 below proves a real admin page is
+        // reachable after full sign-in by loading /Admin/Dashboard, which now
+        // requires Admin.Dashboard.View — grant only that one key so the step
+        // keeps proving what it always proved (MFA completes, an admin page
+        // opens), not a permissions scenario. Looked up fresh in its own
+        // scope (not the ApplicationUser returned by CreateUserAsync, which
+        // is tracked by that call's own now-disposed DbContext).
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var freshUser = await userManager.FindByEmailAsync(email);
+            await userManager.AddClaimAsync(freshUser!, new Claim(PermissionKeys.ClaimType, PermissionKeys.DashboardView));
+        }
+
         var client = CreateClient();
 
         // --- Step 1: log in with password only, land on the mandatory MFA page ---
@@ -197,7 +212,13 @@ public class MfaTests : IClassFixture<AuthorizationTests.Factory>, IAsyncLifetim
         Assert.Contains("recovery code", afterVerifyHtml, StringComparison.OrdinalIgnoreCase);
 
         // --- Step 4: log out, log back in — this time land on the 2FA challenge, not ManageMfa ---
-        var logoutToken = await GetAntiforgeryTokenAsync(client, "/Admin/Dashboard");
+        // Stage 2D (2026-09-03): was "/Admin/Dashboard", which now requires
+        // Admin.Dashboard.View — this test's Admin user holds no permission
+        // claims at all (it exists only to exercise the MFA round-trip), so
+        // any already-reachable authenticated page works just as well as a
+        // source of a fresh antiforgery token; ManageMfa (already visited
+        // above) needs no permission at all.
+        var logoutToken = await GetAntiforgeryTokenAsync(client, "/Account/ManageMfa?culture=en");
         await client.PostAsync("/Account/Logout", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = logoutToken,
