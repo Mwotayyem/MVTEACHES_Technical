@@ -33,14 +33,95 @@ public class MyChildrenModel : PageModel
     private readonly IClock _clock;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
+    /// <summary>Owner decision 2026-09-04: a guardian adds their own children
+    /// here rather than phoning the centre to have it typed in for them.</summary>
+    private readonly MVTeaches.Application.People.ISelfRegistrationService _selfRegistration;
+
     public MyChildrenModel(MvTeachesDbContext db, IJoinAttendanceService join, UserManager<ApplicationUser> userManager, IClock clock,
-        IStringLocalizer<SharedResource> localizer)
+        IStringLocalizer<SharedResource> localizer, MVTeaches.Application.People.ISelfRegistrationService selfRegistration)
     {
         _db = db;
         _join = join;
         _userManager = userManager;
         _clock = clock;
         _localizer = localizer;
+        _selfRegistration = selfRegistration;
+    }
+
+    /// <summary>Owner decision 2026-09-04: the guardian's own add-a-child form.
+    /// Deliberately small — a name, a birth date, a country. No level, no
+    /// package and no login: a child gets those from the centre, and offering
+    /// them here would be offering something this page cannot honour.</summary>
+    public class NewChildInput
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter the full name.")]
+        public string FullName { get; set; } = string.Empty;
+
+        /// <summary>Nullable so an untouched picker fails [Required] rather
+        /// than passing as 0001-01-01 — the binding trap already documented on
+        /// the admin registration forms.</summary>
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter the date of birth.")]
+        public DateOnly? DateOfBirth { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Choose a country.")]
+        public int? CountryId { get; set; }
+
+        /// <summary>Optional: the number the centre actually calls about this
+        /// child is the guardian's own. Recorded only if the family has one.</summary>
+        [System.ComponentModel.DataAnnotations.Phone(ErrorMessage = "This is not a valid phone number.")]
+        public string? PhoneNumber { get; set; }
+    }
+
+    [BindProperty]
+    public NewChildInput NewChild { get; set; } = new();
+
+    public IReadOnlyList<MVTeaches.Domain.Catalog.Country> Countries { get; set; } =
+        Array.Empty<MVTeaches.Domain.Catalog.Country>();
+
+    public bool IsArabic => System.Globalization.CultureInfo.CurrentUICulture
+        .TwoLetterISOLanguageName.Equals("ar", StringComparison.OrdinalIgnoreCase);
+
+    public string DisplayCountry(MVTeaches.Domain.Catalog.Country country) =>
+        IsArabic ? country.NameAr : country.NameEn;
+
+    /// <summary>Owner decision 2026-09-04. Every rule lives in
+    /// ISelfRegistrationService.AddOwnChildAsync — which guardian this is comes
+    /// from the signed-in account, never from the form, so no guardian can add
+    /// a child to somebody else's family.</summary>
+    public async Task<IActionResult> OnPostAddChildAsync()
+    {
+        ModelState.Clear();
+        if (!TryValidateModel(NewChild, nameof(NewChild)))
+        {
+            await LoadAsync();
+            return Page();
+        }
+
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var dob = NewChild.DateOfBirth!.Value;
+        var result = await _selfRegistration.AddOwnChildAsync(actingUserId, NewChild.FullName,
+            new LocalDate(dob.Year, dob.Month, dob.Day), NewChild.PhoneNumber, NewChild.CountryId!.Value,
+            HttpContext.RequestAborted);
+
+        StatusMessage = result.Outcome == MVTeaches.Application.People.AddOwnChildOutcome.Added
+            ? _localizer["{0} was added. The centre will set their level — until then you cannot buy a package or book a lesson for them.", NewChild.FullName].Value
+            : null;
+        ErrorMessage = result.Outcome switch
+        {
+            MVTeaches.Application.People.AddOwnChildOutcome.NotAGuardian =>
+                _localizer["This account is not linked to a guardian record yet — please contact the centre."].Value,
+            MVTeaches.Application.People.AddOwnChildOutcome.CountryNotAvailable =>
+                _localizer["The centre does not currently operate in that country."].Value,
+            _ => null,
+        };
+
+        if (result.Outcome == MVTeaches.Application.People.AddOwnChildOutcome.Added)
+        {
+            NewChild = new NewChildInput(); // a cleared form, ready for the next child
+        }
+
+        await LoadAsync();
+        return Page();
     }
 
     /// <summary>Owner decision 2026-09-04, two changes to this row.
@@ -107,6 +188,7 @@ public class MyChildrenModel : PageModel
 
     private async Task LoadAsync()
     {
+        Countries = await _db.Countries.Where(c => c.IsActive).OrderBy(c => c.NameEn).ToListAsync();
         var userId = long.Parse(_userManager.GetUserId(User)!);
         var guardian = await _db.Guardians.FirstOrDefaultAsync(g => g.UserId == userId);
         if (guardian is null)

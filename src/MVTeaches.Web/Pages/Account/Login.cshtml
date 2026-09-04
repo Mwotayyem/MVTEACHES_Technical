@@ -62,6 +62,10 @@
                 <button type="submit" class="btn btn-primary w-100">@T["Sign in"]</button>
             </form>
 
+@* Owner decision 2026-09-04: families sign themselves up. *@
+<p class="mt-3 text-muted">@T["No account yet?"] <a asp-page="/Account/Register">@T["Create an account"]</a></p>
+
+
             <div class="auth-card-foot">
                 <p class="mb-1"><strong>@T["No account yet?"]</strong></p>
                 <p class="text-muted small mb-0">@T["Accounts are opened by the centre. Contact MVTEACHES and the team will register you and send you your sign-in details."]</p>

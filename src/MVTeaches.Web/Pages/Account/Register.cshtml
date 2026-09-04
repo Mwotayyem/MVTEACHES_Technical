@@ -1,0 +1,152 @@
+@page
+@model MVTeaches.Web.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = T["Create an account"].Value;
+}
+
+<div class="app-page-head">
+    <div>
+        <h1>@T["Create an account"]</h1>
+        <p class="text-muted">@T["Already have one?"] <a asp-page="/Account/Login">@T["Sign in"]</a></p>
+    </div>
+</div>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" role="alert" tabindex="-1">
+        <strong>@T["Some fields still need attention"]</strong>
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
+}
+
+@* Owner decision 2026-09-04: the person says which they are rather than the
+   system inferring it from an age. Which one they pick decides who pays —
+   a student with a guardian linked cannot buy their own packages — so this
+   is a real question, not a styling choice. *@
+@if (!Model.IsGuardianPath && !Model.IsStudentPath)
+{
+    <div class="row g-3" style="max-width: 46rem;">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="card-title h5">@T["I am a parent or guardian"]</h2>
+                    <p class="text-muted small flex-grow-1">@T["Create your account, then add each of your children under it. You choose their packages and pay for them."]</p>
+                    <a class="btn btn-primary" asp-page="/Account/Register" asp-route-as="guardian">@T["Register as a guardian"]</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="card-title h5">@T["I am the student"]</h2>
+                    <p class="text-muted small flex-grow-1">@T["For an adult studying for themselves. You choose and pay for your own packages."]</p>
+                    <a class="btn btn-primary" asp-page="/Account/Register" asp-route-as="student">@T["Register as a student"]</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.IsGuardianPath)
+{
+    <div class="card" style="max-width: 34rem;">
+        <div class="card-body">
+            <h2 class="card-title h5">@T["Register as a guardian"]</h2>
+            <p class="text-muted small">@T["You will add your children on the next screen. Each child gets their own record, their own level and their own package."]</p>
+            <form method="post" asp-page-handler="Guardian">
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Guardian.FullName">@T["Full name"]<span class="app-required">*</span></label>
+                    <input asp-for="Guardian.FullName" class="form-control" autocomplete="name" />
+                    <span asp-validation-for="Guardian.FullName" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Guardian.Email">@T["Email"]<span class="app-required">*</span></label>
+                    <input asp-for="Guardian.Email" class="form-control" autocomplete="email" />
+                    <span asp-validation-for="Guardian.Email" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Guardian.PhoneNumber">@T["Phone number"]<span class="app-required">*</span></label>
+                    <input asp-for="Guardian.PhoneNumber" type="tel" class="form-control" autocomplete="tel" />
+                    <div class="form-text">@T["The number the centre calls about this family. Include the country code."]</div>
+                    <span asp-validation-for="Guardian.PhoneNumber" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Guardian.CountryId">@T["Country"]<span class="app-required">*</span></label>
+                    <select asp-for="Guardian.CountryId" class="form-select">
+                        <option value="">@T["Select placeholder"]</option>
+                        @foreach (var country in Model.Countries)
+                        {
+                            <option value="@country.Id">@Model.DisplayCountry(country)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Guardian.CountryId" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Guardian.Password">@T["Password"]<span class="app-required">*</span></label>
+                    <input asp-for="Guardian.Password" type="password" class="form-control" autocomplete="new-password" />
+                    <div class="form-text">@T["At least 10 characters."]</div>
+                    <span asp-validation-for="Guardian.Password" class="text-danger small"></span>
+                </div>
+                <button type="submit" class="btn btn-primary">@T["Create the account"]</button>
+                <a class="btn btn-link" asp-page="/Account/Register">@T["Back"]</a>
+            </form>
+        </div>
+    </div>
+}
+
+@if (Model.IsStudentPath)
+{
+    <div class="card" style="max-width: 34rem;">
+        <div class="card-body">
+            <h2 class="card-title h5">@T["Register as a student"]</h2>
+            @* The honest expectation: registering gets them an account, not a
+               place in a class. The level has to come first. *@
+            <p class="text-muted small">@T["After registering, the centre sets your level — you can browse, but you cannot buy a package or book a lesson until it is set."]</p>
+            <form method="post" asp-page-handler="Student">
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Student.FullName">@T["Full name"]<span class="app-required">*</span></label>
+                    <input asp-for="Student.FullName" class="form-control" autocomplete="name" />
+                    <span asp-validation-for="Student.FullName" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Student.Email">@T["Email"]<span class="app-required">*</span></label>
+                    <input asp-for="Student.Email" class="form-control" autocomplete="email" />
+                    <span asp-validation-for="Student.Email" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Student.PhoneNumber">@T["Phone number"]<span class="app-required">*</span></label>
+                    <input asp-for="Student.PhoneNumber" type="tel" class="form-control" autocomplete="tel" />
+                    <span asp-validation-for="Student.PhoneNumber" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Student.DateOfBirth">@T["Date of birth"]<span class="app-required">*</span></label>
+                    <input asp-for="Student.DateOfBirth" type="date" class="form-control" />
+                    <span asp-validation-for="Student.DateOfBirth" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Student.CountryId">@T["Country"]<span class="app-required">*</span></label>
+                    <select asp-for="Student.CountryId" class="form-select">
+                        <option value="">@T["Select placeholder"]</option>
+                        @foreach (var country in Model.Countries)
+                        {
+                            <option value="@country.Id">@Model.DisplayCountry(country)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Student.CountryId" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Student.Password">@T["Password"]<span class="app-required">*</span></label>
+                    <input asp-for="Student.Password" type="password" class="form-control" autocomplete="new-password" />
+                    <div class="form-text">@T["At least 10 characters."]</div>
+                    <span asp-validation-for="Student.Password" class="text-danger small"></span>
+                </div>
+                <button type="submit" class="btn btn-primary">@T["Create the account"]</button>
+                <a class="btn btn-link" asp-page="/Account/Register">@T["Back"]</a>
+            </form>
+        </div>
+    </div>
+}

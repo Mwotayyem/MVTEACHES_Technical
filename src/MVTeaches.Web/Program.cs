@@ -201,6 +201,10 @@ builder.Services.AddScoped<IPayrollService, PayrollService>();
 builder.Services.AddScoped<IFinancialReportService, FinancialReportService>();
 builder.Services.AddScoped<IOperatingExpenseService, OperatingExpenseService>();
 builder.Services.AddScoped<IStudentAdmissionService, StudentAdmissionService>();
+// Owner decision 2026-09-04: families create their own accounts. Layered ON
+// TOP of IStudentAdmissionService rather than beside it, so both paths drive
+// the same domain rules — see ISelfRegistrationService.
+builder.Services.AddScoped<ISelfRegistrationService, SelfRegistrationService>();
 builder.Services.AddScoped<ITeacherAdmissionService, TeacherAdmissionService>();
 builder.Services.AddScoped<ITeacherLevelAuthorizationService, TeacherLevelAuthorizationService>();
 builder.Services.AddScoped<IPlacementTestAdminService, PlacementTestAdminService>();

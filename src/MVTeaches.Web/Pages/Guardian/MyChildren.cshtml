@@ -65,6 +65,51 @@ else
         }
     </div>
 
+    @* Owner decision 2026-09-04: a guardian adds their own children rather
+       than phoning the centre. Each child becomes an independent student with
+       their own level, package and remaining hours — nothing is shared between
+       siblings. No level or package is offered here: those come from the
+       centre, and offering them would promise something this page cannot give. *@
+    <details class="card mb-4">
+        <summary class="card-body pb-0" style="cursor: pointer;">
+            <span class="h5">@T["Add a child"]</span>
+        </summary>
+        <div class="card-body pt-2">
+            <p class="text-muted small">@T["Each child gets their own record, their own level and their own package. The centre sets the level after you add them."]</p>
+            <form method="post" asp-page-handler="AddChild" class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="NewChild.FullName">@T["Full name"]<span class="app-required">*</span></label>
+                    <input asp-for="NewChild.FullName" class="form-control" autocomplete="off" />
+                    <span asp-validation-for="NewChild.FullName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="NewChild.DateOfBirth">@T["Date of birth"]<span class="app-required">*</span></label>
+                    <input asp-for="NewChild.DateOfBirth" type="date" class="form-control" />
+                    <span asp-validation-for="NewChild.DateOfBirth" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="NewChild.CountryId">@T["Country"]<span class="app-required">*</span></label>
+                    <select asp-for="NewChild.CountryId" class="form-select">
+                        <option value="">@T["Select placeholder"]</option>
+                        @foreach (var country in Model.Countries)
+                        {
+                            <option value="@country.Id">@Model.DisplayCountry(country)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NewChild.CountryId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="NewChild.PhoneNumber">@T["Phone number (optional for a child under a guardian)"]</label>
+                    <input asp-for="NewChild.PhoneNumber" type="tel" class="form-control" autocomplete="off" />
+                    <span asp-validation-for="NewChild.PhoneNumber" class="text-danger small"></span>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">@T["Add this child"]</button>
+                </div>
+            </form>
+        </div>
+    </details>
+
     <h2 class="h4">@T["Sessions"]</h2>
     <p class="text-muted">@T["Yesterday through the next 7 days. Press Join once the session has started — the child's full attendance for that session is recorded immediately; pressing again does nothing extra."]</p>
 

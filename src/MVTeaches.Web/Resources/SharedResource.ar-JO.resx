@@ -248,6 +248,28 @@
   <data name="Write why this guardian is being unlinked — it is recorded against the change." xml:space="preserve"><value>اكتب سبب فك ارتباط ولي الأمر — يُسجَّل السبب مع التعديل.</value></data>
   <data name="That guardian is not linked to this student." xml:space="preserve"><value>ولي الأمر هذا غير مرتبط بهذا الطالب.</value></data>
   <data name="Guardian unlinked. The student, their packages, payments and remaining hours are all unchanged — link the correct guardian now." xml:space="preserve"><value>تم فك الارتباط. الطالب وباقاته ومدفوعاته وساعاته المتبقية كلها كما هي — اربط ولي الأمر الصحيح الآن.</value></data>
+  <data name="Create an account" xml:space="preserve"><value>إنشاء حساب</value></data>
+  <data name="Already have one?" xml:space="preserve"><value>هل لديك حساب بالفعل؟</value></data>
+  <data name="I am a parent or guardian" xml:space="preserve"><value>أنا ولي أمر</value></data>
+  <data name="Create your account, then add each of your children under it. You choose their packages and pay for them." xml:space="preserve"><value>أنشئ حسابك، ثم أضف كل واحد من أبنائك تحته. أنت من يختار باقاتهم ويدفع ثمنها.</value></data>
+  <data name="Register as a guardian" xml:space="preserve"><value>التسجيل كولي أمر</value></data>
+  <data name="I am the student" xml:space="preserve"><value>أنا الطالب</value></data>
+  <data name="For an adult studying for themselves. You choose and pay for your own packages." xml:space="preserve"><value>للطالب البالغ الذي يدرس لنفسه. أنت من يختار باقاتك ويدفع ثمنها.</value></data>
+  <data name="Register as a student" xml:space="preserve"><value>التسجيل كطالب</value></data>
+  <data name="You will add your children on the next screen. Each child gets their own record, their own level and their own package." xml:space="preserve"><value>ستضيف أبناءك في الشاشة التالية. لكل طفل سجلّه الخاص ومستواه الخاص وباقته الخاصة.</value></data>
+  <data name="After registering, the centre sets your level — you can browse, but you cannot buy a package or book a lesson until it is set." xml:space="preserve"><value>بعد التسجيل يحدّد المركز مستواك — يمكنك التصفح، لكن لا يمكنك شراء باقة أو حجز حصة قبل تحديده.</value></data>
+  <data name="At least 10 characters." xml:space="preserve"><value>10 أحرف على الأقل.</value></data>
+  <data name="Create the account" xml:space="preserve"><value>أنشئ الحساب</value></data>
+  <data name="Back" xml:space="preserve"><value>رجوع</value></data>
+  <data name="Could not create the account: {0}" xml:space="preserve"><value>تعذّر إنشاء الحساب: {0}</value></data>
+  <data name="Could not create the account." xml:space="preserve"><value>تعذّر إنشاء الحساب.</value></data>
+  <data name="The centre does not currently operate in that country." xml:space="preserve"><value>المركز لا يعمل حاليًا في تلك الدولة.</value></data>
+  <data name="Enter a phone number." xml:space="preserve"><value>أدخل رقم هاتف.</value></data>
+  <data name="Add a child" xml:space="preserve"><value>إضافة طفل</value></data>
+  <data name="Add this child" xml:space="preserve"><value>أضف هذا الطفل</value></data>
+  <data name="Each child gets their own record, their own level and their own package. The centre sets the level after you add them." xml:space="preserve"><value>لكل طفل سجلّه الخاص ومستواه الخاص وباقته الخاصة. ويحدّد المركز المستوى بعد إضافته.</value></data>
+  <data name="{0} was added. The centre will set their level — until then you cannot buy a package or book a lesson for them." xml:space="preserve"><value>تمت إضافة {0}. سيحدّد المركز مستواه — وحتى ذلك الحين لا يمكنك شراء باقة أو حجز حصة له.</value></data>
+  <data name="This account is not linked to a guardian record yet — please contact the centre." xml:space="preserve"><value>هذا الحساب غير مرتبط بسجل ولي أمر بعد — يرجى التواصل مع المركز.</value></data>
   <data name="This package no longer matches the student's current level." xml:space="preserve"><value>هذه الباقة لم تعد تطابق المستوى الحالي للطالب.</value></data>
   <data name="You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again." xml:space="preserve"><value>لديك طلب سابق لهذه الباقة (رقم {0}) ما زال بانتظار الدفع. أكمل دفع ذلك الطلب بالأسفل بدل إنشاء طلب جديد.</value></data>
   <data name="You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used." xml:space="preserve"><value>لديك باقة فعّالة لنفس الخطة وبها رصيد متبقٍ. لا يمكنك شراء نفس الباقة مرة أخرى قبل انتهاء الرصيد.</value></data>
