@@ -29,7 +29,18 @@ public class PayrollRateResolver : IPayrollRateResolver
                         && (r.EffectiveTo == null || onDate < r.EffectiveTo))
             .ToListAsync(cancellationToken);
 
-        var best = candidates.OrderByDescending(r => r.Specificity).FirstOrDefault();
+        // Owner decision 2026-09-04: a deterministic tie-break, as defence in
+        // depth. TeacherRateService now refuses to create a second open rate
+        // for one combination, but a database seeded before that rule - or by
+        // any other path - can still hold two equally-specific candidates, and
+        // this used to pick whichever the database returned first. The latest
+        // start date wins, then the highest id: the most recent decision about
+        // what this teacher is paid.
+        var best = candidates
+            .OrderByDescending(r => r.Specificity)
+            .ThenByDescending(r => r.EffectiveFrom)
+            .ThenByDescending(r => r.Id)
+            .FirstOrDefault();
         return best is null ? null : new ResolvedRate(best.Id, best.Rate, best.Unit);
     }
 }

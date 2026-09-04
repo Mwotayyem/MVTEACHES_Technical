@@ -13,6 +13,7 @@ using MVTeaches.Domain.Payroll;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
 using MVTeaches.Web.Identity;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -216,9 +217,26 @@ public class TeachersModel : PageModel
 
         try
         {
-            await _rates.CreateRateAsync(NewRate.TeacherId!.Value, NewRate.CourseId, NewRate.LevelId, NewRate.AgeGroupId,
+            // Owner decision 2026-09-04: exactly one open rate per
+            // (course, level, age group). The service closes the previous one
+            // itself; the two refusals below are the cases where closing is
+            // not representable, and in both of them nothing was written.
+            var result = await _rates.CreateRateAsync(NewRate.TeacherId!.Value, NewRate.CourseId, NewRate.LevelId, NewRate.AgeGroupId,
                 new Money(NewRate.Amount!.Value, NewRate.Currency), NewRate.Unit, effectiveFrom, actingUserId, HttpContext.RequestAborted);
-            StatusMessage = _localizer["Pay rate saved — it applies to every session this teacher delivers from that date on."].Value;
+
+            StatusMessage = result.Outcome == CreateTeacherRateOutcome.Created
+                ? _localizer["Pay rate saved. Any earlier rate for the same course, level and age group was closed on that date, so exactly one rate is ever in force."].Value
+                : null;
+            ErrorMessage = result.Outcome switch
+            {
+                CreateTeacherRateOutcome.DuplicateStartDate => _localizer[
+                    "This teacher already has a rate for the same course, level and age group starting on {0}. Nothing was saved — one rate cannot both start and be replaced on the same day. Use a later start date.",
+                    _localizer.Date(result.ExistingEffectiveFrom!.Value)].Value,
+                CreateTeacherRateOutcome.StartsBeforeExistingRate => _localizer[
+                    "This teacher already has a rate for the same course, level and age group starting on {0}, which is after the date entered. Nothing was saved — an earlier rate would have to end before it began.",
+                    _localizer.Date(result.ExistingEffectiveFrom!.Value)].Value,
+                _ => null,
+            };
         }
         catch (ArgumentOutOfRangeException ex)
         {
