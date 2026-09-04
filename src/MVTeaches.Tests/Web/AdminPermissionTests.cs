@@ -1808,4 +1808,163 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         Assert.Equal(HttpStatusCode.Redirect, afterResponse.StatusCode);
         Assert.Equal("/Admin/Payments", afterResponse.Headers.Location?.ToString());
     }
+
+    // ---------------------------------------------------------------
+    // Security review 2026-09-04: /Admin/AssistedRegistration's money steps.
+    // The page is gated by StudentsManage, and three of its handlers are not
+    // student writes at all — a subscription and two payment writes. Gated by
+    // StudentsManage alone, "manage students" silently carried the power to
+    // create subscriptions and record payments, which /Admin/Subscriptions
+    // and /Admin/Payments both refuse without their own keys.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Admin_with_only_students_manage_cannot_purchase_a_package_from_assisted_registration()
+    {
+        var email = await CreateUserAsync("assisted-nosubs", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView, PermissionKeys.StudentsManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        // The page itself is still theirs to use — this is a guided
+        // registration flow and they may register.
+        var getResponse = await client.GetAsync("/Admin/AssistedRegistration");
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        var studentId = await SeedStudentAsync("assisted-nosubs-target");
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/AssistedRegistration");
+
+        var response = await client.PostAsync("/Admin/AssistedRegistration?handler=Purchase", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["Purchase.StudentId"] = studentId.ToString(),
+            ["Purchase.PricingPlanId"] = "1",
+        }));
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.False(await db.Subscriptions.AnyAsync(s => s.StudentId == studentId));
+    }
+
+    [Fact]
+    public async Task Admin_with_only_students_manage_cannot_record_a_payment_from_assisted_registration()
+    {
+        var email = await CreateUserAsync("assisted-nopay", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView, PermissionKeys.StudentsManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var studentId = await SeedStudentAsync("assisted-nopay-target");
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/AssistedRegistration");
+
+        var response = await client.PostAsync("/Admin/AssistedRegistration?handler=RecordManualPayment", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["studentId"] = studentId.ToString(),
+            ["subscriptionId"] = "1",
+            ["amount"] = "77",
+            ["currency"] = "JOD",
+            ["method"] = "Cash",
+        }));
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.False(await db.Payments.AnyAsync(p => p.StudentId == studentId));
+    }
+
+    /// <summary>The guard runs before the handler reads anything, which is why
+    /// a made-up payment id is enough here: a refusal that depended on the row
+    /// existing would not be a permission check.</summary>
+    [Fact]
+    public async Task Admin_with_only_students_manage_cannot_submit_a_transfer_from_assisted_registration()
+    {
+        var email = await CreateUserAsync("assisted-notransfer", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView, PermissionKeys.StudentsManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var (_, paymentId) = await SeedPendingPaymentAsync("assisted-notransfer-target");
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/AssistedRegistration");
+
+        var response = await client.PostAsync("/Admin/AssistedRegistration?handler=SubmitTransfer", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["Transfer.PaymentId"] = paymentId.ToString(),
+            ["Transfer.PayerDisplayName"] = "Someone",
+        }));
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var untouched = await db.Payments.FirstAsync(p => p.Id == paymentId);
+        Assert.False(untouched.HasSubmittedTransferDetails);
+    }
+
+    /// <summary>The other half of the owner's requirement, and the one that
+    /// makes this a scoping fix rather than a lockout: StudentsManage on its
+    /// own must still carry the whole registration flow. Tightening the money
+    /// handlers must not take the registration ones away.</summary>
+    [Fact]
+    public async Task Admin_with_only_students_manage_can_still_register_a_student_in_assisted_registration()
+    {
+        var email = await CreateUserAsync("assisted-canregister", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView, PermissionKeys.StudentsManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        int countryId;
+        using (var seedScope = _factory.Services.CreateScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+            countryId = await seedDb.Countries.OrderBy(c => c.Id).Select(c => c.Id).FirstAsync();
+        }
+
+        var fullName = $"Assisted Registration Child {Guid.NewGuid():N}";
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/AssistedRegistration");
+        var response = await client.PostAsync("/Admin/AssistedRegistration?handler=RegisterStudent", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["NewStudent.CountryId"] = countryId.ToString(),
+            ["NewStudent.FullName"] = fullName,
+            ["NewStudent.DateOfBirth"] = "2014-05-06",
+        }));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.True(await db.Students.AnyAsync(s => s.FullName == fullName));
+    }
+
+    /// <summary>And with the money key added, the same admin is no longer
+    /// refused — proving the guards check the KEY rather than the page. The
+    /// plan id is deliberately made up: the response is a rendered page
+    /// carrying a business error ("package not found"), not a Forbid, and
+    /// that difference is the whole assertion. Nothing is written either way,
+    /// so this stays true however the purchase rules change later.</summary>
+    [Fact]
+    public async Task Admin_with_subscriptions_manage_is_not_refused_the_purchase_step()
+    {
+        var email = await CreateUserAsync("assisted-withsubs", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.StudentsView, PermissionKeys.StudentsManage,
+            PermissionKeys.SubscriptionsView, PermissionKeys.SubscriptionsManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var studentId = await SeedStudentAsync("assisted-withsubs-target");
+        var token = await GetAntiforgeryTokenAsync(client, "/Admin/AssistedRegistration");
+
+        var response = await client.PostAsync("/Admin/AssistedRegistration?handler=Purchase", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["Purchase.StudentId"] = studentId.ToString(),
+            ["Purchase.PricingPlanId"] = "999999999",
+        }));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        Assert.False(await db.Subscriptions.AnyAsync(s => s.StudentId == studentId));
+    }
 }

@@ -1145,6 +1145,8 @@
   <data name="Not yet." xml:space="preserve"><value>Not yet.</value></data>
   <data name="A package can only be chosen once the student has a level." xml:space="preserve"><value>A package can only be chosen once the student has a level.</value></data>
   <data name="No package is published for this level yet." xml:space="preserve"><value>No package is published for this level yet.</value></data>
+  <data name="This step needs a different permission." xml:space="preserve"><value>This step needs a different permission.</value></data>
+  <data name="Choosing a package needs the packages permission, and recording a transfer needs the payments one. Everything above is done — ask a system administrator for those permissions, or hand this family to somebody who has them." xml:space="preserve"><value>Choosing a package needs the packages permission, and recording a transfer needs the payments one. Everything above is done — ask a system administrator for those permissions, or hand this family to somebody who has them.</value></data>
   <data name="Create one on the packages screen, then come back here." xml:space="preserve"><value>Create one on the packages screen, then come back here.</value></data>
   <data name="Create an unpaid package request for this student?" xml:space="preserve"><value>Create an unpaid package request for this student?</value></data>
   <data name="Choose this package" xml:space="preserve"><value>Choose this package</value></data>

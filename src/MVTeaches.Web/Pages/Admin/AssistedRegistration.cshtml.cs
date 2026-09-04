@@ -16,6 +16,7 @@ using MVTeaches.Domain.People;
 using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
+using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
 
@@ -59,8 +60,24 @@ namespace MVTeaches.Web.Pages.Admin;
 /// "view this page but change nothing" state to offer a View-only Admin. A
 /// single page-level policy therefore already protects every handler
 /// (Razor Pages applies [Authorize] to the whole page, GET and POST alike —
-/// see PageModelPermissionExtensions' own remarks), and no
-/// RequirePermissionAsync calls are needed on individual handlers.
+/// see PageModelPermissionExtensions' own remarks).
+///
+/// <para><b>Security review 2026-09-04 (Review Required — Authorization),
+/// corrected.</b> That was true of the registration steps and wrong about the
+/// money ones. Three handlers on this page do not manage students at all:
+/// OnPostPurchaseAsync creates a subscription, and
+/// OnPostRecordManualPaymentAsync/OnPostSubmitTransferAsync record and
+/// evidence a payment. Gated by StudentsManage alone, an admin granted only
+/// "manage students" could create subscriptions and record payments here by
+/// posting to this page's handlers — the same writes that
+/// /Admin/Subscriptions and /Admin/Payments refuse without
+/// SubscriptionsManage and PaymentsConfirm. Being reached from inside a
+/// guided flow does not make a financial write a student write, and a
+/// permission that is enforced on one URL and not another is not a
+/// permission. Those three now require the money keys as well, checked
+/// server-side at the top of each handler; the four registration handlers
+/// still need StudentsManage and nothing more, so "manage students" grants no
+/// financial power implicitly.</para>
 /// </summary>
 [Authorize(Roles = RoleNames.Admin + "," + RoleNames.SystemAdmin)]
 [Authorize(Policy = PermissionKeys.StudentsManage)]
@@ -74,10 +91,12 @@ public class AssistedRegistrationModel : PageModel
     private readonly IFileStorageService _files;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly IAuthorizationService _authorizationService;
 
     public AssistedRegistrationModel(MvTeachesDbContext db, IStudentAdmissionService admissions,
         ISubscriptionService subscriptions, IPaymentService payments, IPaymentMethodConfigService methods,
-        IFileStorageService files, UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
+        IFileStorageService files, UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer,
+        IAuthorizationService authorizationService)
     {
         _db = db;
         _admissions = admissions;
@@ -87,7 +106,15 @@ public class AssistedRegistrationModel : PageModel
         _files = files;
         _userManager = userManager;
         _localizer = localizer;
+        _authorizationService = authorizationService;
     }
+
+    /// <summary>Whether this admin may take the money steps of the flow. Set
+    /// on every load and used ONLY to decide what the screen offers — the
+    /// three handlers refuse the POST regardless, which is what actually
+    /// enforces it.</summary>
+    public bool CanPurchasePackages { get; private set; }
+    public bool CanRecordPayments { get; private set; }
 
     public record GuardianSearchRow(long Id, string FullName, string? Email);
     public record StudentSearchRow(long Id, string FullName, StudentStatus Status);
@@ -308,6 +335,13 @@ public class AssistedRegistrationModel : PageModel
 
     public async Task<IActionResult> OnPostPurchaseAsync()
     {
+        // Creating a subscription is a subscriptions write wherever it is
+        // reached from — see the class remarks.
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SubscriptionsManage) is { } deny)
+        {
+            return deny;
+        }
+
         ModelState.Clear();
         if (!TryValidateModel(Purchase, nameof(Purchase)))
         {
@@ -346,6 +380,12 @@ public class AssistedRegistrationModel : PageModel
 
     public async Task<IActionResult> OnPostRecordManualPaymentAsync(long studentId, long subscriptionId, decimal amount, string currency, PaymentMethod method, long? paymentMethodConfigId)
     {
+        // The same key /Admin/Payments requires for the same write.
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PaymentsConfirm) is { } deny)
+        {
+            return deny;
+        }
+
         // This handler's own fields are plain parameters, not a [BindProperty]
         // Input class, so there is nothing of its own to re-validate — but
         // ASP.NET Core still binds AND validates every OTHER [BindProperty]
@@ -370,6 +410,13 @@ public class AssistedRegistrationModel : PageModel
 
     public async Task<IActionResult> OnPostSubmitTransferAsync()
     {
+        // Attaching the payer's transfer evidence to a payment is a payments
+        // write, and it is what a confirmation is judged on.
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.PaymentsConfirm) is { } deny)
+        {
+            return deny;
+        }
+
         // Same fix as OnPostRecordManualPaymentAsync above: clear the OTHER
         // bound models' leftover validation errors first, then validate only
         // Transfer's own fields (today just PaymentId, always populated from
@@ -439,6 +486,12 @@ public class AssistedRegistrationModel : PageModel
 
     private async Task LoadAsync(long? studentId, string? query)
     {
+        // Display only — the three money handlers refuse the POST regardless.
+        // Hiding a form nobody may submit is a courtesy so an admin without
+        // the money keys is not invited to fill one in and be refused.
+        CanPurchasePackages = (await _authorizationService.AuthorizeAsync(User, PermissionKeys.SubscriptionsManage)).Succeeded;
+        CanRecordPayments = (await _authorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsConfirm)).Succeeded;
+
         ActiveMethods = await _methods.ListActiveAsync(HttpContext.RequestAborted);
 
         Countries = await _db.Countries.Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(HttpContext.RequestAborted);

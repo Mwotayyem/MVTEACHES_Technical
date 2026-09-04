@@ -332,6 +332,17 @@
             <span>@T["A package can only be chosen once the student has a level."]</span>
         </div>
     }
+    else if (!Model.CanPurchasePackages && !Model.CanRecordPayments)
+    {
+        @* Security review 2026-09-04: this whole step is money, and money needs
+           the money keys. The three handlers behind it refuse the POST
+           regardless - this only saves an admin from filling in a form that
+           was always going to be refused. *@
+        <div class="app-empty">
+            <strong>@T["This step needs a different permission."]</strong>
+            <span>@T["Choosing a package needs the packages permission, and recording a transfer needs the payments one. Everything above is done — ask a system administrator for those permissions, or hand this family to somebody who has them."]</span>
+        </div>
+    }
     else if (Model.EligiblePlans.Count == 0)
     {
         <div class="app-empty">

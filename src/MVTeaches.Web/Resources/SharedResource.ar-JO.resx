@@ -1145,6 +1145,8 @@
   <data name="Not yet." xml:space="preserve"><value>ليس بعد.</value></data>
   <data name="A package can only be chosen once the student has a level." xml:space="preserve"><value>لا يمكن اختيار باقة قبل أن يكون للطالب مستوى.</value></data>
   <data name="No package is published for this level yet." xml:space="preserve"><value>لا توجد باقة منشورة لهذا المستوى بعد.</value></data>
+  <data name="This step needs a different permission." xml:space="preserve"><value>هذه الخطوة تحتاج صلاحية أخرى.</value></data>
+  <data name="Choosing a package needs the packages permission, and recording a transfer needs the payments one. Everything above is done — ask a system administrator for those permissions, or hand this family to somebody who has them." xml:space="preserve"><value>اختيار الباقة يحتاج صلاحية الباقات، وتسجيل الحوالة يحتاج صلاحية المدفوعات. كل ما سبق مُنجَز — اطلب هاتين الصلاحيتين من مدير النظام، أو سلِّم هذه العائلة لمن يملكهما.</value></data>
   <data name="Create one on the packages screen, then come back here." xml:space="preserve"><value>أنشئ واحدة من شاشة الباقات ثم عد إلى هنا.</value></data>
   <data name="Create an unpaid package request for this student?" xml:space="preserve"><value>إنشاء طلب باقة غير مدفوعة لهذا الطالب؟</value></data>
   <data name="Choose this package" xml:space="preserve"><value>اختر هذه الباقة</value></data>
