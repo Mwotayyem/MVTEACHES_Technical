@@ -23,6 +23,67 @@
   <data name="Packages and Payments" xml:space="preserve"><value>Packages and Payments</value></data>
   <data name="Take the payment" xml:space="preserve"><value>Take the payment</value></data>
   <data name="Subscriptions" xml:space="preserve"><value>Subscriptions</value></data>
+  <data name="Promo codes" xml:space="preserve"><value>Promo codes</value></data>
+  <data name="Codes" xml:space="preserve"><value>Codes</value></data>
+  <data name="Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="{0}" xml:space="preserve"><value>{0}</value></data>
+  <data name="A code takes a percentage off a package's price. The family types the code when they buy; the centre decides what it is worth." xml:space="preserve"><value>A code takes a percentage off a package's price. The family types the code when they buy; the centre decides what it is worth.</value></data>
+  <data name="Create a code" xml:space="preserve"><value>Create a code</value></data>
+  <data name="6 characters" xml:space="preserve"><value>6 characters</value></data>
+  <data name="The code is generated for you — six characters, capitals and digits. Press Generate again for a different one; nothing is saved until you press Create." xml:space="preserve"><value>The code is generated for you — six characters, capitals and digits. Press Generate again for a different one; nothing is saved until you press Create.</value></data>
+  <data name="Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Apply code" xml:space="preserve"><value>Apply code</value></data>
+  <data name="Discount %" xml:space="preserve"><value>Discount %</value></data>
+  <data name="Generate" xml:space="preserve"><value>Generate</value></data>
+  <data name="Enter a promo code first." xml:space="preserve"><value>Enter a promo code first.</value></data>
+  <data name="Starts on" xml:space="preserve"><value>Starts on</value></data>
+  <data name="Code applied. The new price is shown on each package it covers." xml:space="preserve"><value>Code applied. The new price is shown on each package it covers.</value></data>
+  <data name="Ends on" xml:space="preserve"><value>Ends on</value></data>
+  <data name="That promo code was not recognised." xml:space="preserve"><value>That promo code was not recognised.</value></data>
+  <data name="Leave empty for no start date." xml:space="preserve"><value>Leave empty for no start date.</value></data>
+  <data name="This promo code is no longer available." xml:space="preserve"><value>This promo code is no longer available.</value></data>
+  <data name="Leave empty for never expires." xml:space="preserve"><value>Leave empty for never expires.</value></data>
+  <data name="This promo code cannot be used yet." xml:space="preserve"><value>This promo code cannot be used yet.</value></data>
+  <data name="Leave empty for unlimited." xml:space="preserve"><value>Leave empty for unlimited.</value></data>
+  <data name="This promo code has expired." xml:space="preserve"><value>This promo code has expired.</value></data>
+  <data name="Maximum uses in total" xml:space="preserve"><value>Maximum uses in total</value></data>
+  <data name="This promo code does not apply to this package." xml:space="preserve"><value>This promo code does not apply to this package.</value></data>
+  <data name="Maximum uses per student" xml:space="preserve"><value>Maximum uses per student</value></data>
+  <data name="This promo code has been fully used." xml:space="preserve"><value>This promo code has been fully used.</value></data>
+  <data name="Which packages does it apply to?" xml:space="preserve"><value>Which packages does it apply to?</value></data>
+  <data name="This promo code has already been used for this student." xml:space="preserve"><value>This promo code has already been used for this student.</value></data>
+  <data name="Every package" xml:space="preserve"><value>Every package</value></data>
+  <data name="{0}% off — you save {1}" xml:space="preserve"><value>{0}% off — you save {1}</value></data>
+  <data name="Only the packages I choose" xml:space="preserve"><value>Only the packages I choose</value></data>
+  <data name="Nothing to pay — the package starts as soon as you request it." xml:space="preserve"><value>Nothing to pay — the package starts as soon as you request it.</value></data>
+  <data name="Choose packages…" xml:space="preserve"><value>Choose packages…</value></data>
+  <data name="The promo code covered the whole price — {0}'s package (#{1}) is active now. There is nothing to pay and no transfer to send." xml:space="preserve"><value>The promo code covered the whole price — {0}'s package (#{1}) is active now. There is nothing to pay and no transfer to send.</value></data>
+  <data name="{0} packages chosen" xml:space="preserve"><value>{0} packages chosen</value></data>
+  <data name="Discount" xml:space="preserve"><value>Discount</value></data>
+  <data name="Search packages…" xml:space="preserve"><value>Search packages…</value></data>
+  <data name="Next: give the code to the family. They type it when they buy, and the discount is applied by the centre's own rules — never by anything the browser sends." xml:space="preserve"><value>Next: give the code to the family. They type it when they buy, and the discount is applied by the centre's own rules — never by anything the browser sends.</value></data>
+  <data name="No promo codes yet." xml:space="preserve"><value>No promo codes yet.</value></data>
+  <data name="Valid between" xml:space="preserve"><value>Valid between</value></data>
+  <data name="No date limit" xml:space="preserve"><value>No date limit</value></data>
+  <data name="Uses" xml:space="preserve"><value>Uses</value></data>
+  <data name="Disabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="Disable" xml:space="preserve"><value>Disable</value></data>
+  <data name="Enable" xml:space="preserve"><value>Enable</value></data>
+  <data name="Promo code {0} created." xml:space="preserve"><value>Promo code {0} created.</value></data>
+  <data name="Promo code updated. Packages already bought keep the discount they were bought with." xml:space="preserve"><value>Promo code updated. Packages already bought keep the discount they were bought with.</value></data>
+  <data name="Promo code" xml:space="preserve"><value>Promo code</value></data>
+  <data name="Promo code not found." xml:space="preserve"><value>Promo code not found.</value></data>
+  <data name="Promo code enabled." xml:space="preserve"><value>Promo code enabled.</value></data>
+  <data name="Promo code disabled. It stops working straight away; packages already bought are unaffected." xml:space="preserve"><value>Promo code disabled. It stops working straight away; packages already bought are unaffected.</value></data>
+  <data name="A discount must be between 1 and 100 percent." xml:space="preserve"><value>A discount must be between 1 and 100 percent.</value></data>
+  <data name="A promo code cannot end before it starts." xml:space="preserve"><value>A promo code cannot end before it starts.</value></data>
+  <data name="A usage limit must be at least 1, or empty for unlimited." xml:space="preserve"><value>A usage limit must be at least 1, or empty for unlimited.</value></data>
+  <data name="That code already exists — generate another one." xml:space="preserve"><value>That code already exists — generate another one.</value></data>
+  <data name="A promo code must be exactly 6 characters, using A-Z and 0-9 only." xml:space="preserve"><value>A promo code must be exactly 6 characters, using A-Z and 0-9 only.</value></data>
+  <data name="Choose at least one package, or set the code to apply to every package." xml:space="preserve"><value>Choose at least one package, or set the code to apply to every package.</value></data>
+  <data name="Generate a code first." xml:space="preserve"><value>Generate a code first.</value></data>
+  <data name="The code itself cannot be changed — it has already been handed out. Packages already bought keep the discount they were bought with." xml:space="preserve"><value>The code itself cannot be changed — it has already been handed out. Packages already bought keep the discount they were bought with.</value></data>
   <data name="Payments" xml:space="preserve"><value>Payments</value></data>
   <data name="Scheduling and Attendance" xml:space="preserve"><value>Scheduling and Attendance</value></data>
   <data name="Schedules" xml:space="preserve"><value>Schedules</value></data>

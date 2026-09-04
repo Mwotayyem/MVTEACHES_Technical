@@ -93,6 +93,10 @@ public class MvTeachesDbContext : IdentityDbContext<ApplicationUser, Application
 
     // Subscriptions & Ledger (the highest-risk pair)
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+
+    // Owner decision 2026-09-05 (promo codes).
+    public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
+    public DbSet<PromoCodePlan> PromoCodePlans => Set<PromoCodePlan>();
     public DbSet<SubscriptionFreeze> SubscriptionFreezes => Set<SubscriptionFreeze>();
     public DbSet<EntitlementLedgerEntry> EntitlementLedgerEntries => Set<EntitlementLedgerEntry>();
 

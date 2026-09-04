@@ -29,7 +29,8 @@
         "/Admin/Dashboard" => "dashboard",
         "/Admin/Students" or "/Admin/StudentDetails" or "/Admin/AssistedRegistration" => "students",
         "/Admin/Teachers" or "/Admin/PlacementTests" or "/Admin/Payroll" => "teachers",
-        "/Admin/Subscriptions" or "/Admin/Payments" or "/Admin/PaymentMethods" or "/Admin/Posters" => "packages",
+        "/Admin/Subscriptions" or "/Admin/Payments" or "/Admin/PaymentMethods" or "/Admin/Posters"
+            or "/Admin/PromoCodes" => "packages",
         "/Admin/Schedules" or "/Admin/CompensationRequests" or "/Admin/RescheduleSessions" => "scheduling",
         "/Admin/FinancialReport" or "/Admin/Certificates" => "reports",
         "/Admin/AdminUsers" => "administration",
@@ -49,7 +50,7 @@
         "/Admin/Teachers", "/Admin/PlacementTests", "/Admin/Subscriptions",
         "/Admin/Payments", "/Admin/Posters", "/Admin/Schedules",
         "/Admin/CompensationRequests", "/Admin/FinancialReport",
-        "/Admin/Certificates", "/Admin/AdminUsers",
+        "/Admin/Certificates", "/Admin/AdminUsers", "/Admin/PromoCodes",
     };
 
     // Security review 2026-09-02 (Review Required — Authorization) Stage 1:
@@ -96,6 +97,7 @@
     var canViewDashboard = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.DashboardView)).Succeeded;
     var canViewFinancialReport = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.FinancialReportView)).Succeeded;
     var canViewPosters = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PostersView)).Succeeded;
+    var canManagePromoCodes = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PromoCodesManage)).Succeeded;
 }
 @functions {
     // Inline, single-colour line icons for the sidebar. Deliberately hand-written
@@ -261,6 +263,10 @@
                         {
                             <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
                         }
+                        @if (canManagePromoCodes)
+                        {
+                            <a class="@NavClass("/Admin/PromoCodes")" asp-page="/Admin/PromoCodes">@NavIcon("card")@T["Promo codes"]</a>
+                        }
                         @* You are on a page in this section that has no link of
                            its own - named here so the sidebar can still answer
                            "where am I". Not a link: it neither adds navigation
@@ -396,6 +402,10 @@
                         @if (canViewPosters)
                         {
                             <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
+                        }
+                        @if (canManagePromoCodes)
+                        {
+                            <a class="@NavClass("/Admin/PromoCodes")" asp-page="/Admin/PromoCodes">@NavIcon("card")@T["Promo codes"]</a>
                         }
                         @if (isSystemAdmin)
                         {

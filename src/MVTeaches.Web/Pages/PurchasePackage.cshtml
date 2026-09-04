@@ -116,6 +116,32 @@ else
                be compared by looking at the same spot twice. Pure CSS - no image is
                uploaded, no column is added, and the form posts exactly what the
                table version posted. *@
+            @* Owner decision 2026-09-05 (promo codes). The box posts the CODE
+               and the student, and nothing else - no price and no percentage,
+               because neither would be believed. Every figure below comes back
+               from the server, which re-prices the code against the package's
+               own stored amount. *@
+            <form method="post" asp-page-handler="ApplyPromo" class="row g-2 align-items-end mb-3">
+                <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
+                <div class="col-sm-5">
+                    <label class="form-label" for="promoCode">@T["Promo code"]</label>
+                    <input id="promoCode" name="promoCode" value="@Model.PromoCodeInput" maxlength="6"
+                           class="form-control text-uppercase app-ref" autocomplete="off"
+                           placeholder="@T["6 characters"]" />
+                </div>
+                <div class="col-sm-3">
+                    <button type="submit" class="btn btn-outline-primary w-100">@T["Apply code"]</button>
+                </div>
+                @if (Model.PromoMessage is not null)
+                {
+                    <div class="col-12">
+                        <div class="@(Model.PromoAccepted ? "alert alert-success" : "alert alert-warning") py-2 mb-0 small">
+                            @Model.PromoMessage
+                        </div>
+                    </div>
+                }
+            </form>
+
             <div class="app-poster-rail">
                 @foreach (var p in Model.EligiblePlans)
                 {
@@ -126,9 +152,30 @@ else
                         </div>
                         <div class="app-poster-body">
                             <h3>@p.CourseName</h3>
-                            <p class="app-poster-price">
-                                <strong>@T.Money(p.Amount, p.Currency)</strong>
-                            </p>
+                            @* When a code covers this package the list price is
+                               struck through and the new one shown beside it, so
+                               the family can see what the code did rather than
+                               being asked to trust a single number. *@
+                            @if (Model.PromoQuotesByPlan.TryGetValue(p.Id, out var quote))
+                            {
+                                <p class="app-poster-price">
+                                    <s class="text-muted">@T.Money(quote.ListPrice, quote.Currency)</s>
+                                    <strong class="ms-2">@T.Money(quote.FinalPrice, quote.Currency)</strong>
+                                </p>
+                                <p class="small text-success-emphasis mb-2">
+                                    @T["{0}% off — you save {1}", quote.DiscountPercent, T.Money(quote.DiscountAmount, quote.Currency)]
+                                    @if (quote.IsFree)
+                                    {
+                                        <span class="d-block">@T["Nothing to pay — the package starts as soon as you request it."]</span>
+                                    }
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="app-poster-price">
+                                    <strong>@T.Money(p.Amount, p.Currency)</strong>
+                                </p>
+                            }
                             <dl class="app-poster-facts">
                                 <div>
                                     <dt>@T["Lessons"]</dt>
@@ -160,6 +207,11 @@ else
                                 <form method="post" asp-page-handler="Purchase">
                                     <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
                                     <input type="hidden" name="pricingPlanId" value="@p.Id" />
+                                    @* The code travels with the purchase so it does
+                                       not have to be typed twice. It is re-checked
+                                       and re-priced server-side regardless of what
+                                       this field says. *@
+                                    <input type="hidden" name="promoCode" value="@Model.PromoCodeInput" />
                                     <button type="submit" class="btn btn-primary w-100">@T["Request this package"]</button>
                                 </form>
                                 <p class="app-poster-note">@T["Requesting it does not charge you. The centre confirms your payment first, and only then does the package activate."]</p>

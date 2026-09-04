@@ -69,6 +69,13 @@ public static class PermissionKeys
     /// for a student, grant one for free).</summary>
     public const string SubscriptionsManage = "Admin.Subscriptions.Manage";
 
+    /// <summary>Owner decision 2026-09-05: managing discount codes is its own
+    /// key, deliberately NOT folded into SubscriptionsManage. Selling a family
+    /// a package and deciding what the centre's prices may be discounted to are
+    /// different jobs, and the second one is the one that quietly costs money -
+    /// so an admin can be given the first without the second.</summary>
+    public const string PromoCodesManage = "Admin.PromoCodes.Manage";
+
     /// <summary>
     /// Stage 2 (2026-09-03, Review Required — Authorization): the register
     /// and the student profile. Covers /Admin/Students (list + GET) and
@@ -224,6 +231,7 @@ public static class PermissionKeys
         PaymentsView, PaymentsConfirm, PaymentsManage,
         PayrollView, PayrollApprove,
         SubscriptionsView, SubscriptionsManage,
+        PromoCodesManage,
         StudentsView, StudentsManage,
         StudentNotesView, StudentNotesManage,
         TeachersView, TeachersManage,

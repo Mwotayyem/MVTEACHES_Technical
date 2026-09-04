@@ -114,8 +114,15 @@ public class EntitlementLedgerEntry
             LedgerReason.Consumption, sessionId, null, null, null, performedByUserId, null, null, createdAtUtc);
     }
 
+    /// <summary>Owner decision 2026-09-05: <paramref name="paymentId"/> is
+    /// nullable because a package bought with a 100% promo code is a real
+    /// purchase with no payment behind it - the family bought it, the price was
+    /// zero, so no Payment row exists to point at. The column has always been
+    /// nullable (ForAdminGrant leaves it null), and nothing in the system reads
+    /// it to decide anything, so this widens a signature rather than changing a
+    /// meaning: the reason stays Purchase, because that is what it is.</summary>
     public static EntitlementLedgerEntry ForPurchase(long studentId, long subscriptionId, long courseId,
-        int levelId, SessionType sessionType, int minutes, long paymentId, long performedByUserId, Instant createdAtUtc)
+        int levelId, SessionType sessionType, int minutes, long? paymentId, long performedByUserId, Instant createdAtUtc)
     {
         if (minutes <= 0)
         {

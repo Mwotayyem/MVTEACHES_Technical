@@ -105,7 +105,8 @@ public class SiblingPurchaseTests
 
     private static ISubscriptionService CreateService(MvTeachesDbContext db) =>
         new SubscriptionService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()),
-            new EntitlementBalanceQuery(db));
+            new EntitlementBalanceQuery(db),
+            new PromoCodeService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant())));
 
     private sealed record Family(long GuardianUserId, long FirstChildId, long SecondChildId, long PlanId);
 

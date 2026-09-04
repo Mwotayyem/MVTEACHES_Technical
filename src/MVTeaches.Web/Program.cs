@@ -213,6 +213,7 @@ builder.Services.AddScoped<ITeacherSlotPublishingService, TeacherSlotPublishingS
 builder.Services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<ITeacherRateService, TeacherRateService>();
+builder.Services.AddScoped<IPromoCodeService, PromoCodeService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IEntitlementBalanceQuery, EntitlementBalanceQuery>();
 builder.Services.AddScoped<IEntitlementTransferService, EntitlementTransferService>();

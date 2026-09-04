@@ -1,0 +1,286 @@
+@page
+@using Microsoft.AspNetCore.Authorization
+@using MVTeaches.Infrastructure.Identity
+@model MVTeaches.Web.Pages.Admin.PromoCodesModel
+@inject IAuthorizationService Auth
+@{
+    ViewData["Title"] = T["Promo codes"].Value;
+    var canManage = (await Auth.AuthorizeAsync(User, PermissionKeys.PromoCodesManage)).Succeeded;
+}
+
+<h1>@T["Promo codes"]</h1>
+<p class="text-muted">@T["A code takes a percentage off a package's price. The family types the code when they buy; the centre decides what it is worth."]</p>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (canManage)
+{
+    <div class="card mb-4" id="new-code">
+        <div class="card-body">
+            <h2 class="card-title h5">@T["Create a code"]</h2>
+            <p class="text-muted small">@T["The code is generated for you — six characters, capitals and digits. Press Generate again for a different one; nothing is saved until you press Create."]</p>
+
+            <form method="post" asp-page-handler="Create" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label" asp-for="NewCode.Code">@T["Code"]</label>
+                    <div class="d-flex gap-2">
+                        @* Readonly, not disabled: a disabled input posts nothing,
+                           and the code is what the server saves. It is still
+                           re-validated and re-checked for uniqueness server-side. *@
+                        <input asp-for="NewCode.Code" class="form-control app-ref text-uppercase" readonly />
+                        <button type="submit" formaction="?handler=Generate" class="btn btn-outline-secondary text-nowrap">@T["Generate"]</button>
+                    </div>
+                    <span asp-validation-for="NewCode.Code" class="text-danger small"></span>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" asp-for="NewCode.DiscountPercent">@T["Discount %"]<span class="app-required">*</span></label>
+                    <input asp-for="NewCode.DiscountPercent" type="number" min="1" max="100" class="form-control" />
+                    <span asp-validation-for="NewCode.DiscountPercent" class="text-danger small"></span>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" asp-for="NewCode.StartsOn">@T["Starts on"]</label>
+                    <input asp-for="NewCode.StartsOn" type="date" class="form-control" />
+                    <div class="form-text">@T["Leave empty for no start date."]</div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" asp-for="NewCode.EndsOn">@T["Ends on"]</label>
+                    <input asp-for="NewCode.EndsOn" type="date" class="form-control" />
+                    <div class="form-text">@T["Leave empty for never expires."]</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mt-4">
+                        <input asp-for="NewCode.IsActive" class="form-check-input" />
+                        <label class="form-check-label" asp-for="NewCode.IsActive">@T["Active"]</label>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" asp-for="NewCode.MaxTotalUses">@T["Maximum uses in total"]</label>
+                    <input asp-for="NewCode.MaxTotalUses" type="number" min="1" class="form-control" />
+                    <div class="form-text">@T["Leave empty for unlimited."]</div>
+                    <span asp-validation-for="NewCode.MaxTotalUses" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" asp-for="NewCode.MaxUsesPerStudent">@T["Maximum uses per student"]</label>
+                    <input asp-for="NewCode.MaxUsesPerStudent" type="number" min="1" class="form-control" />
+                    <div class="form-text">@T["Leave empty for unlimited."]</div>
+                    <span asp-validation-for="NewCode.MaxUsesPerStudent" class="text-danger small"></span>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">@T["Which packages does it apply to?"]</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" asp-for="NewCode.AppliesToAllPlans" value="true" id="newScopeAll" checked />
+                        <label class="form-check-label" for="newScopeAll">@T["Every package"]</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" asp-for="NewCode.AppliesToAllPlans" value="false" id="newScopeSome" />
+                        <label class="form-check-label" for="newScopeSome">@T["Only the packages I choose"]</label>
+                    </div>
+
+                    @* Closed by default, like every other multi-select on this
+                       project — the list is long and it is not always needed. *@
+                    <div class="app-multiselect mt-2" data-mv-multiselect>
+                        <button type="button" class="app-multiselect-toggle" data-mv-multiselect-toggle
+                                aria-expanded="false" aria-haspopup="listbox">
+                            <span data-mv-multiselect-summary class="is-empty"
+                                  data-mv-empty-text="@T["Choose packages…"]"
+                                  data-mv-one-text="@T["{0}"]"
+                                  data-mv-many-text="@T["{0} packages chosen"]">@T["Choose packages…"]</span>
+                        </button>
+                        <div class="app-multiselect-panel" data-mv-multiselect-panel>
+                            <input type="search" class="form-control form-control-sm mb-2"
+                                   data-mv-multiselect-search placeholder="@T["Search packages…"]"
+                                   aria-label="@T["Search packages…"]" autocomplete="off" />
+                            <div class="app-multiselect-options">
+                                @foreach (var plan in Model.Plans)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="NewCode.PricingPlanIds"
+                                               value="@plan.Id" id="newPlan_@plan.Id" data-mv-chosen-label="@plan.Label" />
+                                        <label class="form-check-label" for="newPlan_@plan.Id">@plan.Label</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="app-chip-tray mt-2" data-mv-multiselect-chips aria-live="polite"></div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">@T["Create"]</button>
+                    <div class="app-outcome mt-3">@T["Next: give the code to the family. They type it when they buy, and the discount is applied by the centre's own rules — never by anything the browser sends."]</div>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<h2>@T["Codes"] <span class="app-status is-muted">@Model.Codes.Count</span></h2>
+<div class="table-responsive">
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th>@T["Code"]</th>
+                <th>@T["Discount %"]</th>
+                <th>@T["Status"]</th>
+                <th>@T["Which packages does it apply to?"]</th>
+                <th>@T["Valid between"]</th>
+                <th>@T["Uses"]</th>
+                <th class="text-end">@T["Actions"]</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var code in Model.Codes)
+        {
+            <tr>
+                <td><span class="app-ref">@code.Code</span></td>
+                <td class="fw-bold">@code.DiscountPercent%</td>
+                <td>
+                    @if (code.IsActive)
+                    {
+                        <span class="app-status is-success">@T["Active"]</span>
+                    }
+                    else
+                    {
+                        <span class="app-status is-muted">@T["Disabled"]</span>
+                    }
+                </td>
+                <td class="small">
+                    @if (code.PlanLabels.Count == 0)
+                    {
+                        <span class="app-chip">@T["Every package"]</span>
+                    }
+                    else
+                    {
+                        foreach (var label in code.PlanLabels)
+                        {
+                            <span class="app-chip me-1">@label</span>
+                        }
+                    }
+                </td>
+                <td class="small text-nowrap">
+                    @if (code.StartsOn is null && code.EndsOn is null)
+                    {
+                        <span class="text-muted">@T["No date limit"]</span>
+                    }
+                    else
+                    {
+                        @(code.StartsOn is null ? "—" : T.Date(code.StartsOn.Value))
+                        <span> → </span>
+                        @(code.EndsOn is null ? "—" : T.Date(code.EndsOn.Value))
+                    }
+                </td>
+                <td class="small">
+                    @code.Uses@(code.MaxTotalUses is null ? "" : " / " + code.MaxTotalUses)
+                    @if (code.MaxUsesPerStudent is not null)
+                    {
+                        <div class="text-muted">@T["Maximum uses per student"]: @code.MaxUsesPerStudent</div>
+                    }
+                </td>
+                <td class="text-end">
+                    @if (canManage)
+                    {
+                        <form method="post" asp-page-handler="SetActive" class="d-inline">
+                            <input type="hidden" name="promoCodeId" value="@code.Id" />
+                            <input type="hidden" name="isActive" value="@((!code.IsActive).ToString().ToLowerInvariant())" />
+                            <button type="submit" class="btn btn-sm @(code.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                @(code.IsActive ? T["Disable"] : T["Enable"])
+                            </button>
+                        </form>
+
+                        <details class="app-row-details d-inline-block ms-1">
+                            <summary>@T["Edit"]</summary>
+                            <div class="app-row-details-body text-start">
+                                <form method="post" asp-page-handler="Update" class="row g-2">
+                                    <input type="hidden" name="EditCode.Id" value="@code.Id" />
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-0">@T["Discount %"]</label>
+                                        <input name="EditCode.DiscountPercent" type="number" min="1" max="100"
+                                               value="@code.DiscountPercent" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-0">@T["Starts on"]</label>
+                                        <input name="EditCode.StartsOn" type="date" class="form-control form-control-sm"
+                                               value="@(code.StartsOn?.ToString("yyyy-MM-dd", null))" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-0">@T["Ends on"]</label>
+                                        <input name="EditCode.EndsOn" type="date" class="form-control form-control-sm"
+                                               value="@(code.EndsOn?.ToString("yyyy-MM-dd", null))" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-0">@T["Maximum uses in total"]</label>
+                                        <input name="EditCode.MaxTotalUses" type="number" min="1"
+                                               value="@code.MaxTotalUses" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-0">@T["Maximum uses per student"]</label>
+                                        <input name="EditCode.MaxUsesPerStudent" type="number" min="1"
+                                               value="@code.MaxUsesPerStudent" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="EditCode.AppliesToAllPlans"
+                                                   value="true" id="editAll_@code.Id" checked="@(code.PlanLabels.Count == 0)" />
+                                            <label class="form-check-label" for="editAll_@code.Id">@T["Every package"]</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="EditCode.AppliesToAllPlans"
+                                                   value="false" id="editSome_@code.Id" checked="@(code.PlanLabels.Count > 0)" />
+                                            <label class="form-check-label" for="editSome_@code.Id">@T["Only the packages I choose"]</label>
+                                        </div>
+                                        <div class="app-multiselect mt-2" data-mv-multiselect>
+                                            <button type="button" class="app-multiselect-toggle" data-mv-multiselect-toggle
+                                                    aria-expanded="false" aria-haspopup="listbox">
+                                                <span data-mv-multiselect-summary class="is-empty"
+                                                      data-mv-empty-text="@T["Choose packages…"]"
+                                                      data-mv-one-text="@T["{0}"]"
+                                                      data-mv-many-text="@T["{0} packages chosen"]">@T["Choose packages…"]</span>
+                                            </button>
+                                            <div class="app-multiselect-panel" data-mv-multiselect-panel>
+                                                <div class="app-multiselect-options">
+                                                    @foreach (var plan in Model.Plans)
+                                                    {
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="EditCode.PricingPlanIds"
+                                                                   value="@plan.Id" id="editPlan_@(code.Id)_@plan.Id"
+                                                                   data-mv-chosen-label="@plan.Label"
+                                                                   checked="@code.PlanLabels.Contains(plan.Label)" />
+                                                            <label class="form-check-label" for="editPlan_@(code.Id)_@plan.Id">@plan.Label</label>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="app-chip-tray mt-2" data-mv-multiselect-chips aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-sm btn-primary">@T["Save"]</button>
+                                        <div class="form-text">@T["The code itself cannot be changed — it has already been handed out. Packages already bought keep the discount they were bought with."]</div>
+                                    </div>
+                                </form>
+                            </div>
+                        </details>
+                    }
+                </td>
+            </tr>
+        }
+        @if (Model.Codes.Count == 0)
+        {
+            <tr>
+                <td colspan="7">
+                    <div class="app-empty">@T["No promo codes yet."]</div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

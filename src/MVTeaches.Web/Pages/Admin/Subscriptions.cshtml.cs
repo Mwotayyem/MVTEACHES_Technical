@@ -53,9 +53,16 @@ public class SubscriptionsModel : PageModel
     public record PlanRow(long Id, string CountryName, string CourseName, int? LevelId, string? LevelCode,
         SessionType SessionType, int SessionsCount, int MinutesTotal, decimal Amount, string Currency, int ValidityDays);
 
+    /// <summary>Owner decision 2026-09-05: the promo-code snapshot travels with
+    /// the row. Read from the SUBSCRIPTION, not from the code's current
+    /// settings - an admin editing the percentage next month must not change
+    /// what this row says was given last month.</summary>
     public record SubscriptionRow(long Id, long StudentId, string StudentName, string CourseName, string LevelCode,
         decimal Price, string Currency, SubscriptionStatus Status, SubscriptionOrigin Origin, int BalanceMinutes,
-        LocalDate ExpiresOn);
+        LocalDate ExpiresOn, string? PromoCode, int DiscountPercent, decimal ListPrice, decimal DiscountAmount)
+    {
+        public bool HasDiscount => PromoCode is not null && DiscountPercent > 0;
+    }
 
     /// <summary>A student as this screen needs them: the name to pick by, and
     /// the level that decides which packages are even legal for them. The plan
@@ -387,6 +394,16 @@ public class SubscriptionsModel : PageModel
             .ToDictionaryAsync(s => s.Id, s => s.FullName);
         FilterStudentName = FilterStudentId is null ? null : namesForRows.GetValueOrDefault(FilterStudentId.Value);
 
+        // The codes these subscriptions recorded. Only the CODE text is looked
+        // up live - the percentage and the amounts come from the subscription's
+        // own snapshot, so a later edit to the code cannot rewrite history.
+        var promoCodeIds = subs.Where(s => s.PromoCodeId is not null)
+            .Select(s => s.PromoCodeId!.Value).Distinct().ToList();
+        var promoCodeLabels = promoCodeIds.Count == 0
+            ? new Dictionary<long, string>()
+            : await _db.PromoCodes.Where(p => promoCodeIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Code);
+
         var rows = new List<SubscriptionRow>();
         foreach (var s in subs)
         {
@@ -394,7 +411,9 @@ public class SubscriptionsModel : PageModel
             rows.Add(new SubscriptionRow(s.Id, s.StudentId,
                 namesForRows.GetValueOrDefault(s.StudentId) ?? studentByI.GetValueOrDefault(s.StudentId, string.Empty),
                 courseByI.GetValueOrDefault(s.CourseId, "?"), levelByI.GetValueOrDefault(s.LevelId, "?"),
-                s.Price.Amount, s.Price.Currency, s.Status, s.Origin, balance, s.ExpiresOn));
+                s.Price.Amount, s.Price.Currency, s.Status, s.Origin, balance, s.ExpiresOn,
+                s.PromoCodeId is null ? null : promoCodeLabels.GetValueOrDefault(s.PromoCodeId.Value, "?"),
+                s.DiscountPercent, s.ListPriceAmount, s.DiscountAmount));
         }
 
         RecentSubscriptions = rows;

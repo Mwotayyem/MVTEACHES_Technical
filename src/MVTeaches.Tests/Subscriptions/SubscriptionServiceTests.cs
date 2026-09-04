@@ -118,7 +118,8 @@ public class SubscriptionServiceTests
     }
 
     private static ISubscriptionService CreateService(MvTeachesDbContext db, Instant now) =>
-        new SubscriptionService(db, new FakeClock(now), CreateBalanceQuery(db));
+        new SubscriptionService(db, new FakeClock(now), CreateBalanceQuery(db),
+            new PromoCodeService(db, new FakeClock(now)));
 
     private static IEntitlementBalanceQuery CreateBalanceQuery(MvTeachesDbContext db) =>
         new EntitlementBalanceQuery(db);

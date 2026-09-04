@@ -49,8 +49,34 @@ public class Subscription
 
     /// <summary>Snapshot at purchase time (D-10) — never re-read from the
     /// pricing plan later.</summary>
+    /// <summary>What the family actually owes: the price AFTER any promo-code
+    /// discount. Its meaning is unchanged - every funding, activation and
+    /// refund path still reads this and only this - which is why the discount
+    /// is applied before the subscription is built rather than subtracted
+    /// somewhere downstream.</summary>
     public Money Price { get; private set; } = null!;
+
     public long? PricingPlanId { get; private set; }
+
+    /// <summary>Owner decision 2026-09-05 (promo codes). The three fields below
+    /// are a SNAPSHOT, in the same spirit as Price itself: what the package
+    /// cost before the discount, which code was used, and what that code was
+    /// worth AT THE MOMENT OF PURCHASE. An admin editing the code's percentage
+    /// next month must not change what this family bought last month, and a
+    /// deleted or disabled code must not erase the record that a discount was
+    /// given - so the percentage and the amount are copied here rather than
+    /// looked up through PromoCodeId later.
+    /// <para>Null/zero throughout when no code was used, which is every
+    /// subscription that existed before this feature.</para></summary>
+    public long? PromoCodeId { get; private set; }
+
+    /// <summary>The package's own price before the discount. Equal to
+    /// <see cref="Price"/> when no code was used.</summary>
+    public decimal ListPriceAmount { get; private set; }
+
+    public int DiscountPercent { get; private set; }
+
+    public decimal DiscountAmount { get; private set; }
 
     public int SessionsCount { get; private set; }
     public int MinutesTotal { get; private set; }
@@ -99,6 +125,8 @@ public class Subscription
         SessionType = sessionType;
         Price = price;
         PricingPlanId = pricingPlanId;
+        // No code unless one is recorded below: the list price IS the price.
+        ListPriceAmount = price.Amount;
         SessionsCount = sessionsCount;
         MinutesTotal = minutesTotal;
         StartsOn = startsOn;
@@ -108,6 +136,24 @@ public class Subscription
         CreatedByUserId = createdByUserId;
         CreatedReason = createdReason;
         Status = SubscriptionStatus.Draft;
+    }
+
+    /// <summary>Records the code that was applied, and what it was worth, at
+    /// the moment of purchase. Called only while the subscription is being
+    /// created - a discount is never applied to a subscription that already
+    /// exists, because its price has already been quoted to the family and,
+    /// once Active, already drawn against.</summary>
+    public void RecordPromoCode(long promoCodeId, int discountPercent, decimal listPriceAmount, decimal discountAmount)
+    {
+        if (Status != SubscriptionStatus.Draft && Status != SubscriptionStatus.Active)
+        {
+            throw new InvalidOperationException("A promo code can only be recorded as a subscription is created.");
+        }
+
+        PromoCodeId = promoCodeId;
+        DiscountPercent = discountPercent;
+        ListPriceAmount = listPriceAmount;
+        DiscountAmount = discountAmount;
     }
 
     public void Activate() => Status = SubscriptionStatus.Active;

@@ -23,11 +23,15 @@ public class SubscriptionService : ISubscriptionService
     /// forbid every caller from doing.</summary>
     private readonly IEntitlementBalanceQuery _balances;
 
-    public SubscriptionService(MvTeachesDbContext db, IClock clock, IEntitlementBalanceQuery balances)
+    private readonly IPromoCodeService _promoCodes;
+
+    public SubscriptionService(MvTeachesDbContext db, IClock clock, IEntitlementBalanceQuery balances,
+        IPromoCodeService promoCodes)
     {
         _db = db;
         _clock = clock;
         _balances = balances;
+        _promoCodes = promoCodes;
     }
 
     public async Task<CreatePricingPlanResult> CreatePricingPlanAsync(int countryId, long courseId, int? levelId,
@@ -42,7 +46,8 @@ public class SubscriptionService : ISubscriptionService
     }
 
     public async Task<PurchaseFromPlanResult> PurchaseFromPlanAsync(long studentId, long pricingPlanId,
-        long actingUserId, SubscriptionOrigin origin, bool isAdminInitiated, CancellationToken cancellationToken)
+        long actingUserId, SubscriptionOrigin origin, bool isAdminInitiated, CancellationToken cancellationToken,
+        string? promoCode = null)
     {
         // Owner decision 2026-08-30 rules 1/4 — the same IDOR guard
         // JoinAttendanceService.IsAuthorizedToJoinAsync uses: the acting
@@ -198,16 +203,87 @@ public class SubscriptionService : ISubscriptionService
         // context; it does the moment a student may legitimately re-buy a
         // plan they have finished (see the guard above). Same amount, same
         // currency — this changes what is stored not at all.
-        var price = new Money(plan.Amount.Amount, plan.Amount.Currency);
+        // Owner decision 2026-09-05 (promo codes). Priced HERE, inside the
+        // same transaction and the same row lock the duplicate guard above
+        // took, from the plan's own amount and the code's own stored
+        // percentage. The caller passed six characters; it did not pass a
+        // price, a percentage, or a discount, and none of those would be
+        // believed if it had.
+        //
+        // Quoted after the duplicate/level checks on purpose: a code should not
+        // be counted as looked-at for a purchase that was never going to happen.
+        PromoCodeQuote? quote = null;
+        if (!string.IsNullOrWhiteSpace(promoCode))
+        {
+            var applied = await _promoCodes.ApplyAsync(promoCode, pricingPlanId, studentId, cancellationToken);
+            if (!applied.Accepted)
+            {
+                // Refused, never ignored: charging full price for a purchase
+                // somebody believed was discounted is the worse failure.
+                await transaction.RollbackAsync(cancellationToken);
+                return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.PromoCodeRejected,
+                    PromoRejection: applied.Rejection);
+            }
+
+            quote = applied.Quote;
+        }
+
+        var price = new Money(quote?.FinalPrice ?? plan.Amount.Amount, plan.Amount.Currency);
 
         var subscription = new Subscription(studentId, plan.CountryId, plan.CourseId, plan.LevelId.Value,
             plan.SessionType, price, plan.Id, plan.SessionsCount, plan.MinutesTotal, today, plan.ValidityDays,
             origin, actingUserId, createdReason: null); // reason only mandatory for AdminCreated — see GrantAdminSubscriptionAsync
+
+        if (quote is not null)
+        {
+            subscription.RecordPromoCode(quote.PromoCodeId, quote.DiscountPercent, quote.ListPrice, quote.DiscountAmount);
+        }
+
         _db.Subscriptions.Add(subscription);
         await _db.SaveChangesAsync(cancellationToken);
+
+        // A 100% code leaves nothing to pay, so there is no payment to wait for
+        // and no reason to park the family in front of a payment screen for
+        // 0.000. It is activated here, through the same two writes the paid
+        // path makes - one Purchase ledger entry and Activate() - with
+        // paymentId null because no Payment row exists (the column has always
+        // been nullable; ForAdminGrant leaves it null too).
+        //
+        // Deliberately NOT a new activation route: everything downstream still
+        // reads Subscription.Price and the ledger, both of which say exactly
+        // what they would say for a paid purchase of the same package. And the
+        // ledger write sits inside the transaction that created the
+        // subscription, so "exactly one entry" is guaranteed by the same commit
+        // rather than by a second check.
+        var activatedWithoutPayment = false;
+        if (price.Amount <= 0m)
+        {
+            var alreadyPosted = await _db.EntitlementLedgerEntries.AnyAsync(
+                l => l.SubscriptionId == subscription.Id && l.Reason == LedgerReason.Purchase, cancellationToken);
+            if (!alreadyPosted)
+            {
+                _db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForPurchase(
+                    subscription.StudentId, subscription.Id, subscription.CourseId, subscription.LevelId,
+                    subscription.SessionType, subscription.MinutesTotal, paymentId: null, actingUserId,
+                    _clock.GetCurrentInstant()));
+
+                subscription.Activate();
+
+                var student = await _db.Students.FirstAsync(s => s.Id == subscription.StudentId, cancellationToken);
+                if (student.Status == Domain.People.StudentStatus.PaymentBlocked)
+                {
+                    student.ClearPaymentBlock(); // D-14, same rule as the paid path.
+                }
+
+                await _db.SaveChangesAsync(cancellationToken);
+                activatedWithoutPayment = true;
+            }
+        }
+
         await transaction.CommitAsync(cancellationToken);
 
-        return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.Purchased, subscription.Id, plan.Amount);
+        return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.Purchased, subscription.Id, price,
+            ActivatedWithoutPayment: activatedWithoutPayment);
     }
 
     public async Task<PurchaseSubscriptionResult> GrantAdminSubscriptionAsync(long studentId, int countryId,

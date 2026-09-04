@@ -405,7 +405,21 @@ else
                 <tr>
                     <td><a asp-page="/Admin/StudentDetails" asp-route-id="@s.StudentId">@s.StudentName</a></td>
                     <td>@s.CourseName / @s.LevelCode</td>
-                    <td>@T.Money(s.Price, s.Currency)</td>
+                    <td>
+                        @* Owner decision 2026-09-05: when a promo code was used,
+                           the row says so and shows what was actually charged
+                           against what the package lists for. All four figures
+                           are the subscription's OWN snapshot. *@
+                        @T.Money(s.Price, s.Currency)
+                        @if (s.HasDiscount)
+                        {
+                            <div class="small text-muted">
+                                <s>@T.Money(s.ListPrice, s.Currency)</s>
+                                <span class="app-chip ms-1">@s.PromoCode — @s.DiscountPercent%</span>
+                            </div>
+                            <div class="small text-success-emphasis">@T["Discount"]: @T.Money(s.DiscountAmount, s.Currency)</div>
+                        }
+                    </td>
                     <td><span class="@StatusClass(s.Status)">@StatusLabel(s.Status)</span></td>
                     <td>@OriginLabel(s.Origin)</td>
                     <td>@T.Minutes(s.BalanceMinutes)</td>

@@ -37,6 +37,12 @@ public enum PurchaseFromPlanOutcome
     /// </summary>
     DraftAlreadyAwaitingPayment,
 
+    /// <summary>A promo code was supplied and cannot be used. The precise
+    /// reason travels in <see cref="PurchaseFromPlanResult.PromoRejection"/> so
+    /// the family is told which of "expired", "not for this package" or "used
+    /// up" applies, rather than a shrug.</summary>
+    PromoCodeRejected,
+
     /// <summary>Owner decision 2026-09-04 (duplicate-purchase guard): this
     /// student already holds a live subscription for this exact plan with
     /// entitlement minutes still left on it. Buying the same package again
@@ -63,7 +69,14 @@ public enum PurchaseFromPlanOutcome
 }
 
 public record PurchaseSubscriptionResult(long SubscriptionId, Money Price);
-public record PurchaseFromPlanResult(PurchaseFromPlanOutcome Outcome, long? SubscriptionId = null, Money? Price = null);
+/// <summary><paramref name="Price"/> is what the buyer must actually pay -
+/// after any discount. <paramref name="PromoRejection"/> is set only for
+/// <see cref="PurchaseFromPlanOutcome.PromoCodeRejected"/>, and
+/// <paramref name="ActivatedWithoutPayment"/> only when a 100% code left
+/// nothing to pay, so the caller can say so instead of sending the family to a
+/// payment screen for an amount of zero.</summary>
+public record PurchaseFromPlanResult(PurchaseFromPlanOutcome Outcome, long? SubscriptionId = null, Money? Price = null,
+    PromoCodeRejection? PromoRejection = null, bool ActivatedWithoutPayment = false);
 
 /// <summary>
 /// Technical Study §23 (pricing plans, D-10/D-53/D-64/D-86) and §19.2/§20.2
@@ -128,8 +141,15 @@ public interface ISubscriptionService
     /// guardian's and the admin's paths are untouched, and a student with no
     /// guardian still buys for themself — see that member for why this is a
     /// link test rather than an age test.</summary>
+    /// <summary><paramref name="promoCode"/> is the six characters the family
+    /// typed, and nothing else - never a price, never a percentage. It is
+    /// priced here, server-side, against the plan's own amount; a code that
+    /// cannot be used is REFUSED rather than quietly ignored, because silently
+    /// charging full price for a purchase somebody believed was discounted is
+    /// the worse of the two failures.</summary>
     Task<PurchaseFromPlanResult> PurchaseFromPlanAsync(long studentId, long pricingPlanId, long actingUserId,
-        SubscriptionOrigin origin, bool isAdminInitiated, CancellationToken cancellationToken);
+        SubscriptionOrigin origin, bool isAdminInitiated, CancellationToken cancellationToken,
+        string? promoCode = null);
 
     /// <summary>D-13: an admin-created subscription with NO payment. Unlike the
     /// purchase path above, this activates immediately and posts the AdminGrant

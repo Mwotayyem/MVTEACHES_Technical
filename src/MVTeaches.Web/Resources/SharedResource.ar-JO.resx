@@ -23,6 +23,67 @@
   <data name="Packages and Payments" xml:space="preserve"><value>الباقات والمدفوعات</value></data>
   <data name="Take the payment" xml:space="preserve"><value>حصّل الدفعة</value></data>
   <data name="Subscriptions" xml:space="preserve"><value>الاشتراكات</value></data>
+  <data name="Promo codes" xml:space="preserve"><value>أكواد الخصم</value></data>
+  <data name="Codes" xml:space="preserve"><value>الأكواد</value></data>
+  <data name="Create" xml:space="preserve"><value>إنشاء</value></data>
+  <data name="Save" xml:space="preserve"><value>حفظ</value></data>
+  <data name="{0}" xml:space="preserve"><value>{0}</value></data>
+  <data name="A code takes a percentage off a package's price. The family types the code when they buy; the centre decides what it is worth." xml:space="preserve"><value>الكود يخصم نسبة من سعر الباقة. العائلة تُدخل الكود عند الشراء، والمركز هو من يقرّر قيمته.</value></data>
+  <data name="Create a code" xml:space="preserve"><value>إنشاء كود</value></data>
+  <data name="6 characters" xml:space="preserve"><value>6 خانات</value></data>
+  <data name="The code is generated for you — six characters, capitals and digits. Press Generate again for a different one; nothing is saved until you press Create." xml:space="preserve"><value>الكود يُولَّد لك — ست خانات، أحرف كبيرة وأرقام. اضغط «توليد» مرة أخرى للحصول على غيره؛ ولا يُحفظ شيء حتى تضغط «إنشاء».</value></data>
+  <data name="Code" xml:space="preserve"><value>الكود</value></data>
+  <data name="Apply code" xml:space="preserve"><value>تطبيق الكود</value></data>
+  <data name="Discount %" xml:space="preserve"><value>نسبة الخصم %</value></data>
+  <data name="Generate" xml:space="preserve"><value>توليد كود</value></data>
+  <data name="Enter a promo code first." xml:space="preserve"><value>أدخل كود الخصم أولًا.</value></data>
+  <data name="Starts on" xml:space="preserve"><value>يبدأ في</value></data>
+  <data name="Code applied. The new price is shown on each package it covers." xml:space="preserve"><value>طُبِّق الكود. السعر الجديد ظاهر على كل باقة يشملها.</value></data>
+  <data name="Ends on" xml:space="preserve"><value>ينتهي في</value></data>
+  <data name="That promo code was not recognised." xml:space="preserve"><value>كود الخصم هذا غير معروف.</value></data>
+  <data name="Leave empty for no start date." xml:space="preserve"><value>اتركه فارغًا إن لم يكن له تاريخ بداية.</value></data>
+  <data name="This promo code is no longer available." xml:space="preserve"><value>كود الخصم هذا لم يعد متاحًا.</value></data>
+  <data name="Leave empty for never expires." xml:space="preserve"><value>اتركه فارغًا إن كان لا ينتهي.</value></data>
+  <data name="This promo code cannot be used yet." xml:space="preserve"><value>كود الخصم هذا لا يمكن استخدامه بعد.</value></data>
+  <data name="Leave empty for unlimited." xml:space="preserve"><value>اتركه فارغًا لعدد غير محدود.</value></data>
+  <data name="This promo code has expired." xml:space="preserve"><value>انتهت صلاحية كود الخصم هذا.</value></data>
+  <data name="Maximum uses in total" xml:space="preserve"><value>أقصى عدد استخدامات إجمالًا</value></data>
+  <data name="This promo code does not apply to this package." xml:space="preserve"><value>كود الخصم هذا لا ينطبق على هذه الباقة.</value></data>
+  <data name="Maximum uses per student" xml:space="preserve"><value>أقصى عدد استخدامات لكل طالب</value></data>
+  <data name="This promo code has been fully used." xml:space="preserve"><value>استُهلك كود الخصم هذا بالكامل.</value></data>
+  <data name="Which packages does it apply to?" xml:space="preserve"><value>على أي الباقات ينطبق؟</value></data>
+  <data name="This promo code has already been used for this student." xml:space="preserve"><value>استُخدم كود الخصم هذا لهذا الطالب من قبل.</value></data>
+  <data name="Every package" xml:space="preserve"><value>كل الباقات</value></data>
+  <data name="{0}% off — you save {1}" xml:space="preserve"><value>خصم {0}% — توفّر {1}</value></data>
+  <data name="Only the packages I choose" xml:space="preserve"><value>الباقات التي أختارها فقط</value></data>
+  <data name="Nothing to pay — the package starts as soon as you request it." xml:space="preserve"><value>لا شيء للدفع — تبدأ الباقة فور طلبها.</value></data>
+  <data name="Choose packages…" xml:space="preserve"><value>اختر الباقات…</value></data>
+  <data name="The promo code covered the whole price — {0}'s package (#{1}) is active now. There is nothing to pay and no transfer to send." xml:space="preserve"><value>غطّى كود الخصم كامل السعر — باقة {0} (رقم {1}) فعّالة الآن. لا يوجد ما يُدفع ولا حوالة تُرسل.</value></data>
+  <data name="{0} packages chosen" xml:space="preserve"><value>{0} باقات مختارة</value></data>
+  <data name="Discount" xml:space="preserve"><value>الخصم</value></data>
+  <data name="Search packages…" xml:space="preserve"><value>ابحث في الباقات…</value></data>
+  <data name="Next: give the code to the family. They type it when they buy, and the discount is applied by the centre's own rules — never by anything the browser sends." xml:space="preserve"><value>التالي: أعطِ الكود للعائلة. يُدخلونه عند الشراء، ويُطبَّق الخصم بقواعد المركز نفسه — لا بشيء يرسله المتصفح.</value></data>
+  <data name="No promo codes yet." xml:space="preserve"><value>لا توجد أكواد خصم بعد.</value></data>
+  <data name="Valid between" xml:space="preserve"><value>صالح بين</value></data>
+  <data name="No date limit" xml:space="preserve"><value>بلا حدّ زمني</value></data>
+  <data name="Uses" xml:space="preserve"><value>الاستخدامات</value></data>
+  <data name="Disabled" xml:space="preserve"><value>معطَّل</value></data>
+  <data name="Disable" xml:space="preserve"><value>تعطيل</value></data>
+  <data name="Enable" xml:space="preserve"><value>تفعيل</value></data>
+  <data name="Promo code {0} created." xml:space="preserve"><value>تم إنشاء كود الخصم {0}.</value></data>
+  <data name="Promo code updated. Packages already bought keep the discount they were bought with." xml:space="preserve"><value>تم تحديث كود الخصم. الباقات المشتراة سابقًا تحتفظ بالخصم الذي اشتُريت به.</value></data>
+  <data name="Promo code" xml:space="preserve"><value>كود الخصم</value></data>
+  <data name="Promo code not found." xml:space="preserve"><value>لم يُعثر على كود الخصم.</value></data>
+  <data name="Promo code enabled." xml:space="preserve"><value>تم تفعيل كود الخصم.</value></data>
+  <data name="Promo code disabled. It stops working straight away; packages already bought are unaffected." xml:space="preserve"><value>تم تعطيل كود الخصم. يتوقف عن العمل فورًا، والباقات المشتراة سابقًا لا تتأثر.</value></data>
+  <data name="A discount must be between 1 and 100 percent." xml:space="preserve"><value>يجب أن تكون نسبة الخصم بين 1 و100 بالمئة.</value></data>
+  <data name="A promo code cannot end before it starts." xml:space="preserve"><value>لا يمكن أن ينتهي كود الخصم قبل أن يبدأ.</value></data>
+  <data name="A usage limit must be at least 1, or empty for unlimited." xml:space="preserve"><value>يجب أن يكون حدّ الاستخدام 1 على الأقل، أو فارغًا لعدد غير محدود.</value></data>
+  <data name="That code already exists — generate another one." xml:space="preserve"><value>هذا الكود موجود مسبقًا — ولّد كودًا آخر.</value></data>
+  <data name="A promo code must be exactly 6 characters, using A-Z and 0-9 only." xml:space="preserve"><value>يجب أن يكون كود الخصم 6 خانات بالضبط، بأحرف A-Z وأرقام 0-9 فقط.</value></data>
+  <data name="Choose at least one package, or set the code to apply to every package." xml:space="preserve"><value>اختر باقة واحدة على الأقل، أو اجعل الكود ينطبق على كل الباقات.</value></data>
+  <data name="Generate a code first." xml:space="preserve"><value>ولّد كودًا أولًا.</value></data>
+  <data name="The code itself cannot be changed — it has already been handed out. Packages already bought keep the discount they were bought with." xml:space="preserve"><value>لا يمكن تغيير الكود نفسه — فقد سُلِّم للعائلات. والباقات المشتراة سابقًا تحتفظ بالخصم الذي اشتُريت به.</value></data>
   <data name="Payments" xml:space="preserve"><value>المدفوعات</value></data>
   <data name="Scheduling and Attendance" xml:space="preserve"><value>الجداول والحضور</value></data>
   <data name="Schedules" xml:space="preserve"><value>الجداول</value></data>

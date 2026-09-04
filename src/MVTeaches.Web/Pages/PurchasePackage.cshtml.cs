@@ -54,14 +54,17 @@ public class PurchasePackageModel : PageModel
     private readonly IPlacementAttemptService _attempts;
     private readonly IPaymentService _payments;
     private readonly IPaymentMethodConfigService _methods;
+    private readonly IPromoCodeService _promoCodes;
     private readonly IFileStorageService _files;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public PurchasePackageModel(MvTeachesDbContext db, ISubscriptionService subscriptions,
         IPlacementAttemptService attempts, IPaymentService payments, IPaymentMethodConfigService methods,
-        IFileStorageService files, UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer)
+        IFileStorageService files, UserManager<ApplicationUser> userManager, IStringLocalizer<SharedResource> localizer,
+        IPromoCodeService promoCodes)
     {
+        _promoCodes = promoCodes;
         _db = db;
         _subscriptions = subscriptions;
         _attempts = attempts;
@@ -139,6 +142,25 @@ public class PurchasePackageModel : PageModel
     public string? StatusMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
+    /// <summary>Owner decision 2026-09-05 (promo codes). What the family typed,
+    /// kept so the box is not cleared under them when the page comes back, and
+    /// so the Buy buttons can carry it through. It is six characters of text
+    /// and nothing else - no price, no percentage - and the server re-prices it
+    /// from the database on every use.</summary>
+    [BindProperty(SupportsGet = true, Name = "promoCode")]
+    public string? PromoCodeInput { get; set; }
+
+    /// <summary>The quote the SERVER produced for the checked code, per plan.
+    /// Only ever filled by asking IPromoCodeService; the page cannot compute a
+    /// discount of its own.</summary>
+    public IReadOnlyDictionary<long, PromoCodeQuote> PromoQuotesByPlan { get; set; } =
+        new Dictionary<long, PromoCodeQuote>();
+
+    /// <summary>Set when a code was typed and cannot be used, so the screen can
+    /// say which of "expired", "not for this package" or "used up" applies.</summary>
+    public string? PromoMessage { get; set; }
+    public bool PromoAccepted { get; set; }
+
     public class TransferInput
     {
         [Required] public long PaymentId { get; set; }
@@ -160,13 +182,32 @@ public class PurchasePackageModel : PageModel
         return Page();
     }
 
+    /// <summary>Checks a code and shows what it is worth, without buying
+    /// anything. The figures come back from the service - this handler does no
+    /// arithmetic of its own, and neither does the page.</summary>
+    public async Task<IActionResult> OnPostApplyPromoAsync(long studentId)
+    {
+        ModelState.Clear();
+        await LoadAsync(studentId);
+
+        if (string.IsNullOrWhiteSpace(PromoCodeInput))
+        {
+            PromoMessage = _localizer["Enter a promo code first."].Value;
+        }
+
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostPurchaseAsync(long studentId, long pricingPlanId)
     {
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
         var origin = IsGuardianRole() ? SubscriptionOrigin.GuardianPurchase : SubscriptionOrigin.SelfPurchase;
 
+        // The CODE travels; the price does not. Whatever the form sent for a
+        // discount would be ignored - PurchaseFromPlanAsync re-prices from the
+        // plan and the code's own stored percentage.
         var result = await _subscriptions.PurchaseFromPlanAsync(studentId, pricingPlanId, actingUserId, origin,
-            isAdminInitiated: false, HttpContext.RequestAborted);
+            isAdminInitiated: false, HttpContext.RequestAborted, PromoCodeInput);
 
         // Owner report 2026-09-05: loaded BEFORE the messages are built, because
         // every message below has to be able to name the child. A guardian with
@@ -182,8 +223,13 @@ public class PurchasePackageModel : PageModel
 
         if (result.Outcome == PurchaseFromPlanOutcome.Purchased)
         {
-            StatusMessage = _localizer["Package requested for {0} (request #{1}, {2}) — choose a payment method below to continue.",
-                childName, result.SubscriptionId!, result.Price!].Value;
+            // A 100% code leaves nothing to pay, so the package is already
+            // active and there is no payment step to send anyone to.
+            StatusMessage = result.ActivatedWithoutPayment
+                ? _localizer["The promo code covered the whole price — {0}'s package (#{1}) is active now. There is nothing to pay and no transfer to send.",
+                    childName, result.SubscriptionId!].Value
+                : _localizer["Package requested for {0} (request #{1}, {2}) — choose a payment method below to continue.",
+                    childName, result.SubscriptionId!, result.Price!].Value;
         }
         else
         {
@@ -204,6 +250,8 @@ public class PurchasePackageModel : PageModel
                 PurchaseFromPlanOutcome.ActivePackageStillHasBalance =>
                     _localizer["{0} already has an active package on this same plan with hours still remaining. The same package cannot be bought again for {0} until those hours are used — another child's package is separate.",
                         childName].Value,
+                // Refused, never silently charged at full price.
+                PurchaseFromPlanOutcome.PromoCodeRejected => DescribePromoRejection(result.PromoRejection),
                 PurchaseFromPlanOutcome.StudentIsUnderGuardianCare =>
                     _localizer["Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre."].Value,
                 _ => _localizer["Could not record this purchase."].Value,
@@ -442,5 +490,68 @@ public class PurchasePackageModel : PageModel
             .OrderBy(p => p.CourseName)
             .ThenBy(p => p.SessionType)
             .ToList();
+
+        await LoadPromoQuotesAsync();
     }
+
+    /// <summary>Asks the service what the typed code is worth on each package
+    /// the family can actually buy. Every figure shown on screen comes from
+    /// here; the page never multiplies anything by a percentage itself, which
+    /// is what keeps the displayed price and the charged price the same number
+    /// by construction rather than by agreement.</summary>
+    private async Task LoadPromoQuotesAsync()
+    {
+        PromoQuotesByPlan = new Dictionary<long, PromoCodeQuote>();
+        PromoAccepted = false;
+
+        if (string.IsNullOrWhiteSpace(PromoCodeInput) || SelectedStudentId is null || EligiblePlans.Count == 0)
+        {
+            return;
+        }
+
+        var quotes = new Dictionary<long, PromoCodeQuote>();
+        PromoCodeRejection? lastRejection = null;
+
+        foreach (var plan in EligiblePlans)
+        {
+            var applied = await _promoCodes.ApplyAsync(PromoCodeInput, plan.Id, SelectedStudentId.Value,
+                HttpContext.RequestAborted);
+            if (applied.Accepted)
+            {
+                quotes[plan.Id] = applied.Quote!;
+            }
+            else
+            {
+                lastRejection = applied.Rejection;
+            }
+        }
+
+        PromoQuotesByPlan = quotes;
+        PromoAccepted = quotes.Count > 0;
+
+        if (quotes.Count > 0)
+        {
+            PromoMessage = _localizer["Code applied. The new price is shown on each package it covers."].Value;
+        }
+        else if (lastRejection is not null)
+        {
+            PromoMessage = DescribePromoRejection(lastRejection);
+        }
+    }
+
+    /// <summary>One message per reason, so the family is told what to do next
+    /// rather than that "something" was wrong. A code that does not exist and a
+    /// code that is malformed are deliberately given the SAME answer - the
+    /// service does that too - so nobody can learn the shape of a real code by
+    /// watching this message change.</summary>
+    private string DescribePromoRejection(PromoCodeRejection? rejection) => rejection switch
+    {
+        PromoCodeRejection.Inactive => _localizer["This promo code is no longer available."].Value,
+        PromoCodeRejection.NotStartedYet => _localizer["This promo code cannot be used yet."].Value,
+        PromoCodeRejection.Expired => _localizer["This promo code has expired."].Value,
+        PromoCodeRejection.NotForThisPackage => _localizer["This promo code does not apply to this package."].Value,
+        PromoCodeRejection.TotalLimitReached => _localizer["This promo code has been fully used."].Value,
+        PromoCodeRejection.StudentLimitReached => _localizer["This promo code has already been used for this student."].Value,
+        _ => _localizer["That promo code was not recognised."].Value,
+    };
 }
