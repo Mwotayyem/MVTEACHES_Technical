@@ -164,44 +164,93 @@ public static class DataSeeder
             new Level(6, "C2", "محترف", "Proficient", 6));
     }
 
-    /// <summary>Owner decision 2026-09-04, superseding D-41's "exactly one
-    /// course in MVP": the centre teaches more than General English, and
-    /// recording everything as General English made the catalogue, the levels,
-    /// and the teacher assignments all describe something untrue.
+    /// <summary>One row of <see cref="CourseCatalogue"/>. A plain record rather
+    /// than a <see cref="Course"/> so the list can be a shared static without
+    /// handing the same tracked entity instance to two DbContexts.</summary>
+    public sealed record CourseSeed(string Code, string NameAr, string NameEn);
+
+    /// <summary>The owner's list, in the owner's order and wording — public so
+    /// it can be asserted directly (see CourseCatalogueTests) without standing
+    /// a database up. The English name is a plain translation of the Arabic,
+    /// never a re-interpretation: the Arabic name is the one the centre
+    /// advertises. Note there is no <c>isLeveled</c> column here at all —
+    /// every course takes Course's default of true, which is the owner's
+    /// decision expressed in the only place it cannot be forgotten.</summary>
+    public static IReadOnlyList<CourseSeed> CourseCatalogue { get; } = new[]
+    {
+        // ---- English ------------------------------------------------
+        new CourseSeed("ENG-CONV-KIDS", "المحادثة الإنجليزية للأطفال", "English Conversation - Kids"),
+        new CourseSeed("ENG-CONV-ADULTS", "المحادثة الإنجليزية للكبار", "English Conversation - Adults"),
+        new CourseSeed("ENG-GENERAL-KIDS", "الإنجليزي العام للأطفال", "General English - Kids"),
+        // Keeps the original code on purpose: every course_id already in
+        // Local Staging points at this row.
+        new CourseSeed("GENERAL-ENGLISH", "الإنجليزي العام للكبار", "General English - Adults"),
+        new CourseSeed("IELTS", "دورات تحضيرية للإيلتس IELTS", "IELTS Preparation"),
+        new CourseSeed("IELTS-FOUNDATION", "دورات تأسيسية للإيلتس IELTS", "IELTS Foundation"),
+        new CourseSeed("TOEFL", "دورات تحضيرية للتوفل TOEFL", "TOEFL Preparation"),
+        new CourseSeed("TOEFL-FOUNDATION", "دورات تأسيسية للتوفل TOEFL", "TOEFL Foundation"),
+        new CourseSeed("BUSINESS-ENGLISH", "دورات إدارة الأعمال باللغة الإنجليزية", "Business English"),
+        new CourseSeed("SAT", "SAT لجميع الصفوف", "SAT - All Grades"),
+        new CourseSeed("IG", "IG لجميع الصفوف", "IG - All Grades"),
+
+        // ---- Arabic -------------------------------------------------
+        new CourseSeed("ARB-CONV-KIDS", "المحادثة العربية للأطفال", "Arabic Conversation - Kids"),
+        new CourseSeed("ARB-CONV-ADULTS", "المحادثة العربية للكبار", "Arabic Conversation - Adults"),
+        new CourseSeed("ARB-GENERAL-KIDS", "اللغة العربية العامة للأطفال", "General Arabic - Kids"),
+        new CourseSeed("ARABIC", "اللغة العربية العامة للكبار", "General Arabic - Adults"),
+        new CourseSeed("QURAN-KIDS", "القرآن الكريم للأطفال", "Holy Quran - Kids"),
+        new CourseSeed("QURAN", "القرآن الكريم للكبار", "Holy Quran - Adults"),
+
+        // ---- Spanish ------------------------------------------------
+        new CourseSeed("SPA-CONV-KIDS", "المحادثة الإسبانية للأطفال", "Spanish Conversation - Kids"),
+        new CourseSeed("SPA-CONV-ADULTS", "المحادثة الإسبانية للكبار", "Spanish Conversation - Adults"),
+        new CourseSeed("SPA-GENERAL-KIDS", "اللغة الإسبانية العامة للأطفال", "General Spanish - Kids"),
+        new CourseSeed("SPANISH", "اللغة الإسبانية العامة للكبار", "General Spanish - Adults"),
+    };
+
+    /// <summary>Owner decision 2026-09-04 (revised the same day), superseding
+    /// D-41's "exactly one course in MVP": the centre teaches twenty-one named
+    /// courses, and recording all of them as General English made the
+    /// catalogue, the levels and the teacher assignments all describe
+    /// something untrue.
     ///
-    /// <para>GENERAL-ENGLISH is seeded FIRST and keeps its identity, because
-    /// every course_id already in the database points at it — the row is not
-    /// recreated, renamed, or reordered here. The rest are added alongside it.</para>
+    /// <para><b>Every course is levelled.</b> An earlier draft of this list
+    /// marked IELTS, TOEFL and Quran <c>isLeveled: false</c>, reasoning that no
+    /// level ladder had been defined for them. The owner corrected that
+    /// directly: every course uses the SAME existing A1-C2 ladder seeded by
+    /// <see cref="SeedLevelsAsync"/>, and no course is level-less. No new level
+    /// scheme is invented here, and none should be. A student therefore holds
+    /// one current level PER COURSE, a package is published for a
+    /// (course, level) pair, and a teacher is authorised for a (course, level)
+    /// pair — see StudentLevel, PricingPlan and TeacherLevelAssignment.</para>
+    ///
+    /// <para><b>Why some codes look older than others.</b> Seven codes here
+    /// (GENERAL-ENGLISH, ARABIC, SPANISH, BUSINESS-ENGLISH, IELTS, TOEFL,
+    /// QURAN) already exist in databases seeded earlier today, and
+    /// GENERAL-ENGLISH in particular is what every existing course_id in Local
+    /// Staging points at. Reusing those codes rather than minting new ones is
+    /// deliberate: no row moves, no foreign key is rewritten, and
+    /// LocalDevelopmentSeeder/StagingSeeder — both of which look a course up by
+    /// the literal code "GENERAL-ENGLISH" — keep working untouched. Their
+    /// display names are brought onto the owner's list by the
+    /// OwnerCourseCatalogue migration, a one-time data fix rather than
+    /// something re-applied on every start-up, so an admin who renames a course
+    /// afterwards keeps their name.</para>
     ///
     /// <para>Each row is added only if its code is missing, so this is safe to
-    /// run against a database that already has some of them, and adding a
-    /// further course later is one more line rather than a migration.</para>
-    ///
-    /// <para><c>isLeveled: false</c> marks a course whose students are not
-    /// placed on the A1–C2 ladder. IELTS and TOEFL are exam-preparation, and
-    /// Quran is not an ability ladder at all — the owner has not defined level
-    /// schemes for these, and inventing one would be inventing business rules.
-    /// Their level requirement is therefore a decision still to be taken, not
-    /// something guessed at here.</para></summary>
+    /// run against a database that already holds some of them, and adding a
+    /// further course later is one more line rather than a migration. Nothing
+    /// here ever deletes or deactivates a course: retiring one is an admin
+    /// action, because a course carries subscriptions, sessions and payroll
+    /// history behind it.</para></summary>
     private static async Task SeedCoursesAsync(MvTeachesDbContext db, CancellationToken ct)
     {
         var existingCodes = (await db.Courses.Select(c => c.Code).ToListAsync(ct))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var catalogue = new[]
+        foreach (var seed in CourseCatalogue.Where(c => !existingCodes.Contains(c.Code)))
         {
-            new Course("GENERAL-ENGLISH", "تقوية إنجليزي عام", "General English"),
-            new Course("ARABIC", "اللغة العربية", "Arabic"),
-            new Course("SPANISH", "اللغة الإسبانية", "Spanish"),
-            new Course("BUSINESS-ENGLISH", "إنجليزي الأعمال", "Business English"),
-            new Course("IELTS", "آيلتس", "IELTS", isLeveled: false),
-            new Course("TOEFL", "توفل", "TOEFL", isLeveled: false),
-            new Course("QURAN", "تحفيظ القرآن الكريم", "Quran", isLeveled: false),
-        };
-
-        foreach (var course in catalogue.Where(c => !existingCodes.Contains(c.Code)))
-        {
-            db.Courses.Add(course);
+            db.Courses.Add(new Course(seed.Code, seed.NameAr, seed.NameEn));
         }
     }
 }
