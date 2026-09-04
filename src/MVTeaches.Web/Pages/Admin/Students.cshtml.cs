@@ -62,12 +62,18 @@ public class StudentsModel : PageModel
         _authorizationService = authorizationService;
     }
 
-    /// <summary>One line of the register. Everything after GuardianNames is
+    /// <summary>One line of the register. Everything after Guardians is
     /// there so the list can be READ instead of opened: what they are on, how
     /// far through it they are, what is still owed, and when it ends. All of
     /// it is derived from rows already loaded below - no stored summary.</summary>
+    /// <summary>Owner decision 2026-09-04: the register carries each guardian's
+    /// ID as well as their name, because unlinking a wrongly-attached guardian
+    /// needs to say WHICH one. Names alone were enough only while there was no
+    /// way to correct the link.</summary>
+    public record GuardianLink(long GuardianId, string FullName);
+
     public record StudentRow(long Id, string FullName, string CountryName, StudentStatus Status,
-        string? CurrentLevelCode, IReadOnlyList<string> GuardianNames,
+        string? CurrentLevelCode, IReadOnlyList<StudentsModel.GuardianLink> Guardians,
         StudentLifecycleState State, string? PackageName, string? Currency,
         decimal Billed, decimal Paid, decimal Outstanding, int RemainingMinutes, int PurchasedMinutes,
         LocalDate? StartsOn, LocalDate? ExpiresOn, int UpcomingLessonCount,
@@ -319,6 +325,44 @@ public class StudentsModel : PageModel
         return Page();
     }
 
+    /// <summary>Owner decision 2026-09-04: the way out of a wrong guardian link.
+    /// Guarded by StudentsManage exactly like every other correction on this
+    /// page — server-side, so hiding the button is a courtesy and this check is
+    /// the rule. Removes the link and nothing else; see
+    /// IStudentAdmissionService.UnlinkGuardianAsync for what survives.</summary>
+    public async Task<IActionResult> OnPostUnlinkGuardianAsync(long guardianId, long studentId, string? unlinkReason)
+    {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.StudentsManage) is { } deny)
+        {
+            return deny;
+        }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState (populated by every OTHER form on
+        // this page) has nothing to say about them.
+        ModelState.Clear();
+
+        var actingUserId = GetCurrentUserId();
+        var result = await _admissions.UnlinkGuardianAsync(guardianId, studentId, actingUserId,
+            unlinkReason ?? string.Empty, HttpContext.RequestAborted);
+
+        ErrorMessage = result.Outcome switch
+        {
+            UnlinkGuardianOutcome.ReasonRequired =>
+                _localizer["Write why this guardian is being unlinked — it is recorded against the change."].Value,
+            UnlinkGuardianOutcome.NotLinked =>
+                _localizer["That guardian is not linked to this student."].Value,
+            _ => null,
+        };
+        if (result.Outcome == UnlinkGuardianOutcome.Unlinked)
+        {
+            StatusMessage = _localizer["Guardian unlinked. The student, their packages, payments and remaining hours are all unchanged — link the correct guardian now."].Value;
+        }
+
+        await LoadAsync();
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostLinkGuardianAsync()
     {
         if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.StudentsManage) is { } deny)
@@ -438,9 +482,11 @@ public class StudentsModel : PageModel
 
         var guardianships = await _db.Guardianships.ToListAsync();
         var guardianNamesByGuardianId = Guardians.ToDictionary(g => g.Id, g => g.FullName);
-        var guardianNamesByStudent = guardianships
+        var guardiansByStudent = guardianships
             .GroupBy(g => g.StudentId)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(x => guardianNamesByGuardianId.GetValueOrDefault(x.GuardianId, "?")).ToList());
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<GuardianLink>)g
+                .Select(x => new GuardianLink(x.GuardianId, guardianNamesByGuardianId.GetValueOrDefault(x.GuardianId, "?")))
+                .ToList());
 
         // --- everything the register needs to be readable, in bulk reads ----
         var studentIds = students.Select(s => s.Id).ToList();
@@ -561,7 +607,7 @@ public class StudentsModel : PageModel
                 // currently placed in, rather than an arbitrary one of them.
                 LevelLabel(currentLevelsByStudent.GetValueOrDefault(s.Id,
                     new List<MVTeaches.Domain.Placement.StudentLevel>()), courseNames, levelByI),
-                guardianNamesByStudent.GetValueOrDefault(s.Id, Array.Empty<string>()),
+                guardiansByStudent.GetValueOrDefault(s.Id, Array.Empty<GuardianLink>()),
                 state,
                 running is null ? null : $"{courseNames.GetValueOrDefault(running.CourseId, "?")} / {levelByI.GetValueOrDefault(running.LevelId, "?")}",
                 currency,

@@ -187,9 +187,29 @@
                     </td>
                     <td>@student.UpcomingLessonCount</td>
                     <td>
-                        @if (student.GuardianNames.Count > 0)
+                        @if (student.Guardians.Count > 0)
                         {
-                            @string.Join("، ", student.GuardianNames)
+                            @foreach (var guardian in student.Guardians)
+                            {
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>@guardian.FullName</span>
+                                    @* Owner decision 2026-09-04: the way out of a
+                                       wrong guardian link. The reason is required
+                                       by the service, not merely by this form. *@
+                                    @if (canManage)
+                                    {
+                                        <form method="post" asp-page-handler="UnlinkGuardian" class="d-inline-flex gap-1 align-items-center">
+                                            <input type="hidden" name="guardianId" value="@guardian.GuardianId" />
+                                            <input type="hidden" name="studentId" value="@student.Id" />
+                                            <input type="text" name="unlinkReason" class="form-control form-control-sm"
+                                                   style="max-width: 12rem" placeholder="@T["Why?"]" required
+                                                   aria-label="@T["Why is this guardian being unlinked?"]" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    data-mv-confirm="@T["Unlink this guardian from this student? Packages, payments and remaining hours are not affected."]">@T["Unlink"]</button>
+                                        </form>
+                                    }
+                                </div>
+                            }
                         }
                         else
                         {
@@ -222,7 +242,7 @@
                         {
                             @T["Talk to the family about renewing."]
                         }
-                        else if (student.GuardianNames.Count == 0)
+                        else if (student.Guardians.Count == 0)
                         {
                             @T["Link a guardian so somebody can be reached."]
                         }
@@ -239,7 +259,7 @@
                             {
                                 <a class="btn btn-sm btn-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">@T["Set the level now"]</a>
                             }
-                            @if (canManage && student.GuardianNames.Count == 0)
+                            @if (canManage && student.Guardians.Count == 0)
                             {
                                 <a class="btn btn-sm btn-outline-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="link-guardian">@T["Link a guardian"]</a>
                             }

@@ -236,6 +236,18 @@
   <data name="Suggested: {0}" xml:space="preserve"><value>مقترح: {0}</value></data>
   <data name="Only upcoming lessons on the same course, level, and lesson type, with a free seat. The soonest one is suggested." xml:space="preserve"><value>الحصص القادمة فقط لنفس الدورة والمستوى ونوع الحصة، وفيها مقعد شاغر. وأقربها زمنيًا هو المقترح.</value></data>
   <data name="There is no upcoming lesson on the same course, level, and lesson type with a free seat. Add one, then come back — the request stays here waiting." xml:space="preserve"><value>لا توجد حصة قادمة لنفس الدورة والمستوى ونوع الحصة وفيها مقعد شاغر. أضف واحدة ثم عد — يبقى الطلب هنا بانتظارك.</value></data>
+  <data name="A student can hold a different level in each course." xml:space="preserve"><value>يمكن أن يكون للطالب مستوى مختلف في كل دورة.</value></data>
+  <data name="Phone number (optional for a child under a guardian)" xml:space="preserve"><value>رقم الهاتف (اختياري للطفل الذي له ولي أمر)</value></data>
+  <data name="How many students this class seats. Leave blank for {0}." xml:space="preserve"><value>عدد الطلاب الذين تتسع لهم هذه الحصة. اتركه فارغًا ليصبح {0}.</value></data>
+  <data name="Seats must be between 1 and 50." xml:space="preserve"><value>عدد المقاعد يجب أن يكون بين 1 و50.</value></data>
+  <data name="Every session produced here is a group class. Choose how many students it seats — {0} if you leave it blank. A private one-to-one lesson is published by the teacher, not scheduled here." xml:space="preserve"><value>كل حصة تُنتَج هنا هي حصة جماعية. اختر عدد الطلاب الذين تتسع لهم — {0} إذا تركت الحقل فارغًا. أما الحصة الفردية فينشرها المعلم، ولا تُجدوَل من هنا.</value></data>
+  <data name="Why?" xml:space="preserve"><value>لماذا؟</value></data>
+  <data name="Why is this guardian being unlinked?" xml:space="preserve"><value>لماذا يتم فك ارتباط ولي الأمر هذا؟</value></data>
+  <data name="Unlink" xml:space="preserve"><value>فك الارتباط</value></data>
+  <data name="Unlink this guardian from this student? Packages, payments and remaining hours are not affected." xml:space="preserve"><value>فك ارتباط ولي الأمر هذا بهذا الطالب؟ لن تتأثر الباقات ولا المدفوعات ولا الساعات المتبقية.</value></data>
+  <data name="Write why this guardian is being unlinked — it is recorded against the change." xml:space="preserve"><value>اكتب سبب فك ارتباط ولي الأمر — يُسجَّل السبب مع التعديل.</value></data>
+  <data name="That guardian is not linked to this student." xml:space="preserve"><value>ولي الأمر هذا غير مرتبط بهذا الطالب.</value></data>
+  <data name="Guardian unlinked. The student, their packages, payments and remaining hours are all unchanged — link the correct guardian now." xml:space="preserve"><value>تم فك الارتباط. الطالب وباقاته ومدفوعاته وساعاته المتبقية كلها كما هي — اربط ولي الأمر الصحيح الآن.</value></data>
   <data name="This package no longer matches the student's current level." xml:space="preserve"><value>هذه الباقة لم تعد تطابق المستوى الحالي للطالب.</value></data>
   <data name="You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again." xml:space="preserve"><value>لديك طلب سابق لهذه الباقة (رقم {0}) ما زال بانتظار الدفع. أكمل دفع ذلك الطلب بالأسفل بدل إنشاء طلب جديد.</value></data>
   <data name="You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used." xml:space="preserve"><value>لديك باقة فعّالة لنفس الخطة وبها رصيد متبقٍ. لا يمكنك شراء نفس الباقة مرة أخرى قبل انتهاء الرصيد.</value></data>

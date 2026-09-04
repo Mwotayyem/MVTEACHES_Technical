@@ -44,6 +44,25 @@ public enum LinkGuardianOutcome
 
 public record LinkGuardianResult(LinkGuardianOutcome Outcome);
 
+/// <summary>Owner decision 2026-09-04 (correcting a wrong guardian link).</summary>
+public enum UnlinkGuardianOutcome
+{
+    Unlinked,
+
+    /// <summary>No such link — either it was never made, or somebody already
+    /// removed it. Reported rather than thrown: from the admin's point of view
+    /// the desired state (these two are not linked) already holds.</summary>
+    NotLinked,
+
+    /// <summary>A reason is mandatory. Removing the record of who is
+    /// responsible for a child is exactly the kind of correction that must
+    /// leave a trace of WHY, the same rule AssignLevelAsync already applies to
+    /// an admin level override.</summary>
+    ReasonRequired,
+}
+
+public record UnlinkGuardianResult(UnlinkGuardianOutcome Outcome);
+
 /// <summary>
 /// §7/§8/§10 — the admin-facing side of onboarding a family. Real
 /// Guardian/Student self-registration is documented as phone+OTP via
@@ -94,6 +113,24 @@ public interface IStudentAdmissionService
     /// a rule enforced on a page is a rule the other page does not have.</summary>
     Task<LinkGuardianResult> LinkGuardianAsync(long guardianId, long studentId, GuardianRelationship relationship,
         bool isPrimary, long linkedByUserId, CancellationToken cancellationToken);
+
+    /// <summary>Owner decision 2026-09-04: removes ONE (guardian, student) link
+    /// so an admin can correct a child attached to the wrong guardian, and then
+    /// link the right one. The one-guardian rule above made a mis-link a dead
+    /// end — this is the way out of it, and the ONLY thing it removes.
+    ///
+    /// <para>What it deliberately does NOT touch, because the owner was
+    /// explicit: the student, the guardian, their subscriptions, their
+    /// payments, and their entitlement balance all survive untouched. A wrong
+    /// guardian is a wrong ROW IN A JOIN TABLE — it is not a reason to unwind
+    /// anything the family actually paid for, and the ledger is append-only in
+    /// any case.</para>
+    ///
+    /// <para>A reason is mandatory and is written to the audit log. Un-linking
+    /// erases the record of who was responsible for a child, so "who decided
+    /// this, and why" has to outlive the row itself.</para></summary>
+    Task<UnlinkGuardianResult> UnlinkGuardianAsync(long guardianId, long studentId, long actingUserId, string reason,
+        CancellationToken cancellationToken);
 
     /// <summary>The admin manually confirming what a WhatsApp OTP would confirm
     /// automatically once configured (§8.1's PendingVerification → PendingLevel).

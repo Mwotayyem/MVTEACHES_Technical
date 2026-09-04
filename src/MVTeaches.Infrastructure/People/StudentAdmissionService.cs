@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MVTeaches.Application.People;
+using MVTeaches.Domain.Audit;
 using MVTeaches.Domain.People;
 using MVTeaches.Domain.Placement;
 using MVTeaches.Infrastructure.Identity;
@@ -136,6 +137,42 @@ public class StudentAdmissionService : IStudentAdmissionService
         }
 
         return new LinkGuardianResult(LinkGuardianOutcome.Linked);
+    }
+
+    /// <inheritdoc />
+    public async Task<UnlinkGuardianResult> UnlinkGuardianAsync(long guardianId, long studentId, long actingUserId,
+        string reason, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return new UnlinkGuardianResult(UnlinkGuardianOutcome.ReasonRequired);
+        }
+
+        var link = await _db.Guardianships
+            .FirstOrDefaultAsync(g => g.GuardianId == guardianId && g.StudentId == studentId, cancellationToken);
+        if (link is null)
+        {
+            return new UnlinkGuardianResult(UnlinkGuardianOutcome.NotLinked);
+        }
+
+        // The audit entry is written BEFORE the row goes, and in the same
+        // SaveChanges, so the two cannot come apart: either the link is gone
+        // and the reason is recorded, or neither happened. Removing the record
+        // of who was responsible for a child without recording why would be
+        // the one genuinely unrecoverable part of this operation.
+        _db.AuditLogEntries.Add(new AuditLogEntry("Guardianship", $"{guardianId}:{studentId}", "GuardianUnlinked",
+            actingUserId, reason, beforeJson: null, afterJson: null, _clock.GetCurrentInstant()));
+
+        // ONE row, from ONE table. Nothing cascades: the Guardianship
+        // configuration's relationships to Guardian and Student are the
+        // dependent side, so deleting this join row cannot reach either of
+        // them, and nothing at all connects it to subscriptions, payments or
+        // the entitlement ledger. Those survive by construction, not by
+        // this method remembering to spare them.
+        _db.Guardianships.Remove(link);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return new UnlinkGuardianResult(UnlinkGuardianOutcome.Unlinked);
     }
 
     public async Task VerifyStudentAsync(long studentId, CancellationToken cancellationToken)

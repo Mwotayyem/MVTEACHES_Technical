@@ -397,4 +397,159 @@ public class StudentAdmissionServiceTests
         // The superseded English row is kept as history, never deleted.
         Assert.Equal(2, await db.StudentLevels.CountAsync(l => l.StudentId == student.Id && l.CourseId == english));
     }
+
+    /// <summary>Owner decision 2026-09-04, the whole point of the unlink path:
+    /// correcting a wrongly-attached guardian must cost the family NOTHING.
+    /// This seeds a student with a real package, a real confirmed payment and a
+    /// real entitlement balance, unlinks the guardian, then asserts every one of
+    /// those still stands. The owner named each of them explicitly, so each is
+    /// asserted explicitly rather than trusting that "we only deleted one row"
+    /// stays true as the schema grows.</summary>
+    [Fact]
+    public async Task Unlinking_a_guardian_leaves_the_subscription_payment_and_balance_untouched()
+    {
+        var (db, service, _) = CreateService(_fixture);
+        await using var _ = db;
+        var countryId = await SeedCountryAsync(db);
+        var courseId = await SeedCourseAsync(db);
+        var levelId = await SeedLevelAsync(db);
+
+        var student = new Student(countryId, "Wrongly Linked Child", new LocalDate(2015, 1, 1));
+        student.MarkVerified();
+        db.Students.Add(student);
+        var guardianUser = new ApplicationUser
+        {
+            UserName = $"gu-{Guid.NewGuid():N}",
+            Email = $"{Guid.NewGuid():N}@test.mvteaches.local",
+        };
+        db.Users.Add(guardianUser);
+        await db.SaveChangesAsync();
+        var guardian = new Guardian(guardianUser.Id, "Wrong Guardian");
+        db.Guardians.Add(guardian);
+        await db.SaveChangesAsync();
+
+        var linked = await service.LinkGuardianAsync(guardian.Id, student.Id, GuardianRelationship.Parent,
+            isPrimary: true, linkedByUserId: 0, CancellationToken.None);
+        Assert.Equal(LinkGuardianOutcome.Linked, linked.Outcome);
+
+        // A package the family really paid for, and the hours it bought.
+        var subscription = new MVTeaches.Domain.Subscriptions.Subscription(student.Id, countryId, courseId, levelId,
+            MVTeaches.Domain.Catalog.SessionType.Group, new MVTeaches.Domain.Common.Money(50m, "JOD"),
+            pricingPlanId: null, sessionsCount: 10, minutesTotal: 600, new LocalDate(2026, 1, 1), validityDays: 90,
+            MVTeaches.Domain.Subscriptions.SubscriptionOrigin.GuardianPurchase, createdByUserId: 0,
+            createdReason: null);
+        subscription.Activate();
+        db.Subscriptions.Add(subscription);
+        await db.SaveChangesAsync();
+
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var payment = new MVTeaches.Domain.Payments.Payment(student.Id, subscription.Id, payerUserId: null,
+            new MVTeaches.Domain.Common.Money(50m, "JOD"), MVTeaches.Domain.Payments.PaymentMethod.BankTransfer,
+            providerKey: "manual", referenceCode: $"UNLINK-{student.Id}", now);
+        payment.Confirm(confirmedByUserId: 0, now, 50m, "JOD");
+        db.Payments.Add(payment);
+        db.EntitlementLedgerEntries.Add(MVTeaches.Domain.Ledger.EntitlementLedgerEntry.ForAdminGrant(
+            student.Id, subscription.Id, courseId, levelId, MVTeaches.Domain.Catalog.SessionType.Group,
+            600, performedByUserId: 0, "seed", now));
+        await db.SaveChangesAsync();
+
+        var result = await service.UnlinkGuardianAsync(guardian.Id, student.Id, actingUserId: 7,
+            "Linked to the wrong family by mistake", CancellationToken.None);
+
+        Assert.Equal(UnlinkGuardianOutcome.Unlinked, result.Outcome);
+
+        // The link is the ONLY thing gone.
+        Assert.False(await db.Guardianships.AnyAsync(g => g.GuardianId == guardian.Id && g.StudentId == student.Id));
+        Assert.True(await db.Students.AnyAsync(s => s.Id == student.Id));
+        Assert.True(await db.Guardians.AnyAsync(g => g.Id == guardian.Id));
+        Assert.True(await db.Subscriptions.AnyAsync(s => s.Id == subscription.Id));
+        Assert.True(await db.Payments.AnyAsync(p => p.Id == payment.Id));
+        Assert.Equal(600, await db.EntitlementLedgerEntries
+            .Where(l => l.SubscriptionId == subscription.Id).SumAsync(l => l.DeltaMinutes));
+
+        // And the reason outlived the row it explains.
+        Assert.True(await db.AuditLogEntries.AnyAsync(a => a.Action == "GuardianUnlinked"
+            && a.Reason == "Linked to the wrong family by mistake"));
+    }
+
+    /// <summary>The correction actually completes: after unlinking, the right
+    /// guardian can be linked, which the one-guardian rule would otherwise have
+    /// refused forever. This is the dead end the unlink path exists to open.</summary>
+    [Fact]
+    public async Task After_unlinking_the_correct_guardian_can_be_linked()
+    {
+        var (db, service, _) = CreateService(_fixture);
+        await using var _ = db;
+        var countryId = await SeedCountryAsync(db);
+        var student = new Student(countryId, "Student", new LocalDate(2015, 1, 1));
+        db.Students.Add(student);
+        var user1 = new ApplicationUser { UserName = $"g1-{Guid.NewGuid():N}", Email = $"{Guid.NewGuid():N}@test.mvteaches.local" };
+        var user2 = new ApplicationUser { UserName = $"g2-{Guid.NewGuid():N}", Email = $"{Guid.NewGuid():N}@test.mvteaches.local" };
+        db.Users.AddRange(user1, user2);
+        await db.SaveChangesAsync();
+        var wrong = new Guardian(user1.Id, "Wrong Guardian");
+        var right = new Guardian(user2.Id, "Right Guardian");
+        db.Guardians.AddRange(wrong, right);
+        await db.SaveChangesAsync();
+
+        await service.LinkGuardianAsync(wrong.Id, student.Id, GuardianRelationship.Parent, true, 0, CancellationToken.None);
+
+        // Blocked while the wrong one is still attached — the dead end.
+        var blocked = await service.LinkGuardianAsync(right.Id, student.Id, GuardianRelationship.Parent, true, 0, CancellationToken.None);
+        Assert.Equal(LinkGuardianOutcome.StudentAlreadyHasGuardian, blocked.Outcome);
+
+        var unlinked = await service.UnlinkGuardianAsync(wrong.Id, student.Id, 0, "Wrong family", CancellationToken.None);
+        Assert.Equal(UnlinkGuardianOutcome.Unlinked, unlinked.Outcome);
+
+        var relinked = await service.LinkGuardianAsync(right.Id, student.Id, GuardianRelationship.Parent, true, 0, CancellationToken.None);
+        Assert.Equal(LinkGuardianOutcome.Linked, relinked.Outcome);
+        Assert.Equal(1, await db.Guardianships.CountAsync(g => g.StudentId == student.Id));
+    }
+
+    /// <summary>A reason is mandatory, and a refusal writes nothing: the link is
+    /// still there afterwards.</summary>
+    [Fact]
+    public async Task Unlinking_without_a_reason_is_refused_and_changes_nothing()
+    {
+        var (db, service, _) = CreateService(_fixture);
+        await using var _ = db;
+        var countryId = await SeedCountryAsync(db);
+        var student = new Student(countryId, "Student", new LocalDate(2015, 1, 1));
+        db.Students.Add(student);
+        var guardianUser = new ApplicationUser { UserName = $"gu-{Guid.NewGuid():N}", Email = $"{Guid.NewGuid():N}@test.mvteaches.local" };
+        db.Users.Add(guardianUser);
+        await db.SaveChangesAsync();
+        var guardian = new Guardian(guardianUser.Id, "Guardian");
+        db.Guardians.Add(guardian);
+        await db.SaveChangesAsync();
+        await service.LinkGuardianAsync(guardian.Id, student.Id, GuardianRelationship.Parent, true, 0, CancellationToken.None);
+
+        var blank = await service.UnlinkGuardianAsync(guardian.Id, student.Id, 0, "   ", CancellationToken.None);
+
+        Assert.Equal(UnlinkGuardianOutcome.ReasonRequired, blank.Outcome);
+        Assert.True(await db.Guardianships.AnyAsync(g => g.GuardianId == guardian.Id && g.StudentId == student.Id));
+    }
+
+    /// <summary>Unlinking a pair that was never linked reports it rather than
+    /// throwing — the state the admin wanted already holds, and a second click
+    /// on a slow page is not an error.</summary>
+    [Fact]
+    public async Task Unlinking_a_pair_that_is_not_linked_reports_it_rather_than_throwing()
+    {
+        var (db, service, _) = CreateService(_fixture);
+        await using var _ = db;
+        var countryId = await SeedCountryAsync(db);
+        var student = new Student(countryId, "Student", new LocalDate(2015, 1, 1));
+        db.Students.Add(student);
+        var guardianUser = new ApplicationUser { UserName = $"gu-{Guid.NewGuid():N}", Email = $"{Guid.NewGuid():N}@test.mvteaches.local" };
+        db.Users.Add(guardianUser);
+        await db.SaveChangesAsync();
+        var guardian = new Guardian(guardianUser.Id, "Guardian");
+        db.Guardians.Add(guardian);
+        await db.SaveChangesAsync();
+
+        var result = await service.UnlinkGuardianAsync(guardian.Id, student.Id, 0, "Never linked", CancellationToken.None);
+
+        Assert.Equal(UnlinkGuardianOutcome.NotLinked, result.Outcome);
+    }
 }
