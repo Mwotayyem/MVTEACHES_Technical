@@ -35,7 +35,7 @@
         <li>@T["A weekly schedule is a standing class the centre runs. Creating one does not create sessions on the spot — sessions are generated from it ahead of time, night by night."]</li>
         <li>@T["A teacher publishing their own free times is a different thing entirely, and they do that from their own screen."]</li>
     </ul>
-    <p>@T["Every session produced here is a group class seating exactly {0} students. That number is fixed by the centre and is not something this screen can change — a private one-to-one lesson is published by the teacher, not scheduled here.", Model.GroupCapacity]</p>
+    <p>@T["Every session produced here is a group class. Choose how many students it seats — {0} if you leave it blank. A private one-to-one lesson is published by the teacher, not scheduled here.", Model.DefaultGroupCapacity]</p>
 </div>
 
 @if (Model.FocusStudentId is not null)
@@ -206,10 +206,16 @@
                         <label class="form-label" asp-for="NewSchedule.StartsOn">@T["Starts on"]</label>
                         <input asp-for="NewSchedule.StartsOn" type="date" class="form-control" />
                     </div>
+                    @* Owner decision 2026-09-04: seats are the centre's to choose
+                       again. The field was previously disabled because the number
+                       typed into it was ignored - the generator now passes it
+                       through, so it is a real input rather than a broken promise. *@
                     <div class="col-md-3">
-                        <label class="form-label">@T["Seats"]</label>
-                        <input class="form-control" value="@Model.GroupCapacity" disabled aria-describedby="seatsNote" />
-                        <div class="form-text" id="seatsNote">@T["Fixed by the centre for every group class — it is not chosen per schedule."]</div>
+                        <label class="form-label" asp-for="NewSchedule.Capacity">@T["Seats"]</label>
+                        <input asp-for="NewSchedule.Capacity" type="number" min="1" max="@Model.MaximumGroupCapacity"
+                               class="form-control" placeholder="@Model.DefaultGroupCapacity" aria-describedby="seatsNote" />
+                        <div class="form-text" id="seatsNote">@T["How many students this class seats. Leave blank for {0}.", Model.DefaultGroupCapacity]</div>
+                        <span asp-validation-for="NewSchedule.Capacity" class="text-danger small"></span>
                     </div>
                     <div class="col-12">
                         <button type="submit" class="btn btn-primary">@T["Create the weekly class"]</button>

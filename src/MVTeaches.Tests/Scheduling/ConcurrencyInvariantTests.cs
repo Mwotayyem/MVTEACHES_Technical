@@ -109,20 +109,30 @@ public class ConcurrencyInvariantTests
     }
 
     /// <summary>
-    /// Owner decision 2026-08-30: "Group session: exactly 4 seats. Private
-    /// session: exactly 1 seat. Do not accept a manually entered seat count
-    /// from the UI or request payload." ClassSession.CapacityFor is the only
-    /// writer, but the database is what makes a wrong value impossible — the
-    /// same reasoning as no_teacher_overlap being an EXCLUDE constraint. This
-    /// writes raw SQL deliberately, bypassing the domain, to prove the DB
-    /// itself would still reject a mismatched seat count.
+    /// Owner decision 2026-09-04, superseding the 2026-08-30 fixed-seat rule:
+    /// a GROUP session's seat count is the centre's to choose, so 6 and 1 are
+    /// both legitimate for a group and no longer appear here. Private and
+    /// Placement are still pinned to exactly 1 — one-to-one is what those types
+    /// MEAN, and a "private" lesson seating two would be a group lesson wearing
+    /// the wrong label, priced and paid as the wrong thing.
+    ///
+    /// The database is what makes a wrong value impossible, the same reasoning
+    /// as no_teacher_overlap being an EXCLUDE constraint. This writes raw SQL
+    /// deliberately, bypassing the domain, to prove the constraint itself
+    /// refuses — not merely that ResolveCapacity declines to ask.
+    ///
+    /// The final two rows cover the sanity band rather than the type rule: a
+    /// group session with zero seats, or more than the agreed ceiling, is a
+    /// typo and is refused as one.
     /// </summary>
     [Theory]
-    [InlineData("Group", 6)]
-    [InlineData("Group", 1)]
-    [InlineData("Private", 4)]
-    [InlineData("Placement", 2)]
-    public async Task The_database_rejects_a_seat_count_that_does_not_match_the_session_type(string sessionType, int capacity)
+    [InlineData("Private", 4, "ck_session_capacity_matches_type")]
+    [InlineData("Private", 2, "ck_session_capacity_matches_type")]
+    [InlineData("Placement", 2, "ck_session_capacity_matches_type")]
+    [InlineData("Group", 0, "ck_session_capacity_band")]
+    [InlineData("Group", 51, "ck_session_capacity_band")]
+    public async Task The_database_rejects_a_seat_count_that_does_not_match_the_session_type(string sessionType,
+        int capacity, string expectedConstraint)
     {
         await using var db = _fixture.CreateContext();
 
@@ -157,7 +167,7 @@ public class ConcurrencyInvariantTests
                  60, 'Asia/Amman', '10:00', {sessionType}, {capacity}, 0, 'Scheduled', {now.ToDateTimeUtc()});"));
 
         Assert.Equal("23514", ex.SqlState); // check_violation
-        Assert.Contains("ck_session_capacity_matches_type", ex.Message);
+        Assert.Contains(expectedConstraint, ex.Message);
     }
 
     /// <summary>The domain side of the same rule: capacity is derived, and the
@@ -165,9 +175,28 @@ public class ConcurrencyInvariantTests
     [Fact]
     public void Capacity_is_derived_from_the_session_type_and_never_supplied()
     {
-        Assert.Equal(4, ClassSession.CapacityFor(SessionType.Group));
-        Assert.Equal(1, ClassSession.CapacityFor(SessionType.Private));
-        Assert.Equal(1, ClassSession.CapacityFor(SessionType.Placement));
+        // Owner decision 2026-09-04: Group's 4 is now a DEFAULT the admin may
+        // override, not a fixed rule. Private and Placement stay pinned at 1 —
+        // one-to-one is what those types mean.
+        Assert.Equal(4, ClassSession.DefaultCapacityFor(SessionType.Group));
+        Assert.Equal(1, ClassSession.DefaultCapacityFor(SessionType.Private));
+        Assert.Equal(1, ClassSession.DefaultCapacityFor(SessionType.Placement));
+
+        // A group session takes the seat count it is given...
+        Assert.Equal(6, ClassSession.ResolveCapacity(SessionType.Group, 6));
+        Assert.Equal(4, ClassSession.ResolveCapacity(SessionType.Group, null));
+
+        // ...but Private and Placement ignore the request entirely rather than
+        // honouring it, so no caller can quietly turn a private lesson into a
+        // group one by asking for more seats.
+        Assert.Equal(1, ClassSession.ResolveCapacity(SessionType.Private, 8));
+        Assert.Equal(1, ClassSession.ResolveCapacity(SessionType.Placement, 8));
+
+        // Nonsense is refused rather than clamped: a caller asking for zero or
+        // a thousand seats has a bug worth surfacing.
+        Assert.Throws<ArgumentOutOfRangeException>(() => ClassSession.ResolveCapacity(SessionType.Group, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => ClassSession.ResolveCapacity(SessionType.Group, ClassSession.MaximumGroupCapacity + 1));
 
         // There is no constructor overload that accepts a seat count at all.
         var takesCapacity = typeof(ClassSession).GetConstructors()
@@ -287,4 +316,93 @@ public class ConcurrencyInvariantTests
             db.Database.ExecuteSqlAsync($"UPDATE entitlement_ledger SET note = 'tampered' WHERE \"Id\" = {entry.Id}"));
         Assert.Equal("P0001", ex.SqlState); // raise_exception
     }
+
+    /// <summary>Owner decision 2026-09-04, the half the theory above cannot
+    /// show: a group session with a seat count OTHER than 4 is now accepted by
+    /// the database, which is the whole point of relaxing the constraint.
+    /// Written through the domain, since that is how a real session is made.</summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(6)]
+    [InlineData(20)]
+    public async Task The_database_accepts_any_reasonable_seat_count_for_a_group_session(int capacity)
+    {
+        await using var db = _fixture.CreateContext();
+        var now = SystemClock.Instance.GetCurrentInstant();
+
+        var countryId = await SeedCountryAsync(db);
+        var courseId = NextId();
+        var levelId = (int)NextId();
+        var ageGroupId = (int)NextId();
+        var teacherUserId = await CreateUserAsync(db);
+        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
+        db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 60, true));
+        var teacher = new Teacher(teacherUserId, "Teacher", "Asia/Amman");
+        db.Teachers.Add(teacher);
+        await db.SaveChangesAsync();
+
+        var start = now.Plus(Duration.FromDays(9));
+        var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
+            start, start.Plus(Duration.FromMinutes(60)), "Asia/Amman", "10:00", SessionType.Group, now,
+            requestedCapacity: capacity);
+        db.ClassSessions.Add(session);
+        await db.SaveChangesAsync();
+
+        await using var verify = _fixture.CreateContext();
+        Assert.Equal(capacity, (await verify.ClassSessions.FirstAsync(s => s.Id == session.Id)).Capacity);
+    }
+
+    /// <summary>Owner decision 2026-09-04: a group session with a chosen seat
+    /// count fills at exactly that count, and the over-booking guard holds at
+    /// the new number rather than at the old fixed 4. This is the assertion
+    /// that matters — a wider class must not become a class with no ceiling.</summary>
+    [Fact]
+    public async Task A_group_session_with_a_chosen_seat_count_still_refuses_the_seat_past_it()
+    {
+        await using var db = _fixture.CreateContext();
+        var now = SystemClock.Instance.GetCurrentInstant();
+
+        var countryId = await SeedCountryAsync(db);
+        var courseId = NextId();
+        var levelId = (int)NextId();
+        var ageGroupId = (int)NextId();
+        var teacherUserId = await CreateUserAsync(db);
+        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
+        db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 60, true));
+        var teacher = new Teacher(teacherUserId, "Teacher", "Asia/Amman");
+        db.Teachers.Add(teacher);
+        await db.SaveChangesAsync();
+
+        var start = now.Plus(Duration.FromDays(2));
+        var session = new ClassSession(countryId, null, courseId, levelId, ageGroupId, teacher.Id,
+            start, start.Plus(Duration.FromMinutes(60)),
+            "Asia/Amman", "10:00", SessionType.Group, now, requestedCapacity: 2);
+        db.ClassSessions.Add(session);
+        await db.SaveChangesAsync();
+
+        Assert.Equal(2, session.Capacity);
+
+        // The atomic claim is the real guard; it must stop at 2, not at 4.
+        var firstSeat = await ClaimSeatAsync(db, session.Id);
+        var secondSeat = await ClaimSeatAsync(db, session.Id);
+        var thirdSeat = await ClaimSeatAsync(db, session.Id);
+
+        Assert.Equal(1, firstSeat);
+        Assert.Equal(1, secondSeat);
+        Assert.Equal(0, thirdSeat); // full at the chosen number
+
+        await using var verify = _fixture.CreateContext();
+        var reloaded = await verify.ClassSessions.FirstAsync(s => s.Id == session.Id);
+        Assert.Equal(2, reloaded.SeatsTaken);
+        Assert.Equal(2, reloaded.Capacity);
+    }
+
+    /// <summary>The seat-claim statement the booking path uses, isolated: it is
+    /// the single place a seat is ever taken, so it is the single place the
+    /// capacity ceiling has to hold.</summary>
+    private async Task<int> ClaimSeatAsync(MvTeachesDbContext db, long sessionId) =>
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE class_sessions SET seats_taken = seats_taken + 1 WHERE \"Id\" = {sessionId} AND status = 'Scheduled' AND seats_taken < capacity");
 }

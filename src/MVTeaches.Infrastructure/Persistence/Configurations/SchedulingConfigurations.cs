@@ -54,14 +54,21 @@ public class ClassSessionConfiguration : IEntityTypeConfiguration<ClassSession>
         {
             t.HasCheckConstraint("ck_session_end_after_start", "ends_at_utc > starts_at_utc");
             t.HasCheckConstraint("ck_session_seats", "seats_taken <= capacity");
-            t.HasCheckConstraint("ck_session_capacity_band", "capacity BETWEEN 1 AND 10");
-            // Owner decision 2026-08-30: seat count is fixed by session type
-            // (Group = 4, Private/Placement = 1) and never supplied by a
-            // caller. ClassSession.CapacityFor is the only writer, but this is
-            // the layer that makes a wrong value physically impossible — the
-            // same reasoning as no_teacher_overlap being a DB constraint.
+            // Owner decision 2026-09-04: the band widened from 10 to 50 to match
+            // ClassSession.MaximumGroupCapacity. The two must always agree, so
+            // raising one means raising the other.
+            t.HasCheckConstraint("ck_session_capacity_band", "capacity BETWEEN 1 AND 50");
+            // Owner decision 2026-09-04, replacing the 2026-08-30 fixed-seat
+            // rule. A GROUP session's seat count is now the centre's to choose,
+            // so the constraint no longer pins it to 4 — but Private and
+            // Placement are still exactly 1, and that half is emphatically NOT
+            // relaxed: one-to-one is what those types MEAN, and a "private"
+            // lesson seating two would be a group lesson wearing the wrong
+            // label, priced and paid as the wrong thing. This is still the
+            // layer that makes a wrong value physically impossible, the same
+            // reasoning as no_teacher_overlap being a database constraint.
             t.HasCheckConstraint("ck_session_capacity_matches_type",
-                "(session_type = 'Group' AND capacity = 4) OR (session_type IN ('Private', 'Placement') AND capacity = 1)");
+                "(session_type = 'Group' AND capacity >= 1) OR (session_type IN ('Private', 'Placement') AND capacity = 1)");
             t.HasCheckConstraint("ck_session_duration_positive", "duration_minutes > 0");
             // ⭐⭐ no_teacher_overlap (§14.2): a physical impossibility, not an
             // application check. Requires the btree_gist extension — enabled in

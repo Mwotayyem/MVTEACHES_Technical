@@ -47,9 +47,15 @@ public class ClassSession
 
     public SessionType SessionType { get; private set; }
 
-    /// <summary>Owner decision 2026-08-30: derived from <see cref="SessionType"/>
-    /// via <see cref="CapacityFor"/>, never supplied by a caller. See that
-    /// method for why.</summary>
+    /// <summary>Owner decision 2026-09-04, replacing the 2026-08-30 rule that
+    /// a group session always seats exactly 4: the centre decides how many seats
+    /// a group session has, per session. Four was never a fact about teaching —
+    /// it was one room's size written into the schema, and it stopped the centre
+    /// running a class of six.
+    /// <para>Private and Placement remain exactly 1 and are NOT the admin's to
+    /// change: one-to-one is what those session types mean, and a "private"
+    /// lesson with two seats would be a group lesson wearing the wrong
+    /// label — which is also how it would be priced and paid.</para></summary>
     public int Capacity { get; private set; }
 
     public int SeatsTaken { get; private set; }
@@ -67,14 +73,10 @@ public class ClassSession
 
     private ClassSession() { }
 
-    /// <summary>
-    /// Owner decision 2026-08-30: seat count is a property of the session's
-    /// TYPE and is fixed by the centre — a group session seats exactly 4 and a
-    /// private one exactly 1. It is deliberately not a parameter anywhere in
-    /// the stack, so no UI field, request payload, or caller can widen or
-    /// narrow it. Placement interviews are one-to-one like Private.
-    /// </summary>
-    public static int CapacityFor(SessionType sessionType) => sessionType switch
+    /// <summary>The seat count to use when the admin did not choose one.
+    /// Group keeps 4 as its DEFAULT (the owner asked for exactly that), while
+    /// Private and Placement return the 1 that their type requires.</summary>
+    public static int DefaultCapacityFor(SessionType sessionType) => sessionType switch
     {
         SessionType.Group => 4,
         SessionType.Private => 1,
@@ -82,16 +84,59 @@ public class ClassSession
         _ => throw new ArgumentOutOfRangeException(nameof(sessionType), sessionType, "Unknown session type."),
     };
 
+    /// <summary>The upper bound on a group session's seats. Not a business rule
+    /// the owner set — a sanity bound that stops a typo (400 instead of 40)
+    /// creating a session nobody could teach, and it matches the existing
+    /// ck_session_capacity_band constraint so the two can never disagree. If
+    /// the centre ever needs a larger class this is the one number to raise,
+    /// here and in that constraint.</summary>
+    public const int MaximumGroupCapacity = 50;
+
+    /// <summary>Owner decision 2026-09-04: resolves what a session's seat count
+    /// actually becomes. <paramref name="requestedCapacity"/> null means "the
+    /// admin did not say", which is the ordinary case and yields the default.
+    /// <para>Private and Placement ignore the request entirely rather than
+    /// rejecting it: those types ARE one-to-one, and silently honouring a
+    /// request for more would change what the session is. Group accepts
+    /// anything from 1 up to <see cref="MaximumGroupCapacity"/> and throws
+    /// outside it — a caller asking for zero or a thousand seats has a bug,
+    /// and the database CHECK constraint would refuse it a moment later
+    /// anyway.</para></summary>
+    public static int ResolveCapacity(SessionType sessionType, int? requestedCapacity)
+    {
+        if (sessionType is not SessionType.Group)
+        {
+            return DefaultCapacityFor(sessionType);
+        }
+
+        if (requestedCapacity is null)
+        {
+            return DefaultCapacityFor(sessionType);
+        }
+
+        if (requestedCapacity < 1 || requestedCapacity > MaximumGroupCapacity)
+        {
+            throw new ArgumentOutOfRangeException(nameof(requestedCapacity), requestedCapacity,
+                $"A group session seats between 1 and {MaximumGroupCapacity}.");
+        }
+
+        return requestedCapacity.Value;
+    }
+
+    /// <summary>Owner decision 2026-09-04: <paramref name="requestedCapacity"/>
+    /// is optional and defaults to null — every existing caller that does not
+    /// pass one keeps the exact behaviour it had, which is what makes this
+    /// additive rather than a change to sessions already scheduled.</summary>
     public ClassSession(int countryId, long? recurringScheduleId, long courseId, int levelId, int ageGroupId,
         long teacherId, Instant startsAtUtc, Instant endsAtUtc, string scheduleTimeZone, string localStartText,
-        SessionType sessionType, Instant createdAtUtc)
+        SessionType sessionType, Instant createdAtUtc, int? requestedCapacity = null)
     {
         if (endsAtUtc <= startsAtUtc)
         {
             throw new ArgumentException("A session must end after it starts.");
         }
 
-        var capacity = CapacityFor(sessionType);
+        var capacity = ResolveCapacity(sessionType, requestedCapacity);
 
         CountryId = countryId;
         RecurringScheduleId = recurringScheduleId;

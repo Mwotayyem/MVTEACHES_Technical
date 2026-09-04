@@ -171,13 +171,27 @@ public class SchedulesModel : PageModel
 
         [Required(ErrorMessage = "Enter the start time.")] public TimeOnly? StartLocal { get; set; }
         [Required, Range(1, 480)] public int DurationMinutes { get; set; } = 60;
+
+        /// <summary>Owner decision 2026-09-04: how many students this weekly
+        /// class seats. Nullable so "left blank" is distinguishable from "zero"
+        /// and falls back to the documented default rather than creating a
+        /// session nobody can join. The upper bound matches
+        /// ClassSession.MaximumGroupCapacity and the database's own
+        /// ck_session_capacity_band, so the three cannot drift apart.</summary>
+        [Range(1, MVTeaches.Domain.Scheduling.ClassSession.MaximumGroupCapacity,
+            ErrorMessage = "Seats must be between 1 and 50.")]
+        public int? Capacity { get; set; }
         [Required(ErrorMessage = "Choose a time zone.")] public string TimeZoneId { get; set; } = string.Empty;
         [Required(ErrorMessage = "Enter the start date.")] public DateOnly? StartsOn { get; set; }
     }
 
-    /// <summary>The fixed seat count a weekly group session gets (D-98) —
-    /// read from the domain so the screen can never state a different one.</summary>
-    public int GroupCapacity => MVTeaches.Domain.Scheduling.ClassSession.CapacityFor(SessionType.Group);
+    /// <summary>The seat count a weekly group session gets when the admin does
+    /// not choose one, and the ceiling on what they may choose — both read from
+    /// the domain so the screen can never state a different number than the one
+    /// actually applied.</summary>
+    public int DefaultGroupCapacity => MVTeaches.Domain.Scheduling.ClassSession.DefaultCapacityFor(SessionType.Group);
+
+    public int MaximumGroupCapacity => MVTeaches.Domain.Scheduling.ClassSession.MaximumGroupCapacity;
 
     /// <summary>Which of the tabbed panels is open. Four unrelated actions —
     /// create a weekly class, enroll a student, cancel a session, reassign a
@@ -235,13 +249,12 @@ public class SchedulesModel : PageModel
         {
             var actingUserId = long.Parse(_userManager.GetUserId(User)!);
             // Owner decision D-98: a group session seats exactly four, and
-            // "no seat count entered from the interface or the request body is
-            // accepted". The form used to offer a 1-10 box whose value was then
-            // ignored anyway — ScheduleGenerationService derives every session's
-            // capacity from its type, never from the schedule's stored number —
-            // so the admin could type 7 and silently get 4. The field is gone and
-            // the stored value is now the same one the sessions really get.
-            var groupCapacity = MVTeaches.Domain.Scheduling.ClassSession.CapacityFor(SessionType.Group);
+            // Owner decision 2026-09-04: the seat count is the centre's to choose
+            // again — and this time the number the admin types is genuinely the
+            // number the generated sessions get (ScheduleGenerationService now
+            // passes it through), which is what was wrong before. Left blank it
+            // falls back to the documented default rather than to zero.
+            var groupCapacity = NewSchedule.Capacity ?? DefaultGroupCapacity;
             await _schedules.CreateAsync(NewSchedule.CountryId!.Value, NewSchedule.CourseId!.Value, NewSchedule.LevelId!.Value,
                 NewSchedule.AgeGroupId!.Value, NewSchedule.TeacherId!.Value, days, startLocal, NewSchedule.DurationMinutes,
                 NewSchedule.TimeZoneId, startsOn, groupCapacity, actingUserId, HttpContext.RequestAborted);
