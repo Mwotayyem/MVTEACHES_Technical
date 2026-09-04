@@ -185,7 +185,32 @@ public class StudentAdmissionService : IStudentAdmissionService
             return; // Already past this step — a safe no-op, not an error.
         }
 
-        student.MarkVerified();
+        student.MarkVerified(); // PendingVerification -> PendingLevel
+
+        // Owner report 2026-09-05. §8.1's ladder assumes verification always
+        // comes before placement, and the placement test does not enforce that
+        // — a guardian can register a child and sit them down for the test the
+        // same evening, before anyone at the centre has confirmed the details.
+        //
+        // When that happens the level IS assigned (SubmitAttemptAsync writes
+        // the StudentLevel row unconditionally) but the status cannot advance,
+        // because that method only promotes a student who is already
+        // PendingLevel. Verifying them afterwards then moved them FORWARD onto
+        // a rung they were already past, and the guardian's screen reported
+        // "awaiting a level" about a child whose level had been decided by an
+        // exam they had already sat — permanently, since the test does not run
+        // twice.
+        //
+        // So: verification confirms the family's details, and that is all it
+        // decides. Whether a level exists is a separate fact, already recorded,
+        // and it is read here rather than assumed away.
+        var alreadyPlaced = await _db.StudentLevels
+            .AnyAsync(l => l.StudentId == studentId && l.IsCurrent, cancellationToken);
+        if (alreadyPlaced)
+        {
+            student.MarkLevelAssigned(); // PendingLevel -> Active
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
     }
 

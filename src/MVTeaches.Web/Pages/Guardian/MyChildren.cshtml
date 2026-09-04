@@ -50,6 +50,32 @@ else
                             <dt class="col-6">@T["Sessions in this window"]</dt>
                             <dd class="col-6">@child.UpcomingSessionCount</dd>
                         </dl>
+                        @* Owner report 2026-09-05: a guardian whose daughters had
+                           sat the placement test and seen their results still read
+                           "awaiting a level" here, and concluded the exam had done
+                           nothing. The status word alone cannot say that, so the
+                           card now says in a sentence what the level column and the
+                           status word mean TOGETHER — which of the two is
+                           outstanding, and what happens next. *@
+                        @if (child.LevelCode is not null)
+                        {
+                            <p class="small mb-0 mt-2 text-success-emphasis">
+                                @if (child.Status == StudentStatus.PendingVerification)
+                                {
+                                    @T["The level from the placement test is recorded. The centre is still confirming your registration details, and lessons open once that is done."]
+                                }
+                                else
+                                {
+                                    @T["The level is set. You can book lessons at this level below."]
+                                }
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="small mb-0 mt-2 text-muted">
+                                @T["No level yet — the placement test decides it, and the result applies straight away."]
+                            </p>
+                        }
                     </div>
                 </div>
             </div>

@@ -174,6 +174,9 @@
   <data name="No placement result yet — direct the student to take the test" xml:space="preserve"><value>لا توجد نتيجة تحديد مستوى بعد — وجّه الطالب لأداء الامتحان المجاني:</value></data>
   <data name="Admin cannot take the exam for the student" xml:space="preserve"><value>لا يمكن للإدارة أداء الامتحان نيابةً عن الطالب — يجب أن يدخل الطالب بحسابه الخاص.</value></data>
   <data name="Current level" xml:space="preserve"><value>المستوى الحالي</value></data>
+  <data name="The level from the placement test is recorded. The centre is still confirming your registration details, and lessons open once that is done." xml:space="preserve"><value>المستوى الناتج عن امتحان تحديد المستوى مسجَّل. ما زالت الإدارة توثّق بيانات التسجيل، وتُفتح الحصص فور انتهاء ذلك.</value></data>
+  <data name="The level is set. You can book lessons at this level below." xml:space="preserve"><value>المستوى محدَّد. يمكنك حجز الحصص على هذا المستوى بالأسفل.</value></data>
+  <data name="No level yet — the placement test decides it, and the result applies straight away." xml:space="preserve"><value>لا يوجد مستوى بعد — امتحان تحديد المستوى هو ما يحدّده، والنتيجة تُطبَّق فورًا.</value></data>
   <data name="No packages published for this level" xml:space="preserve"><value>لا توجد باقات منشورة لهذا المستوى</value></data>
   <data name="Package awaiting payment" xml:space="preserve"><value>باقة بانتظار الدفع</value></data>
   <data name="No package running" xml:space="preserve"><value>لا توجد باقة قيد التشغيل</value></data>
