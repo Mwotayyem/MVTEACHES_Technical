@@ -1633,6 +1633,53 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
     }
 
     // ---------------------------------------------------------------
+    // 43b. Bug fix (2026-09-04, UI only — no permission/business-logic
+    // change): the poster preview/thumbnail <img> URL must be a single,
+    // correctly-formed query string (posterId + v), not a URL with a
+    // second "?" spliced onto the end of Url.Page's own output — that
+    // second "?" made posterId fail model binding, and Files/PosterImage
+    // returned 404 for every poster, so the image never rendered.
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Posters_page_renders_a_correctly_formed_image_url_with_posterId_and_v()
+    {
+        var email = await CreateUserAsync("posters-image-url", RoleNames.Admin);
+        await GrantAsync(email, PermissionKeys.PostersView, PermissionKeys.PostersManage);
+        var client = await LoggedInClientAsync(CreateClient(), email);
+
+        var posterId = await SeedPosterAsync("image-url-target");
+        // Distinctive and does not need to be a real FileRecord — this test
+        // only checks the rendered <img> URL's query string, it never
+        // actually fetches /Files/PosterImage.
+        const long imageFileId = 918_273_645;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+            var poster = await db.PromotionalPosters.FirstAsync(p => p.Id == posterId);
+            poster.ReplaceImage(imageFileId, SystemClock.Instance.GetCurrentInstant());
+            await db.SaveChangesAsync();
+        }
+
+        var body = await (await client.GetAsync("/Admin/Posters")).Content.ReadAsStringAsync();
+
+        // The old bug's exact shape must never appear again: a second "?"
+        // spliced onto Url.Page's own query string.
+        Assert.DoesNotContain($"posterId={posterId}?v=", body);
+
+        // The fix: both posterId and v are real, separately-bound query
+        // parameters on the SAME query string — order and "&" vs "&amp;"
+        // are Url.Page/Razor encoding details, not what this proves.
+        Assert.Contains($"posterId={posterId}", body);
+        Assert.Contains($"v={imageFileId}", body);
+        Assert.True(
+            body.Contains($"posterId={posterId}&v={imageFileId}") ||
+            body.Contains($"posterId={posterId}&amp;v={imageFileId}"),
+            "Expected posterId and v to appear together as sibling query parameters on the poster image URL.");
+    }
+
+    // ---------------------------------------------------------------
     // 44. Revoking Dashboard.View takes effect on the very next request,
     // with no logout/login.
     // ---------------------------------------------------------------

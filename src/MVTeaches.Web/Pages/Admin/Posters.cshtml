@@ -134,7 +134,7 @@
                 <div class="app-poster-image">
                     @if (Model.Input.Id is not null && Model.Posters.FirstOrDefault(p => p.Id == Model.Input.Id)?.ImageFileId is long imageId)
                     {
-                        <img src="@Url.Page("/Files/PosterImage", new { posterId = Model.Input.Id })?v=@imageId" alt="" />
+                        <img src="@Url.Page("/Files/PosterImage", new { posterId = Model.Input.Id, v = imageId })" alt="" />
                     }
                     else
                     {
@@ -176,7 +176,7 @@
                             <td>
                                 @if (poster.ImageFileId is not null)
                                 {
-                                    <img class="app-poster-thumb" src="@Url.Page("/Files/PosterImage", new { posterId = poster.Id })?v=@poster.ImageFileId" alt="" />
+                                    <img class="app-poster-thumb" src="@Url.Page("/Files/PosterImage", new { posterId = poster.Id, v = poster.ImageFileId })" alt="" />
                                 }
                                 else
                                 {
