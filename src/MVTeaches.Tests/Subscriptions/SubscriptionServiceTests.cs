@@ -404,10 +404,16 @@ public class SubscriptionServiceTests
         Assert.Equal(1, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
     }
 
-    /// <summary>The staging incident's actual shape: the guardian buys the
-    /// same package the STUDENT already bought from their own login. The
-    /// guard is keyed on the student, so a different acting account changes
-    /// nothing.</summary>
+    /// <summary>The guard is keyed on the STUDENT, so the acting account does
+    /// not change the answer — a guardian is refused by their own child's
+    /// existing package exactly as the student would be.
+    /// <para>This used to open with the student buying from their own login,
+    /// which was the staging incident's literal shape. Owner decision
+    /// 2026-09-04 (guardian responsibility) now blocks that first step outright
+    /// for any student who has a guardian — see
+    /// A_student_with_a_guardian_cannot_buy_a_package_from_their_own_login —
+    /// so the purchase here comes from the guardian, which is the only way this
+    /// student can hold a package at all.</para></summary>
     [Fact]
     public async Task A_guardian_cannot_buy_a_package_their_child_already_holds_with_hours_left()
     {
@@ -421,13 +427,14 @@ public class SubscriptionServiceTests
         db.Guardianships.Add(new Guardianship(guardian.Id, studentId, GuardianRelationship.Parent, isPrimary: true, guardianUserId));
         await db.SaveChangesAsync();
 
-        // The student buys and pays for it from their OWN account.
-        var bought = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
-            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        // The guardian buys it for their child and it is paid and activated.
+        var bought = await service.PurchaseFromPlanAsync(studentId, planId, guardianUserId,
+            SubscriptionOrigin.GuardianPurchase, isAdminInitiated: false, CancellationToken.None);
+        Assert.Equal(PurchaseFromPlanOutcome.Purchased, bought.Outcome);
         await ActivateWithEntitlementAsync(db, bought.SubscriptionId!.Value, studentId, courseId, levelId,
             purchasedMinutes: 600, consumedMinutes: 0);
 
-        // The guardian, on a different account, tries to buy the same thing.
+        // The guardian tries to buy the same thing a second time.
         var guardianAttempt = await service.PurchaseFromPlanAsync(studentId, planId, guardianUserId,
             SubscriptionOrigin.GuardianPurchase, isAdminInitiated: false, CancellationToken.None);
 
@@ -541,5 +548,143 @@ public class SubscriptionServiceTests
         var afterActivation = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
             SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
         Assert.Equal(PurchaseFromPlanOutcome.ActivePackageStillHasBalance, afterActivation.Outcome);
+    }
+
+    // =================================================================
+    // Owner decision 2026-09-04: a student who has a guardian linked to them
+    // does not buy for themself — the guardian or an admin buys for them.
+    // The criterion is the LINK, never an age: the owner explicitly ruled out
+    // inventing an age threshold. Everything the rule must NOT break (the
+    // linked guardian, the admin, the student with no guardian) is asserted
+    // here alongside what it must block.
+    // =================================================================
+
+    /// <summary>Links a fresh guardian to a student and returns that guardian's
+    /// user id — the acting account a guardian purchase comes from.</summary>
+    private static async Task<long> LinkAGuardianAsync(MvTeachesDbContext db, long studentId)
+    {
+        var guardianUserId = await CreateUserAsync(db, "guardian");
+        var guardian = new Guardian(guardianUserId, "Guardian");
+        db.Guardians.Add(guardian);
+        await db.SaveChangesAsync();
+        db.Guardianships.Add(new Guardianship(guardian.Id, studentId, GuardianRelationship.Parent, isPrimary: true, guardianUserId));
+        await db.SaveChangesAsync();
+        return guardianUserId;
+    }
+
+    /// <summary>The rule itself, and its exact boundary in one test: the SAME
+    /// student, the SAME login, the SAME plan — refused once a guardian is
+    /// linked, allowed before that. Nothing but the link changes between the
+    /// two attempts, which is what makes the link the criterion rather than
+    /// anything about the student.</summary>
+    [Fact]
+    public async Task A_student_with_a_guardian_cannot_buy_a_package_from_their_own_login()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, _, _) = await SeedPurchasablePlanAsync(db);
+
+        // No guardian yet — an ordinary self-purchase, which must keep working.
+        var beforeAnyGuardian = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        Assert.Equal(PurchaseFromPlanOutcome.Purchased, beforeAnyGuardian.Outcome);
+
+        // Clear the way so the refusal below can only be the guardian rule and
+        // never the duplicate guard shadowing it.
+        var draft = await db.Subscriptions.FirstAsync(s => s.Id == beforeAnyGuardian.SubscriptionId!.Value);
+        draft.Cancel();
+        await db.SaveChangesAsync();
+
+        await LinkAGuardianAsync(db, studentId);
+
+        var afterLinking = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.StudentIsUnderGuardianCare, afterLinking.Outcome);
+        // Refused means refused: no second row was written.
+        Assert.Equal(1, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
+    }
+
+    /// <summary>The guardian half of the same rule — the person the purchase
+    /// was handed TO must still be able to make it.</summary>
+    [Fact]
+    public async Task The_linked_guardian_can_still_buy_the_package_the_student_may_not()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, _, _) = await SeedPurchasablePlanAsync(db);
+        var guardianUserId = await LinkAGuardianAsync(db, studentId);
+
+        var studentAttempt = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        Assert.Equal(PurchaseFromPlanOutcome.StudentIsUnderGuardianCare, studentAttempt.Outcome);
+
+        var guardianPurchase = await service.PurchaseFromPlanAsync(studentId, planId, guardianUserId,
+            SubscriptionOrigin.GuardianPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.Purchased, guardianPurchase.Outcome);
+        var subscription = await db.Subscriptions.FirstAsync(s => s.Id == guardianPurchase.SubscriptionId);
+        Assert.Equal(SubscriptionOrigin.GuardianPurchase, subscription.Origin);
+    }
+
+    /// <summary>"Guardian" is not a role that grants access to children in
+    /// general — a real guardian, of a real but DIFFERENT student, is as
+    /// unauthorized here as a stranger. Refused as Unauthorized rather than as
+    /// the guardian-care rule, because this is a failed identity check.</summary>
+    [Fact]
+    public async Task A_guardian_of_a_different_student_cannot_buy_for_this_one()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, _, _, _) = await SeedPurchasablePlanAsync(db);
+        await LinkAGuardianAsync(db, studentId); // this student's own guardian
+
+        // A guardian in good standing — of somebody else's child.
+        var (_, _, _, otherStudentId, _) = await SeedCatalogAndStudentAsync(db);
+        var outsiderGuardianUserId = await LinkAGuardianAsync(db, otherStudentId);
+
+        var result = await service.PurchaseFromPlanAsync(studentId, planId, outsiderGuardianUserId,
+            SubscriptionOrigin.GuardianPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.Unauthorized, result.Outcome);
+        Assert.Equal(0, await db.Subscriptions.CountAsync(s => s.StudentId == studentId));
+    }
+
+    /// <summary>The admin screen records payments for families who pay in
+    /// person, so it must keep working for exactly the students this rule
+    /// covers — otherwise the rule strands the child it was meant to
+    /// protect.</summary>
+    [Fact]
+    public async Task An_admin_can_still_buy_for_a_student_who_has_a_guardian()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, _, _, _) = await SeedPurchasablePlanAsync(db);
+        await LinkAGuardianAsync(db, studentId);
+
+        var result = await service.PurchaseFromPlanAsync(studentId, planId, actingUserId: NextId(),
+            SubscriptionOrigin.GuardianPurchase, isAdminInitiated: true, CancellationToken.None); // the origin /Admin/AssistedRegistration itself records
+
+        Assert.Equal(PurchaseFromPlanOutcome.Purchased, result.Outcome);
+        Assert.Equal(1, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
+    }
+
+    /// <summary>The adult learner: nobody is registered as responsible for
+    /// them, so nothing changes — they buy, pay, and are then held by the
+    /// duplicate guard alone, not by this one.</summary>
+    [Fact]
+    public async Task A_student_with_no_guardian_still_buys_for_themself()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, courseId, levelId) = await SeedPurchasablePlanAsync(db);
+
+        var result = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        Assert.Equal(PurchaseFromPlanOutcome.Purchased, result.Outcome);
+
+        await ActivateWithEntitlementAsync(db, result.SubscriptionId!.Value, studentId, courseId, levelId,
+            purchasedMinutes: 600, consumedMinutes: 0);
+
+        // Blocked now — but by the duplicate rule, which is the only one that
+        // should ever apply to a student with no guardian.
+        var again = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        Assert.Equal(PurchaseFromPlanOutcome.ActivePackageStillHasBalance, again.Outcome);
     }
 }

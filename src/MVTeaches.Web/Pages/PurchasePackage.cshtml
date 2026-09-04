@@ -82,6 +82,11 @@ else
     }
     else
     {
+        @if (Model.PurchasedByGuardianOnly)
+        {
+            <div class="alert alert-info">@T["Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre."]</div>
+        }
+
         <p class="text-muted">@T["Current level: {0}. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions.", Model.CurrentLevelCode ?? "?"]</p>
 
         @if (Model.EligiblePlans.Count == 0)
@@ -127,12 +132,23 @@ else
                                     <dd>@T["{0} day(s)", p.ValidityDays]</dd>
                                 </div>
                             </dl>
-                            <form method="post" asp-page-handler="Purchase">
-                                <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
-                                <input type="hidden" name="pricingPlanId" value="@p.Id" />
-                                <button type="submit" class="btn btn-primary w-100">@T["Request this package"]</button>
-                            </form>
-                            <p class="app-poster-note">@T["Requesting it does not charge you. The centre confirms your payment first, and only then does the package activate."]</p>
+                            @* A guardian is registered as responsible for this
+                               student, so the purchase is theirs to make. The
+                               prices stay visible - only the button goes. The
+                               server refuses the request either way. *@
+                            @if (Model.PurchasedByGuardianOnly)
+                            {
+                                <p class="app-poster-note mb-0">@T["Your guardian buys this package for you."]</p>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Purchase">
+                                    <input type="hidden" name="studentId" value="@Model.SelectedStudentId" />
+                                    <input type="hidden" name="pricingPlanId" value="@p.Id" />
+                                    <button type="submit" class="btn btn-primary w-100">@T["Request this package"]</button>
+                                </form>
+                                <p class="app-poster-note">@T["Requesting it does not charge you. The centre confirms your payment first, and only then does the package activate."]</p>
+                            }
                         </div>
                     </article>
                 }

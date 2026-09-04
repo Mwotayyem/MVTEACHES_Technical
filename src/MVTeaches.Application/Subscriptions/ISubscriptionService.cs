@@ -46,6 +46,19 @@ public enum PurchaseFromPlanOutcome
     /// caller can name it in the refusal.</summary>
     ActivePackageStillHasBalance,
 
+    /// <summary>Owner decision 2026-09-04: a student who has a guardian linked
+    /// to them is under that guardian's responsibility inside the system, and
+    /// may not buy a package from their own login — the guardian (or an admin)
+    /// buys for them. This is a link test, never an age test: the owner
+    /// explicitly ruled out inventing an age threshold, and a link is a fact
+    /// the centre recorded on purpose, where a birth date is only a proxy for
+    /// one. A student with no guardian linked is untouched by this and buys
+    /// for themself as before. Kept distinct from
+    /// <see cref="Unauthorized"/> because it is not a failed identity check —
+    /// the student really is who they say they are; the purchase is simply
+    /// somebody else's to make.</summary>
+    StudentIsUnderGuardianCare,
+
     Unauthorized,
 }
 
@@ -106,7 +119,15 @@ public interface ISubscriptionService
     /// reason the level check does: whose finger is on the button does not
     /// change what the student already owns. An admin who genuinely must
     /// add an extra package still has GrantAdminSubscriptionAsync, which is
-    /// a different, audited, reason-carrying path.</summary>
+    /// a different, audited, reason-carrying path.
+    ///
+    /// Owner decision 2026-09-04 (guardian responsibility): if the acting
+    /// account is the STUDENT'S OWN login and that student has any guardian
+    /// linked, this refuses with
+    /// <see cref="PurchaseFromPlanOutcome.StudentIsUnderGuardianCare"/>. The
+    /// guardian's and the admin's paths are untouched, and a student with no
+    /// guardian still buys for themself — see that member for why this is a
+    /// link test rather than an age test.</summary>
     Task<PurchaseFromPlanResult> PurchaseFromPlanAsync(long studentId, long pricingPlanId, long actingUserId,
         SubscriptionOrigin origin, bool isAdminInitiated, CancellationToken cancellationToken);
 

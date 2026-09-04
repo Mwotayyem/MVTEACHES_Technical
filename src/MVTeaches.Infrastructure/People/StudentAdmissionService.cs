@@ -80,6 +80,23 @@ public class StudentAdmissionService : IStudentAdmissionService
             return new LinkGuardianResult(LinkGuardianOutcome.AlreadyLinked);
         }
 
+        // Owner decision 2026-09-04: one responsible guardian per student in the
+        // MVP. Checked AFTER the same-pair case above, so re-submitting an
+        // existing link still reports the harmless AlreadyLinked rather than
+        // this — only a genuinely DIFFERENT guardian is rejected.
+        //
+        // This deliberately reads existing rows and refuses to add to them; it
+        // never edits or deletes one. Local Staging already holds three students
+        // with two guardians each, and they stay exactly as they are — the rule
+        // governs what may be added from here on, which is why it needed no
+        // schema change and no data cleanup.
+        var hasAnotherGuardian = await _db.Guardianships.AnyAsync(
+            g => g.StudentId == studentId && g.GuardianId != guardianId, cancellationToken);
+        if (hasAnotherGuardian)
+        {
+            return new LinkGuardianResult(LinkGuardianOutcome.StudentAlreadyHasGuardian);
+        }
+
         _db.Guardianships.Add(new Guardianship(guardianId, studentId, relationship, isPrimary, linkedByUserId));
 
         try

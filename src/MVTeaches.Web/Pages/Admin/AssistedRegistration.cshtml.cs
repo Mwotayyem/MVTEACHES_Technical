@@ -278,6 +278,10 @@ public class AssistedRegistrationModel : PageModel
         {
             LinkGuardianOutcome.PrimaryConflict => _localizer["This student already has a primary guardian."].Value,
             LinkGuardianOutcome.AlreadyLinked => _localizer["This guardian is already linked to this student."].Value,
+            // Owner decision 2026-09-04 — the same one-guardian rule as
+            // /Admin/Students, because both screens call the same service.
+            LinkGuardianOutcome.StudentAlreadyHasGuardian =>
+                _localizer["This student already has a guardian. In this version a student may have only one guardian, and there is no way to replace one yet."].Value,
             _ => null,
         };
         StatusMessage = result.Outcome == LinkGuardianOutcome.Linked ? _localizer["Guardian linked."].Value : null;

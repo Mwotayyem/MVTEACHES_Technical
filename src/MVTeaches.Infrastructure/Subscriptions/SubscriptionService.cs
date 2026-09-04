@@ -61,6 +61,28 @@ public class SubscriptionService : ISubscriptionService
             {
                 return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.Unauthorized);
             }
+
+            // Owner decision 2026-09-04 (a student under guardian care never
+            // buys for themself). Deliberately NOT an age test: the owner ruled
+            // out inventing an age threshold, and the link itself is the whole
+            // criterion — if someone is registered as responsible for this
+            // student, then buying is that person's decision, not the student's.
+            // A student with no guardian linked is unaffected and still buys
+            // normally, which is the ordinary adult-learner case.
+            //
+            // Only the student's OWN login is blocked. The guardian branch above
+            // has already established that any guardian reaching this line is
+            // one of THIS student's guardians, so an unrelated guardian was
+            // rejected as Unauthorized before ever getting here.
+            if (isTheStudentThemself)
+            {
+                var isUnderGuardianCare = await _db.Guardianships
+                    .AnyAsync(g => g.StudentId == studentId, cancellationToken);
+                if (isUnderGuardianCare)
+                {
+                    return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.StudentIsUnderGuardianCare);
+                }
+            }
         }
 
         var plan = await _db.PricingPlans.FirstOrDefaultAsync(p => p.Id == pricingPlanId, cancellationToken);

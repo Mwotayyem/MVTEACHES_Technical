@@ -207,6 +207,9 @@
   <data name="Package not found." xml:space="preserve"><value>الباقة غير موجودة.</value></data>
   <data name="This package is no longer available." xml:space="preserve"><value>هذه الباقة لم تعد متاحة.</value></data>
   <data name="A placement result is required before purchasing a package." xml:space="preserve"><value>يلزم وجود نتيجة اختبار تحديد مستوى قبل شراء باقة.</value></data>
+  <data name="Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre." xml:space="preserve"><value>شراء الباقات لهذا الطالب يتم عن طريق ولي أمره. يرجى الطلب من ولي أمرك شراءها من حسابه، أو التواصل مع المركز.</value></data>
+  <data name="Your guardian buys this package for you." xml:space="preserve"><value>ولي أمرك هو من يشتري لك هذه الباقة.</value></data>
+  <data name="This student already has a guardian. In this version a student may have only one guardian, and there is no way to replace one yet." xml:space="preserve"><value>هذا الطالب لديه ولي أمر بالفعل. في هذه النسخة لا يمكن ربط أكثر من ولي أمر واحد بالطالب، ولا يوجد حتى الآن مسار لاستبدال ولي الأمر.</value></data>
   <data name="This package no longer matches the student's current level." xml:space="preserve"><value>هذه الباقة لم تعد تطابق المستوى الحالي للطالب.</value></data>
   <data name="You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again." xml:space="preserve"><value>لديك طلب سابق لهذه الباقة (رقم {0}) ما زال بانتظار الدفع. أكمل دفع ذلك الطلب بالأسفل بدل إنشاء طلب جديد.</value></data>
   <data name="You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used." xml:space="preserve"><value>لديك باقة فعّالة لنفس الخطة وبها رصيد متبقٍ. لا يمكنك شراء نفس الباقة مرة أخرى قبل انتهاء الرصيد.</value></data>

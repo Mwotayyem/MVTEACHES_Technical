@@ -299,6 +299,11 @@ public class StudentsModel : PageModel
         {
             LinkGuardianOutcome.PrimaryConflict => _localizer["This student already has a primary guardian — un-primary the existing one first."].Value,
             LinkGuardianOutcome.AlreadyLinked => _localizer["This guardian is already linked to this student."].Value,
+            // Owner decision 2026-09-04: one responsible guardian per student in
+            // the MVP. There is no replace-the-guardian path yet, so the message
+            // says so plainly rather than implying a self-service way around it.
+            LinkGuardianOutcome.StudentAlreadyHasGuardian =>
+                _localizer["This student already has a guardian. In this version a student may have only one guardian, and there is no way to replace one yet."].Value,
             _ => null,
         };
         if (result.Outcome == LinkGuardianOutcome.Linked)

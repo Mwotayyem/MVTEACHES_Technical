@@ -20,8 +20,26 @@ public enum LinkGuardianOutcome
     /// <summary>§7.2's ux_guardianship_primary: a student may have only one
     /// primary guardian at a time — requesting a second one is a genuine
     /// conflict the admin must resolve (e.g. un-primary the existing one first),
-    /// not something to silently accept.</summary>
+    /// not something to silently accept.
+    /// <para>Since the owner's 2026-09-04 one-guardian rule below rejects ANY
+    /// second guardian before the insert is attempted, this outcome is no
+    /// longer reachable through this service. Both the member and the partial
+    /// unique index behind it are deliberately kept: the index is still the
+    /// database's own last line of defence for the seeders and for any future
+    /// path (a guardian-replacement flow) that relaxes the rule above it.</para></summary>
     PrimaryConflict,
+
+    /// <summary>Owner decision 2026-09-04 (one responsible guardian per student
+    /// in the MVP): this student is already linked to a guardian, so a second,
+    /// different guardian may not be added. The Guardianship table remains a
+    /// many-to-many join — nothing about the schema changed, and existing rows
+    /// with more than one guardian are left exactly as they are — this is a
+    /// deliberate MVP narrowing of who may be ADDED from here on, so that
+    /// "who is responsible for this student" always has one unambiguous
+    /// answer. No replace-the-guardian path exists yet: un-linking is not
+    /// offered, so this is intentionally a dead end the admin must raise
+    /// rather than route around.</summary>
+    StudentAlreadyHasGuardian,
 }
 
 public record LinkGuardianResult(LinkGuardianOutcome Outcome);
@@ -51,6 +69,14 @@ public interface IStudentAdmissionService
     Task<RegisterStudentResult> RegisterStudentAsync(int countryId, string fullName, LocalDate dateOfBirth,
         string? loginEmail, string? loginPassword, CancellationToken cancellationToken);
 
+    /// <summary>Links a guardian to a student. Owner decision 2026-09-04: in the
+    /// MVP a student has exactly ONE responsible guardian, so this refuses a
+    /// second, different guardian
+    /// (<see cref="LinkGuardianOutcome.StudentAlreadyHasGuardian"/>) while
+    /// re-linking the SAME pair stays the safe no-op it always was. The check
+    /// lives here rather than on the admin pages precisely because both of them
+    /// (/Admin/Students and /Admin/AssistedRegistration) call this one method —
+    /// a rule enforced on a page is a rule the other page does not have.</summary>
     Task<LinkGuardianResult> LinkGuardianAsync(long guardianId, long studentId, GuardianRelationship relationship,
         bool isPrimary, long linkedByUserId, CancellationToken cancellationToken);
 

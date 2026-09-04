@@ -171,8 +171,16 @@ public class StudentAdmissionServiceTests
         Assert.Equal(1, await db.Guardianships.CountAsync(g => g.GuardianId == guardian.Id && g.StudentId == student.Id));
     }
 
+    /// <summary>Owner decision 2026-09-04: one responsible guardian per student
+    /// in the MVP. This test used to assert PrimaryConflict — the database's
+    /// ux_guardianship_primary index catching a second PRIMARY guardian. That
+    /// index is still there and still enforced; it simply no longer gets a turn,
+    /// because the service now refuses ANY second guardian (primary or not)
+    /// before attempting the insert. Both halves are asserted below: the new
+    /// outcome, and that a non-primary second guardian — which the old rule
+    /// would have happily accepted — is refused as well.</summary>
     [Fact]
-    public async Task A_second_primary_guardian_for_the_same_student_is_rejected_by_the_database()
+    public async Task A_second_guardian_for_the_same_student_is_rejected()
     {
         var (db, service, _) = CreateService(_fixture);
         await using var _ = db;
@@ -192,8 +200,15 @@ public class StudentAdmissionServiceTests
         Assert.Equal(LinkGuardianOutcome.Linked, first.Outcome);
 
         var second = await service.LinkGuardianAsync(guardian2.Id, student.Id, GuardianRelationship.Other, isPrimary: true, linkedByUserId: 0, CancellationToken.None);
-        Assert.Equal(LinkGuardianOutcome.PrimaryConflict, second.Outcome);
+        Assert.Equal(LinkGuardianOutcome.StudentAlreadyHasGuardian, second.Outcome);
 
+        // The case the old primary-only rule let through: a SECOND guardian
+        // added as non-primary. That is exactly what "one responsible guardian"
+        // has to close, or the rule is decorative.
+        var secondaryAttempt = await service.LinkGuardianAsync(guardian2.Id, student.Id, GuardianRelationship.Other, isPrimary: false, linkedByUserId: 0, CancellationToken.None);
+        Assert.Equal(LinkGuardianOutcome.StudentAlreadyHasGuardian, secondaryAttempt.Outcome);
+
+        Assert.Equal(1, await db.Guardianships.CountAsync(g => g.StudentId == student.Id));
         Assert.Equal(1, await db.Guardianships.CountAsync(g => g.StudentId == student.Id && g.IsPrimary));
     }
 

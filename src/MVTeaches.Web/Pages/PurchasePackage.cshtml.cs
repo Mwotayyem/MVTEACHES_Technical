@@ -101,6 +101,14 @@ public class PurchasePackageModel : PageModel
 
     /// <summary>Rule 1's gate: no completed placement result yet.</summary>
     public bool NeedsPlacementTest { get; set; }
+
+    /// <summary>Owner decision 2026-09-04: this student's own login may not buy,
+    /// because a guardian is registered as responsible for them. Set only on the
+    /// student's own view — a guardian looking at their child never sees it.
+    /// Hiding the buttons is a courtesy so nobody presses one that is certain to
+    /// fail; PurchaseFromPlanAsync refuses the POST regardless of this flag,
+    /// which is what actually enforces the rule.</summary>
+    public bool PurchasedByGuardianOnly { get; set; }
     public string? CurrentLevelCode { get; set; }
     public IReadOnlyList<PlanRow> EligiblePlans { get; set; } = Array.Empty<PlanRow>();
 
@@ -175,6 +183,8 @@ public class PurchasePackageModel : PageModel
                         result.SubscriptionId!].Value,
                 PurchaseFromPlanOutcome.ActivePackageStillHasBalance =>
                     _localizer["You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used."].Value,
+                PurchaseFromPlanOutcome.StudentIsUnderGuardianCare =>
+                    _localizer["Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre."].Value,
                 _ => _localizer["Could not record this purchase."].Value,
             };
         }
@@ -320,6 +330,9 @@ public class PurchasePackageModel : PageModel
 
             SelectedStudentId = student.Id;
             SelectedStudentName = student.FullName;
+
+            // See PurchasedByGuardianOnly — display only; the service is the guard.
+            PurchasedByGuardianOnly = await _db.Guardianships.AnyAsync(g => g.StudentId == student.Id);
         }
 
         if (SelectedStudentId is null)
