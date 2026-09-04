@@ -50,6 +50,17 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
     private HttpClient CreateClient() =>
         _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
+    /// <summary>Owner decision 2026-09-04: a placement test names the course it
+    /// places into. Uses whichever course the seeders created rather than making
+    /// one, so these tests keep exercising the real seeded catalogue.</summary>
+    private async Task<string> FirstCourseIdAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var id = await db.Courses.OrderBy(c => c.Id).Select(c => c.Id).FirstAsync();
+        return id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     private async Task<string> CreateUserAsync(string label, string role)
     {
         using var scope = _factory.Services.CreateScope();
@@ -1177,6 +1188,9 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         {
             ["__RequestVerificationToken"] = createVersionToken,
             ["NewVersion.Title"] = "SystemAdmin Created Version",
+            // Owner decision 2026-09-04: a placement test names the course
+            // it places into, so the form requires one.
+            ["NewVersion.CourseId"] = await FirstCourseIdAsync(),
         }));
         Assert.Equal(HttpStatusCode.OK, createVersionResponse.StatusCode);
 
@@ -1290,6 +1304,9 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         {
             ["__RequestVerificationToken"] = token,
             ["NewVersion.Title"] = title,
+            // Owner decision 2026-09-04: a placement test names the course
+            // it places into, so the form requires one.
+            ["NewVersion.CourseId"] = await FirstCourseIdAsync(),
         }));
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
 
@@ -1316,6 +1333,9 @@ public class AdminPermissionTests : IClassFixture<AuthorizationTests.Factory>, I
         {
             ["__RequestVerificationToken"] = token,
             ["NewVersion.Title"] = title,
+            // Owner decision 2026-09-04: a placement test names the course
+            // it places into, so the form requires one.
+            ["NewVersion.CourseId"] = await FirstCourseIdAsync(),
         }));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 

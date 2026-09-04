@@ -248,7 +248,7 @@ public static class StagingSeeder
         var studentsByName = new Dictionary<string, SeededStudent>();
         foreach (var guardianSpec in guardianSpecs)
         {
-            var children = await SeedGuardianAsync(db, userManager, studentAdmission, countryId, guardianSpec,
+            var children = await SeedGuardianAsync(db, userManager, studentAdmission, countryId, courseId.Value, guardianSpec,
                 options.SeedPassword!, adminUserId.Value, now, logger, cancellationToken);
             foreach (var (name, student) in children)
             {
@@ -268,7 +268,7 @@ public static class StagingSeeder
         };
         foreach (var spec in directStudentSpecs)
         {
-            var student = await SeedDirectStudentAsync(db, userManager, studentAdmission, countryId, spec,
+            var student = await SeedDirectStudentAsync(db, userManager, studentAdmission, countryId, courseId.Value, spec,
                 options.SeedPassword!, adminUserId.Value, now, logger, cancellationToken);
             studentsByName[spec.FullName] = student;
         }
@@ -418,7 +418,7 @@ public static class StagingSeeder
             }
         }
 
-        await SeedTestPlacementAsync(placementAdmin, adminUserId.Value, cancellationToken, logger);
+        await SeedTestPlacementAsync(placementAdmin, courseId.Value, adminUserId.Value, cancellationToken, logger);
 
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("StagingSeed: Local Staging test data is ready — see docs/LOCAL-STAGING.md for the seeded account list.");
@@ -582,7 +582,8 @@ public static class StagingSeeder
 
     private static async Task<IReadOnlyDictionary<string, SeededStudent>> SeedGuardianAsync(
         MvTeachesDbContext db, UserManager<ApplicationUser> userManager, IStudentAdmissionService studentAdmission,
-        int countryId, GuardianSpec spec, string password, long adminUserId, Instant now, ILogger logger, CancellationToken ct)
+        int countryId, long courseId, GuardianSpec spec, string password, long adminUserId, Instant now, ILogger logger,
+        CancellationToken ct)
     {
         var user = await CreateOrReconcileUserAsync(userManager, spec.Email, password, new[] { RoleNames.Guardian }, logger, ct);
 
@@ -621,7 +622,7 @@ public static class StagingSeeder
 
             if (child.LevelId is not null)
             {
-                await EnsureStudentLevelAsync(db, studentAdmission, studentId, child.LevelId.Value, adminUserId, ct);
+                await EnsureStudentLevelAsync(db, studentAdmission, studentId, courseId, child.LevelId.Value, adminUserId, ct);
             }
 
             result[child.FullName] = new SeededStudent(studentId, user.Id, child.LevelId);
@@ -631,8 +632,8 @@ public static class StagingSeeder
     }
 
     private static async Task<SeededStudent> SeedDirectStudentAsync(MvTeachesDbContext db, UserManager<ApplicationUser> userManager,
-        IStudentAdmissionService studentAdmission, int countryId, DirectStudentSpec spec, string password, long adminUserId,
-        Instant now, ILogger logger, CancellationToken ct)
+        IStudentAdmissionService studentAdmission, int countryId, long courseId, DirectStudentSpec spec, string password,
+        long adminUserId, Instant now, ILogger logger, CancellationToken ct)
     {
         var user = await CreateOrReconcileUserAsync(userManager, spec.Email, password, new[] { RoleNames.Student }, logger, ct, countryId);
 
@@ -653,7 +654,7 @@ public static class StagingSeeder
 
         if (spec.LevelId is not null)
         {
-            await EnsureStudentLevelAsync(db, studentAdmission, studentId, spec.LevelId.Value, adminUserId, ct);
+            await EnsureStudentLevelAsync(db, studentAdmission, studentId, courseId, spec.LevelId.Value, adminUserId, ct);
         }
 
         return new SeededStudent(studentId, user.Id, spec.LevelId);
@@ -668,15 +669,19 @@ public static class StagingSeeder
     /// current level, which is exactly the kind of inconsistent state a real
     /// admin action never produces.</summary>
     private static async Task EnsureStudentLevelAsync(MvTeachesDbContext db, IStudentAdmissionService studentAdmission,
-        long studentId, int levelId, long adminUserId, CancellationToken ct)
+        long studentId, long courseId, int levelId, long adminUserId, CancellationToken ct)
     {
-        var hasCurrent = await db.StudentLevels.AnyAsync(l => l.StudentId == studentId && l.IsCurrent, ct);
+        // Owner decision 2026-09-04 (multi-course levels): scoped to the course
+        // this seeded student is actually being placed in, so re-running the
+        // seeder for a second course does not look like an existing placement.
+        var hasCurrent = await db.StudentLevels
+            .AnyAsync(l => l.StudentId == studentId && l.CourseId == courseId && l.IsCurrent, ct);
         if (hasCurrent)
         {
             return;
         }
 
-        await studentAdmission.AssignLevelAsync(studentId, levelId, adminUserId,
+        await studentAdmission.AssignLevelAsync(studentId, courseId, levelId, adminUserId,
             $"{TestDataMarker} level assigned directly for acceptance testing.", ct);
     }
 
@@ -842,7 +847,8 @@ public static class StagingSeeder
     /// score range spanning the whole possible score so the acceptance
     /// walkthrough's result is predictable regardless of which answer is
     /// picked. Never real academic content.</summary>
-    private static async Task SeedTestPlacementAsync(IPlacementTestAdminService placementAdmin, long adminUserId, CancellationToken ct, ILogger logger)
+    private static async Task SeedTestPlacementAsync(IPlacementTestAdminService placementAdmin, long courseId, long adminUserId,
+        CancellationToken ct, ILogger logger)
     {
         var existingActive = await placementAdmin.ListVersionsAsync(ct);
         if (existingActive.Any(v => v.IsActive))
@@ -850,7 +856,8 @@ public static class StagingSeeder
             return;
         }
 
-        var draft = await placementAdmin.CreateDraftVersionAsync($"{TestDataMarker} Placement Test — for staging acceptance testing only", adminUserId, ct);
+        var draft = await placementAdmin.CreateDraftVersionAsync(
+            $"{TestDataMarker} Placement Test — for staging acceptance testing only", courseId, adminUserId, ct);
 
         await placementAdmin.AddQuestionAsync(draft.TestVersionId, "[Test] 1 + 1 = ?", points: 3,
             new[] { new AddQuestionChoice("2 (correct)", true), new AddQuestionChoice("3", false) }, sortOrder: 1, ct);

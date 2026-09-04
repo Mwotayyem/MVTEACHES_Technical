@@ -88,7 +88,15 @@ public class PlacementTestsModel : PageModel
     public class NewVersionInput
     {
         [Required] public string Title { get; set; } = string.Empty;
+
+        /// <summary>Owner decision 2026-09-04: which course this test places
+        /// students into. Required, never defaulted — see StudentLevel.</summary>
+        [Required(ErrorMessage = "Choose a course.")] public long? CourseId { get; set; }
     }
+
+    /// <summary>Active courses, for the "which course is this test for?" picker.</summary>
+    public IReadOnlyList<MVTeaches.Domain.Catalog.Course> Courses { get; set; } =
+        Array.Empty<MVTeaches.Domain.Catalog.Course>();
 
     public class NewQuestionInput
     {
@@ -201,7 +209,10 @@ public class PlacementTestsModel : PageModel
         }
 
         var actingUserId = GetCurrentUserId();
-        var result = await _admin.CreateDraftVersionAsync(NewVersion.Title, actingUserId, HttpContext.RequestAborted);
+        // Owner decision 2026-09-04: a placement test places into one course's
+        // level ladder, so the course is part of creating the version.
+        var result = await _admin.CreateDraftVersionAsync(NewVersion.Title, NewVersion.CourseId!.Value, actingUserId,
+            HttpContext.RequestAborted);
         StatusMessage = _localizer["Draft version #{0} created.", result.TestVersionId].Value;
 
         await LoadAsync(result.TestVersionId);
@@ -435,6 +446,7 @@ public class PlacementTestsModel : PageModel
     {
         Versions = (await _admin.ListVersionsAsync(HttpContext.RequestAborted)).OrderByDescending(v => v.Id).ToList();
         Levels = await _db.Levels.Where(l => l.IsActive).OrderBy(l => l.SortOrder).ToListAsync();
+        Courses = await _db.Courses.Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync();
 
         PendingRetakeRequests = await _admin.ListPendingRetakeRequestsAsync(HttpContext.RequestAborted);
         var studentIds = PendingRetakeRequests.Select(r => r.StudentId).Distinct().ToList();

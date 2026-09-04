@@ -23,9 +23,13 @@ public class PlacementTestAdminService : IPlacementTestAdminService
         _localizer = localizer;
     }
 
-    public async Task<CreateDraftVersionResult> CreateDraftVersionAsync(string title, long createdByUserId, CancellationToken cancellationToken)
+    public async Task<CreateDraftVersionResult> CreateDraftVersionAsync(string title, long courseId, long createdByUserId,
+        CancellationToken cancellationToken)
     {
-        var version = new PlacementTestVersion(title, createdByUserId, _clock.GetCurrentInstant());
+        // Owner decision 2026-09-04 (multi-course levels): a test places into a
+        // course's own level ladder, so which course it is for is part of what
+        // the test IS — not something inferred later at scoring time.
+        var version = new PlacementTestVersion(title, courseId, createdByUserId, _clock.GetCurrentInstant());
         _db.PlacementTestVersions.Add(version);
         await _db.SaveChangesAsync(cancellationToken);
         return new CreateDraftVersionResult(version.Id);

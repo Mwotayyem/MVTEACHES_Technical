@@ -74,6 +74,10 @@ public enum OverrideLevelOutcome
     Overridden,
     StudentNotFound,
     LevelNotFound,
+
+    /// <summary>Owner decision 2026-09-04 (multi-course levels): an override
+    /// names the course it applies to, and that course must exist.</summary>
+    CourseNotFound,
 }
 
 /// <summary>
@@ -110,5 +114,6 @@ public interface IPlacementAttemptService
     /// (Source = AdminOverride, which already enforces the mandatory reason in
     /// its own constructor) — never edits a PlacementAttempt's own historical
     /// Score/AssignedLevelId.</summary>
-    Task<OverrideLevelOutcome> OverrideLevelAsync(long studentId, int newLevelId, long adminUserId, string reason, CancellationToken cancellationToken);
+    Task<OverrideLevelOutcome> OverrideLevelAsync(long studentId, long courseId, int newLevelId, long adminUserId,
+        string reason, CancellationToken cancellationToken);
 }

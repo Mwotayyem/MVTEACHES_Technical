@@ -1048,7 +1048,10 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         }
         if (!await db.StudentLevels.AnyAsync(l => l.StudentId == student.Id && l.IsCurrent))
         {
-            db.StudentLevels.Add(new MVTeaches.Domain.Placement.StudentLevel(student.Id, levelId, user!.Id,
+            // Owner decision 2026-09-04: a level belongs to a course. This
+            // fixture uses whichever course the seeders created.
+            var seedCourseId = await db.Courses.OrderBy(c => c.Id).Select(c => c.Id).FirstAsync();
+            db.StudentLevels.Add(new MVTeaches.Domain.Placement.StudentLevel(student.Id, seedCourseId, levelId, user!.Id,
                 MVTeaches.Domain.Placement.AssignedByRole.Admin, MVTeaches.Domain.Placement.LevelAssignmentSource.AdminOverride,
                 null, "seed", NodaTime.SystemClock.Instance.GetCurrentInstant()));
             await db.SaveChangesAsync();

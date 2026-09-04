@@ -26,6 +26,12 @@ public class StudentLevelConfiguration : IEntityTypeConfiguration<StudentLevel>
         b.ToTable("student_levels");
         b.HasKey(x => x.Id);
         b.Property(x => x.StudentId).HasColumnName("student_id");
+        // Owner decision 2026-09-04 — see StudentLevel's own remarks. Restrict,
+        // not Cascade: retiring a course must never silently erase the level
+        // history of every student who ever took it.
+        b.Property(x => x.CourseId).HasColumnName("course_id");
+        b.HasOne<MVTeaches.Domain.Catalog.Course>().WithMany().HasForeignKey(x => x.CourseId)
+            .OnDelete(DeleteBehavior.Restrict);
         b.Property(x => x.LevelId).HasColumnName("level_id");
         b.Property(x => x.AssignedByUserId).HasColumnName("assigned_by");
         b.Property(x => x.AssignedByRole).HasColumnName("assigned_by_role").HasConversion<string>().HasMaxLength(20);
@@ -35,8 +41,16 @@ public class StudentLevelConfiguration : IEntityTypeConfiguration<StudentLevel>
         b.Property(x => x.EffectiveFromUtc).HasColumnName("effective_from_utc");
         b.Property(x => x.IsCurrent).HasColumnName("is_current").HasDefaultValue(true);
 
-        // ⭐ One current level per student (§10.3's ux_student_current_level).
-        b.HasIndex(x => x.StudentId).IsUnique().HasDatabaseName("ux_student_current_level").HasFilter("\"is_current\" = true");
+        // ⭐ One current level per student PER COURSE (§10.3's
+        // ux_student_current_level, widened by the owner's 2026-09-04
+        // multi-course decision). The old index was on (StudentId) alone, which
+        // made a second course's placement collide with the first course's and
+        // was therefore the database-level reason a student could only ever
+        // hold one level in total. The guarantee is unchanged in kind — still
+        // exactly one current row — only its scope moved from the student to
+        // the (student, course) pair.
+        b.HasIndex(x => new { x.StudentId, x.CourseId }).IsUnique()
+            .HasDatabaseName("ux_student_course_current_level").HasFilter("\"is_current\" = true");
     }
 }
 
@@ -50,6 +64,10 @@ public class PlacementTestVersionConfiguration : IEntityTypeConfiguration<Placem
         b.ToTable("placement_test_versions");
         b.HasKey(x => x.Id);
         b.Property(x => x.Title).HasColumnName("title").IsRequired();
+        // Owner decision 2026-09-04 — see PlacementTestVersion.CourseId.
+        b.Property(x => x.CourseId).HasColumnName("course_id");
+        b.HasOne<MVTeaches.Domain.Catalog.Course>().WithMany().HasForeignKey(x => x.CourseId)
+            .OnDelete(DeleteBehavior.Restrict);
         b.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(false);
         b.Property(x => x.CreatedByUserId).HasColumnName("created_by");

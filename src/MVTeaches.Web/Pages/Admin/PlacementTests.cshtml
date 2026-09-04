@@ -79,12 +79,25 @@
         <div class="card-body">
             <h2 class="card-title h5">@T["Start a new draft test"]</h2>
             <form method="post" asp-page-handler="CreateVersion" class="row g-2 align-items-end">
-                <div class="col-md-8">
+                <div class="col-md-5">
                     <label class="form-label" asp-for="NewVersion.Title">@T["Name it so you can tell versions apart"]<span class="app-required">*</span></label>
                     <input asp-for="NewVersion.Title" class="form-control" placeholder="@T["e.g. English Placement v3"]" />
                     <span asp-validation-for="NewVersion.Title" class="text-danger small"></span>
                 </div>
+                @* Owner decision 2026-09-04: a test places into ONE course's level
+                   ladder, so which course it is for is part of what the test is. *@
                 <div class="col-md-4">
+                    <label class="form-label" asp-for="NewVersion.CourseId">@T["Course"]<span class="app-required">*</span></label>
+                    <select asp-for="NewVersion.CourseId" class="form-select">
+                        <option value="">@T["Select placeholder"]</option>
+                        @foreach (var course in Model.Courses)
+                        {
+                            <option value="@course.Id">@course.NameEn</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NewVersion.CourseId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
                     <button type="submit" class="btn btn-primary">@T["Create draft"]</button>
                 </div>
             </form>

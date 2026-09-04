@@ -208,10 +208,20 @@ public class StudentsModel : PageModel
         public bool IsPrimary { get; set; }
     }
 
+    /// <summary>Active courses, for the "which course is this level in?" picker.</summary>
+    public IReadOnlyList<MVTeaches.Domain.Catalog.Course> Courses { get; set; } =
+        Array.Empty<MVTeaches.Domain.Catalog.Course>();
+
     public class AssignLevelInput
     {
         [Required(ErrorMessage = "Choose a student.")]
         public long? StudentId { get; set; }
+
+        /// <summary>Owner decision 2026-09-04: a level has no meaning without a
+        /// course, so this is required rather than defaulted — a silent default
+        /// would be exactly the wrong-course write the column exists to stop.</summary>
+        [Required(ErrorMessage = "Choose a course.")]
+        public long? CourseId { get; set; }
 
         [Required(ErrorMessage = "Choose a level.")]
         public int? LevelId { get; set; }
@@ -375,8 +385,11 @@ public class StudentsModel : PageModel
         }
 
         var actingUserId = GetCurrentUserId();
-        await _admissions.AssignLevelAsync(LevelAssignment.StudentId!.Value, LevelAssignment.LevelId!.Value, actingUserId,
-            LevelAssignment.Reason, HttpContext.RequestAborted);
+        // Owner decision 2026-09-04 (multi-course levels): the admin picks the
+        // course as well as the level. Only that course's current row is
+        // superseded, so setting a Spanish level leaves an English one standing.
+        await _admissions.AssignLevelAsync(LevelAssignment.StudentId!.Value, LevelAssignment.CourseId!.Value,
+            LevelAssignment.LevelId!.Value, actingUserId, LevelAssignment.Reason, HttpContext.RequestAborted);
         StatusMessage = _localizer["Level assigned."].Value;
         await LoadAsync();
         return Page();
@@ -384,11 +397,29 @@ public class StudentsModel : PageModel
 
     private long GetCurrentUserId() => long.Parse(_userManager.GetUserId(User)!);
 
+    /// <summary>Owner decision 2026-09-04: a student's placements read as
+    /// "English B2 · Spanish A1". Null when they have been placed in nothing,
+    /// which the register renders as its own "awaiting a level" chip.</summary>
+    private static string? LevelLabel(IReadOnlyList<MVTeaches.Domain.Placement.StudentLevel> held,
+        IReadOnlyDictionary<long, string> courseNames, IReadOnlyDictionary<int, string> levelCodes)
+    {
+        if (held.Count == 0)
+        {
+            return null;
+        }
+
+        return string.Join(" · ", held
+            .OrderBy(l => l.CourseId)
+            .Select(l => $"{courseNames.GetValueOrDefault(l.CourseId, "?")} {levelCodes.GetValueOrDefault(l.LevelId, "?")}"));
+    }
+
     private async Task LoadAsync()
     {
         Countries = await _db.Countries.Where(c => c.IsActive).OrderBy(c => c.NameEn).ToListAsync();
         Levels = await _db.Levels.Where(l => l.IsActive).OrderBy(l => l.SortOrder).ToListAsync();
         Guardians = await _db.Guardians.OrderBy(g => g.FullName).ToListAsync();
+        // Owner decision 2026-09-04: the level form now asks which course.
+        Courses = await _db.Courses.Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync();
 
         var students = await _db.Students
             .OrderByDescending(s => s.Id)
@@ -398,8 +429,12 @@ public class StudentsModel : PageModel
         var countryByI = Countries.ToDictionary(c => c.Id, DisplayCountry);
         var levelByI = Levels.ToDictionary(l => l.Id, l => l.Code);
 
+        // Grouped, never ToDictionary: owner decision 2026-09-04 gives a student
+        // one current level PER COURSE, so the student id alone is no longer a
+        // unique key and ToDictionary would throw on the second course.
         var currentLevels = await _db.StudentLevels.Where(l => l.IsCurrent).ToListAsync();
-        var currentLevelByStudent = currentLevels.ToDictionary(l => l.StudentId, l => l.LevelId);
+        var currentLevelsByStudent = currentLevels.GroupBy(l => l.StudentId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         var guardianships = await _db.Guardianships.ToListAsync();
         var guardianNamesByGuardianId = Guardians.ToDictionary(g => g.Id, g => g.FullName);
@@ -522,7 +557,10 @@ public class StudentsModel : PageModel
                 s.FullName,
                 countryByI.GetValueOrDefault(s.CountryId, _localizer["Not specified"].Value),
                 s.Status,
-                currentLevelByStudent.TryGetValue(s.Id, out var levelId) ? levelByI.GetValueOrDefault(levelId) : null,
+                // "English B2 · Spanish A1" — every course the student is
+                // currently placed in, rather than an arbitrary one of them.
+                LevelLabel(currentLevelsByStudent.GetValueOrDefault(s.Id,
+                    new List<MVTeaches.Domain.Placement.StudentLevel>()), courseNames, levelByI),
                 guardianNamesByStudent.GetValueOrDefault(s.Id, Array.Empty<string>()),
                 state,
                 running is null ? null : $"{courseNames.GetValueOrDefault(running.CourseId, "?")} / {levelByI.GetValueOrDefault(running.LevelId, "?")}",

@@ -35,6 +35,17 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         _factory = factory;
     }
 
+    /// <summary>Owner decision 2026-09-04: a placement test names the course it
+    /// places into. Uses whichever course the seeders created rather than making
+    /// one, so these tests keep exercising the real seeded catalogue.</summary>
+    private async Task<string> FirstCourseIdAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var id = await db.Courses.OrderBy(c => c.Id).Select(c => c.Id).FirstAsync();
+        return id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     public async Task InitializeAsync()
     {
         using var scope = _factory.Services.CreateScope();
@@ -397,6 +408,9 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         {
             ["__RequestVerificationToken"] = token,
             ["NewVersion.Title"] = "اختبار تحديد المستوى - إنجليزي",
+            // Owner decision 2026-09-04: a placement test names the course
+            // it places into, so the form requires one.
+            ["NewVersion.CourseId"] = await FirstCourseIdAsync(),
         }));
         var postBody = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -429,6 +443,9 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
         {
             ["__RequestVerificationToken"] = token,
             ["NewVersion.Title"] = "نسخة بلا أسئلة",
+            // Owner decision 2026-09-04: a placement test names the course
+            // it places into, so the form requires one.
+            ["NewVersion.CourseId"] = await FirstCourseIdAsync(),
         }));
         Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
 

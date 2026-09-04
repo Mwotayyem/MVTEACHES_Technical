@@ -45,7 +45,8 @@ public enum RetakeDecisionOutcome
 /// </summary>
 public interface IPlacementTestAdminService
 {
-    Task<CreateDraftVersionResult> CreateDraftVersionAsync(string title, long createdByUserId, CancellationToken cancellationToken);
+    Task<CreateDraftVersionResult> CreateDraftVersionAsync(string title, long courseId, long createdByUserId,
+        CancellationToken cancellationToken);
 
     /// <summary>Throws if the version is not Draft (PlacementTestVersion.EnsureEditable) —
     /// a published version's question bank is frozen. Exactly one of

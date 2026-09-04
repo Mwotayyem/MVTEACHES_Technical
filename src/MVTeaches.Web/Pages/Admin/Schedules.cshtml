@@ -231,7 +231,10 @@
                             <option value="">@T["Select placeholder"]</option>
                             @foreach (var s in Model.Students)
                             {
-                                <option value="@s.Id" data-owner-key="@s.CurrentLevelId">@s.FullName @(s.CurrentLevelCode is null ? T["(no level yet)"].Value : $"— {s.CurrentLevelCode}")</option>
+                                @* Owner decision 2026-09-04: a student may hold a level in several
+                                   courses, so the filter key is the SET of them (site.js
+                                   matches on membership) and the label names each one. *@
+                                <option value="@s.Id" data-owner-key="@string.Join(" ", s.CurrentLevelIds)">@s.FullName @(s.CurrentLevelLabel is null ? T["(no level yet)"].Value : $"— {s.CurrentLevelLabel}")</option>
                             }
                         </select>
                     </div>

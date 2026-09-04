@@ -348,6 +348,21 @@
                         </select>
                         <span asp-validation-for="LevelAssignment.StudentId" class="text-danger small"></span>
                     </div>
+                    @* Owner decision 2026-09-04: a level belongs to a course, so
+                       the course is asked for first and is never defaulted - a
+                       silent default would write the level into the wrong ladder. *@
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="LevelAssignment.CourseId">@T["Course"]<span class="app-required">*</span></label>
+                        <select asp-for="LevelAssignment.CourseId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var course in Model.Courses)
+                            {
+                                <option value="@course.Id">@course.NameEn</option>
+                            }
+                        </select>
+                        <div class="form-text">@T["A student can hold a different level in each course."]</div>
+                        <span asp-validation-for="LevelAssignment.CourseId" class="text-danger small"></span>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label" asp-for="LevelAssignment.LevelId">@T["Level"]<span class="app-required">*</span></label>
                         <select asp-for="LevelAssignment.LevelId" class="form-select">

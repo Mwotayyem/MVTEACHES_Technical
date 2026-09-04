@@ -100,13 +100,18 @@ public class StudentBookingServiceTests
     private async Task<Fixture> SeedStudentWithLevelAsync(MvTeachesDbContext db)
     {
         var countryId = await GetOrSeedCountryAsync(db);
-        var courseId = NextId();
+        // Course.Id is database-generated: read the real id back after
+        // SaveChanges rather than reusing the NextId() seed. Harmless while
+        // nothing referenced courses by key; StudentLevel.CourseId (2026-09-04)
+        // does, so a fabricated id would now violate a real foreign key.
+        var courseSeed = NextId();
         var levelId = (int)NextId();
         var ageGroupId = (int)NextId();
         var studentUserId = await CreateUserAsync(db, "student");
         var teacherUserId = await CreateUserAsync(db, "teacher");
 
-        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        var course = new Course("C" + courseSeed, "دورة", "Course");
+        db.Courses.Add(course);
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 60, true));
         var teacher = new Teacher(teacherUserId, "Teacher", "Asia/Amman");
@@ -114,8 +119,9 @@ public class StudentBookingServiceTests
         var student = new Student(countryId, "Student", new LocalDate(2000, 1, 1), studentUserId);
         db.Students.Add(student);
         await db.SaveChangesAsync();
+        var courseId = course.Id;
 
-        db.StudentLevels.Add(new StudentLevel(student.Id, levelId, teacherUserId, AssignedByRole.Admin,
+        db.StudentLevels.Add(new StudentLevel(student.Id, courseId, levelId, teacherUserId, AssignedByRole.Admin,
             LevelAssignmentSource.AdminOverride, null, "test setup", SystemClock.Instance.GetCurrentInstant()));
         await db.SaveChangesAsync();
 
@@ -182,20 +188,68 @@ public class StudentBookingServiceTests
         Assert.False(await db.SessionEnrollments.AnyAsync(e => e.SessionId == wrongLevelSession.Id));
     }
 
+    /// <summary>A student who has never been placed cannot book.
+    /// <para>This used to pass a made-up session id, which only worked because
+    /// the level check ran before the session was ever loaded. Owner decision
+    /// 2026-09-04 (multi-course levels) reversed that order — WHICH level to
+    /// check now depends on the session's own course, so the session has to be
+    /// found first, and a fabricated id would report SessionNotFound and never
+    /// reach the rule this test is about. It now books a real, valid session,
+    /// which is a stronger test of the same rule: everything about the request
+    /// is right except that the student has no level.</para></summary>
     [Fact]
     public async Task Booking_without_a_current_level_assignment_is_rejected()
     {
         var now = SystemClock.Instance.GetCurrentInstant();
         await using var db = _fixture.CreateContext();
-        var countryId = await GetOrSeedCountryAsync(db);
+
+        // A fully-formed session, borrowed from a properly-placed student's
+        // fixture — the session is not the problem here.
+        var fx = await SeedStudentWithLevelAsync(db);
+        var session = NewSession(fx, fx.LevelId, fx.CourseId, 60, now.Plus(Duration.FromDays(1)));
+        db.ClassSessions.Add(session);
+        await db.SaveChangesAsync();
+
+        // A different student, with no StudentLevel row at all.
         var studentUserId = await CreateUserAsync(db, "nolevel");
-        var student = new Student(countryId, "No Level Student", new LocalDate(2000, 1, 1), studentUserId);
+        var student = new Student(fx.CountryId, "No Level Student", new LocalDate(2000, 1, 1), studentUserId);
         db.Students.Add(student);
         await db.SaveChangesAsync();
 
-        var result = await CreateService(db, now).BookSessionAsync(student.Id, NextId(), studentUserId, CancellationToken.None);
+        var result = await CreateService(db, now).BookSessionAsync(student.Id, session.Id, studentUserId, CancellationToken.None);
 
         Assert.Equal(BookSessionOutcome.NoCurrentLevelAssigned, result.Outcome);
+        Assert.False(await db.SessionEnrollments.AnyAsync(e => e.StudentId == student.Id));
+    }
+
+    /// <summary>Owner decision 2026-09-04 (multi-course levels): a level in ONE
+    /// course does not qualify a student for another course's session. Before
+    /// the course column existed there was a single global level, so a student
+    /// placed B2 in English was silently treated as B2 in every subject the
+    /// centre might ever add — which is exactly the bug this closes.</summary>
+    [Fact]
+    public async Task A_level_in_one_course_does_not_let_a_student_book_another_courses_session()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var fx = await SeedStudentWithLevelAsync(db);
+
+        // A second course, at the SAME level the student already holds — so the
+        // only thing standing between them and this session is the course.
+        var otherCourse = new Course("C" + NextId(), "دورة أخرى", "Other course");
+        db.Courses.Add(otherCourse);
+        await db.SaveChangesAsync();
+
+        var otherCourseSession = NewSession(fx, fx.LevelId, otherCourse.Id, 60, now.Plus(Duration.FromDays(1)));
+        db.ClassSessions.Add(otherCourseSession);
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db, now)
+            .BookSessionAsync(fx.StudentId, otherCourseSession.Id, fx.StudentUserId, CancellationToken.None);
+
+        // Not a level MISMATCH — for this course they have no level at all.
+        Assert.Equal(BookSessionOutcome.NoCurrentLevelAssigned, result.Outcome);
+        Assert.False(await db.SessionEnrollments.AnyAsync(e => e.SessionId == otherCourseSession.Id));
     }
 
     [Fact]
@@ -344,7 +398,7 @@ public class StudentBookingServiceTests
         var student2 = new Student(fx1.CountryId, "Student 2", new LocalDate(2000, 1, 1), studentUserId2);
         seedDb.Students.Add(student2);
         await seedDb.SaveChangesAsync();
-        seedDb.StudentLevels.Add(new StudentLevel(student2.Id, fx1.LevelId, fx1.TeacherId, AssignedByRole.Admin,
+        seedDb.StudentLevels.Add(new StudentLevel(student2.Id, fx1.CourseId, fx1.LevelId, fx1.TeacherId, AssignedByRole.Admin,
             LevelAssignmentSource.AdminOverride, null, "test setup", now));
         await seedDb.SaveChangesAsync();
         var fx2 = fx1 with { StudentId = student2.Id, StudentUserId = studentUserId2 };

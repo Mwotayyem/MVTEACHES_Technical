@@ -79,7 +79,7 @@ public class PlacementAttemptServiceTests
     /// question, correct choice "2" is the second option deliberately (index
     /// 1, not 0), so a test that always picks "the first choice" would fail
     /// honestly rather than passing by accident.</summary>
-    private static async Task<(long VersionId, long QuestionId, long CorrectChoiceId, long WrongChoiceId, int LevelA, int LevelB)>
+    private static async Task<(long VersionId, long QuestionId, long CorrectChoiceId, long WrongChoiceId, int LevelA, int LevelB, long CourseId)>
         SeedActiveVersionAsync(MvTeachesDbContext db)
     {
         var levelA = (int)NextId();
@@ -88,8 +88,14 @@ public class PlacementAttemptServiceTests
         db.Levels.Add(new Level(levelB, "L" + levelB, "مستوى", "Level B", levelB));
         await db.SaveChangesAsync();
 
+        // Owner decision 2026-09-04: a placement test places into one course's
+        // level ladder, so the version carries the course it is for.
+        var course = new MVTeaches.Domain.Catalog.Course("C" + NextId(), "دورة", "Course");
+        db.Courses.Add(course);
+        await db.SaveChangesAsync();
+
         var admin = CreateAdminService(db);
-        var version = await admin.CreateDraftVersionAsync("v1", NextId(), CancellationToken.None);
+        var version = await admin.CreateDraftVersionAsync("v1", course.Id, NextId(), CancellationToken.None);
         await admin.AddQuestionAsync(version.TestVersionId, "1+1=?", 10,
             new[] { new AddQuestionChoice("3", false), new AddQuestionChoice("2", true) }, 0, CancellationToken.None);
         await admin.AddScoreRangeAsync(version.TestVersionId, 0, 4, levelA, CancellationToken.None);
@@ -100,7 +106,7 @@ public class PlacementAttemptServiceTests
         var question = await db.PlacementQuestions.FirstAsync(q => q.TestVersionId == version.TestVersionId);
         var correct = await db.PlacementAnswerChoices.FirstAsync(c => c.QuestionId == question.Id && c.IsCorrect);
         var wrong = await db.PlacementAnswerChoices.FirstAsync(c => c.QuestionId == question.Id && !c.IsCorrect);
-        return (version.TestVersionId, question.Id, correct.Id, wrong.Id, levelA, levelB);
+        return (version.TestVersionId, question.Id, correct.Id, wrong.Id, levelA, levelB, course.Id);
     }
 
     // One Country for the whole class, not one per student: the 2-letter code
@@ -171,7 +177,7 @@ public class PlacementAttemptServiceTests
     public async Task Correct_answers_never_expose_which_choice_is_correct_to_the_caller()
     {
         await using var db = _fixture.CreateContext();
-        var (versionId, _, _, _, _, _) = await SeedActiveVersionAsync(db);
+        var (versionId, _, _, _, _, _, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
 
@@ -190,7 +196,7 @@ public class PlacementAttemptServiceTests
     public async Task Submitting_the_correct_answer_scores_full_marks_and_assigns_the_matching_level()
     {
         await using var db = _fixture.CreateContext();
-        var (versionId, questionId, correctChoiceId, _, levelA, levelB) = await SeedActiveVersionAsync(db);
+        var (versionId, questionId, correctChoiceId, _, levelA, levelB, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var started = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -213,7 +219,7 @@ public class PlacementAttemptServiceTests
     public async Task Submitting_the_wrong_answer_scores_zero_and_assigns_the_low_range_level()
     {
         await using var db = _fixture.CreateContext();
-        var (versionId, questionId, _, wrongChoiceId, levelA, levelB) = await SeedActiveVersionAsync(db);
+        var (versionId, questionId, _, wrongChoiceId, levelA, levelB, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var started = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -230,7 +236,7 @@ public class PlacementAttemptServiceTests
     public async Task A_completed_attempts_score_and_level_are_never_rewritten_by_a_later_version_edit()
     {
         await using var db = _fixture.CreateContext();
-        var (versionId, questionId, correctChoiceId, _, _, levelB) = await SeedActiveVersionAsync(db);
+        var (versionId, questionId, correctChoiceId, _, _, levelB, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var started = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -249,7 +255,7 @@ public class PlacementAttemptServiceTests
     public async Task Submitting_a_choice_that_does_not_belong_to_its_question_is_rejected()
     {
         await using var db = _fixture.CreateContext();
-        var (_, questionId, _, _, _, _) = await SeedActiveVersionAsync(db);
+        var (_, questionId, _, _, _, _, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var started = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -293,7 +299,7 @@ public class PlacementAttemptServiceTests
     public async Task Re_calling_start_after_completing_the_first_attempt_without_a_retake_is_refused()
     {
         await using var db = _fixture.CreateContext();
-        var (_, questionId, correctChoiceId, _, _, _) = await SeedActiveVersionAsync(db);
+        var (_, questionId, correctChoiceId, _, _, _, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var first = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -311,7 +317,7 @@ public class PlacementAttemptServiceTests
     public async Task A_pending_retake_request_does_not_by_itself_allow_a_new_attempt()
     {
         await using var db = _fixture.CreateContext();
-        var (_, questionId, correctChoiceId, _, _, _) = await SeedActiveVersionAsync(db);
+        var (_, questionId, correctChoiceId, _, _, _, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var first = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -332,7 +338,7 @@ public class PlacementAttemptServiceTests
     public async Task Requesting_a_second_retake_while_one_is_already_pending_is_refused()
     {
         await using var db = _fixture.CreateContext();
-        var (_, questionId, correctChoiceId, _, _, _) = await SeedActiveVersionAsync(db);
+        var (_, questionId, correctChoiceId, _, _, _, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var first = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -351,7 +357,7 @@ public class PlacementAttemptServiceTests
     public async Task An_approved_retake_allows_exactly_one_new_attempt_and_is_then_consumed()
     {
         await using var db = _fixture.CreateContext();
-        var (_, questionId, correctChoiceId, wrongChoiceId, levelA, levelB) = await SeedActiveVersionAsync(db);
+        var (_, questionId, correctChoiceId, wrongChoiceId, levelA, levelB, _) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var first = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -410,7 +416,7 @@ public class PlacementAttemptServiceTests
     public async Task A_stranger_cannot_see_eligibility_start_or_submit_for_a_student_they_do_not_own()
     {
         await using var db = _fixture.CreateContext();
-        var (_, questionId, correctChoiceId, _, _, _) = await SeedActiveVersionAsync(db);
+        var (_, questionId, correctChoiceId, _, _, _, _) = await SeedActiveVersionAsync(db);
         var (studentId, _) = await SeedStudentAsync(db);
         var strangerUserId = await CreateUserAsync(db, "stranger");
         var service = CreateService(db);
@@ -438,7 +444,7 @@ public class PlacementAttemptServiceTests
     public async Task A_guardians_two_children_have_fully_independent_attempts_and_levels()
     {
         await using var db = _fixture.CreateContext();
-        var (_, questionId, correctChoiceId, wrongChoiceId, levelA, levelB) = await SeedActiveVersionAsync(db);
+        var (_, questionId, correctChoiceId, wrongChoiceId, levelA, levelB, _) = await SeedActiveVersionAsync(db);
         var (child1Id, _) = await SeedStudentAsync(db);
         var (child2Id, _) = await SeedStudentAsync(db);
         var guardianUserId = await CreateUserAsync(db, "guardian");
@@ -475,7 +481,7 @@ public class PlacementAttemptServiceTests
     public async Task Admin_override_requires_a_reason_and_is_audit_logged_and_never_rewrites_the_original_attempt()
     {
         await using var db = _fixture.CreateContext();
-        var (_, questionId, _, wrongChoiceId, levelA, levelB) = await SeedActiveVersionAsync(db);
+        var (_, questionId, _, wrongChoiceId, levelA, levelB, courseId) = await SeedActiveVersionAsync(db);
         var (studentId, userId) = await SeedStudentAsync(db);
         var service = CreateService(db);
         var started = await service.StartAttemptAsync(studentId, userId, CancellationToken.None);
@@ -483,7 +489,7 @@ public class PlacementAttemptServiceTests
             new Dictionary<long, long> { [questionId] = wrongChoiceId }, CancellationToken.None); // lands on levelA
 
         var adminId = NextId();
-        var outcome = await service.OverrideLevelAsync(studentId, levelB, adminId, "manual review after appeal", CancellationToken.None);
+        var outcome = await service.OverrideLevelAsync(studentId, courseId, levelB, adminId, "manual review after appeal", CancellationToken.None);
 
         Assert.Equal(OverrideLevelOutcome.Overridden, outcome);
         await using var verify = _fixture.CreateContext();

@@ -59,19 +59,26 @@ public class SubscriptionServiceTests
     private static async Task<(int CountryId, long CourseId, int LevelId, long StudentId, long StudentUserId)> SeedCatalogAndStudentAsync(
         MvTeachesDbContext db, bool assignLevel = true)
     {
-        var courseId = NextId();
+        // Course.Id is database-generated, so the real id has to be read back
+        // after SaveChanges rather than assumed from the NextId() seed. That
+        // distinction did not matter while nothing had a foreign key to
+        // courses; StudentLevel.CourseId (2026-09-04) does, and a fabricated
+        // id now fails loudly instead of quietly pointing at nothing.
+        var courseSeed = NextId();
         var levelId = (int)NextId();
         var studentUserId = await CreateUserAsync(db, "student");
         var countryId = await SeedCountryAsync(db);
-        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        var course = new Course("C" + courseSeed, "دورة", "Course");
+        db.Courses.Add(course);
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         var student = new Student(countryId, "Student", new LocalDate(2010, 1, 1), studentUserId);
         db.Students.Add(student);
         await db.SaveChangesAsync();
+        var courseId = course.Id;
 
         if (assignLevel)
         {
-            db.StudentLevels.Add(new StudentLevel(student.Id, levelId, studentUserId, AssignedByRole.Admin,
+            db.StudentLevels.Add(new StudentLevel(student.Id, courseId, levelId, studentUserId, AssignedByRole.Admin,
                 LevelAssignmentSource.AdminOverride, null, "seed", SystemClock.Instance.GetCurrentInstant()));
             await db.SaveChangesAsync();
         }

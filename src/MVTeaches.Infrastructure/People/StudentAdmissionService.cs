@@ -152,22 +152,27 @@ public class StudentAdmissionService : IStudentAdmissionService
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task AssignLevelAsync(long studentId, int levelId, long assignedByUserId, string reason, CancellationToken cancellationToken)
+    public async Task AssignLevelAsync(long studentId, long courseId, int levelId, long assignedByUserId, string reason,
+        CancellationToken cancellationToken)
     {
         var student = await _db.Students.FirstOrDefaultAsync(s => s.Id == studentId, cancellationToken)
             ?? throw new InvalidOperationException("Student not found.");
 
         var now = _clock.GetCurrentInstant();
 
+        // Owner decision 2026-09-04 (multi-course levels): supersede only the
+        // current row FOR THIS COURSE. Superseding every course's row - which
+        // is what this did when a level was global - would silently strip a
+        // student of their Spanish level for being promoted in English.
         var previousCurrent = await _db.StudentLevels
-            .Where(l => l.StudentId == studentId && l.IsCurrent)
+            .Where(l => l.StudentId == studentId && l.CourseId == courseId && l.IsCurrent)
             .ToListAsync(cancellationToken);
         foreach (var previous in previousCurrent)
         {
             previous.Supersede();
         }
 
-        _db.StudentLevels.Add(new StudentLevel(studentId, levelId, assignedByUserId, AssignedByRole.Admin,
+        _db.StudentLevels.Add(new StudentLevel(studentId, courseId, levelId, assignedByUserId, AssignedByRole.Admin,
             LevelAssignmentSource.AdminOverride, placementInterviewId: null, reason, now));
 
         if (student.Status == StudentStatus.PendingLevel)

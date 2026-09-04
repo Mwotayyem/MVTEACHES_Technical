@@ -34,14 +34,27 @@ public enum AssignedByRole
 /// <summary>
 /// Technical Study §10.3 (D-05). A full history, not a single mutable column —
 /// the first row is never deleted or edited, only superseded by a new row with
-/// <see cref="IsCurrent"/> = true (enforced by a partial unique index on
-/// (StudentId) WHERE IsCurrent, in Infrastructure).
+/// <see cref="IsCurrent"/> = true.
+///
+/// <para>Owner decision 2026-09-04: a level belongs to a COURSE. A student who
+/// is B2 in English may be A1 in Spanish, and the single global "current level"
+/// this table used to enforce could not express that — it silently made every
+/// second course inherit the first one's level. The partial unique index behind
+/// <see cref="IsCurrent"/> is now on (StudentId, CourseId) rather than
+/// (StudentId), so "one current level" still holds, but per course.</para>
 /// </summary>
 public class StudentLevel
 {
     public long Id { get; private set; }
 
     public long StudentId { get; private set; }
+
+    /// <summary>Owner decision 2026-09-04: which course this level is in.
+    /// Backfilled for existing rows to the centre's original course, which was
+    /// the only one that existed when they were written — so no historical row
+    /// changes meaning.</summary>
+    public long CourseId { get; private set; }
+
     public int LevelId { get; private set; }
 
     public long AssignedByUserId { get; private set; }
@@ -57,7 +70,7 @@ public class StudentLevel
 
     private StudentLevel() { }
 
-    public StudentLevel(long studentId, int levelId, long assignedByUserId, AssignedByRole assignedByRole,
+    public StudentLevel(long studentId, long courseId, int levelId, long assignedByUserId, AssignedByRole assignedByRole,
         LevelAssignmentSource source, long? placementInterviewId, string? reason, Instant effectiveFromUtc)
     {
         if (source == LevelAssignmentSource.AdminOverride && string.IsNullOrWhiteSpace(reason))
@@ -66,6 +79,7 @@ public class StudentLevel
         }
 
         StudentId = studentId;
+        CourseId = courseId;
         LevelId = levelId;
         AssignedByUserId = assignedByUserId;
         AssignedByRole = assignedByRole;
@@ -75,6 +89,8 @@ public class StudentLevel
         EffectiveFromUtc = effectiveFromUtc;
     }
 
-    /// <summary>Called only on the PREVIOUS current row when a new one is inserted.</summary>
+    /// <summary>Called only on the PREVIOUS current row FOR THE SAME COURSE when
+    /// a new one is inserted. Superseding across courses would be the bug this
+    /// column exists to prevent.</summary>
     public void Supersede() => IsCurrent = false;
 }

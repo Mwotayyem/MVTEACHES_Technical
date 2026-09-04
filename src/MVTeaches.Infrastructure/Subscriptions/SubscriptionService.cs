@@ -105,8 +105,15 @@ public class SubscriptionService : ISubscriptionService
         // Rule 1: the student's OWN current level, resolved server-side —
         // never accepted as a request parameter (StudentBookingService's
         // exact same convention).
+        //
+        // Owner decision 2026-09-04 (multi-course levels): the level compared
+        // is the student's level IN THIS PLAN'S OWN COURSE. Before the course
+        // column existed there was one global level, so buying a Spanish
+        // package was gated on the student's English level — it either blocked
+        // a legitimate purchase or waved through a wrong-level one, depending
+        // only on which course they happened to be placed in first.
         var currentLevelId = await _db.StudentLevels
-            .Where(l => l.StudentId == studentId && l.IsCurrent)
+            .Where(l => l.StudentId == studentId && l.CourseId == plan.CourseId && l.IsCurrent)
             .Select(l => (int?)l.LevelId)
             .FirstOrDefaultAsync(cancellationToken);
         if (currentLevelId is null)

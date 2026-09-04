@@ -164,16 +164,44 @@ public static class DataSeeder
             new Level(6, "C2", "محترف", "Proficient", 6));
     }
 
-    /// <summary>D-41: exactly one course in MVP — "دورة واحدة بستة مستويات"
-    /// (one course, six levels). No IELTS/TOEFL/Corporate. `Courses` stays a
-    /// real entity (not hardcoded) purely so a future course costs nothing to add.</summary>
+    /// <summary>Owner decision 2026-09-04, superseding D-41's "exactly one
+    /// course in MVP": the centre teaches more than General English, and
+    /// recording everything as General English made the catalogue, the levels,
+    /// and the teacher assignments all describe something untrue.
+    ///
+    /// <para>GENERAL-ENGLISH is seeded FIRST and keeps its identity, because
+    /// every course_id already in the database points at it — the row is not
+    /// recreated, renamed, or reordered here. The rest are added alongside it.</para>
+    ///
+    /// <para>Each row is added only if its code is missing, so this is safe to
+    /// run against a database that already has some of them, and adding a
+    /// further course later is one more line rather than a migration.</para>
+    ///
+    /// <para><c>isLeveled: false</c> marks a course whose students are not
+    /// placed on the A1–C2 ladder. IELTS and TOEFL are exam-preparation, and
+    /// Quran is not an ability ladder at all — the owner has not defined level
+    /// schemes for these, and inventing one would be inventing business rules.
+    /// Their level requirement is therefore a decision still to be taken, not
+    /// something guessed at here.</para></summary>
     private static async Task SeedCoursesAsync(MvTeachesDbContext db, CancellationToken ct)
     {
-        if (await db.Courses.AnyAsync(ct))
-        {
-            return;
-        }
+        var existingCodes = (await db.Courses.Select(c => c.Code).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        db.Courses.Add(new Course("GENERAL-ENGLISH", "تقوية إنجليزي عام", "General English"));
+        var catalogue = new[]
+        {
+            new Course("GENERAL-ENGLISH", "تقوية إنجليزي عام", "General English"),
+            new Course("ARABIC", "اللغة العربية", "Arabic"),
+            new Course("SPANISH", "اللغة الإسبانية", "Spanish"),
+            new Course("BUSINESS-ENGLISH", "إنجليزي الأعمال", "Business English"),
+            new Course("IELTS", "آيلتس", "IELTS", isLeveled: false),
+            new Course("TOEFL", "توفل", "TOEFL", isLeveled: false),
+            new Course("QURAN", "تحفيظ القرآن الكريم", "Quran", isLeveled: false),
+        };
+
+        foreach (var course in catalogue.Where(c => !existingCodes.Contains(c.Code)))
+        {
+            db.Courses.Add(course);
+        }
     }
 }

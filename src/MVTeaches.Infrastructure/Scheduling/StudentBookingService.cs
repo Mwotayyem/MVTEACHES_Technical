@@ -36,22 +36,30 @@ public class StudentBookingService : IStudentBookingService
             return new BookSessionResult(BookSessionOutcome.Unauthorized);
         }
 
+        // The session must be loaded BEFORE the level check now, because which
+        // level to compare against depends on the session's own course.
+        var session = await _db.ClassSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+        {
+            return new BookSessionResult(BookSessionOutcome.SessionNotFound);
+        }
+
         // The student's level, resolved server-side from their own current
         // StudentLevel row — never accepted as a request parameter, and never
         // the session's own claimed level taken on faith.
+        //
+        // Owner decision 2026-09-04 (multi-course levels): the row read is the
+        // one for THIS SESSION'S COURSE. A student with no level in that course
+        // is refused with the same NoCurrentLevelAssigned they would get for
+        // having no level at all — which is exactly right: for this course they
+        // have not been placed, whatever they hold elsewhere.
         var currentLevelId = await _db.StudentLevels
-            .Where(l => l.StudentId == studentId && l.IsCurrent)
+            .Where(l => l.StudentId == studentId && l.CourseId == session.CourseId && l.IsCurrent)
             .Select(l => (int?)l.LevelId)
             .FirstOrDefaultAsync(cancellationToken);
         if (currentLevelId is null)
         {
             return new BookSessionResult(BookSessionOutcome.NoCurrentLevelAssigned);
-        }
-
-        var session = await _db.ClassSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
-        if (session is null)
-        {
-            return new BookSessionResult(BookSessionOutcome.SessionNotFound);
         }
 
         if (session.LevelId != currentLevelId.Value)

@@ -28,6 +28,16 @@ public class PlacementTestVersion
     public long Id { get; private set; }
 
     public string Title { get; private set; } = string.Empty;
+
+    /// <summary>Owner decision 2026-09-04: which course this test places students
+    /// into. A level now belongs to a course (see StudentLevel), so a test that
+    /// did not know its own course could only ever write levels into whichever
+    /// course happened to be assumed — which is exactly the confusion the
+    /// multi-course work exists to end. Backfilled for existing versions to the
+    /// centre's original course, the only one that existed when they were
+    /// written.</summary>
+    public long CourseId { get; private set; }
+
     public PlacementTestStatus Status { get; private set; } = PlacementTestStatus.Draft;
     public bool IsActive { get; private set; }
 
@@ -38,7 +48,7 @@ public class PlacementTestVersion
 
     private PlacementTestVersion() { }
 
-    public PlacementTestVersion(string title, long createdByUserId, Instant createdAtUtc)
+    public PlacementTestVersion(string title, long courseId, long createdByUserId, Instant createdAtUtc)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -46,6 +56,7 @@ public class PlacementTestVersion
         }
 
         Title = title;
+        CourseId = courseId;
         CreatedByUserId = createdByUserId;
         CreatedAtUtc = createdAtUtc;
     }

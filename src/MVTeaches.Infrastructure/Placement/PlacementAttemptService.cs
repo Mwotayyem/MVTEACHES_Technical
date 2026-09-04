@@ -258,12 +258,24 @@ public class PlacementAttemptService : IPlacementAttemptService
         // scoring engine — AssignedByRole.System, not Admin/Teacher, since no
         // human judgment call is in this loop. AssignedByUserId still records
         // who triggered the submission (student or guardian) for traceability.
-        var previousCurrent = await _db.StudentLevels.Where(l => l.StudentId == studentId && l.IsCurrent).ToListAsync(cancellationToken);
+        // Owner decision 2026-09-04 (multi-course levels): the course is the
+        // TEST VERSION's own, not an assumption. A Spanish placement test
+        // places a Spanish level and leaves the student's English level alone,
+        // which is the whole point of the column; and only that course's
+        // current row is superseded.
+        var courseId = await _db.PlacementTestVersions
+            .Where(v => v.Id == attempt.TestVersionId)
+            .Select(v => v.CourseId)
+            .FirstAsync(cancellationToken);
+
+        var previousCurrent = await _db.StudentLevels
+            .Where(l => l.StudentId == studentId && l.CourseId == courseId && l.IsCurrent)
+            .ToListAsync(cancellationToken);
         foreach (var previous in previousCurrent)
         {
             previous.Supersede();
         }
-        _db.StudentLevels.Add(new Domain.Placement.StudentLevel(studentId, range.LevelId, actingUserId,
+        _db.StudentLevels.Add(new Domain.Placement.StudentLevel(studentId, courseId, range.LevelId, actingUserId,
             Domain.Placement.AssignedByRole.System, LevelAssignmentSource.PlacementTest, null, null, now));
 
         var student = await _db.Students.FirstAsync(s => s.Id == studentId, cancellationToken);
@@ -300,7 +312,8 @@ public class PlacementAttemptService : IPlacementAttemptService
         return new RequestRetakeResult(RequestRetakeOutcome.Requested, request.Id);
     }
 
-    public async Task<OverrideLevelOutcome> OverrideLevelAsync(long studentId, int newLevelId, long adminUserId, string reason, CancellationToken cancellationToken)
+    public async Task<OverrideLevelOutcome> OverrideLevelAsync(long studentId, long courseId, int newLevelId,
+        long adminUserId, string reason, CancellationToken cancellationToken)
     {
         if (!await _db.Students.AnyAsync(s => s.Id == studentId, cancellationToken))
         {
@@ -312,11 +325,22 @@ public class PlacementAttemptService : IPlacementAttemptService
             return OverrideLevelOutcome.LevelNotFound;
         }
 
+        if (!await _db.Courses.AnyAsync(c => c.Id == courseId, cancellationToken))
+        {
+            return OverrideLevelOutcome.CourseNotFound;
+        }
+
         // Reuses the exact same supersede-then-insert-AdminOverride path
         // Admin/Students already uses (IStudentAdmissionService.AssignLevelAsync),
         // whose own Domain constructor already makes the reason mandatory —
         // rather than re-implementing it here.
-        await _admissions.AssignLevelAsync(studentId, newLevelId, adminUserId, reason, cancellationToken);
+        //
+        // Owner decision 2026-09-04 (multi-course levels): the admin says WHICH
+        // course they are correcting. A level now means nothing without one,
+        // and guessing it here - "probably the course they were last placed
+        // in" - would be exactly the silent wrong-course write the column
+        // exists to make impossible.
+        await _admissions.AssignLevelAsync(studentId, courseId, newLevelId, adminUserId, reason, cancellationToken);
 
         _db.AuditLogEntries.Add(new AuditLogEntry("Student", studentId.ToString(), "LevelOverridden",
             adminUserId, reason, beforeJson: null, afterJson: null, _clock.GetCurrentInstant()));

@@ -459,11 +459,25 @@
                 // than its own value — a student option can carry
                 // data-owner-key="3" (their level) so a plan list filters by
                 // level rather than by student id.
+                //
+                // Owner decision 2026-09-04 (multi-course levels): that key may
+                // now be a SPACE-SEPARATED SET, because a student holds one
+                // level per course and any of them can match. A single value is
+                // just a set of one, so nothing else had to change.
                 var option = owner.options ? owner.options[owner.selectedIndex] : null;
                 if (option && option.hasAttribute("data-owner-key")) {
                     return owner.value === "" ? "" : option.getAttribute("data-owner-key");
                 }
                 return owner.value;
+            }
+
+            // Membership rather than equality — see ownerKey above. Kept as a
+            // helper so the empty-key ("show everything") case stays in one
+            // place. Splitting on whitespace makes a single-value key behave
+            // exactly as it always did.
+            function ownerMatches(itemOwner, key) {
+                if (key === "") { return true; }
+                return key.split(/\s+/).indexOf(itemOwner) !== -1;
             }
 
             function apply() {
@@ -474,7 +488,7 @@
 
                 original.forEach(function (item) {
                     var isPlaceholder = item.value === "";
-                    var keep = isPlaceholder || ownerId === "" || item.owner === ownerId;
+                    var keep = isPlaceholder || ownerMatches(item.owner, ownerId);
                     if (!keep) { return; }
                     var option = document.createElement("option");
                     option.value = item.value;

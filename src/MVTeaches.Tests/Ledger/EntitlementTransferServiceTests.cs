@@ -89,24 +89,30 @@ public class EntitlementTransferServiceTests
         SessionType sessionType = SessionType.Group)
     {
         var countryId = await GetOrSeedCountryAsync(db);
-        var courseId = NextId();
+        // Course.Id is database-generated: read the real id back after
+        // SaveChanges rather than reusing the NextId() seed. Harmless while
+        // nothing referenced courses by key; StudentLevel.CourseId (2026-09-04)
+        // does, so a fabricated id would now violate a real foreign key.
+        var courseSeed = NextId();
         var oldLevelId = (int)NextId();
         var newLevelId = (int)NextId();
         var studentUserId = await CreateUserAsync(db);
         var adminUserId = await CreateUserAsync(db);
 
-        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        var course = new Course("C" + courseSeed, "دورة", "Course");
+        db.Courses.Add(course);
         db.Levels.Add(new Level(oldLevelId, "L" + oldLevelId, "مستوى", "Level", oldLevelId));
         db.Levels.Add(new Level(newLevelId, "L" + newLevelId, "مستوى", "Level", newLevelId));
         var student = new Student(countryId, "Student", new LocalDate(2015, 1, 1), studentUserId);
         student.MarkVerified();
         db.Students.Add(student);
         await db.SaveChangesAsync();
+        var courseId = course.Id;
 
         var now = clock.GetCurrentInstant();
 
         // First assignment: old level.
-        db.StudentLevels.Add(new StudentLevel(student.Id, oldLevelId, adminUserId, AssignedByRole.Admin,
+        db.StudentLevels.Add(new StudentLevel(student.Id, courseId, oldLevelId, adminUserId, AssignedByRole.Admin,
             LevelAssignmentSource.AdminOverride, null, "initial placement", now.Minus(Duration.FromDays(10))));
         student.MarkLevelAssigned();
         await db.SaveChangesAsync();
@@ -124,7 +130,7 @@ public class EntitlementTransferServiceTests
         // Level change: old row superseded, new row becomes current.
         var oldLevelRow = await db.StudentLevels.SingleAsync(l => l.StudentId == student.Id && l.LevelId == oldLevelId);
         oldLevelRow.Supersede();
-        db.StudentLevels.Add(new StudentLevel(student.Id, newLevelId, adminUserId, AssignedByRole.Admin,
+        db.StudentLevels.Add(new StudentLevel(student.Id, courseId, newLevelId, adminUserId, AssignedByRole.Admin,
             LevelAssignmentSource.AdminOverride, null, "promoted", now.Minus(Duration.FromDays(1))));
         await db.SaveChangesAsync();
 

@@ -32,6 +32,18 @@ public class PlacementTestAdminServiceTests
         new PlacementTestAdminService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()),
             TestLocalization.For<MVTeaches.Infrastructure.Resources.InfrastructureResource>());
 
+    /// <summary>Owner decision 2026-09-04: a placement test now belongs to a
+    /// course, so every test needs one. A fresh course per call keeps these
+    /// tests independent of each other and of whatever the seeders created.</summary>
+    private static async Task<long> SeedCourseAsync(MvTeachesDbContext db)
+    {
+        var courseId = NextId();
+        var course = new Course("C" + courseId, "دورة", "Course");
+        db.Courses.Add(course);
+        await db.SaveChangesAsync();
+        return course.Id;
+    }
+
     private static async Task<(int LevelA, int LevelB)> SeedTwoLevelsAsync(MvTeachesDbContext db)
     {
         var levelA = (int)NextId();
@@ -44,9 +56,10 @@ public class PlacementTestAdminServiceTests
 
     /// <summary>A minimal, always-publishable version: two 5-point questions
     /// (10 total) and two score ranges [0,4]->LevelA, [5,10]->LevelB.</summary>
-    private static async Task<long> BuildPublishableDraftAsync(IPlacementTestAdminService service, int levelA, int levelB)
+    private static async Task<long> BuildPublishableDraftAsync(IPlacementTestAdminService service, long courseId,
+        int levelA, int levelB)
     {
-        var version = await service.CreateDraftVersionAsync("Test v1", NextId(), CancellationToken.None);
+        var version = await service.CreateDraftVersionAsync("Test v1", courseId, NextId(), CancellationToken.None);
         await service.AddQuestionAsync(version.TestVersionId, "1+1=?", 5,
             new[] { new AddQuestionChoice("2", true), new AddQuestionChoice("3", false) }, 0, CancellationToken.None);
         await service.AddQuestionAsync(version.TestVersionId, "2+2=?", 5,
@@ -62,7 +75,7 @@ public class PlacementTestAdminServiceTests
         await using var db = _fixture.CreateContext();
         var (levelA, levelB) = await SeedTwoLevelsAsync(db);
         var service = CreateService(db);
-        var versionId = await BuildPublishableDraftAsync(service, levelA, levelB);
+        var versionId = await BuildPublishableDraftAsync(service, await SeedCourseAsync(db), levelA, levelB);
 
         var result = await service.PublishAsync(versionId, NextId(), CancellationToken.None);
 
@@ -78,7 +91,7 @@ public class PlacementTestAdminServiceTests
         await using var db = _fixture.CreateContext();
         var (levelA, _) = await SeedTwoLevelsAsync(db);
         var service = CreateService(db);
-        var version = await service.CreateDraftVersionAsync("Empty", NextId(), CancellationToken.None);
+        var version = await service.CreateDraftVersionAsync("Empty", await SeedCourseAsync(db), NextId(), CancellationToken.None);
         await service.AddScoreRangeAsync(version.TestVersionId, 0, 10, levelA, CancellationToken.None);
 
         var result = await service.PublishAsync(version.TestVersionId, NextId(), CancellationToken.None);
@@ -93,7 +106,7 @@ public class PlacementTestAdminServiceTests
         await using var db = _fixture.CreateContext();
         var (levelA, _) = await SeedTwoLevelsAsync(db);
         var service = CreateService(db);
-        var version = await service.CreateDraftVersionAsync("Bad question", NextId(), CancellationToken.None);
+        var version = await service.CreateDraftVersionAsync("Bad question", await SeedCourseAsync(db), NextId(), CancellationToken.None);
 
         // AddQuestionAsync itself throws for zero-correct-choices — this proves
         // the guard exists at the point of adding, not only at publish time.
@@ -107,7 +120,7 @@ public class PlacementTestAdminServiceTests
         await using var db = _fixture.CreateContext();
         var (levelA, levelB) = await SeedTwoLevelsAsync(db);
         var service = CreateService(db);
-        var version = await service.CreateDraftVersionAsync("Gap", NextId(), CancellationToken.None);
+        var version = await service.CreateDraftVersionAsync("Gap", await SeedCourseAsync(db), NextId(), CancellationToken.None);
         await service.AddQuestionAsync(version.TestVersionId, "Q", 10,
             new[] { new AddQuestionChoice("a", true), new AddQuestionChoice("b", false) }, 0, CancellationToken.None);
         await service.AddScoreRangeAsync(version.TestVersionId, 0, 3, levelA, CancellationToken.None);
@@ -125,7 +138,7 @@ public class PlacementTestAdminServiceTests
         await using var db = _fixture.CreateContext();
         var (levelA, levelB) = await SeedTwoLevelsAsync(db);
         var service = CreateService(db);
-        var version = await service.CreateDraftVersionAsync("Overlap", NextId(), CancellationToken.None);
+        var version = await service.CreateDraftVersionAsync("Overlap", await SeedCourseAsync(db), NextId(), CancellationToken.None);
         await service.AddQuestionAsync(version.TestVersionId, "Q", 10,
             new[] { new AddQuestionChoice("a", true), new AddQuestionChoice("b", false) }, 0, CancellationToken.None);
         await service.AddScoreRangeAsync(version.TestVersionId, 0, 6, levelA, CancellationToken.None);
@@ -143,7 +156,7 @@ public class PlacementTestAdminServiceTests
         await using var db = _fixture.CreateContext();
         var (levelA, _) = await SeedTwoLevelsAsync(db);
         var service = CreateService(db);
-        var version = await service.CreateDraftVersionAsync("Incomplete coverage", NextId(), CancellationToken.None);
+        var version = await service.CreateDraftVersionAsync("Incomplete coverage", await SeedCourseAsync(db), NextId(), CancellationToken.None);
         await service.AddQuestionAsync(version.TestVersionId, "Q", 10,
             new[] { new AddQuestionChoice("a", true), new AddQuestionChoice("b", false) }, 0, CancellationToken.None);
         await service.AddScoreRangeAsync(version.TestVersionId, 2, 8, levelA, CancellationToken.None); // misses 0,1 and 9,10
@@ -161,7 +174,7 @@ public class PlacementTestAdminServiceTests
         await using var db = _fixture.CreateContext();
         var (levelA, levelB) = await SeedTwoLevelsAsync(db);
         var service = CreateService(db);
-        var versionId = await BuildPublishableDraftAsync(service, levelA, levelB);
+        var versionId = await BuildPublishableDraftAsync(service, await SeedCourseAsync(db), levelA, levelB);
         await service.PublishAsync(versionId, NextId(), CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddQuestionAsync(versionId, "New Q", 5,
@@ -178,11 +191,11 @@ public class PlacementTestAdminServiceTests
         await using var db = _fixture.CreateContext();
         var (levelA, levelB) = await SeedTwoLevelsAsync(db);
         var service = CreateService(db);
-        var v1 = await BuildPublishableDraftAsync(service, levelA, levelB);
+        var v1 = await BuildPublishableDraftAsync(service, await SeedCourseAsync(db), levelA, levelB);
         await service.PublishAsync(v1, NextId(), CancellationToken.None);
         await service.ActivateAsync(v1, CancellationToken.None);
 
-        var v2 = await BuildPublishableDraftAsync(service, levelA, levelB);
+        var v2 = await BuildPublishableDraftAsync(service, await SeedCourseAsync(db), levelA, levelB);
         await service.PublishAsync(v2, NextId(), CancellationToken.None);
         var activateResult = await service.ActivateAsync(v2, CancellationToken.None);
 
@@ -198,7 +211,7 @@ public class PlacementTestAdminServiceTests
     {
         await using var db = _fixture.CreateContext();
         var service = CreateService(db);
-        var draft = await service.CreateDraftVersionAsync("Still draft", NextId(), CancellationToken.None);
+        var draft = await service.CreateDraftVersionAsync("Still draft", await SeedCourseAsync(db), NextId(), CancellationToken.None);
 
         var result = await service.ActivateAsync(draft.TestVersionId, CancellationToken.None);
 

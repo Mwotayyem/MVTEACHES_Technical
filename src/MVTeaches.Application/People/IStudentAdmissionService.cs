@@ -100,10 +100,15 @@ public interface IStudentAdmissionService
     /// A safe no-op if the student isn't in PendingVerification any more.</summary>
     Task VerifyStudentAsync(long studentId, CancellationToken cancellationToken);
 
-    /// <summary>§10.3 — records a new current StudentLevel row (superseding any
-    /// previous one) as an explicit, reasoned AdminOverride, since no placement
-    /// interview flow exists yet. Advances the student PendingLevel → Active
-    /// (§8.1) the first time a level is assigned; a later re-assignment (a
-    /// promotion) leaves an already-Active student's status untouched.</summary>
-    Task AssignLevelAsync(long studentId, int levelId, long assignedByUserId, string reason, CancellationToken cancellationToken);
+    /// <summary>§10.3 — records a new current StudentLevel row as an explicit,
+    /// reasoned AdminOverride, since no placement interview flow exists yet.
+    /// Advances the student PendingLevel → Active (§8.1) the first time a level
+    /// is assigned; a later re-assignment (a promotion) leaves an already-Active
+    /// student's status untouched.
+    /// <para>Owner decision 2026-09-04: a level belongs to a COURSE, so only the
+    /// current row for <paramref name="courseId"/> is superseded. A student may
+    /// hold one current level in each course at once — being promoted in English
+    /// must not disturb their Spanish level.</para></summary>
+    Task AssignLevelAsync(long studentId, long courseId, int levelId, long assignedByUserId, string reason,
+        CancellationToken cancellationToken);
 }

@@ -61,7 +61,12 @@ public class SubscriptionsModel : PageModel
     /// the level that decides which packages are even legal for them. The plan
     /// picker filters on that level, so a package for the wrong level can no
     /// longer be chosen and then refused after the fact.</summary>
-    public record StudentPickRow(long Id, string FullName, int? CurrentLevelId, string? CurrentLevelCode);
+    /// <summary>Owner decision 2026-09-04 (multi-course levels): a student holds
+    /// one current level PER COURSE, so this carries every one of them.
+    /// <see cref="CurrentLevelIds"/> feeds the dependent-select filter as a
+    /// space-separated set (site.js matches on membership), and
+    /// <see cref="CurrentLevelLabel"/> is what a human reads.</summary>
+    public record StudentPickRow(long Id, string FullName, IReadOnlyList<int> CurrentLevelIds, string? CurrentLevelLabel);
 
     public IReadOnlyList<StudentPickRow> StudentPicks { get; set; } = Array.Empty<StudentPickRow>();
 
@@ -346,13 +351,23 @@ public class SubscriptionsModel : PageModel
             p.LevelId.HasValue ? levelByI.GetValueOrDefault(p.LevelId.Value) : null,
             p.SessionType, p.SessionsCount, p.MinutesTotal, p.Amount.Amount, p.Amount.Currency, p.ValidityDays)).ToList();
 
+        // Grouped, never ToDictionary: one current row per COURSE now, so a
+        // student key is no longer unique.
         var currentLevels = await _db.StudentLevels.Where(l => l.IsCurrent).ToListAsync();
-        var currentLevelByStudent = currentLevels.ToDictionary(l => l.StudentId, l => l.LevelId);
+        var currentLevelsByStudent = currentLevels.GroupBy(l => l.StudentId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var courseNamesById = await _db.Courses.ToDictionaryAsync(c => c.Id, c => c.NameEn);
+        var levelCodesById = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
         StudentPicks = Students.Select(st =>
         {
-            var levelId = currentLevelByStudent.TryGetValue(st.Id, out var found) ? found : (int?)null;
-            return new StudentPickRow(st.Id, st.FullName, levelId,
-                levelId is null ? null : levelByI.GetValueOrDefault(levelId.Value));
+            var held = currentLevelsByStudent.GetValueOrDefault(st.Id,
+                new List<MVTeaches.Domain.Placement.StudentLevel>());
+            var label = held.Count == 0
+                ? null
+                : string.Join(" · ", held.OrderBy(l => l.CourseId)
+                    .Select(l => $"{courseNamesById.GetValueOrDefault(l.CourseId, "?")} {levelCodesById.GetValueOrDefault(l.LevelId, "?")}"));
+            return new StudentPickRow(st.Id, st.FullName,
+                held.Select(l => l.LevelId).Distinct().ToList(), label);
         }).ToList();
 
         var subs = await _db.Subscriptions

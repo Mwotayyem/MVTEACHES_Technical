@@ -86,7 +86,14 @@ public class SchedulesModel : PageModel
     /// Admin/Subscriptions already uses for its plan picker) — arriving here
     /// from a student's own file used to drop that context entirely and show
     /// every level's schedules at once.</summary>
-    public record StudentPickRow(long Id, string FullName, int? CurrentLevelId, string? CurrentLevelCode);
+    /// <summary>Owner decision 2026-09-04 (multi-course levels): a student holds
+    /// one current level PER COURSE, so this carries every one of them.
+    /// <see cref="CurrentLevelIds"/> feeds the dependent-select filter as a
+    /// space-separated set (site.js matches on membership), and
+    /// <see cref="CurrentLevelLabel"/> is what a human reads — "English B2 ·
+    /// Spanish A1". Collapsing this back to a single level is what would make
+    /// the picker lie about who is eligible for what.</summary>
+    public record StudentPickRow(long Id, string FullName, IReadOnlyList<int> CurrentLevelIds, string? CurrentLevelLabel);
 
     public IReadOnlyList<ScheduleRow> Schedules { get; set; } = Array.Empty<ScheduleRow>();
     public IReadOnlyList<SessionRow> UpcomingSessions { get; set; } = Array.Empty<SessionRow>();
@@ -397,6 +404,24 @@ public class SchedulesModel : PageModel
         return Page();
     }
 
+    /// <summary>Owner decision 2026-09-04: "English B2 · Spanish A1" — every
+    /// course this student is currently placed in, named, so an admin picking a
+    /// session can see at a glance whether this student belongs in it. Returns
+    /// null when they have been placed in nothing, which the callers render as
+    /// their own "no level yet" wording.</summary>
+    private static string? LevelLabel(IReadOnlyList<MVTeaches.Domain.Placement.StudentLevel> held,
+        IReadOnlyDictionary<long, string> courseNames, IReadOnlyDictionary<int, string> levelCodes)
+    {
+        if (held.Count == 0)
+        {
+            return null;
+        }
+
+        return string.Join(" · ", held
+            .OrderBy(l => l.CourseId)
+            .Select(l => $"{courseNames.GetValueOrDefault(l.CourseId, "?")} {levelCodes.GetValueOrDefault(l.LevelId, "?")}"));
+    }
+
     private async Task LoadAsync()
     {
         Countries = await _db.Countries.Where(c => c.IsActive).OrderBy(c => c.NameEn).ToListAsync();
@@ -423,19 +448,25 @@ public class SchedulesModel : PageModel
         // Same source Admin/Subscriptions reads its own student-level pickers
         // from, kept as its own query here rather than a shared helper,
         // matching how each admin page already keeps its own copy.
-        var currentLevelByStudent = (await _db.StudentLevels.Where(l => l.IsCurrent).ToListAsync())
-            .ToDictionary(l => l.StudentId, l => l.LevelId);
+        // Grouped, never ToDictionary: a student legitimately has several
+        // current rows now (one per course), and keying by student alone would
+        // throw on the second one.
+        var currentLevelsByStudent = (await _db.StudentLevels.Where(l => l.IsCurrent).ToListAsync())
+            .GroupBy(l => l.StudentId)
+            .ToDictionary(g => g.Key, g => g.ToList());
         Students = students.Select(s =>
         {
-            var levelId = currentLevelByStudent.TryGetValue(s.Id, out var found) ? found : (int?)null;
-            return new StudentPickRow(s.Id, s.FullName, levelId, levelId is null ? null : levelCodes.GetValueOrDefault(levelId.Value));
+            var held = currentLevelsByStudent.GetValueOrDefault(s.Id, new List<MVTeaches.Domain.Placement.StudentLevel>());
+            return new StudentPickRow(s.Id, s.FullName,
+                held.Select(l => l.LevelId).Distinct().ToList(),
+                LevelLabel(held, courseNames, levelCodes));
         }).ToList();
 
         if (FocusStudentId is not null)
         {
             var focus = Students.FirstOrDefault(s => s.Id == FocusStudentId.Value);
             FocusStudentName = focus?.FullName;
-            FocusStudentLevelCode = focus?.CurrentLevelCode;
+            FocusStudentLevelCode = focus?.CurrentLevelLabel;
             Enroll.StudentId ??= FocusStudentId;
         }
 

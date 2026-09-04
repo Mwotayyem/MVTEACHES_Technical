@@ -45,6 +45,16 @@ public class StudentAdmissionServiceTests
         return countryId;
     }
 
+    /// <summary>Owner decision 2026-09-04: a level belongs to a course, so
+    /// assigning one needs a course to assign it in.</summary>
+    private static async Task<long> SeedCourseAsync(MvTeachesDbContext db)
+    {
+        var course = new MVTeaches.Domain.Catalog.Course("C" + Guid.NewGuid().ToString("N")[..8], "دورة", "Course");
+        db.Courses.Add(course);
+        await db.SaveChangesAsync();
+        return course.Id;
+    }
+
     private static async Task<int> SeedLevelAsync(MvTeachesDbContext db)
     {
         var levelId = (int)NextId();
@@ -249,6 +259,7 @@ public class StudentAdmissionServiceTests
         var (db, service, _) = CreateService(_fixture);
         await using var _ = db;
         var countryId = await SeedCountryAsync(db);
+        var courseId = await SeedCourseAsync(db);
         var levelA = await SeedLevelAsync(db);
         var levelB = await SeedLevelAsync(db);
         var student = new Student(countryId, "Student", new LocalDate(2015, 1, 1));
@@ -256,7 +267,7 @@ public class StudentAdmissionServiceTests
         db.Students.Add(student);
         await db.SaveChangesAsync();
 
-        await service.AssignLevelAsync(student.Id, levelA, assignedByUserId: 0, reason: "Placement call", CancellationToken.None);
+        await service.AssignLevelAsync(student.Id, courseId, levelA, assignedByUserId: 0, reason: "Placement call", CancellationToken.None);
 
         var afterFirst = await db.Students.AsNoTracking().FirstAsync(s => s.Id == student.Id);
         Assert.Equal(StudentStatus.Active, afterFirst.Status);
@@ -264,7 +275,7 @@ public class StudentAdmissionServiceTests
         Assert.Single(currentAfterFirst);
         Assert.Equal(levelA, currentAfterFirst[0].LevelId);
 
-        await service.AssignLevelAsync(student.Id, levelB, assignedByUserId: 0, reason: "Promoted", CancellationToken.None);
+        await service.AssignLevelAsync(student.Id, courseId, levelB, assignedByUserId: 0, reason: "Promoted", CancellationToken.None);
 
         var currentAfterSecond = await db.StudentLevels.Where(l => l.StudentId == student.Id && l.IsCurrent).ToListAsync();
         Assert.Single(currentAfterSecond);
@@ -313,5 +324,77 @@ public class StudentAdmissionServiceTests
         Assert.Equal(RegisterStudentOutcome.Registered, result.Outcome);
         var student = await db.Students.FirstAsync(s => s.Id == result.StudentId);
         Assert.Null(student.PhoneNumber);
+    }
+
+    /// <summary>Owner decision 2026-09-04, the multi-course rule in one test:
+    /// a student holds one CURRENT level in each course at the same time, and
+    /// being placed in a second course leaves the first one's level standing.
+    /// Before the course column existed, ux_student_current_level made this
+    /// physically impossible — the second assignment superseded the first, so
+    /// every course after the first silently inherited or destroyed the
+    /// previous placement.</summary>
+    [Fact]
+    public async Task A_student_holds_a_separate_current_level_in_each_course()
+    {
+        var (db, service, _) = CreateService(_fixture);
+        await using var _ = db;
+        var countryId = await SeedCountryAsync(db);
+        var english = await SeedCourseAsync(db);
+        var spanish = await SeedCourseAsync(db);
+        var advanced = await SeedLevelAsync(db);
+        var beginner = await SeedLevelAsync(db);
+        var student = new Student(countryId, "Two Courses", new LocalDate(2000, 1, 1));
+        student.MarkVerified();
+        db.Students.Add(student);
+        await db.SaveChangesAsync();
+
+        await service.AssignLevelAsync(student.Id, english, advanced, assignedByUserId: 0,
+            reason: "Placed advanced in English", CancellationToken.None);
+        await service.AssignLevelAsync(student.Id, spanish, beginner, assignedByUserId: 0,
+            reason: "Beginner in Spanish", CancellationToken.None);
+
+        var current = await db.StudentLevels
+            .Where(l => l.StudentId == student.Id && l.IsCurrent)
+            .ToListAsync();
+
+        Assert.Equal(2, current.Count);
+        Assert.Equal(advanced, current.Single(l => l.CourseId == english).LevelId);
+        Assert.Equal(beginner, current.Single(l => l.CourseId == spanish).LevelId);
+    }
+
+    /// <summary>The other half of the same rule: a promotion still supersedes,
+    /// but only within its own course. One current row per course is the
+    /// guarantee ux_student_course_current_level enforces.</summary>
+    [Fact]
+    public async Task A_promotion_supersedes_only_the_level_in_that_same_course()
+    {
+        var (db, service, _) = CreateService(_fixture);
+        await using var _ = db;
+        var countryId = await SeedCountryAsync(db);
+        var english = await SeedCourseAsync(db);
+        var spanish = await SeedCourseAsync(db);
+        var first = await SeedLevelAsync(db);
+        var second = await SeedLevelAsync(db);
+        var spanishLevel = await SeedLevelAsync(db);
+        var student = new Student(countryId, "Promoted", new LocalDate(2000, 1, 1));
+        student.MarkVerified();
+        db.Students.Add(student);
+        await db.SaveChangesAsync();
+
+        await service.AssignLevelAsync(student.Id, english, first, 0, "Initial English", CancellationToken.None);
+        await service.AssignLevelAsync(student.Id, spanish, spanishLevel, 0, "Initial Spanish", CancellationToken.None);
+        await service.AssignLevelAsync(student.Id, english, second, 0, "Promoted in English", CancellationToken.None);
+
+        var current = await db.StudentLevels
+            .Where(l => l.StudentId == student.Id && l.IsCurrent)
+            .ToListAsync();
+
+        // Still exactly one current row per course, and Spanish is untouched.
+        Assert.Equal(2, current.Count);
+        Assert.Equal(second, current.Single(l => l.CourseId == english).LevelId);
+        Assert.Equal(spanishLevel, current.Single(l => l.CourseId == spanish).LevelId);
+
+        // The superseded English row is kept as history, never deleted.
+        Assert.Equal(2, await db.StudentLevels.CountAsync(l => l.StudentId == student.Id && l.CourseId == english));
     }
 }

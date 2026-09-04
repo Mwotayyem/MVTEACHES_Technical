@@ -217,7 +217,7 @@ public static class LocalDevelopmentSeeder
 
         if (adminUserId is not null)
         {
-            await SeedDummyPlacementTestAsync(placementAdmin, adminUserId.Value, cancellationToken, logger);
+            await SeedDummyPlacementTestAsync(db, placementAdmin, adminUserId.Value, cancellationToken, logger);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -469,7 +469,8 @@ public static class LocalDevelopmentSeeder
     /// deterministic regardless of which answer is picked. This is
     /// technical test fixture data, never real academic content, and never
     /// exists unless LocalDevelopmentSeed:Enabled is explicitly true.</summary>
-    private static async Task SeedDummyPlacementTestAsync(IPlacementTestAdminService placementAdmin, long adminUserId, CancellationToken ct, ILogger logger)
+    private static async Task SeedDummyPlacementTestAsync(MvTeachesDbContext db, IPlacementTestAdminService placementAdmin,
+        long adminUserId, CancellationToken ct, ILogger logger)
     {
         var existingActive = await placementAdmin.ListVersionsAsync(ct);
         if (existingActive.Any(v => v.IsActive))
@@ -478,7 +479,12 @@ public static class LocalDevelopmentSeeder
         }
 
         const string title = "[LOCAL DUMMY DATA] Placement Test — for local technical testing only";
-        var draft = await placementAdmin.CreateDraftVersionAsync(title, adminUserId, ct);
+        // Owner decision 2026-09-04: a placement test now belongs to a course.
+        // The dummy test places into the centre's original course, the one all
+        // pre-existing data already refers to.
+        var placementCourseId = await db.Courses.Where(c => c.Code == "GENERAL-ENGLISH")
+            .Select(c => c.Id).FirstAsync(ct);
+        var draft = await placementAdmin.CreateDraftVersionAsync(title, placementCourseId, adminUserId, ct);
 
         await placementAdmin.AddQuestionAsync(draft.TestVersionId, "[Dummy] 1 + 1 = ?", points: 3,
             new[] { new AddQuestionChoice("2 (correct)", true), new AddQuestionChoice("3", false) }, sortOrder: 1, ct);
