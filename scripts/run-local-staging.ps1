@@ -38,9 +38,22 @@
 .EXAMPLE
     # Publish somewhere else, e.g. to inspect the output by hand:
     .\scripts\run-local-staging.ps1 -PublishDir C:\Temp\mvteaches-staging-publish
+
+.EXAMPLE
+    # Run a SECOND, separate database (the clean-trial one) side by side with
+    # Local Staging, on its own ports and its own App_Data. Every parameter
+    # below defaults to exactly what this script has always used, so calling it
+    # with no arguments is unchanged. See scripts\new-clean-trial-db.ps1, which
+    # is what normally supplies these.
+    .\scripts\run-local-staging.ps1 -SecretsPath ...\appsettings.CleanTrial.secrets.json `
+        -AppDataDir ...\App_Data\cleantrial -HttpsPort 7218 -HttpPort 5095
 #>
 param(
-    [string]$PublishDir
+    [string]$PublishDir,
+    [string]$SecretsPath,
+    [string]$AppDataDir,
+    [int]$HttpsPort = 7217,
+    [int]$HttpPort = 5094
 )
 
 $ErrorActionPreference = "Stop"
@@ -53,7 +66,7 @@ if (-not $PublishDir) {
     $PublishDir = Join-Path $webProjectDir "bin\LocalStagingPublish"
 }
 
-$stagingPorts = @(7217, 5094)
+$stagingPorts = @($HttpsPort, $HttpPort)
 
 Write-Host "== Local Staging ==" -ForegroundColor Cyan
 
@@ -93,17 +106,20 @@ if (-not (Test-Path $dll)) {
     throw "Publish succeeded but $dll was not found - check the publish output above."
 }
 
-$appDataDir = Join-Path $webProjectDir "App_Data\staging"
+if (-not $AppDataDir) {
+    $AppDataDir = Join-Path $webProjectDir "App_Data\staging"
+}
+$appDataDir = $AppDataDir
 
 Write-Host "Starting from the published build (Staging environment) ..."
-Write-Host "  https://localhost:7217"
-Write-Host "  http://localhost:5094"
+Write-Host "  https://localhost:$HttpsPort"
+Write-Host "  http://localhost:$HttpPort"
 Write-Host "Running from: $PublishDir (content root stays here so precompressed .br/.gz assets resolve)"
 Write-Host "Persistent data: $appDataDir"
 Write-Host "Press Ctrl+C to stop." -ForegroundColor Yellow
 
 $env:ASPNETCORE_ENVIRONMENT = "Staging"
-$env:ASPNETCORE_URLS = "https://localhost:7217;http://localhost:5094"
+$env:ASPNETCORE_URLS = "https://localhost:$HttpsPort;http://localhost:$HttpPort"
 # Absolute overrides so Data Protection keys and uploaded receipts persist in
 # the source project's App_Data folder across every publish, instead of
 # following the relative paths in appsettings.Staging.json (which would
@@ -115,7 +131,15 @@ $env:FileStorage__StoragePath = Join-Path $appDataDir "private-uploads"
 # would resolve against the publish folder (this script's working
 # directory) and never find it. Point it at this absolute, stable location
 # instead - the project folder, where the file actually lives.
-$env:MVTEACHES_STAGING_SECRETS_PATH = Join-Path $webProjectDir "appsettings.Staging.secrets.json"
+# A different secrets file points this same published build at a different
+# database - which is the whole mechanism behind the clean-trial run, since
+# this file is added AFTER the environment-variable provider in Program.cs and
+# therefore outranks ConnectionStrings__MvTeaches. Defaults to Local Staging's
+# own file, so an argument-less run is exactly what it always was.
+if (-not $SecretsPath) {
+    $SecretsPath = Join-Path $webProjectDir "appsettings.Staging.secrets.json"
+}
+$env:MVTEACHES_STAGING_SECRETS_PATH = $SecretsPath
 
 # Open the browser automatically once the app is actually listening,
 # instead of right away - launching an Executable-profile process (e.g.
@@ -140,6 +164,10 @@ while ((Get-Date) -lt $deadline) {
     }
 }
 '@
+# The helper above is a literal here-string so its own $variables survive; the
+# port is the one thing that has to change with the parameters, and it appears
+# in both the connect check and the URL.
+$browserWaitScript = $browserWaitScript.Replace('7217', "$HttpsPort")
 Start-Process -FilePath "powershell.exe" -WindowStyle Hidden -ArgumentList @('-NoProfile', '-Command', $browserWaitScript)
 
 Push-Location $PublishDir

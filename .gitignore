@@ -28,3 +28,9 @@ src/MVTeaches.Web/App_Data/
 # Bootstrap:*) — loaded by Program.cs only when this file exists; never a
 # machine-wide environment variable, never committed. See docs/LOCAL-STAGING.md.
 src/MVTeaches.Web/appsettings.Staging.secrets.json
+
+# The same mechanism, any variant of it. scripts/new-clean-trial-db.ps1 writes
+# appsettings.CleanTrial.secrets.json, and a wildcard rather than one more
+# literal line is deliberate: the next such file must be ignored the moment it
+# is written, not the moment somebody remembers to add it here.
+src/MVTeaches.Web/appsettings.*.secrets.json
