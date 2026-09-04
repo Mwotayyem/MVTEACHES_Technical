@@ -99,7 +99,30 @@ public class LoginModel : PageModel
 
         if (result.IsLockedOut)
         {
-            ErrorMessage = _localizer["This account is temporarily locked after too many failed attempts."].Value;
+            // Owner decision 2026-09-04: tell the person how long is left, so a
+            // two-minute wait reads as a wait rather than as a dead account.
+            //
+            // On disclosure: SignInManager only ever returns IsLockedOut for an
+            // account that exists, so reaching this branch AT ALL is what
+            // distinguishes a real address from an unknown one — that is
+            // Identity's own behaviour and it is exactly as true before this
+            // change as after. What is added here is only the remaining time,
+            // which says nothing further about WHO the account belongs to. The
+            // message deliberately names no email, no display name, and no
+            // role, and an unknown address still falls through to the single
+            // generic "Invalid email or password." below.
+            var lockedAccount = await _userManager.FindByEmailAsync(Input.Email);
+            var lockoutEnd = lockedAccount is null
+                ? null
+                : await _userManager.GetLockoutEndDateAsync(lockedAccount);
+
+            var remaining = lockoutEnd - DateTimeOffset.UtcNow;
+            ErrorMessage = remaining is { TotalSeconds: > 0 }
+                // Rounded UP, so the message never invites a retry that is
+                // still a few seconds too early.
+                ? _localizer["Too many failed attempts. Please try again in about {0} minute(s).",
+                    (int)Math.Ceiling(remaining.Value.TotalMinutes)].Value
+                : _localizer["This account is temporarily locked after too many failed attempts."].Value;
             return Page();
         }
 

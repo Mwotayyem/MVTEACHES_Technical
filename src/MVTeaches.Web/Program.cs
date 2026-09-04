@@ -110,7 +110,17 @@ builder.Services
         // ASP.NET Core's generic defaults, since this handles minors' data.
         options.Password.RequiredLength = 10;
         options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        // Owner decision 2026-09-04: 15 minutes locked out a parent who simply
+        // mistyped, for long enough that they phoned the centre instead of
+        // waiting — the lockout was costing more support calls than it
+        // prevented attacks. Two minutes still ends automated password
+        // guessing (5 tries per 2 minutes is ~150/hour, useless against the
+        // 10-character minimum above) while a human who fumbled their own
+        // password waits an interval they will actually sit through.
+        // The attempt COUNT is deliberately unchanged, and Login.cshtml.cs now
+        // tells the person how long is left so the wait is not a mystery.
+        // REVIEW REQUIRED — Auth: this shortens a security window on purpose.
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(2);
         options.SignIn.RequireConfirmedPhoneNumber = false; // OTP flow confirms via a custom step, not Identity's own token provider
     })
     .AddEntityFrameworkStores<MvTeachesDbContext>()
