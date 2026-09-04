@@ -244,6 +244,20 @@ else
                 </select>
                 <span asp-validation-for="LevelGrant.TeacherId" class="text-danger small"></span>
             </div>
+            @* Owner decision 2026-09-04: which COURSE these levels are in. Asked
+               first and never defaulted — a level with no course silently
+               authorised every subject the centre teaches. *@
+            <div class="col-md-4">
+                <label class="form-label" asp-for="LevelGrant.CourseId">@T["Course"]<span class="app-required">*</span></label>
+                <select asp-for="LevelGrant.CourseId" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
+                    @foreach (var c in Model.Courses)
+                    {
+                        <option value="@c.Id">@c.NameEn</option>
+                    }
+                </select>
+                <span asp-validation-for="LevelGrant.CourseId" class="text-danger small"></span>
+            </div>
             <div class="col-md-8">
                 <label class="form-label">@T["Levels"]<span class="app-required">*</span></label>
                 <div class="d-flex flex-wrap gap-3">
@@ -304,22 +318,26 @@ else
                         }
                     </td>
                     <td>
-                        @if (Model.LevelsByTeacher.TryGetValue(t.Id, out var levels) && levels.Count > 0)
+                        @* Each chip names the course as well as the level: a
+                           teacher authorised for B2 English is not authorised
+                           for B2 Spanish, and the chip has to say so. *@
+                        @if (Model.GrantsByTeacher.TryGetValue(t.Id, out var grants) && grants.Count > 0)
                         {
-                            foreach (var l in levels)
+                            foreach (var g in grants)
                             {
                                 @if (canManage)
                                 {
                                     <form method="post" asp-page-handler="RevokeLevel" class="d-inline-block me-1 mb-1">
                                         <input type="hidden" name="teacherId" value="@t.Id" />
-                                        <input type="hidden" name="levelId" value="@l.Id" />
+                                        <input type="hidden" name="courseId" value="@g.CourseId" />
+                                        <input type="hidden" name="levelId" value="@g.LevelId" />
                                         <button type="submit" class="btn btn-sm btn-outline-secondary" title="@T["Revoke this level"]"
-                                                data-mv-confirm="@T["Revoke this level from this teacher?"]">@l.Code &times;</button>
+                                                data-mv-confirm="@T["Revoke this level from this teacher?"]">@g.CourseName @g.LevelCode &times;</button>
                                     </form>
                                 }
                                 else
                                 {
-                                    <span class="app-chip me-1">@l.Code</span>
+                                    <span class="app-chip me-1">@g.CourseName @g.LevelCode</span>
                                 }
                             }
                         }

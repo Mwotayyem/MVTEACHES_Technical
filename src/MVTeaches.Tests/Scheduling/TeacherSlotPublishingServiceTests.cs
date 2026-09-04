@@ -92,17 +92,23 @@ public class TeacherSlotPublishingServiceTests
     private static async Task<Scene> SeedReadyAuthorizedTeacherAsync(MvTeachesDbContext db, bool connected = true, bool levelGranted = true)
     {
         var countryId = await GetOrSeedCountryAsync(db);
-        var courseId = NextId();
+        // Course.Id is database-generated: read the real id back after
+        // SaveChanges rather than reusing the NextId() seed. Harmless while
+        // nothing referenced courses by key; TeacherLevelAssignment.CourseId
+        // (2026-09-04) does, so a fabricated id now violates a real foreign key.
+        var courseSeed = NextId();
         var levelId = (int)NextId();
         var ageGroupId = (int)NextId();
         var teacherUserId = await CreateUserAsync(db);
 
-        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        var course = new Course("C" + courseSeed, "دورة", "Course");
+        db.Courses.Add(course);
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 12, true));
         var teacher = new Teacher(teacherUserId, "Teacher", "Asia/Amman");
         db.Teachers.Add(teacher);
         await db.SaveChangesAsync();
+        var courseId = course.Id;
 
         if (connected)
         {
@@ -111,7 +117,7 @@ public class TeacherSlotPublishingServiceTests
         }
         if (levelGranted)
         {
-            db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacher.Id, levelId, teacherUserId, SystemClock.Instance.GetCurrentInstant()));
+            db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacher.Id, courseId, levelId, teacherUserId, SystemClock.Instance.GetCurrentInstant()));
         }
         await db.SaveChangesAsync();
 

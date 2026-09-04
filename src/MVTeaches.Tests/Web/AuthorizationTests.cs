@@ -808,9 +808,15 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         }
         await db.SaveChangesAsync();
 
-        if (!await db.TeacherLevelAssignments.AnyAsync(a => a.TeacherId == teacher.Id && a.LevelId == grantedLevelId))
+        // Owner decision 2026-09-04: a grant names a course. Uses whichever
+        // course the seeders created, which is the one this fixture's sessions
+        // are in.
+        var grantCourseId = await db.Courses.OrderBy(c => c.Id).Select(c => c.Id).FirstAsync();
+        if (!await db.TeacherLevelAssignments.AnyAsync(a => a.TeacherId == teacher.Id
+            && a.CourseId == grantCourseId && a.LevelId == grantedLevelId))
         {
-            db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacher.Id, grantedLevelId, teacherUser.Id, SystemClock.Instance.GetCurrentInstant()));
+            db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacher.Id, grantCourseId, grantedLevelId,
+                teacherUser.Id, SystemClock.Instance.GetCurrentInstant()));
             await db.SaveChangesAsync();
         }
 

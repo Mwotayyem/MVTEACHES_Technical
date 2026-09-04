@@ -35,12 +35,18 @@ public class RecurringScheduleService : IRecurringScheduleService
         // Owner decision 2026-08-30 rule 5: "A teacher must not publish a
         // session for an unauthorized level." Absence of a grant is denial —
         // there is no implicit default level for a teacher.
+        // Owner decision 2026-09-04: the grant is per (course, level), so the
+        // check is too. Matching on level alone let a teacher hired for English
+        // publish the same level in Spanish or Quran — which is precisely the
+        // hole the course column was added to close, and leaving this query on
+        // level alone would have left it open with a schema that only looked
+        // fixed.
         var levelAllowed = await _db.TeacherLevelAssignments.AnyAsync(
-            a => a.TeacherId == teacherId && a.LevelId == levelId, cancellationToken);
+            a => a.TeacherId == teacherId && a.CourseId == courseId && a.LevelId == levelId, cancellationToken);
         if (!levelAllowed)
         {
             throw new ArgumentException(
-                "This teacher is not authorized to teach this level. An admin must grant the level first " +
+                "This teacher is not authorized to teach this level of this course. An admin must grant it first " +
                 "(Admin portal → Teachers → Levels).", nameof(levelId));
         }
 

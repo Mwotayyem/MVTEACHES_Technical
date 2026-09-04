@@ -9,9 +9,16 @@ namespace MVTeaches.Domain.People;
 /// for an unauthorized level."
 ///
 /// This is the authorization record behind that rule: one row per
-/// (teacher, level) pair the admin has granted. Its absence is the denial —
-/// there is no "allowed by default", so a newly created teacher can publish
-/// nothing until an admin grants them a level explicitly.
+/// (teacher, course, level) triple the admin has granted. Its absence is the
+/// denial — there is no "allowed by default", so a newly created teacher can
+/// publish nothing until an admin grants them something explicitly.
+///
+/// <para>Owner decision 2026-09-04: the grant carries a COURSE as well as a
+/// level. A level alone stopped meaning anything once the centre taught more
+/// than one course — "authorised for B2" silently authorised B2 in Spanish and
+/// Quran too, for a teacher hired to teach English. Existing grants are
+/// backfilled to the centre's original course, the only one that existed when
+/// they were made, so no grant changes meaning.</para>
 ///
 /// Deliberately separate from <see cref="Teacher"/> rather than a collection
 /// property on it: the grant carries its own audit fields (who granted it and
@@ -24,6 +31,11 @@ public class TeacherLevelAssignment
     public long Id { get; private set; }
 
     public long TeacherId { get; private set; }
+
+    /// <summary>Owner decision 2026-09-04 — which course this grant is for.
+    /// See the class remarks.</summary>
+    public long CourseId { get; private set; }
+
     public int LevelId { get; private set; }
 
     public long GrantedByUserId { get; private set; }
@@ -31,9 +43,10 @@ public class TeacherLevelAssignment
 
     private TeacherLevelAssignment() { }
 
-    public TeacherLevelAssignment(long teacherId, int levelId, long grantedByUserId, Instant grantedAtUtc)
+    public TeacherLevelAssignment(long teacherId, long courseId, int levelId, long grantedByUserId, Instant grantedAtUtc)
     {
         TeacherId = teacherId;
+        CourseId = courseId;
         LevelId = levelId;
         GrantedByUserId = grantedByUserId;
         GrantedAtUtc = grantedAtUtc;

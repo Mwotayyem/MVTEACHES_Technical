@@ -82,8 +82,14 @@ public class TeachersModel : PageModel
     /// <summary>Owner decision 2026-08-30 rule 6: every level currently
     /// granted to each teacher, for the "view teachers and assigned levels"
     /// half of this screen.</summary>
-    public IReadOnlyDictionary<long, IReadOnlyList<Level>> LevelsByTeacher { get; set; } =
-        new Dictionary<long, IReadOnlyList<Level>>();
+    /// <summary>Owner decision 2026-09-04: a grant is a (course, level) pair,
+    /// so the chip has to name both. Showing the level alone would say "B2"
+    /// beside a teacher authorised only for B2 English, which is exactly the
+    /// ambiguity the course column removes.</summary>
+    public record TeacherGrant(long CourseId, string CourseName, int LevelId, string LevelCode);
+
+    public IReadOnlyDictionary<long, IReadOnlyList<TeacherGrant>> GrantsByTeacher { get; set; } =
+        new Dictionary<long, IReadOnlyList<TeacherGrant>>();
 
     [BindProperty]
     public RegisterTeacherInput NewTeacher { get; set; } = new();
@@ -113,6 +119,12 @@ public class TeachersModel : PageModel
     public class LevelGrantInput
     {
         [Required(ErrorMessage = "Choose a teacher.")] public long? TeacherId { get; set; }
+
+        /// <summary>Owner decision 2026-09-04: a grant says WHICH COURSE these
+        /// levels are in. Required and never defaulted — "authorised for B2"
+        /// with no course silently authorised B2 in every subject the centre
+        /// teaches, for a teacher hired for one of them.</summary>
+        [Required(ErrorMessage = "Choose a course.")] public long? CourseId { get; set; }
 
         public List<int> LevelIds { get; set; } = new();
     }
@@ -252,10 +264,13 @@ public class TeachersModel : PageModel
 
         foreach (var levelId in levelIds)
         {
-            var outcome = await _levelAuthorization.GrantAsync(LevelGrant.TeacherId!.Value, levelId,
-                actingUserId, HttpContext.RequestAborted);
+            var outcome = await _levelAuthorization.GrantAsync(LevelGrant.TeacherId!.Value,
+                LevelGrant.CourseId!.Value, levelId, actingUserId, HttpContext.RequestAborted);
             switch (outcome)
             {
+                case TeacherLevelGrantOutcome.CourseNotFound:
+                    failure = _localizer["That course no longer exists."].Value;
+                    break;
                 case TeacherLevelGrantOutcome.Granted:
                     granted++;
                     break;
@@ -291,7 +306,7 @@ public class TeachersModel : PageModel
     /// <summary>Revocation deliberately does not touch sessions the teacher
     /// already published for this level — see
     /// ITeacherLevelAuthorizationService's own remarks on why.</summary>
-    public async Task<IActionResult> OnPostRevokeLevelAsync(long teacherId, int levelId)
+    public async Task<IActionResult> OnPostRevokeLevelAsync(long teacherId, long courseId, int levelId)
     {
         if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.TeachersManage) is { } deny)
         {
@@ -299,7 +314,8 @@ public class TeachersModel : PageModel
         }
 
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
-        var outcome = await _levelAuthorization.RevokeAsync(teacherId, levelId, actingUserId, HttpContext.RequestAborted);
+        var outcome = await _levelAuthorization.RevokeAsync(teacherId, courseId, levelId, actingUserId,
+            HttpContext.RequestAborted);
         StatusMessage = outcome == TeacherLevelRevokeOutcome.Revoked ? _localizer["Level revoked."].Value : null;
         ErrorMessage = outcome switch
         {
@@ -381,13 +397,23 @@ public class TeachersModel : PageModel
         // past must still display even if it was later deactivated.
         var levelById = await _db.Levels.ToDictionaryAsync(l => l.Id);
         var assignments = await _db.TeacherLevelAssignments.ToListAsync();
-        LevelsByTeacher = assignments
+        // Every course, not just active ones, for the same reason as levels
+        // below: a grant made against a course later retired must still be
+        // visible, and revocable.
+        var courseById = await _db.Courses.ToDictionaryAsync(c => c.Id, c => c.NameEn);
+        GrantsByTeacher = assignments
             .GroupBy(a => a.TeacherId)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<Level>)g
-                .Select(a => levelById.GetValueOrDefault(a.LevelId))
-                .Where(l => l is not null)
-                .Select(l => l!)
-                .OrderBy(l => l.SortOrder)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<TeacherGrant>)g
+                .Select(a => new
+                {
+                    a.CourseId,
+                    CourseName = courseById.GetValueOrDefault(a.CourseId, "?"),
+                    Level = levelById.GetValueOrDefault(a.LevelId),
+                })
+                .Where(x => x.Level is not null)
+                .Select(x => new TeacherGrant(x.CourseId, x.CourseName, x.Level!.Id, x.Level.Code))
+                .OrderBy(x => x.CourseName)
+                .ThenBy(x => x.LevelCode)
                 .ToList());
     }
 }

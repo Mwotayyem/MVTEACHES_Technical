@@ -361,9 +361,14 @@ public static class LocalDevelopmentSeeder
 
         // Reuses the real, audited grant path — never a raw insert — so this
         // seed exercises exactly the same code a real admin action would.
-        if (!await levelAuthorization.IsAuthorizedForLevelAsync(teacher.Id, A1LevelId, ct))
+        // Owner decision 2026-09-04: a grant names a course as well as a level.
+        // The dummy teacher is granted the centre's original course, the one
+        // all the dummy sessions are in.
+        var teacherCourseId = await db.Courses.Where(c => c.Code == "GENERAL-ENGLISH")
+            .Select(c => c.Id).FirstAsync(ct);
+        if (!await levelAuthorization.IsAuthorizedForCourseLevelAsync(teacher.Id, teacherCourseId, A1LevelId, ct))
         {
-            await levelAuthorization.GrantAsync(teacher.Id, A1LevelId, adminUserId ?? userId, ct);
+            await levelAuthorization.GrantAsync(teacher.Id, teacherCourseId, A1LevelId, adminUserId ?? userId, ct);
         }
 
         // Deliberately NOT given a TeacherMeetingConnection — faking Zoom/

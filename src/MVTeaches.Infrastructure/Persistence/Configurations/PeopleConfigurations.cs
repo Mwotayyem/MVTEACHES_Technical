@@ -66,6 +66,12 @@ public class TeacherLevelAssignmentConfiguration : IEntityTypeConfiguration<Teac
         b.ToTable("teacher_level_assignments");
         b.HasKey(x => x.Id);
         b.Property(x => x.TeacherId).HasColumnName("teacher_id");
+        // Owner decision 2026-09-04 — see TeacherLevelAssignment. Restrict, not
+        // Cascade: retiring a course must not silently erase the record of who
+        // was ever permitted to teach it.
+        b.Property(x => x.CourseId).HasColumnName("course_id");
+        b.HasOne<MVTeaches.Domain.Catalog.Course>().WithMany().HasForeignKey(x => x.CourseId)
+            .OnDelete(DeleteBehavior.Restrict);
         b.Property(x => x.LevelId).HasColumnName("level_id");
         b.Property(x => x.GrantedByUserId).HasColumnName("granted_by");
         b.Property(x => x.GrantedAtUtc).HasColumnName("granted_at_utc");
@@ -73,9 +79,13 @@ public class TeacherLevelAssignmentConfiguration : IEntityTypeConfiguration<Teac
         b.HasOne<Teacher>().WithMany().HasForeignKey(x => x.TeacherId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<Level>().WithMany().HasForeignKey(x => x.LevelId).OnDelete(DeleteBehavior.Restrict);
 
-        // One grant per (teacher, level) — the real guard behind the service's
-        // idempotent GrantAsync, not merely a convenience index.
-        b.HasIndex(x => new { x.TeacherId, x.LevelId }).IsUnique().HasDatabaseName("ux_teacher_level");
+        // One grant per (teacher, course, level) — the real guard behind the
+        // service's idempotent GrantAsync, not merely a convenience index.
+        // Widened from (teacher, level) by the owner's 2026-09-04 decision: the
+        // old shape made "B2 in English" and "B2 in Spanish" the same row, so
+        // granting the second silently collided with the first.
+        b.HasIndex(x => new { x.TeacherId, x.CourseId, x.LevelId }).IsUnique()
+            .HasDatabaseName("ux_teacher_course_level");
     }
 }
 

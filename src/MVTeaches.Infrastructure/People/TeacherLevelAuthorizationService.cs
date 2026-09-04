@@ -22,11 +22,17 @@ public class TeacherLevelAuthorizationService : ITeacherLevelAuthorizationServic
         _clock = clock;
     }
 
-    public async Task<TeacherLevelGrantOutcome> GrantAsync(long teacherId, int levelId, long grantedByUserId, CancellationToken cancellationToken)
+    public async Task<TeacherLevelGrantOutcome> GrantAsync(long teacherId, long courseId, int levelId,
+        long grantedByUserId, CancellationToken cancellationToken)
     {
         if (!await _db.Teachers.AnyAsync(t => t.Id == teacherId, cancellationToken))
         {
             return TeacherLevelGrantOutcome.TeacherNotFound;
+        }
+
+        if (!await _db.Courses.AnyAsync(c => c.Id == courseId, cancellationToken))
+        {
+            return TeacherLevelGrantOutcome.CourseNotFound;
         }
 
         if (!await _db.Levels.AnyAsync(l => l.Id == levelId, cancellationToken))
@@ -35,9 +41,10 @@ public class TeacherLevelAuthorizationService : ITeacherLevelAuthorizationServic
         }
 
         var now = _clock.GetCurrentInstant();
-        _db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacherId, levelId, grantedByUserId, now));
+        _db.TeacherLevelAssignments.Add(new TeacherLevelAssignment(teacherId, courseId, levelId, grantedByUserId, now));
         _db.AuditLogEntries.Add(new AuditLogEntry("Teacher", teacherId.ToString(), "LevelGranted",
-            grantedByUserId, null, beforeJson: null, afterJson: $"{{\"levelId\":{levelId}}}", now));
+            grantedByUserId, null, beforeJson: null,
+            afterJson: $"{{\"courseId\":{courseId},\"levelId\":{levelId}}}", now));
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
@@ -55,7 +62,8 @@ public class TeacherLevelAuthorizationService : ITeacherLevelAuthorizationServic
         }
     }
 
-    public async Task<TeacherLevelRevokeOutcome> RevokeAsync(long teacherId, int levelId, long revokedByUserId, CancellationToken cancellationToken)
+    public async Task<TeacherLevelRevokeOutcome> RevokeAsync(long teacherId, long courseId, int levelId,
+        long revokedByUserId, CancellationToken cancellationToken)
     {
         if (!await _db.Teachers.AnyAsync(t => t.Id == teacherId, cancellationToken))
         {
@@ -63,7 +71,8 @@ public class TeacherLevelAuthorizationService : ITeacherLevelAuthorizationServic
         }
 
         var assignment = await _db.TeacherLevelAssignments
-            .FirstOrDefaultAsync(a => a.TeacherId == teacherId && a.LevelId == levelId, cancellationToken);
+            .FirstOrDefaultAsync(a => a.TeacherId == teacherId && a.CourseId == courseId && a.LevelId == levelId,
+                cancellationToken);
         if (assignment is null)
         {
             return TeacherLevelRevokeOutcome.NotGranted;
@@ -71,18 +80,26 @@ public class TeacherLevelAuthorizationService : ITeacherLevelAuthorizationServic
 
         _db.TeacherLevelAssignments.Remove(assignment);
         _db.AuditLogEntries.Add(new AuditLogEntry("Teacher", teacherId.ToString(), "LevelRevoked",
-            revokedByUserId, null, beforeJson: $"{{\"levelId\":{levelId}}}", afterJson: null, _clock.GetCurrentInstant()));
+            revokedByUserId, null, beforeJson: $"{{\"courseId\":{courseId},\"levelId\":{levelId}}}", afterJson: null,
+            _clock.GetCurrentInstant()));
         await _db.SaveChangesAsync(cancellationToken);
         return TeacherLevelRevokeOutcome.Revoked;
     }
 
-    public Task<bool> IsAuthorizedForLevelAsync(long teacherId, int levelId, CancellationToken cancellationToken) =>
-        _db.TeacherLevelAssignments.AnyAsync(a => a.TeacherId == teacherId && a.LevelId == levelId, cancellationToken);
+    public Task<bool> IsAuthorizedForCourseLevelAsync(long teacherId, long courseId, int levelId,
+        CancellationToken cancellationToken) =>
+        _db.TeacherLevelAssignments.AnyAsync(
+            a => a.TeacherId == teacherId && a.CourseId == courseId && a.LevelId == levelId, cancellationToken);
 
+    /// <summary>Owner decision 2026-09-04: distinct level ids across ALL the
+    /// teacher's courses. Kept level-only because its callers use it to build a
+    /// level picker; the authoritative per-session check is
+    /// IsAuthorizedForCourseLevelAsync, and this must never be mistaken for it.</summary>
     public async Task<IReadOnlyList<int>> GetPermittedLevelIdsAsync(long teacherId, CancellationToken cancellationToken) =>
         await _db.TeacherLevelAssignments
             .Where(a => a.TeacherId == teacherId)
             .Select(a => a.LevelId)
+            .Distinct()
             .OrderBy(id => id)
             .ToListAsync(cancellationToken);
 }

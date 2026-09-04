@@ -49,18 +49,24 @@ public class RecurringScheduleServiceTests
     private static async Task<(int CountryId, long CourseId, int LevelId, int AgeGroupId, long TeacherId)> SeedCatalogAndTeacherAsync(MvTeachesDbContext db)
     {
         var countryId = (int)NextId();
-        var courseId = NextId();
+        // Course.Id is database-generated: read the real id back after
+        // SaveChanges rather than reusing the NextId() seed. Harmless while
+        // nothing referenced courses by key; TeacherLevelAssignment.CourseId
+        // (2026-09-04) does, so a fabricated id now violates a real foreign key.
+        var courseSeed = NextId();
         var levelId = (int)NextId();
         var ageGroupId = (int)NextId();
         var teacherUserId = await CreateUserAsync(db);
 
         db.Countries.Add(new Country(countryId, TwoLetterCode(countryId), "دولة", "Country", "JOD", "+962", "Asia/Amman"));
-        db.Courses.Add(new Course("C" + courseId, "دورة", "Course"));
+        var course = new Course("C" + courseSeed, "دورة", "Course");
+        db.Courses.Add(course);
         db.Levels.Add(new Level(levelId, "L" + levelId, "مستوى", "Level", levelId));
         db.AgeGroups.Add(new AgeGroup(ageGroupId, "A" + ageGroupId, 5, 12, true));
         var teacher = new Teacher(teacherUserId, "Teacher", "Asia/Amman");
         db.Teachers.Add(teacher);
         await db.SaveChangesAsync();
+        var courseId = course.Id;
 
         // Owner clarification (2026-08-29): a teacher with no connected
         // Zoom/Google Meet account is "not ready for online sessions" and
@@ -76,7 +82,7 @@ public class RecurringScheduleServiceTests
         // needs the grant too. Its own rejection case is asserted by
         // Creating_a_schedule_for_a_level_the_teacher_is_not_authorized_for_is_refused.
         db.TeacherLevelAssignments.Add(new MVTeaches.Domain.People.TeacherLevelAssignment(
-            teacher.Id, levelId, grantedByUserId: teacherUserId, SystemClock.Instance.GetCurrentInstant()));
+            teacher.Id, courseId, levelId, grantedByUserId: teacherUserId, SystemClock.Instance.GetCurrentInstant()));
         await db.SaveChangesAsync();
 
         return (countryId, courseId, levelId, ageGroupId, teacher.Id);

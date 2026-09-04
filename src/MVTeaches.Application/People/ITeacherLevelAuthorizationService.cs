@@ -10,6 +10,10 @@ public enum TeacherLevelGrantOutcome
 
     TeacherNotFound,
     LevelNotFound,
+
+    /// <summary>Owner decision 2026-09-04: a grant names a course, and that
+    /// course must exist.</summary>
+    CourseNotFound,
 }
 
 public enum TeacherLevelRevokeOutcome
@@ -34,13 +38,20 @@ public enum TeacherLevelRevokeOutcome
 /// </summary>
 public interface ITeacherLevelAuthorizationService
 {
-    Task<TeacherLevelGrantOutcome> GrantAsync(long teacherId, int levelId, long grantedByUserId, CancellationToken cancellationToken);
+    Task<TeacherLevelGrantOutcome> GrantAsync(long teacherId, long courseId, int levelId, long grantedByUserId,
+        CancellationToken cancellationToken);
 
-    Task<TeacherLevelRevokeOutcome> RevokeAsync(long teacherId, int levelId, long revokedByUserId, CancellationToken cancellationToken);
+    Task<TeacherLevelRevokeOutcome> RevokeAsync(long teacherId, long courseId, int levelId, long revokedByUserId,
+        CancellationToken cancellationToken);
 
     /// <summary>The authorization check itself. False when no grant exists —
     /// absence is denial, there is no implicit default.</summary>
-    Task<bool> IsAuthorizedForLevelAsync(long teacherId, int levelId, CancellationToken cancellationToken);
+    /// <summary>Owner decision 2026-09-04: the question is "may this teacher
+    /// teach THIS LEVEL OF THIS COURSE", not "may they teach this level".
+    /// A level alone stopped being an answer the moment the centre taught more
+    /// than one subject.</summary>
+    Task<bool> IsAuthorizedForCourseLevelAsync(long teacherId, long courseId, int levelId,
+        CancellationToken cancellationToken);
 
     Task<IReadOnlyList<int>> GetPermittedLevelIdsAsync(long teacherId, CancellationToken cancellationToken);
 }

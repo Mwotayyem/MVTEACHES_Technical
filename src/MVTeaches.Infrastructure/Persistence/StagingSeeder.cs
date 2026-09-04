@@ -218,7 +218,7 @@ public static class StagingSeeder
         var teacherIds = new long[teacherSpecs.Length];
         for (var i = 0; i < teacherSpecs.Length; i++)
         {
-            teacherIds[i] = await SeedTeacherAsync(db, userManager, levelAuthorization, teacherSpecs[i],
+            teacherIds[i] = await SeedTeacherAsync(db, userManager, levelAuthorization, courseId.Value, teacherSpecs[i],
                 options.SeedPassword!, adminUserId.Value, logger, cancellationToken);
         }
 
@@ -552,8 +552,8 @@ public static class StagingSeeder
     }
 
     private static async Task<long> SeedTeacherAsync(MvTeachesDbContext db, UserManager<ApplicationUser> userManager,
-        ITeacherLevelAuthorizationService levelAuthorization, TeacherSpec spec, string password, long adminUserId,
-        ILogger logger, CancellationToken ct)
+        ITeacherLevelAuthorizationService levelAuthorization, long courseId, TeacherSpec spec, string password,
+        long adminUserId, ILogger logger, CancellationToken ct)
     {
         var user = await CreateOrReconcileUserAsync(userManager, spec.Email, password, new[] { RoleNames.Teacher }, logger, ct);
 
@@ -565,11 +565,14 @@ public static class StagingSeeder
             await db.SaveChangesAsync(ct);
         }
 
+        // Owner decision 2026-09-04: a grant names a course as well as a level.
+        // Seeded teachers are granted the centre's original course, which is
+        // the one every seeded session and package is in.
         foreach (var levelId in spec.LevelIds)
         {
-            if (!await levelAuthorization.IsAuthorizedForLevelAsync(teacher.Id, levelId, ct))
+            if (!await levelAuthorization.IsAuthorizedForCourseLevelAsync(teacher.Id, courseId, levelId, ct))
             {
-                await levelAuthorization.GrantAsync(teacher.Id, levelId, adminUserId, ct);
+                await levelAuthorization.GrantAsync(teacher.Id, courseId, levelId, adminUserId, ct);
             }
         }
 

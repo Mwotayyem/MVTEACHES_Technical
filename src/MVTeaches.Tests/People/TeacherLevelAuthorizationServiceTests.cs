@@ -40,7 +40,7 @@ public class TeacherLevelAuthorizationServiceTests
         return user.Id;
     }
 
-    private record Scene(long TeacherId, int LevelA, int LevelB, long AdminUserId);
+    private record Scene(long TeacherId, long CourseA, long CourseB, int LevelA, int LevelB, long AdminUserId);
 
     private static async Task<Scene> SeedAsync(MvTeachesDbContext db)
     {
@@ -51,11 +51,17 @@ public class TeacherLevelAuthorizationServiceTests
 
         db.Levels.Add(new Level(levelA, "L" + levelA, "مستوى", "Level A", levelA));
         db.Levels.Add(new Level(levelB, "L" + levelB, "مستوى", "Level B", levelB));
+        // Owner decision 2026-09-04: a grant is (course, level). Two courses,
+        // so "the same level in a different course" is a case these tests can
+        // actually express.
+        var courseA = new MVTeaches.Domain.Catalog.Course("CA" + NextId(), "دورة", "Course A");
+        var courseB = new MVTeaches.Domain.Catalog.Course("CB" + NextId(), "دورة", "Course B");
+        db.Courses.AddRange(courseA, courseB);
         var teacher = new Teacher(teacherUserId, "Teacher", "Asia/Amman");
         db.Teachers.Add(teacher);
         await db.SaveChangesAsync();
 
-        return new Scene(teacher.Id, levelA, levelB, adminUserId);
+        return new Scene(teacher.Id, courseA.Id, courseB.Id, levelA, levelB, adminUserId);
     }
 
     private static TeacherLevelAuthorizationService CreateService(MvTeachesDbContext db) =>
@@ -69,7 +75,7 @@ public class TeacherLevelAuthorizationServiceTests
         var service = CreateService(db);
 
         // Absence of a grant is denial — there is no implicit default.
-        Assert.False(await service.IsAuthorizedForLevelAsync(scene.TeacherId, scene.LevelA, CancellationToken.None));
+        Assert.False(await service.IsAuthorizedForCourseLevelAsync(scene.TeacherId, scene.CourseA, scene.LevelA, CancellationToken.None));
         Assert.Empty(await service.GetPermittedLevelIdsAsync(scene.TeacherId, CancellationToken.None));
     }
 
@@ -80,11 +86,11 @@ public class TeacherLevelAuthorizationServiceTests
         var scene = await SeedAsync(db);
         var service = CreateService(db);
 
-        var outcome = await service.GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        var outcome = await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
 
         Assert.Equal(TeacherLevelGrantOutcome.Granted, outcome);
-        Assert.True(await service.IsAuthorizedForLevelAsync(scene.TeacherId, scene.LevelA, CancellationToken.None));
-        Assert.False(await service.IsAuthorizedForLevelAsync(scene.TeacherId, scene.LevelB, CancellationToken.None));
+        Assert.True(await service.IsAuthorizedForCourseLevelAsync(scene.TeacherId, scene.CourseA, scene.LevelA, CancellationToken.None));
+        Assert.False(await service.IsAuthorizedForCourseLevelAsync(scene.TeacherId, scene.CourseA, scene.LevelB, CancellationToken.None));
     }
 
     [Fact]
@@ -95,9 +101,9 @@ public class TeacherLevelAuthorizationServiceTests
         var service = CreateService(db);
 
         Assert.Equal(TeacherLevelGrantOutcome.Granted,
-            await service.GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None));
+            await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None));
         Assert.Equal(TeacherLevelGrantOutcome.AlreadyGranted,
-            await service.GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None));
+            await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None));
 
         await using var verify = _fixture.CreateContext();
         Assert.Equal(1, await verify.TeacherLevelAssignments.CountAsync(
@@ -116,8 +122,8 @@ public class TeacherLevelAuthorizationServiceTests
         await using var dbB = _fixture.CreateContext();
 
         var results = await Task.WhenAll(
-            CreateService(dbA).GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None),
-            CreateService(dbB).GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None));
+            CreateService(dbA).GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None),
+            CreateService(dbB).GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None));
 
         Assert.Contains(TeacherLevelGrantOutcome.Granted, results);
         Assert.All(results, r => Assert.True(
@@ -135,11 +141,11 @@ public class TeacherLevelAuthorizationServiceTests
         var scene = await SeedAsync(db);
         var service = CreateService(db);
 
-        await service.GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
-        var outcome = await service.RevokeAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        var outcome = await service.RevokeAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
 
         Assert.Equal(TeacherLevelRevokeOutcome.Revoked, outcome);
-        Assert.False(await service.IsAuthorizedForLevelAsync(scene.TeacherId, scene.LevelA, CancellationToken.None));
+        Assert.False(await service.IsAuthorizedForCourseLevelAsync(scene.TeacherId, scene.CourseA, scene.LevelA, CancellationToken.None));
     }
 
     /// <summary>Owner decision 2026-08-30 rule 6: "audit-log changes."</summary>
@@ -150,8 +156,8 @@ public class TeacherLevelAuthorizationServiceTests
         var scene = await SeedAsync(db);
         var service = CreateService(db);
 
-        await service.GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
-        await service.RevokeAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        await service.RevokeAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
 
         await using var verify = _fixture.CreateContext();
         var entries = await verify.AuditLogEntries
@@ -173,7 +179,7 @@ public class TeacherLevelAuthorizationServiceTests
         var scene = await SeedAsync(db);
 
         Assert.Equal(TeacherLevelRevokeOutcome.NotGranted,
-            await CreateService(db).RevokeAsync(scene.TeacherId, scene.LevelB, scene.AdminUserId, CancellationToken.None));
+            await CreateService(db).RevokeAsync(scene.TeacherId, scene.CourseA, scene.LevelB, scene.AdminUserId, CancellationToken.None));
     }
 
     [Fact]
@@ -184,9 +190,13 @@ public class TeacherLevelAuthorizationServiceTests
         var service = CreateService(db);
 
         Assert.Equal(TeacherLevelGrantOutcome.TeacherNotFound,
-            await service.GrantAsync(-1, scene.LevelA, scene.AdminUserId, CancellationToken.None));
+            await service.GrantAsync(-1, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None));
         Assert.Equal(TeacherLevelGrantOutcome.LevelNotFound,
-            await service.GrantAsync(scene.TeacherId, -1, scene.AdminUserId, CancellationToken.None));
+            await service.GrantAsync(scene.TeacherId, scene.CourseA, -1, scene.AdminUserId, CancellationToken.None));
+        // Owner decision 2026-09-04: the course is checked too — a grant naming
+        // a course that does not exist is refused, not silently stored.
+        Assert.Equal(TeacherLevelGrantOutcome.CourseNotFound,
+            await service.GrantAsync(scene.TeacherId, -1, scene.LevelA, scene.AdminUserId, CancellationToken.None));
     }
 
     [Fact]
@@ -196,13 +206,78 @@ public class TeacherLevelAuthorizationServiceTests
         var scene = await SeedAsync(db);
         var service = CreateService(db);
 
-        await service.GrantAsync(scene.TeacherId, scene.LevelA, scene.AdminUserId, CancellationToken.None);
-        await service.GrantAsync(scene.TeacherId, scene.LevelB, scene.AdminUserId, CancellationToken.None);
+        await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelB, scene.AdminUserId, CancellationToken.None);
 
         var permitted = await service.GetPermittedLevelIdsAsync(scene.TeacherId, CancellationToken.None);
 
         Assert.Equal(2, permitted.Count);
         Assert.Contains(scene.LevelA, permitted);
         Assert.Contains(scene.LevelB, permitted);
+    }
+
+    /// <summary>Owner decision 2026-09-04, the whole reason the course column
+    /// exists: being permitted to teach B2 in one course says nothing about B2
+    /// in another. Before this, a teacher hired for English was silently
+    /// authorised for the same level in Spanish and Quran the moment those
+    /// courses were added.</summary>
+    [Fact]
+    public async Task A_grant_in_one_course_does_not_authorise_the_same_level_in_another()
+    {
+        await using var db = _fixture.CreateContext();
+        var scene = await SeedAsync(db);
+        var service = CreateService(db);
+
+        await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+
+        Assert.True(await service.IsAuthorizedForCourseLevelAsync(
+            scene.TeacherId, scene.CourseA, scene.LevelA, CancellationToken.None));
+
+        // Same teacher, same level, different course — and the answer is no.
+        Assert.False(await service.IsAuthorizedForCourseLevelAsync(
+            scene.TeacherId, scene.CourseB, scene.LevelA, CancellationToken.None));
+    }
+
+    /// <summary>The other half: the same level in two courses is two separate
+    /// grants, not a duplicate. The old (teacher, level) unique index made them
+    /// the same row, so granting the second collided with the first.</summary>
+    [Fact]
+    public async Task The_same_level_can_be_granted_separately_in_two_courses()
+    {
+        await using var db = _fixture.CreateContext();
+        var scene = await SeedAsync(db);
+        var service = CreateService(db);
+
+        var first = await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        var second = await service.GrantAsync(scene.TeacherId, scene.CourseB, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+
+        Assert.Equal(TeacherLevelGrantOutcome.Granted, first);
+        Assert.Equal(TeacherLevelGrantOutcome.Granted, second);
+
+        Assert.True(await service.IsAuthorizedForCourseLevelAsync(scene.TeacherId, scene.CourseA, scene.LevelA, CancellationToken.None));
+        Assert.True(await service.IsAuthorizedForCourseLevelAsync(scene.TeacherId, scene.CourseB, scene.LevelA, CancellationToken.None));
+
+        // Re-granting the SAME triple is still the idempotent no-op it was.
+        Assert.Equal(TeacherLevelGrantOutcome.AlreadyGranted,
+            await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None));
+    }
+
+    /// <summary>Revoking is per (course, level) too: taking away English B2
+    /// must leave Spanish B2 standing.</summary>
+    [Fact]
+    public async Task Revoking_a_grant_in_one_course_leaves_the_other_course_alone()
+    {
+        await using var db = _fixture.CreateContext();
+        var scene = await SeedAsync(db);
+        var service = CreateService(db);
+
+        await service.GrantAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+        await service.GrantAsync(scene.TeacherId, scene.CourseB, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+
+        var revoked = await service.RevokeAsync(scene.TeacherId, scene.CourseA, scene.LevelA, scene.AdminUserId, CancellationToken.None);
+
+        Assert.Equal(TeacherLevelRevokeOutcome.Revoked, revoked);
+        Assert.False(await service.IsAuthorizedForCourseLevelAsync(scene.TeacherId, scene.CourseA, scene.LevelA, CancellationToken.None));
+        Assert.True(await service.IsAuthorizedForCourseLevelAsync(scene.TeacherId, scene.CourseB, scene.LevelA, CancellationToken.None));
     }
 }
