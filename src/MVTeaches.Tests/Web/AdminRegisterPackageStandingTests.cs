@@ -35,7 +35,7 @@ public class AdminRegisterPackageStandingTests : IClassFixture<AuthorizationTest
 {
     private readonly AuthorizationTests.Factory _factory;
     private const string Password = "CorrectHorse123!";
-    private static long _idSeed = 88_000_000;
+    private static long _idSeed = 880_000_000;
 
     public AdminRegisterPackageStandingTests(TestDatabaseFixture fixture, AuthorizationTests.Factory factory)
     {
@@ -44,6 +44,32 @@ public class AdminRegisterPackageStandingTests : IClassFixture<AuthorizationTest
     }
 
     private static long NextId() => Interlocked.Increment(ref _idSeed);
+
+
+    /// <summary>A level id that is actually free. Hand-picked seed ranges are
+    /// not self-correcting - the next test class added takes the range, and the
+    /// collision surfaces only in a FULL run, as this one did (PK_levels, 23505).
+    /// Catching the real unique violation and retrying is, which is the same
+    /// reasoning SubscriptionServiceTests records for country codes.</summary>
+    private static async Task<int> SeedLevelAsync(MvTeachesDbContext db, string prefix)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var levelId = (int)NextId();
+            db.Levels.Add(new MVTeaches.Domain.Catalog.Level(levelId, $"{prefix}{levelId}", "مستوى", "Level", levelId));
+            try
+            {
+                await db.SaveChangesAsync();
+                return levelId;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new InvalidOperationException("Could not find a free level id after 10 attempts.");
+    }
 
     private static readonly Regex AntiforgeryTokenPattern = new(
         "name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"");
@@ -93,9 +119,8 @@ public class AdminRegisterPackageStandingTests : IClassFixture<AuthorizationTest
         var course = new Course($"STAND-{NextId()}", "دورة", "Standing Course");
         db.Courses.Add(course);
 
-        var levelId = (int)NextId();
-        db.Levels.Add(new Level(levelId, $"ST{levelId}", "مستوى", "Level", levelId));
         await db.SaveChangesAsync();
+        var levelId = await SeedLevelAsync(db, "ST");
 
         var fullName = $"Standing Student {NextId()}";
         var student = new Student(countryId, fullName, new LocalDate(2010, 5, 5), userId: null);

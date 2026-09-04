@@ -30,7 +30,7 @@ namespace MVTeaches.Tests.Subscriptions;
 public class SiblingPurchaseTests
 {
     private readonly TestDatabaseFixture _fixture;
-    private static long _idSeed = 66_000_000;
+    private static long _idSeed = 660_000_000;
 
     public SiblingPurchaseTests(TestDatabaseFixture fixture) => _fixture = fixture;
 
@@ -45,8 +45,20 @@ public class SiblingPurchaseTests
     /// <summary>Its own country, retrying on the unique code — the same reason
     /// SubscriptionServiceTests does it: these classes share one database and
     /// must not depend on another's rows or on seeding having run.</summary>
+    /// <summary>Reuses a country if the database already has one, and only
+    /// mints a fresh one when it does not. There are just 676 two-letter codes
+    /// and every test class shares one database, so a class that creates a
+    /// country per test spends that space for no reason - and pushes the
+    /// classes that DON'T retry into collisions, which is exactly what adding
+    /// this class first did to EnrollmentServiceTests.</summary>
     private static async Task<int> SeedCountryAsync(MvTeachesDbContext db)
     {
+        var existing = await db.Countries.OrderBy(c => c.Id).Select(c => (int?)c.Id).FirstOrDefaultAsync();
+        if (existing is not null)
+        {
+            return existing.Value;
+        }
+
         for (var attempt = 0; attempt < 10; attempt++)
         {
             var countryId = (int)NextId();
@@ -65,6 +77,32 @@ public class SiblingPurchaseTests
         throw new InvalidOperationException("Could not find a free 2-letter country code after 10 attempts.");
     }
 
+
+    /// <summary>A level id that is actually free. Hand-picked seed ranges are
+    /// not self-correcting - the next test class added takes the range, and the
+    /// collision surfaces only in a FULL run, as this one did (PK_levels, 23505).
+    /// Catching the real unique violation and retrying is, which is the same
+    /// reasoning SubscriptionServiceTests records for country codes.</summary>
+    private static async Task<int> SeedLevelAsync(MvTeachesDbContext db, string prefix)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var levelId = (int)NextId();
+            db.Levels.Add(new MVTeaches.Domain.Catalog.Level(levelId, $"{prefix}{levelId}", "مستوى", "Level", levelId));
+            try
+            {
+                await db.SaveChangesAsync();
+                return levelId;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new InvalidOperationException("Could not find a free level id after 10 attempts.");
+    }
+
     private static ISubscriptionService CreateService(MvTeachesDbContext db) =>
         new SubscriptionService(db, new FakeClock(SystemClock.Instance.GetCurrentInstant()),
             new EntitlementBalanceQuery(db));
@@ -81,9 +119,8 @@ public class SiblingPurchaseTests
         var course = new Course($"SIB-{NextId()}", "دورة", "Sibling Course");
         db.Courses.Add(course);
 
-        var levelId = (int)NextId();
-        db.Levels.Add(new Level(levelId, $"SB{levelId}", "مستوى", "Level", levelId));
         await db.SaveChangesAsync();
+        var levelId = await SeedLevelAsync(db, "SB");
 
         var guardianUser = new MVTeaches.Infrastructure.Identity.ApplicationUser
         {

@@ -128,31 +128,47 @@ else
                levels was filling this form in three times, and every pair of a
                ticked course and a ticked level is a row the table stores
                anyway. *@
-            <div class="col-12">
-                <label class="form-label">@T["Courses"]<span class="app-required">*</span></label>
-                <div class="d-flex flex-wrap gap-3">
+            @* Owner report 2026-09-05: twenty-one courses laid out as loose
+               checkboxes across the full width was a wall to read and a lottery
+               to click. Same inputs, same names, same posted values - put in a
+               bounded, searchable, scrollable box with the chosen ones echoed
+               back as chips, so the admin can see what they have picked without
+               scrolling back through the list. The search box reuses the
+               data-mv-filter behaviour the register already uses. *@
+            <div class="col-md-7">
+                <label class="form-label" for="grantCourseSearch">@T["Courses"]<span class="app-required">*</span></label>
+                <input type="search" class="form-control form-control-sm mb-2" id="grantCourseSearch"
+                       data-mv-filter="#grantCourseList" data-mv-filter-count="#grantCourseCount"
+                       placeholder="@T["Search courses…"]" autocomplete="off" />
+                <div class="app-checklist" id="grantCourseList" data-mv-chosen-into="#grantCourseChips">
                     @foreach (var c in Model.Courses)
                     {
-                        <div class="form-check">
+                        <div class="form-check" data-mv-filter-item="true">
                             <input class="form-check-input" type="checkbox" name="LevelGrant.CourseIds"
-                                   value="@c.Id" id="grantCourse_@c.Id" />
+                                   value="@c.Id" id="grantCourse_@c.Id" data-mv-chosen-label="@c.NameEn" />
                             <label class="form-check-label" for="grantCourse_@c.Id">@c.NameEn</label>
                         </div>
                     }
+                    <p class="text-muted small mb-0 p-2" data-mv-filter-empty="true" hidden>@T["No course matches this search — try part of the name instead."]</p>
                 </div>
+                <div class="form-text" id="grantCourseCount"></div>
+                <div class="app-chip-tray mt-2" id="grantCourseChips" aria-live="polite"></div>
             </div>
-            <div class="col-12">
+            <div class="col-md-5">
                 <label class="form-label">@T["Levels"]<span class="app-required">*</span></label>
-                <div class="d-flex flex-wrap gap-3">
+                @* Six of them, and they are the same six everywhere - no search
+                   box earns its place here. *@
+                <div class="app-checklist app-checklist-short" data-mv-chosen-into="#grantLevelChips">
                     @foreach (var l in Model.Levels)
                     {
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="LevelGrant.LevelIds"
-                                   value="@l.Id" id="grantLevel_@l.Id" />
+                                   value="@l.Id" id="grantLevel_@l.Id" data-mv-chosen-label="@l.Code" />
                             <label class="form-check-label" for="grantLevel_@l.Id">@l.Code</label>
                         </div>
                     }
                 </div>
+                <div class="app-chip-tray mt-2" id="grantLevelChips" aria-live="polite"></div>
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-primary">@T["Allow these levels"]</button>
@@ -327,25 +343,44 @@ else
                         @* Each chip names the course as well as the level: a
                            teacher authorised for B2 English is not authorised
                            for B2 Spanish, and the chip has to say so. *@
+                        @* Owner report 2026-09-05: grouped by course. One line per
+                           course with its levels beside it, rather than one button
+                           per (course, level) pair - a teacher authorised for six
+                           levels in four courses produced twenty-four buttons in a
+                           single cell, which broke the table. The course is still
+                           named on every line, because authorisation for B2 English
+                           is not authorisation for B2 Spanish. *@
                         @if (Model.GrantsByTeacher.TryGetValue(t.Id, out var grants) && grants.Count > 0)
                         {
-                            foreach (var g in grants)
-                            {
-                                @if (canManage)
+                            <div class="app-grant-list">
+                                @foreach (var byCourse in grants.GroupBy(g => new { g.CourseId, g.CourseName })
+                                    .OrderBy(g => g.Key.CourseName))
                                 {
-                                    <form method="post" asp-page-handler="RevokeLevel" class="d-inline-block me-1 mb-1">
-                                        <input type="hidden" name="teacherId" value="@t.Id" />
-                                        <input type="hidden" name="courseId" value="@g.CourseId" />
-                                        <input type="hidden" name="levelId" value="@g.LevelId" />
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="@T["Revoke this level"]"
-                                                data-mv-confirm="@T["Revoke this level from this teacher?"]">@g.CourseName @g.LevelCode &times;</button>
-                                    </form>
+                                    <div class="app-grant-row">
+                                        <span class="app-grant-course">@byCourse.Key.CourseName</span>
+                                        <span class="app-grant-levels">
+                                            @foreach (var g in byCourse.OrderBy(g => g.LevelCode))
+                                            {
+                                                @if (canManage)
+                                                {
+                                                    <form method="post" asp-page-handler="RevokeLevel" class="d-inline">
+                                                        <input type="hidden" name="teacherId" value="@t.Id" />
+                                                        <input type="hidden" name="courseId" value="@g.CourseId" />
+                                                        <input type="hidden" name="levelId" value="@g.LevelId" />
+                                                        <button type="submit" class="app-chip is-level is-removable"
+                                                                title="@T["Revoke {0} {1} from this teacher", byCourse.Key.CourseName, g.LevelCode]"
+                                                                data-mv-confirm="@T["Revoke this level from this teacher?"]">@g.LevelCode</button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="app-chip is-level">@g.LevelCode</span>
+                                                }
+                                            }
+                                        </span>
+                                    </div>
                                 }
-                                else
-                                {
-                                    <span class="app-chip me-1">@g.CourseName @g.LevelCode</span>
-                                }
-                            }
+                            </div>
                         }
                         else
                         {

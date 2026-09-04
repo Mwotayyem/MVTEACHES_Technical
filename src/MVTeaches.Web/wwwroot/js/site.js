@@ -759,6 +759,51 @@
         });
     }
 
+    // <div data-mv-chosen-into="#tray"> containing checkboxes that each carry
+    // data-mv-chosen-label. Echoes the ticked ones into that tray as chips, so a
+    // long scrollable list can be read back at a glance instead of scrolled
+    // through again. Clicking a chip unticks its box.
+    //
+    // Display only: the checkboxes themselves stay the one source of truth and
+    // are what the form posts, exactly as before. If this script never runs the
+    // form still works - the tray is simply empty.
+    function wireChosenChips() {
+        document.querySelectorAll("[data-mv-chosen-into]").forEach(function (list) {
+            var tray = document.querySelector(list.getAttribute("data-mv-chosen-into"));
+            if (!tray) {
+                return;
+            }
+
+            var boxes = list.querySelectorAll('input[type="checkbox"][data-mv-chosen-label]');
+
+            function render() {
+                tray.textContent = "";
+                boxes.forEach(function (box) {
+                    if (!box.checked) {
+                        return;
+                    }
+
+                    var chip = document.createElement("button");
+                    chip.type = "button";
+                    chip.className = "app-chip is-removable";
+                    chip.textContent = box.getAttribute("data-mv-chosen-label");
+                    chip.setAttribute("aria-label", box.getAttribute("data-mv-chosen-label"));
+                    chip.addEventListener("click", function () {
+                        box.checked = false;
+                        render();
+                        box.focus();
+                    });
+                    tray.appendChild(chip);
+                });
+            }
+
+            boxes.forEach(function (box) {
+                box.addEventListener("change", render);
+            });
+            render();
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         wireTableFilters();
         wireSelectFilters();
@@ -767,6 +812,7 @@
         wireDependentFields();
         wireOwnedOptions();
         wireEchoes();
+        wireChosenChips();
         wireStepProgress();
         wireConfirmations();
         wireFileModals();

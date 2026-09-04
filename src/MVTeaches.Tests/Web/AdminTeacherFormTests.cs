@@ -206,4 +206,88 @@ public class AdminTeacherFormTests : IClassFixture<AuthorizationTests.Factory>
         Assert.Equal(17m, rate.Rate.Amount);
         Assert.Null(rate.EffectiveTo); // the only one, and open
     }
+
+    /// <summary>Owner report 2026-09-05: the picker was rebuilt as a bounded,
+    /// searchable, scrollable box with the ticked courses echoed back as chips.
+    /// That is presentation - these assertions exist to prove the rebuild did
+    /// not change what the form POSTS, which is the part the grant depends on.
+    /// The submission test above still passes because these are the same inputs
+    /// under the same names; this one pins the markup that carries them.</summary>
+    [Fact]
+    public async Task The_course_picker_is_a_bounded_searchable_list_posting_the_same_field()
+    {
+        await SeedCoursesAndLevelsAsync();
+        var client = await SystemAdminClientAsync("picker");
+
+        var html = await client.GetStringAsync("/Admin/Teachers");
+
+        // Bounded and scrollable rather than loose across the page, searchable,
+        // and echoing the choices back.
+        Assert.Contains("app-checklist", html);
+        Assert.Contains("data-mv-filter=\"#grantCourseList\"", html);
+        Assert.Contains("data-mv-chosen-into=\"#grantCourseChips\"", html);
+
+        // And still posting LevelGrant.CourseIds / LevelGrant.LevelIds as
+        // checkboxes - the names OnPostGrantLevelAsync binds.
+        Assert.Contains("name=\"LevelGrant.CourseIds\"", html);
+        Assert.Contains("name=\"LevelGrant.LevelIds\"", html);
+    }
+
+    /// <summary>A teacher authorised for several levels in several courses used
+    /// to render one button per pair - twenty-four of them in one table cell for
+    /// four courses at six levels, which broke the table. Grouped by course now:
+    /// one line per course, its levels beside it.</summary>
+    [Fact]
+    public async Task Teaching_permission_is_listed_grouped_by_course()
+    {
+        var teacherId = await SeedTeacherAsync();
+        var (courseA, courseB, levelA, levelB) = await SeedCoursesAndLevelsAsync();
+        var client = await SystemAdminClientAsync("grouped");
+
+        var page = await client.GetStringAsync("/Admin/Teachers");
+        var granted = await client.PostAsync("/Admin/Teachers?handler=GrantLevel", new FormUrlEncodedContent(
+            new List<KeyValuePair<string, string>>
+            {
+                new("__RequestVerificationToken", AntiforgeryTokenPattern.Match(page).Groups[1].Value),
+                new("LevelGrant.TeacherId", teacherId.ToString()),
+                new("LevelGrant.CourseIds", courseA.ToString()),
+                new("LevelGrant.CourseIds", courseB.ToString()),
+                new("LevelGrant.LevelIds", levelA.ToString()),
+                new("LevelGrant.LevelIds", levelB.ToString()),
+            }));
+        Assert.Equal(HttpStatusCode.OK, granted.StatusCode);
+
+        var html = await granted.Content.ReadAsStringAsync();
+
+        // Four grants, but each course named ONCE - that is the whole point.
+        Assert.Contains("app-grant-list", html);
+        Assert.Contains("app-grant-course", html);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MvTeachesDbContext>();
+        var teacherName = (await db.Teachers.SingleAsync(x => x.Id == teacherId)).FullName;
+        var courseAName = (await db.Courses.SingleAsync(c => c.Id == courseA)).NameEn;
+
+        // Scoped to THIS teacher's row: course names are not unique across the
+        // shared test database, and the picker above lists every course there
+        // is, so counting over the whole page would count other tests' rows.
+        // The LAST occurrence: this teacher's name also appears earlier in the
+        // page, in the pickers above the table, which are not inside any row.
+        var nameAt = html.LastIndexOf(teacherName, StringComparison.Ordinal);
+        Assert.True(nameAt >= 0, $"No row for {teacherName}.");
+        var rowStart = html.LastIndexOf("<tr", nameAt, StringComparison.Ordinal);
+        var rowEnd = html.IndexOf("</tr>", nameAt, StringComparison.Ordinal);
+        var row = html[rowStart..rowEnd];
+
+        // Four grants (two courses x two levels) rendered as TWO lines, one per
+        // course - not four. That difference is the whole change: per-pair
+        // rendering put twenty-four buttons in this cell for a teacher with six
+        // levels in four courses.
+        var lines = System.Text.RegularExpressions.Regex.Matches(row, "app-grant-row").Count;
+        Assert.Equal(2, lines);
+
+        // And the course is still named on its line, because authorisation for
+        // B2 English is not authorisation for B2 Spanish.
+        Assert.Contains($">{courseAName}</span>", row);
+    }
 }

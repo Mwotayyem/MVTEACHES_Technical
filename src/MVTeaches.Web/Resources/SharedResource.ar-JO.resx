@@ -821,6 +821,7 @@
   <data name="Not ready" xml:space="preserve"><value>غير جاهز</value></data>
   <data name="Ready" xml:space="preserve"><value>جاهز</value></data>
   <data name="Revoke this level" xml:space="preserve"><value>إلغاء هذا المستوى</value></data>
+  <data name="Revoke {0} {1} from this teacher" xml:space="preserve"><value>سحب {0} {1} من هذا المعلم</value></data>
   <data name="Reactivate" xml:space="preserve"><value>إعادة التفعيل</value></data>
   <data name="Could not create the teacher's login: {0}" xml:space="preserve"><value>تعذّر إنشاء حساب دخول المعلم: {0}</value></data>
   <data name="Teacher '{0}' registered." xml:space="preserve"><value>تم تسجيل المعلم '{0}'.</value></data>
@@ -1552,6 +1553,8 @@
   <data name="Leave course, level and age group empty for the teacher's ordinary rate — that one covers everything they teach. Add a more specific rate only when one particular kind of class pays differently; the most specific one that fits wins at payment time. A new rate takes effect today and closes the previous one for the same combination, so only ever one is in force." xml:space="preserve"><value>اترك الدورة والمستوى والفئة العمرية فارغة للأجر العادي — فهو يغطّي كل ما يدرّسه. ولا تضف أجرًا أدق إلا حين يختلف نوع معيَّن من الحصص؛ والأدق المنطبق هو من يُعتمد عند الدفع. والأجر الجديد يسري من اليوم ويُغلق السابق لنفس التركيب، فلا يكون ساريًا إلا واحد.</value></data>
   <data name="What the teacher earns per unit chosen beside it." xml:space="preserve"><value>ما يتقاضاه المعلم لكل وحدة مختارة بجانبه.</value></data>
   <data name="Courses" xml:space="preserve"><value>الدورات</value></data>
+  <data name="Search courses…" xml:space="preserve"><value>ابحث في الدورات…</value></data>
+  <data name="No course matches this search — try part of the name instead." xml:space="preserve"><value>لا توجد دورة تطابق هذا البحث — جرّب جزءًا من الاسم.</value></data>
   <data name="Tick at least one course this teacher may teach." xml:space="preserve"><value>أشِّر على دورة واحدة على الأقل يُسمح لهذا المعلم بتدريسها.</value></data>
   <data name="Save the pay rate" xml:space="preserve"><value>احفظ معدّل الأجر</value></data>
   <data name="Next: when a delivered session is verified on the payroll screen, this is the rate it is paid at. Sessions delivered before today keep the rate that was in force then." xml:space="preserve"><value>التالي: عند التحقق من حصة مُسلَّمة في شاشة الرواتب، يُحتسب بهذا الأجر. والحصص المُسلَّمة قبل اليوم تحتفظ بالأجر الذي كان ساريًا حينها.</value></data>

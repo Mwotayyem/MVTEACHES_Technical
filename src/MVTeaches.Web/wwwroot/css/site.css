@@ -1785,6 +1785,87 @@ a.app-kpi:hover {
   font-weight: 700;
 }
 
+/* A long list of checkboxes given a bounded, scrollable home instead of
+   spilling across the page. Used by the teaching-permission picker, where
+   twenty-one courses were laid out loose. */
+.app-checklist {
+  max-height: 15rem;
+  overflow-y: auto;
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm, 8px);
+  background: var(--mv-surface);
+  padding: 0.5rem 0.75rem;
+}
+
+.app-checklist-short {
+  max-height: 11rem;
+}
+
+.app-checklist .form-check {
+  padding-block: 0.15rem;
+}
+
+/* Where the ticked ones are echoed back, so a scrolled list can be read at a
+   glance. Empty until something is chosen, and it simply stays empty if the
+   script never runs. */
+.app-chip-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.app-chip-tray:empty {
+  display: none;
+}
+
+.app-chip.is-removable {
+  background: var(--mv-primary-soft);
+  border-color: transparent;
+  color: var(--mv-primary-strong);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-chip.is-removable::after {
+  content: " d7";
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.app-chip.is-removable:hover,
+.app-chip.is-removable:focus-visible {
+  background: var(--mv-primary);
+  color: #fff;
+}
+
+/* One line per course, its levels beside it. Keeps a teacher's whole teaching
+   permission readable inside a table cell. */
+.app-grant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.app-grant-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.app-grant-course {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--mv-text);
+  min-width: 9rem;
+}
+
+.app-grant-levels {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
 .app-profile-actions {
   display: flex;
   flex-wrap: wrap;
