@@ -271,8 +271,8 @@
   <data name="{0} was added. The centre will set their level — until then you cannot buy a package or book a lesson for them." xml:space="preserve"><value>{0} was added. The centre will set their level — until then you cannot buy a package or book a lesson for them.</value></data>
   <data name="This account is not linked to a guardian record yet — please contact the centre." xml:space="preserve"><value>This account is not linked to a guardian record yet — please contact the centre.</value></data>
   <data name="This package no longer matches the student's current level." xml:space="preserve"><value>This package no longer matches the student's current level.</value></data>
-  <data name="You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again." xml:space="preserve"><value>You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again.</value></data>
-  <data name="You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used." xml:space="preserve"><value>You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used.</value></data>
+  <data name="{0} already has a request for this same package (request #{1}) still awaiting payment. Finish paying that request below instead of requesting it again. This is about {0} only — a package for another child is requested and paid for separately." xml:space="preserve"><value>{0} already has a request for this same package (request #{1}) still awaiting payment. Finish paying that request below instead of requesting it again. This is about {0} only — a package for another child is requested and paid for separately.</value></data>
+  <data name="{0} already has an active package on this same plan with hours still remaining. The same package cannot be bought again for {0} until those hours are used — another child's package is separate." xml:space="preserve"><value>{0} already has an active package on this same plan with hours still remaining. The same package cannot be bought again for {0} until those hours are used — another child's package is separate.</value></data>
   <data name="This student already has a draft request for this exact plan (subscription #{0}) still awaiting payment - record the payment against that one instead of creating a second request." xml:space="preserve"><value>This student already has a draft request for this exact plan (subscription #{0}) still awaiting payment - record the payment against that one instead of creating a second request.</value></data>
   <data name="This student already holds a live subscription for this exact plan (subscription #{0}) with hours still remaining - the same package cannot be sold again until those hours are used." xml:space="preserve"><value>This student already holds a live subscription for this exact plan (subscription #{0}) with hours still remaining - the same package cannot be sold again until those hours are used.</value></data>
   <data name="The receipt must be a JPEG, PNG, or PDF file." xml:space="preserve"><value>The receipt must be a JPEG, PNG, or PDF file.</value></data>
@@ -292,8 +292,12 @@
   <data name="No packages are currently published for your courses and levels — please contact the centre." xml:space="preserve"><value>No packages are currently published for your courses and levels — please contact the centre.</value></data>
   <data name="Valid {0} days" xml:space="preserve"><value>Valid {0} days</value></data>
   <data name="Choose a payment method" xml:space="preserve"><value>Choose a payment method</value></data>
+  <data name="Choose a payment method for {0}" xml:space="preserve"><value>Choose a payment method for {0}</value></data>
   <data name="No payment methods are currently available — please contact the centre." xml:space="preserve"><value>No payment methods are currently available — please contact the centre.</value></data>
   <data name="Package request" xml:space="preserve"><value>Package request</value></data>
+  <data name="Package request #{0}" xml:space="preserve"><value>Package request #{0}</value></data>
+  <data name="Package request #{0} for {1}" xml:space="preserve"><value>Package request #{0} for {1}</value></data>
+  <data name="this student" xml:space="preserve"><value>this student</value></data>
   <data name="Request payment with this method" xml:space="preserve"><value>Request payment with this method</value></data>
   <data name="Needs correction" xml:space="preserve"><value>Needs correction</value></data>
   <data name="Before you transfer" xml:space="preserve"><value>Before you transfer</value></data>
@@ -304,7 +308,7 @@
   <data name="Uploading a receipt does not mean your payment is approved or your package is active yet." xml:space="preserve"><value>Uploading a receipt does not mean your payment is approved or your package is active yet.</value></data>
   <data name="If you sent money to the wrong party, contact your bank AND the admin immediately — a refund can never be promised." xml:space="preserve"><value>If you sent money to the wrong party, contact your bank AND the admin immediately — a refund can never be promised.</value></data>
   <data name="I have read and understood the verification instructions above." xml:space="preserve"><value>I have read and understood the verification instructions above.</value></data>
-  <data name="Package requested (subscription #{0}, {1}) — choose a payment method below to continue." xml:space="preserve"><value>Package requested (subscription #{0}, {1}) — choose a payment method below to continue.</value></data>
+  <data name="Package requested for {0} (request #{1}, {2}) — choose a payment method below to continue." xml:space="preserve"><value>Package requested for {0} (request #{1}, {2}) — choose a payment method below to continue.</value></data>
   <data name="Not authorized for this student." xml:space="preserve"><value>Not authorized for this student.</value></data>
   <data name="Package request not found." xml:space="preserve"><value>Package request not found.</value></data>
   <data name="This package request is no longer awaiting payment." xml:space="preserve"><value>This package request is no longer awaiting payment.</value></data>
@@ -2115,6 +2119,7 @@
   <data name="Finish paying for your package" xml:space="preserve">
     <value>Finish paying for your package</value>
   </data>
+  <data name="Finish paying for {0}'s package" xml:space="preserve"><value>Finish paying for {0}'s package</value></data>
   <data name="A package stays inactive until the whole price is confirmed. Paying part of it is recorded, but it does not start the package." xml:space="preserve">
     <value>A package stays inactive until the whole price is confirmed. Paying part of it is recorded, but it does not start the package.</value>
   </data>

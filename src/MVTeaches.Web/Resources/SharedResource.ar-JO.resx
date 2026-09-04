@@ -271,8 +271,8 @@
   <data name="{0} was added. The centre will set their level — until then you cannot buy a package or book a lesson for them." xml:space="preserve"><value>تمت إضافة {0}. سيحدّد المركز مستواه — وحتى ذلك الحين لا يمكنك شراء باقة أو حجز حصة له.</value></data>
   <data name="This account is not linked to a guardian record yet — please contact the centre." xml:space="preserve"><value>هذا الحساب غير مرتبط بسجل ولي أمر بعد — يرجى التواصل مع المركز.</value></data>
   <data name="This package no longer matches the student's current level." xml:space="preserve"><value>هذه الباقة لم تعد تطابق المستوى الحالي للطالب.</value></data>
-  <data name="You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again." xml:space="preserve"><value>لديك طلب سابق لهذه الباقة (رقم {0}) ما زال بانتظار الدفع. أكمل دفع ذلك الطلب بالأسفل بدل إنشاء طلب جديد.</value></data>
-  <data name="You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used." xml:space="preserve"><value>لديك باقة فعّالة لنفس الخطة وبها رصيد متبقٍ. لا يمكنك شراء نفس الباقة مرة أخرى قبل انتهاء الرصيد.</value></data>
+  <data name="{0} already has a request for this same package (request #{1}) still awaiting payment. Finish paying that request below instead of requesting it again. This is about {0} only — a package for another child is requested and paid for separately." xml:space="preserve"><value>لدى {0} طلب سابق لنفس هذه الباقة (الطلب رقم {1}) ما زال بانتظار الدفع. أكمل دفع ذلك الطلب بالأسفل بدل إنشاء طلب جديد. هذا يخص {0} وحدها — باقة أي طفل آخر تُطلب وتُدفع بشكل منفصل.</value></data>
+  <data name="{0} already has an active package on this same plan with hours still remaining. The same package cannot be bought again for {0} until those hours are used — another child's package is separate." xml:space="preserve"><value>لدى {0} باقة فعّالة على نفس هذه الخطة وما زالت فيها ساعات. لا يمكن شراء نفس الباقة لـ{0} مرة أخرى حتى تُستهلك تلك الساعات — وباقة أي طفل آخر منفصلة تمامًا.</value></data>
   <data name="This student already has a draft request for this exact plan (subscription #{0}) still awaiting payment - record the payment against that one instead of creating a second request." xml:space="preserve"><value>هذا الطالب لديه بالفعل طلب مسوّدة لنفس الخطة (اشتراك رقم {0}) ما زال بانتظار الدفع — سجّل الدفعة على ذلك الطلب بدل إنشاء طلب ثانٍ.</value></data>
   <data name="This student already holds a live subscription for this exact plan (subscription #{0}) with hours still remaining - the same package cannot be sold again until those hours are used." xml:space="preserve"><value>هذا الطالب لديه بالفعل اشتراك فعّال لنفس الخطة (اشتراك رقم {0}) وبه رصيد متبقٍ — لا يمكن بيع نفس الباقة مرة أخرى قبل انتهاء الرصيد.</value></data>
   <data name="The receipt must be a JPEG, PNG, or PDF file." xml:space="preserve"><value>يجب أن يكون الإيصال ملف JPEG أو PNG أو PDF.</value></data>
@@ -292,8 +292,12 @@
   <data name="No packages are currently published for your courses and levels — please contact the centre." xml:space="preserve"><value>لا توجد باقات منشورة حاليًا لدوراتك ومستوياتك — يرجى التواصل مع المركز.</value></data>
   <data name="Valid {0} days" xml:space="preserve"><value>صالحة لمدة {0} يومًا</value></data>
   <data name="Choose a payment method" xml:space="preserve"><value>اختر طريقة الدفع</value></data>
+  <data name="Choose a payment method for {0}" xml:space="preserve"><value>اختر طريقة الدفع لـ{0}</value></data>
   <data name="No payment methods are currently available — please contact the centre." xml:space="preserve"><value>لا توجد طرق دفع متاحة حاليًا — يرجى التواصل مع المركز.</value></data>
   <data name="Package request" xml:space="preserve"><value>طلب الباقة</value></data>
+  <data name="Package request #{0}" xml:space="preserve"><value>طلب باقة رقم {0}</value></data>
+  <data name="Package request #{0} for {1}" xml:space="preserve"><value>طلب باقة رقم {0} لـ{1}</value></data>
+  <data name="this student" xml:space="preserve"><value>هذا الطالب</value></data>
   <data name="Request payment with this method" xml:space="preserve"><value>طلب الدفع بهذه الطريقة</value></data>
   <data name="Needs correction" xml:space="preserve"><value>بحاجة إلى تصحيح</value></data>
   <data name="Before you transfer" xml:space="preserve"><value>قبل إجراء التحويل</value></data>
@@ -304,7 +308,7 @@
   <data name="Uploading a receipt does not mean your payment is approved or your package is active yet." xml:space="preserve"><value>رفع الإيصال لا يعني أن دفعتك معتمدة أو أن باقتك مفعّلة بعد.</value></data>
   <data name="If you sent money to the wrong party, contact your bank AND the admin immediately — a refund can never be promised." xml:space="preserve"><value>إذا أرسلت المبلغ لجهة خاطئة، تواصل مع بنكك والإدارة فورًا — لا يمكن ضمان استرداد المبلغ أبدًا.</value></data>
   <data name="I have read and understood the verification instructions above." xml:space="preserve"><value>لقد قرأت وفهمت تعليمات التحقق أعلاه.</value></data>
-  <data name="Package requested (subscription #{0}, {1}) — choose a payment method below to continue." xml:space="preserve"><value>تم طلب الباقة (اشتراك رقم {0}، {1}) — اختر طريقة دفع أدناه للمتابعة.</value></data>
+  <data name="Package requested for {0} (request #{1}, {2}) — choose a payment method below to continue." xml:space="preserve"><value>تم طلب الباقة لـ{0} (الطلب رقم {1}، {2}) — اختر طريقة الدفع بالأسفل للمتابعة.</value></data>
   <data name="Not authorized for this student." xml:space="preserve"><value>غير مخوّل للتصرف نيابة عن هذا الطالب.</value></data>
   <data name="Package request not found." xml:space="preserve"><value>طلب الباقة غير موجود.</value></data>
   <data name="This package request is no longer awaiting payment." xml:space="preserve"><value>طلب الباقة هذا لم يعد بانتظار الدفع.</value></data>
@@ -2115,6 +2119,7 @@
   <data name="Finish paying for your package" xml:space="preserve">
     <value>أكمل دفع قيمة باقتك</value>
   </data>
+  <data name="Finish paying for {0}'s package" xml:space="preserve"><value>أكمل دفع باقة {0}</value></data>
   <data name="A package stays inactive until the whole price is confirmed. Paying part of it is recorded, but it does not start the package." xml:space="preserve">
     <value>تبقى الباقة غير مفعّلة حتى يتم تأكيد كامل قيمتها. دفع جزء منها يُسجَّل، لكنه لا يبدأ الباقة.</value>
   </data>

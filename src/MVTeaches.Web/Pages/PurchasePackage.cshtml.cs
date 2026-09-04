@@ -168,9 +168,22 @@ public class PurchasePackageModel : PageModel
         var result = await _subscriptions.PurchaseFromPlanAsync(studentId, pricingPlanId, actingUserId, origin,
             isAdminInitiated: false, HttpContext.RequestAborted);
 
+        // Owner report 2026-09-05: loaded BEFORE the messages are built, because
+        // every message below has to be able to name the child. A guardian with
+        // two daughters bought a package for the first, then read "you already
+        // have a request for this package (#3) still awaiting payment" while
+        // buying for the second, and reasonably read it as the FIRST child's
+        // request blocking the second. It never was - the guard is keyed on the
+        // student (see SubscriptionService.PurchaseFromPlanAsync) and cannot
+        // see a sibling at all - but a message about a family's child that does
+        // not say which child is not a message about anything.
+        await LoadAsync(studentId);
+        var childName = SelectedStudentName ?? _localizer["this student"].Value;
+
         if (result.Outcome == PurchaseFromPlanOutcome.Purchased)
         {
-            StatusMessage = _localizer["Package requested (subscription #{0}, {1}) — choose a payment method below to continue.", result.SubscriptionId!, result.Price!].Value;
+            StatusMessage = _localizer["Package requested for {0} (request #{1}, {2}) — choose a payment method below to continue.",
+                childName, result.SubscriptionId!, result.Price!].Value;
         }
         else
         {
@@ -186,18 +199,18 @@ public class PurchasePackageModel : PageModel
                 // obvious — finish paying that request, or use up those hours —
                 // instead of leaving them to press the same button again.
                 PurchaseFromPlanOutcome.DraftAlreadyAwaitingPayment =>
-                    _localizer["You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again.",
-                        result.SubscriptionId!].Value,
+                    _localizer["{0} already has a request for this same package (request #{1}) still awaiting payment. Finish paying that request below instead of requesting it again. This is about {0} only — a package for another child is requested and paid for separately.",
+                        childName, result.SubscriptionId!].Value,
                 PurchaseFromPlanOutcome.ActivePackageStillHasBalance =>
-                    _localizer["You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used."].Value,
+                    _localizer["{0} already has an active package on this same plan with hours still remaining. The same package cannot be bought again for {0} until those hours are used — another child's package is separate.",
+                        childName].Value,
                 PurchaseFromPlanOutcome.StudentIsUnderGuardianCare =>
                     _localizer["Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre."].Value,
                 _ => _localizer["Could not record this purchase."].Value,
             };
         }
 
-        await LoadAsync(studentId);
-        return Page();
+        return Page(); // already loaded above, so the messages could name the child
     }
 
     public async Task<IActionResult> OnPostRequestPaymentAsync(long studentId, long subscriptionId, long paymentMethodConfigId)

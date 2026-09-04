@@ -180,14 +180,22 @@ else
            way, so a payer who had already transferred most of it had no reason
            to believe this was the right place to finish. It now says which of
            the two situations each package is in, and how much is left. *@
+        @* Owner report 2026-09-05: every heading and card in this section names
+           the child. A guardian sees one child at a time here, but the message
+           that sends them here is about a specific child, and "your package"
+           reads as the family's when there are two daughters in the system. *@
         <h2 id="finish-paying">
             @if (Model.UnpaidDraftSubscriptions.Any(d => d.ConfirmedReceived > 0))
             {
-                @T["Finish paying for your package"]
+                @(Model.SelectedStudentName is null
+                    ? T["Finish paying for your package"].Value
+                    : T["Finish paying for {0}'s package", Model.SelectedStudentName].Value)
             }
             else
             {
-                @T["Choose a payment method"]
+                @(Model.SelectedStudentName is null
+                    ? T["Choose a payment method"].Value
+                    : T["Choose a payment method for {0}", Model.SelectedStudentName].Value)
             }
         </h2>
         @if (Model.ActiveMethods.Count == 0)
@@ -201,7 +209,12 @@ else
                 var paidPercent = s.Price <= 0m ? 0 : (int)Math.Round(Math.Clamp(s.ConfirmedReceived / s.Price * 100m, 0m, 100m));
                 <div class="card mb-3">
                     <div class="card-body">
-                        <h5 class="card-title">@T["Package request"] — @T.Money(s.Price, s.Currency)</h5>
+                        <h5 class="card-title">
+                            @(Model.SelectedStudentName is null
+                                ? T["Package request #{0}", s.Id].Value
+                                : T["Package request #{0} for {1}", s.Id, Model.SelectedStudentName].Value)
+                            — @T.Money(s.Price, s.Currency)
+                        </h5>
                         <dl class="row small mb-2">
                             <dt class="col-sm-3">@T["Package price"]</dt>
                             <dd class="col-sm-9">@T.Money(s.Price, s.Currency)</dd>
