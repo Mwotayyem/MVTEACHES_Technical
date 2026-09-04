@@ -60,37 +60,44 @@ public class PlacementAttemptService : IPlacementAttemptService
     {
         if (!await IsAuthorizedAsync(studentId, actingUserId, cancellationToken))
         {
-            return new PlacementEligibilityResult(PlacementEligibilityStatus.Unauthorized, null, null, null);
+            return new PlacementEligibilityResult(PlacementEligibilityStatus.Unauthorized,
+                Array.Empty<StudentCourseLevel>(), null, null);
         }
 
-        var currentLevelId = await _db.StudentLevels
+        // Owner decision 2026-09-04 (multi-course levels): every current
+        // placement, one per course. This used to take FirstOrDefault, which
+        // silently picked an arbitrary one of a student's courses the moment
+        // they studied two - and then hid every package and session belonging
+        // to the others.
+        var currentLevels = await _db.StudentLevels
             .Where(l => l.StudentId == studentId && l.IsCurrent)
-            .Select(l => (int?)l.LevelId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .OrderBy(l => l.CourseId)
+            .Select(l => new StudentCourseLevel(l.CourseId, l.LevelId))
+            .ToListAsync(cancellationToken);
 
         var (inProgress, pending, approvedUnconsumed, hasAnyCompleted) = await LoadStateAsync(studentId, cancellationToken);
 
         if (inProgress is not null)
         {
-            return new PlacementEligibilityResult(PlacementEligibilityStatus.AttemptInProgress, currentLevelId, inProgress.Id, null);
+            return new PlacementEligibilityResult(PlacementEligibilityStatus.AttemptInProgress, currentLevels, inProgress.Id, null);
         }
 
         if (pending is not null)
         {
-            return new PlacementEligibilityResult(PlacementEligibilityStatus.RetakePending, currentLevelId, null, pending.Id);
+            return new PlacementEligibilityResult(PlacementEligibilityStatus.RetakePending, currentLevels, null, pending.Id);
         }
 
         if (approvedUnconsumed is not null)
         {
-            return new PlacementEligibilityResult(PlacementEligibilityStatus.RetakeApprovedReadyToStart, currentLevelId, null, approvedUnconsumed.Id);
+            return new PlacementEligibilityResult(PlacementEligibilityStatus.RetakeApprovedReadyToStart, currentLevels, null, approvedUnconsumed.Id);
         }
 
         if (hasAnyCompleted)
         {
-            return new PlacementEligibilityResult(PlacementEligibilityStatus.AlreadyCompletedNoRetakeApproved, currentLevelId, null, null);
+            return new PlacementEligibilityResult(PlacementEligibilityStatus.AlreadyCompletedNoRetakeApproved, currentLevels, null, null);
         }
 
-        return new PlacementEligibilityResult(PlacementEligibilityStatus.EligibleFirstAttempt, currentLevelId, null, null);
+        return new PlacementEligibilityResult(PlacementEligibilityStatus.EligibleFirstAttempt, currentLevels, null, null);
     }
 
     public async Task<StartAttemptResult> StartAttemptAsync(long studentId, long actingUserId, CancellationToken cancellationToken)

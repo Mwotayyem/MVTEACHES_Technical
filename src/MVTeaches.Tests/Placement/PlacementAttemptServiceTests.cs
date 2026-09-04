@@ -170,7 +170,7 @@ public class PlacementAttemptServiceTests
         var eligibility = await service.GetEligibilityAsync(studentId, userId, CancellationToken.None);
 
         Assert.Equal(PlacementEligibilityStatus.EligibleFirstAttempt, eligibility.Status);
-        Assert.Null(eligibility.CurrentLevelId);
+        Assert.Empty(eligibility.CurrentLevels);
     }
 
     [Fact]
@@ -498,5 +498,41 @@ public class PlacementAttemptServiceTests
         var attempt = await verify.PlacementAttempts.FirstAsync(a => a.Id == started.AttemptId);
         Assert.Equal(levelA, attempt.AssignedLevelId);
         Assert.True(await verify.AuditLogEntries.AnyAsync(a => a.EntityType == "Student" && a.Action == "LevelOverridden" && a.PerformedByUserId == adminId));
+    }
+
+    /// <summary>Owner decision 2026-09-04 (multi-course levels): "the student's
+    /// level" is not a thing any more. Someone studying two subjects holds two
+    /// levels, and each one opens a different set of packages and a different
+    /// set of bookable sessions. This used to be a FirstOrDefault, so a student
+    /// with two courses had one of them silently disappear — both its packages
+    /// and its sessions were filtered out against a level they did not hold in
+    /// it.</summary>
+    [Fact]
+    public async Task Eligibility_reports_a_current_level_for_every_course_the_student_studies()
+    {
+        await using var db = _fixture.CreateContext();
+        var (studentId, userId) = await SeedStudentAsync(db);
+
+        var levelOne = (int)NextId();
+        var levelTwo = (int)NextId();
+        db.Levels.Add(new Level(levelOne, "L" + levelOne, "مستوى", "Level", levelOne));
+        db.Levels.Add(new Level(levelTwo, "L" + levelTwo, "مستوى", "Level", levelTwo));
+        var first = new Course("PLC-A-" + NextId(), "دورة", "Course A");
+        var second = new Course("PLC-B-" + NextId(), "دورة", "Course B");
+        db.Courses.AddRange(first, second);
+        await db.SaveChangesAsync();
+
+        var now = SystemClock.Instance.GetCurrentInstant();
+        db.StudentLevels.Add(new StudentLevel(studentId, first.Id, levelOne, userId, AssignedByRole.Admin,
+            LevelAssignmentSource.AdminOverride, null, "seed", now));
+        db.StudentLevels.Add(new StudentLevel(studentId, second.Id, levelTwo, userId, AssignedByRole.Admin,
+            LevelAssignmentSource.AdminOverride, null, "seed", now));
+        await db.SaveChangesAsync();
+
+        var eligibility = await CreateService(db).GetEligibilityAsync(studentId, userId, CancellationToken.None);
+
+        Assert.Equal(2, eligibility.CurrentLevels.Count);
+        Assert.Contains(eligibility.CurrentLevels, l => l.CourseId == first.Id && l.LevelId == levelOne);
+        Assert.Contains(eligibility.CurrentLevels, l => l.CourseId == second.Id && l.LevelId == levelTwo);
     }
 }

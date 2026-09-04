@@ -92,11 +92,21 @@ else
             <div class="alert alert-info">@T["Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre."]</div>
         }
 
-        <p class="text-muted">@T["Current level: {0}. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions.", Model.CurrentLevelCode ?? "?"]</p>
+        @* Owner decision 2026-09-04 (multi-course levels): a student is placed
+           separately in every course they study, so this names all of them
+           rather than picking one. Each chip is a different shelf of packages. *@
+        <p class="text-muted">
+            <span class="me-1">@T["Your current levels:"]</span>
+            @foreach (var placement in Model.CurrentPlacements)
+            {
+                <span class="app-chip is-level">@placement.CourseName @placement.LevelCode</span>
+            }
+        </p>
+        <p class="text-muted">@T["Only packages published for a course and a level you are placed in are shown — a Group package books only Group sessions, and a Private package books only Private sessions."]</p>
 
         @if (Model.EligiblePlans.Count == 0)
         {
-            <div class="alert alert-warning">@T["No packages are currently published for this level — please contact the centre."]</div>
+            <div class="alert alert-warning">@T["No packages are currently published for your courses and levels — please contact the centre."]</div>
         }
         else
         {

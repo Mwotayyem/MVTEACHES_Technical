@@ -694,4 +694,35 @@ public class SubscriptionServiceTests
             SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
         Assert.Equal(PurchaseFromPlanOutcome.ActivePackageStillHasBalance, again.Outcome);
     }
+
+    /// <summary>Owner decision 2026-09-04 (multi-course levels): a level is held
+    /// IN a course. Being placed at a level in English says nothing about
+    /// Spanish, so a Spanish package at that same level must be refused even
+    /// though the student plainly "has" the level. Before the course column the
+    /// level lookup ignored the plan's course entirely and this purchase went
+    /// through — which is what the purchase screen's own (course, level)
+    /// filtering now mirrors, rather than enforces: this service is the
+    /// guard.</summary>
+    [Fact]
+    public async Task A_level_in_one_course_does_not_allow_buying_another_courses_package()
+    {
+        await using var db = _fixture.CreateContext();
+        var (countryId, _, levelId, studentId, studentUserId) = await SeedCatalogAndStudentAsync(db);
+
+        // A second course, and a package published in it at the very same level
+        // the student already holds in the first one.
+        var otherCourse = new Course("X" + NextId(), "دورة", "Course");
+        db.Courses.Add(otherCourse);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, SystemClock.Instance.GetCurrentInstant());
+        var plan = await service.CreatePricingPlanAsync(countryId, otherCourse.Id, levelId, null, SessionType.Group,
+            10, 600, new Money(75m, "JOD"), 90, new LocalDate(2026, 1, 1), createdByUserId: NextId(), CancellationToken.None);
+
+        var result = await service.PurchaseFromPlanAsync(studentId, plan.PricingPlanId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.StudentHasNoAssignedLevel, result.Outcome);
+        Assert.Empty(await db.Subscriptions.Where(s => s.StudentId == studentId).ToListAsync());
+    }
 }

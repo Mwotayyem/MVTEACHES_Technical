@@ -109,7 +109,14 @@ public class PurchasePackageModel : PageModel
     /// fail; PurchaseFromPlanAsync refuses the POST regardless of this flag,
     /// which is what actually enforces the rule.</summary>
     public bool PurchasedByGuardianOnly { get; set; }
-    public string? CurrentLevelCode { get; set; }
+
+    /// <summary>Owner decision 2026-09-04 (multi-course levels): one entry per
+    /// course this student is placed in. There is no such thing as "the
+    /// student's level" any more — someone studying English and Spanish holds
+    /// two, and each one opens a different shelf of packages.</summary>
+    public record CoursePlacement(long CourseId, string CourseName, string LevelCode);
+
+    public IReadOnlyList<CoursePlacement> CurrentPlacements { get; set; } = Array.Empty<CoursePlacement>();
     public IReadOnlyList<PlanRow> EligiblePlans { get; set; } = Array.Empty<PlanRow>();
 
     /// <summary>Active posters, in the order the admin chose. Loaded before
@@ -378,23 +385,49 @@ public class PurchasePackageModel : PageModel
         }
         UnpaidDraftSubscriptions = eligibleDrafts;
 
-        if (eligibility.CurrentLevelId is null)
+        // Not placed in ANY course: rule 1's gate, unchanged in meaning.
+        if (eligibility.CurrentLevels.Count == 0)
         {
             NeedsPlacementTest = true;
             return;
         }
 
-        var level = await _db.Levels.FirstOrDefaultAsync(l => l.Id == eligibility.CurrentLevelId.Value);
-        CurrentLevelCode = level?.Code;
-
         var courseNames = await _db.Courses.ToDictionaryAsync(c => c.Id, c => c.NameEn);
-        var plans = await _db.PricingPlans
-            .Where(p => p.IsActive && p.LevelId == eligibility.CurrentLevelId.Value)
-            .OrderBy(p => p.SessionType)
+        var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
+
+        CurrentPlacements = eligibility.CurrentLevels
+            .Select(p => new CoursePlacement(p.CourseId, courseNames.GetValueOrDefault(p.CourseId, "?"),
+                levelCodes.GetValueOrDefault(p.LevelId, "?")))
+            .OrderBy(p => p.CourseName)
+            .ToList();
+
+        // Owner decision 2026-09-04 (multi-course levels): a package belongs to
+        // a (course, level) PAIR. Matching on the level alone — which is what
+        // this did — offered a student placed at B2 in English every OTHER
+        // course's B2 package as well, in subjects they have never been placed
+        // in and cannot attend. The two Contains() clauses narrow the query;
+        // the pair check below is what actually decides, since a student
+        // holding English B2 and Spanish A1 must not be shown English A1.
+        var placedCourseIds = eligibility.CurrentLevels.Select(p => p.CourseId).Distinct().ToList();
+        var placedLevelIds = eligibility.CurrentLevels.Select(p => p.LevelId).Distinct().ToList();
+        var placements = eligibility.CurrentLevels.Select(p => (p.CourseId, p.LevelId)).ToHashSet();
+
+        // PricingPlan.LevelId is nullable ("applies to every level"), and
+        // PurchaseFromPlanAsync refuses such a plan outright
+        // (PlanNotPublishedForAnyLevel). Excluding it here as well keeps this
+        // page showing exactly what the service would accept.
+        var candidatePlans = await _db.PricingPlans
+            .Where(p => p.IsActive && p.LevelId != null
+                        && placedCourseIds.Contains(p.CourseId) && placedLevelIds.Contains(p.LevelId.Value))
             .ToListAsync();
 
-        EligiblePlans = plans.Select(p => new PlanRow(p.Id, courseNames.GetValueOrDefault(p.CourseId, "?"),
-            CurrentLevelCode ?? "?", p.SessionType, p.SessionsCount, p.MinutesTotal, p.Amount.Amount, p.Amount.Currency,
-            p.ValidityDays)).ToList();
+        EligiblePlans = candidatePlans
+            .Where(p => placements.Contains((p.CourseId, p.LevelId!.Value)))
+            .Select(p => new PlanRow(p.Id, courseNames.GetValueOrDefault(p.CourseId, "?"),
+                levelCodes.GetValueOrDefault(p.LevelId!.Value, "?"), p.SessionType, p.SessionsCount, p.MinutesTotal,
+                p.Amount.Amount, p.Amount.Currency, p.ValidityDays))
+            .OrderBy(p => p.CourseName)
+            .ThenBy(p => p.SessionType)
+            .ToList();
     }
 }

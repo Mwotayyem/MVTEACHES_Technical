@@ -287,8 +287,9 @@
   <data name="Acting for {0}" xml:space="preserve"><value>تتصرف نيابة عن {0}</value></data>
   <data name="A free placement test is required before any package can be purchased." xml:space="preserve"><value>يلزم إجراء اختبار تحديد المستوى المجاني قبل إمكانية شراء أي باقة.</value></data>
   <data name="Take the placement test" xml:space="preserve"><value>إجراء اختبار تحديد المستوى</value></data>
-  <data name="Current level: {0}. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions." xml:space="preserve"><value>المستوى الحالي: {0}. تُعرض فقط الباقات المنشورة لهذا المستوى تحديدًا — باقة المجموعات تحجز حصص المجموعات فقط، وباقة الخاص تحجز حصصًا خاصة فقط.</value></data>
-  <data name="No packages are currently published for this level — please contact the centre." xml:space="preserve"><value>لا توجد باقات منشورة حاليًا لهذا المستوى — يرجى التواصل مع المركز.</value></data>
+  <data name="Your current levels:" xml:space="preserve"><value>مستوياتك الحالية:</value></data>
+  <data name="Only packages published for a course and a level you are placed in are shown — a Group package books only Group sessions, and a Private package books only Private sessions." xml:space="preserve"><value>تُعرض فقط الباقات المنشورة لدورة ومستوى أنت مسجَّل فيهما — باقة المجموعات تحجز حصص المجموعات فقط، وباقة الخاص تحجز حصصًا خاصة فقط.</value></data>
+  <data name="No packages are currently published for your courses and levels — please contact the centre." xml:space="preserve"><value>لا توجد باقات منشورة حاليًا لدوراتك ومستوياتك — يرجى التواصل مع المركز.</value></data>
   <data name="Valid {0} days" xml:space="preserve"><value>صالحة لمدة {0} يومًا</value></data>
   <data name="Choose a payment method" xml:space="preserve"><value>اختر طريقة الدفع</value></data>
   <data name="No payment methods are currently available — please contact the centre." xml:space="preserve"><value>لا توجد طرق دفع متاحة حاليًا — يرجى التواصل مع المركز.</value></data>

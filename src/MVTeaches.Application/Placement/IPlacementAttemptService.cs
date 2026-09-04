@@ -27,7 +27,19 @@ public enum PlacementEligibilityStatus
     AttemptInProgress,
 }
 
-public record PlacementEligibilityResult(PlacementEligibilityStatus Status, int? CurrentLevelId,
+/// <summary>One current placement, in one course. Owner decision 2026-09-04
+/// (multi-course levels): a student is placed separately in every course they
+/// study, so "the student's level" is a list and never a single value. A
+/// student studying English at B2 and Spanish at A1 has two rows here, and
+/// each one gates a different set of packages and sessions.</summary>
+public record StudentCourseLevel(long CourseId, int LevelId);
+
+/// <summary><see cref="CurrentLevels"/> is empty exactly when the student has
+/// no placement anywhere — which is the condition that blocks buying a package,
+/// not "has no level" in the abstract. Ordered by course id so two calls always
+/// return the same order.</summary>
+public record PlacementEligibilityResult(PlacementEligibilityStatus Status,
+    IReadOnlyList<StudentCourseLevel> CurrentLevels,
     long? InProgressAttemptId, long? PendingOrApprovedRetakeRequestId);
 
 public enum StartAttemptOutcome

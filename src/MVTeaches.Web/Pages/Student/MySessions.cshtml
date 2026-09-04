@@ -31,7 +31,19 @@ else
         <div class="app-profile-id">
             <h2>@Model.StudentName</h2>
             <p>
-                <span class="app-chip is-level">@(Model.CurrentLevelCode ?? T["Awaiting a level"].Value)</span>
+                @if (Model.CurrentPlacements.Count == 0)
+                {
+                    <span class="app-chip is-level">@T["Awaiting a level"]</span>
+                }
+                else
+                {
+                    @* One chip per course: a student placed in two subjects has
+                       two levels, and a single chip would have to lie about one. *@
+                    foreach (var placement in Model.CurrentPlacements)
+                    {
+                        <span class="app-chip is-level">@placement.CourseName @placement.LevelCode</span>
+                    }
+                }
                 <span class="@StudentStatusClass(Model.StudentStatus)">@T["StudentStatus." + Model.StudentStatus]</span>
                 <span class="app-chip">@T["Student number"]: <span class="app-ref">@Model.StudentNumber</span></span>
             </p>

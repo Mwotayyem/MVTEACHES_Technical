@@ -1054,10 +1054,14 @@ public class AuthorizationTests : IClassFixture<AuthorizationTests.Factory>, IAs
         }
         if (!await db.StudentLevels.AnyAsync(l => l.StudentId == student.Id && l.IsCurrent))
         {
-            // Owner decision 2026-09-04: a level belongs to a course. This
-            // fixture uses whichever course the seeders created.
-            var seedCourseId = await db.Courses.OrderBy(c => c.Id).Select(c => c.Id).FirstAsync();
-            db.StudentLevels.Add(new MVTeaches.Domain.Placement.StudentLevel(student.Id, seedCourseId, levelId, user!.Id,
+            // Owner decision 2026-09-04 (multi-course levels): the level has to
+            // be held in the SAME course the package below is published in.
+            // This fixture used the first seeded course instead, and passed
+            // only because the purchase screen then matched on the level alone
+            // — which is precisely the cross-course leak that filtering by
+            // (course, level) closed. A student placed in one course must not
+            // be sold another course's package.
+            db.StudentLevels.Add(new MVTeaches.Domain.Placement.StudentLevel(student.Id, courseId, levelId, user!.Id,
                 MVTeaches.Domain.Placement.AssignedByRole.Admin, MVTeaches.Domain.Placement.LevelAssignmentSource.AdminOverride,
                 null, "seed", NodaTime.SystemClock.Instance.GetCurrentInstant()));
             await db.SaveChangesAsync();

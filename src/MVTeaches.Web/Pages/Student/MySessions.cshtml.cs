@@ -127,7 +127,12 @@ public class MySessionsModel : PageModel
 
     public MVTeaches.Domain.People.StudentStatus StudentStatus { get; set; }
 
-    public string? CurrentLevelCode { get; set; }
+    /// <summary>Owner decision 2026-09-04 (multi-course levels): one entry per
+    /// course this student is placed in, so the header can say "English B2,
+    /// Spanish A1" instead of quietly showing whichever one came back first.</summary>
+    public record CoursePlacement(string CourseName, string LevelCode);
+
+    public IReadOnlyList<CoursePlacement> CurrentPlacements { get; set; } = Array.Empty<CoursePlacement>();
 
     public int RemainingMinutes { get; set; }
 
@@ -308,11 +313,15 @@ public class MySessionsModel : PageModel
         }
 
         var now = _clock.GetCurrentInstant();
-        var currentLevelId = await _db.StudentLevels
+        // Every current placement, one per course. FirstOrDefault used to pick
+        // an arbitrary one the moment a student studied two subjects, and then
+        // hid every session belonging to the others.
+        var currentLevels = await _db.StudentLevels
             .Where(l => l.StudentId == student.Id && l.IsCurrent)
-            .Select(l => (int?)l.LevelId)
-            .FirstOrDefaultAsync();
-        NoLevelAssigned = currentLevelId is null;
+            .OrderBy(l => l.CourseId)
+            .Select(l => new { l.CourseId, l.LevelId })
+            .ToListAsync();
+        NoLevelAssigned = currentLevels.Count == 0;
 
         var courseNames = await _db.Courses.ToDictionaryAsync(c => c.Id, c => c.NameEn);
         var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
@@ -324,7 +333,11 @@ public class MySessionsModel : PageModel
             .Where(c => c.Id == student.CountryId)
             .Select(c => c.DefaultTimeZone)
             .FirstOrDefaultAsync() ?? string.Empty;
-        CurrentLevelCode = currentLevelId is null ? null : levelCodes.GetValueOrDefault(currentLevelId.Value);
+        CurrentPlacements = currentLevels
+            .Select(l => new CoursePlacement(courseNames.GetValueOrDefault(l.CourseId, "?"),
+                levelCodes.GetValueOrDefault(l.LevelId, "?")))
+            .OrderBy(p => p.CourseName)
+            .ToList();
 
         // Remaining minutes across the student's active packages, read the one
         // approved way (D-36: always SUM(delta_minutes) at read time).
@@ -343,9 +356,10 @@ public class MySessionsModel : PageModel
 
         await LoadMySessionsAsync(student.Id, now, courseNames, levelCodes);
 
-        if (currentLevelId is not null)
+        if (currentLevels.Count > 0)
         {
-            await LoadAvailableSessionsAsync(student.Id, currentLevelId.Value, now, courseNames, levelCodes);
+            await LoadAvailableSessionsAsync(student.Id,
+                currentLevels.Select(l => (l.CourseId, l.LevelId)).ToHashSet(), now, courseNames, levelCodes);
         }
 
         await LoadCompensationRequestsAsync(student.Id);
@@ -455,8 +469,15 @@ public class MySessionsModel : PageModel
         }).ToList();
     }
 
-    private async Task LoadAvailableSessionsAsync(long studentId, int currentLevelId, Instant now,
-        Dictionary<long, string> courseNames, Dictionary<int, string> levelCodes)
+    /// <summary>Owner decision 2026-09-04 (multi-course levels):
+    /// <paramref name="placements"/> is the set of (course, level) pairs the
+    /// student currently holds. Filtering on the level alone — which is what
+    /// this did — listed every OTHER course's session at that same level, in
+    /// subjects the student has never been placed in.
+    /// StudentBookingService rejects such a booking regardless; this stops it
+    /// being offered.</summary>
+    private async Task LoadAvailableSessionsAsync(long studentId, HashSet<(long CourseId, int LevelId)> placements,
+        Instant now, Dictionary<long, string> courseNames, Dictionary<int, string> levelCodes)
     {
         var windowEnd = now.Plus(Duration.FromDays(30));
 
@@ -469,12 +490,22 @@ public class MySessionsModel : PageModel
         // dropped from this query: silently removing them left the student
         // wondering where a lesson went. They are listed with their state
         // said out loud instead, and without a Book button.
-        var candidates = await _db.ClassSessions
-            .Where(s => s.LevelId == currentLevelId && s.Status == ClassSessionStatus.Scheduled
+        // The two Contains() clauses only narrow what comes back; the exact
+        // pair check below is what decides, so a student holding English B2 and
+        // Spanish A1 is never offered English A1.
+        var placedCourseIds = placements.Select(p => p.CourseId).Distinct().ToList();
+        var placedLevelIds = placements.Select(p => p.LevelId).Distinct().ToList();
+
+        var candidates = (await _db.ClassSessions
+            .Where(s => placedCourseIds.Contains(s.CourseId) && placedLevelIds.Contains(s.LevelId)
+                        && s.Status == ClassSessionStatus.Scheduled
                         && s.StartsAtUtc > now && s.StartsAtUtc <= windowEnd)
             .OrderBy(s => s.StartsAtUtc)
+            .Take(200)
+            .ToListAsync())
+            .Where(s => placements.Contains((s.CourseId, s.LevelId)))
             .Take(100)
-            .ToListAsync();
+            .ToList();
 
         AvailableSessions = candidates
             .Select(s => new AvailableSessionRow(s.Id, s.StartsAtUtc, s.ScheduleTimeZone,

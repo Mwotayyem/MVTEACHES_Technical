@@ -287,8 +287,9 @@
   <data name="Acting for {0}" xml:space="preserve"><value>Acting for {0}</value></data>
   <data name="A free placement test is required before any package can be purchased." xml:space="preserve"><value>A free placement test is required before any package can be purchased.</value></data>
   <data name="Take the placement test" xml:space="preserve"><value>Take the placement test</value></data>
-  <data name="Current level: {0}. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions." xml:space="preserve"><value>Current level: {0}. Only packages published for this exact level are shown — a Group package books only Group sessions, and a Private package books only Private sessions.</value></data>
-  <data name="No packages are currently published for this level — please contact the centre." xml:space="preserve"><value>No packages are currently published for this level — please contact the centre.</value></data>
+  <data name="Your current levels:" xml:space="preserve"><value>Your current levels:</value></data>
+  <data name="Only packages published for a course and a level you are placed in are shown — a Group package books only Group sessions, and a Private package books only Private sessions." xml:space="preserve"><value>Only packages published for a course and a level you are placed in are shown — a Group package books only Group sessions, and a Private package books only Private sessions.</value></data>
+  <data name="No packages are currently published for your courses and levels — please contact the centre." xml:space="preserve"><value>No packages are currently published for your courses and levels — please contact the centre.</value></data>
   <data name="Valid {0} days" xml:space="preserve"><value>Valid {0} days</value></data>
   <data name="Choose a payment method" xml:space="preserve"><value>Choose a payment method</value></data>
   <data name="No payment methods are currently available — please contact the centre." xml:space="preserve"><value>No payment methods are currently available — please contact the centre.</value></data>
