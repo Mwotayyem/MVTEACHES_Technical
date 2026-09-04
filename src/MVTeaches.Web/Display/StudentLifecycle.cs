@@ -54,6 +54,30 @@ public enum StudentLifecycleState
     Completed,
 }
 
+/// <summary>
+/// Owner report 2026-09-05: what this student's PACKAGE is doing, which is a
+/// different question from what the student is doing. The register showed
+/// "no package" beside "payment due — 60 JOD outstanding" for the same row,
+/// because the package column was derived from the ACTIVE subscription alone
+/// while the state chip was derived from the Draft one. Both were telling the
+/// truth about different things; together they read as a contradiction.
+/// </summary>
+public enum StudentPackageStanding
+{
+    /// <summary>Never bought anything.</summary>
+    None,
+
+    /// <summary>Bought and awaiting payment - a Draft. It exists, it has a
+    /// price, and it is why money is owed; it simply is not active yet.</summary>
+    AwaitingPayment,
+
+    /// <summary>Bought, paid, running.</summary>
+    Active,
+
+    /// <summary>Has had a package, has none running now.</summary>
+    Finished,
+}
+
 /// <summary>The facts <see cref="StudentLifecycle.Classify"/> reads. Every one
 /// of them is already loaded by the pages that call it; nothing here queries.</summary>
 public readonly record struct StudentLifecycleFacts(

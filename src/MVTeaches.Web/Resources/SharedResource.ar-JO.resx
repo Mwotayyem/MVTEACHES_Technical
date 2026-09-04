@@ -20,6 +20,7 @@
   <data name="Placement" xml:space="preserve"><value>تحديد المستوى</value></data>
   <data name="Placement Tests" xml:space="preserve"><value>اختبارات تحديد المستوى</value></data>
   <data name="Packages and Payments" xml:space="preserve"><value>الباقات والمدفوعات</value></data>
+  <data name="Take the payment" xml:space="preserve"><value>حصّل الدفعة</value></data>
   <data name="Subscriptions" xml:space="preserve"><value>الاشتراكات</value></data>
   <data name="Payments" xml:space="preserve"><value>المدفوعات</value></data>
   <data name="Scheduling and Attendance" xml:space="preserve"><value>الجداول والحضور</value></data>
@@ -174,6 +175,8 @@
   <data name="Admin cannot take the exam for the student" xml:space="preserve"><value>لا يمكن للإدارة أداء الامتحان نيابةً عن الطالب — يجب أن يدخل الطالب بحسابه الخاص.</value></data>
   <data name="Current level" xml:space="preserve"><value>المستوى الحالي</value></data>
   <data name="No packages published for this level" xml:space="preserve"><value>لا توجد باقات منشورة لهذا المستوى</value></data>
+  <data name="Package awaiting payment" xml:space="preserve"><value>باقة بانتظار الدفع</value></data>
+  <data name="No package running" xml:space="preserve"><value>لا توجد باقة قيد التشغيل</value></data>
   <data name="Select a package on behalf of the guardian" xml:space="preserve"><value>اختيار باقة نيابةً عن ولي الأمر</value></data>
   <data name="Request this package" xml:space="preserve"><value>طلب هذه الباقة</value></data>
   <data name="Payment requests" xml:space="preserve"><value>طلبات الدفع</value></data>
@@ -1016,10 +1019,10 @@
   <data name="One period per country and date range. Verified deliveries inside the range are what gets aggregated into it." xml:space="preserve"><value>فترة واحدة لكل دولة ومدى تاريخي، وتُجمَّع فيها الحصص المعتمدة الواقعة داخل المدى.</value></data>
   <data name="Only {0} of the required {1} was confirmed as received — the package stays inactive until the remaining {2} is sent and confirmed." xml:space="preserve"><value>لم يُؤكَّد استلام سوى {0} من أصل {1} المطلوبة — تبقى الباقة غير مفعَّلة حتى إرسال {2} المتبقية وتأكيدها.</value></data>
   <data name="Open student profile" xml:space="preserve"><value>فتح ملف الطالب</value></data>
-  <data name="Packages awaiting payment" xml:space="preserve"><value>باقات بانتظار الدفع</value></data>
+  <data name="Package requests awaiting payment" xml:space="preserve"><value>طلبات باقات بانتظار الدفع</value></data>
   <data name="Pick both by name — start typing to narrow a long list." xml:space="preserve"><value>اختر الاثنين بالاسم — اكتب أحرفًا لتضييق القائمة الطويلة.</value></data>
   <data name="Profile" xml:space="preserve"><value>الملف</value></data>
-  <data name="Purchased but still a draft — inactive until its payment is confirmed." xml:space="preserve"><value>اشتُريت لكنها ما زالت مسودة — غير مفعَّلة حتى تأكيد دفعتها.</value></data>
+  <data name="Families have asked for these packages and not paid yet. Open the list to see who, and take the payment." xml:space="preserve"><value>طلبت العائلات هذه الباقات ولم تدفع بعد. افتح القائمة لتعرف مَن، وحصّل الدفعة.</value></data>
   <data name="Reason the payer will read" xml:space="preserve"><value>السبب الذي سيقرأه الدافع</value></data>
   <data name="Reason the student will read" xml:space="preserve"><value>السبب الذي سيقرأه الطالب</value></data>
   <data name="Reason the teacher will read" xml:space="preserve"><value>السبب الذي سيقرأه المعلّم</value></data>
@@ -1984,6 +1987,7 @@
   <data name="Collect or confirm the outstanding amount." xml:space="preserve">
     <value>حصّل المبلغ المتبقي أو أكّد استلامه.</value>
   </data>
+  <data name="A package is bought and waiting on its payment — confirm the money to activate it." xml:space="preserve"><value>تم شراء باقة وهي بانتظار دفعتها — أكّد وصول المبلغ لتفعيلها.</value></data>
   <data name="Talk to the family about renewing." xml:space="preserve">
     <value>تحدّث مع الأسرة بخصوص التجديد.</value>
   </data>

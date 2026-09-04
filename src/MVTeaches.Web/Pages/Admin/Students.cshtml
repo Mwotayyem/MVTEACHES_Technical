@@ -137,7 +137,26 @@
                         {
                             <span class="app-chip is-level">@student.CurrentLevelCode</span>
                         }
-                        <div class="text-muted small">@(student.PackageName ?? T["No package"].Value)</div>
+                        @* Owner report 2026-09-05: a Draft package is a package.
+                           This used to say "no package" on the same row whose
+                           state chip said a payment was due, because only an
+                           ACTIVE subscription reached this line. *@
+                        @switch (student.PackageStanding)
+                        {
+                            case StudentPackageStanding.AwaitingPayment:
+                                <div><span class="app-chip is-missing">@T["Package awaiting payment"]</span></div>
+                                <div class="text-muted small">@student.PackageName</div>
+                                break;
+                            case StudentPackageStanding.Active:
+                                <div class="text-muted small">@student.PackageName</div>
+                                break;
+                            case StudentPackageStanding.Finished:
+                                <div class="text-muted small">@T["No package running"]</div>
+                                break;
+                            default:
+                                <div class="text-muted small">@T["No package"]</div>
+                                break;
+                        }
                         @if (student.StartsOn is not null && student.ExpiresOn is not null)
                         {
                             <div class="text-muted small">@T.Date(student.StartsOn.Value) → @T.Date(student.ExpiresOn.Value)</div>
@@ -234,6 +253,10 @@
                         {
                             @T["Set the level so packages can be bought."]
                         }
+                        else if (student.PackageStanding == StudentPackageStanding.AwaitingPayment)
+                        {
+                            @T["A package is bought and waiting on its payment — confirm the money to activate it."]
+                        }
                         else if (student.State == StudentLifecycleState.PaymentDue)
                         {
                             @T["Collect or confirm the outstanding amount."]
@@ -254,7 +277,15 @@
                     <td class="text-end">
                         <div class="app-row-actions">
                             <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/StudentDetails" asp-route-id="@student.Id">@T["Open file"]</a>
-                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>
+                            @if (student.PackageStanding == StudentPackageStanding.AwaitingPayment)
+                            {
+                                @* The one thing this row needs doing, as its own button. *@
+                                <a class="btn btn-sm btn-primary" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Take the payment"]</a>
+                            }
+                            else
+                            {
+                                <a class="btn btn-sm btn-outline-secondary" asp-page="/Admin/Payments" asp-route-studentId="@student.Id">@T["Payments"]</a>
+                            }
                             @if (canManage && student.CurrentLevelCode is null)
                             {
                                 <a class="btn btn-sm btn-primary" asp-page="/Admin/Students" asp-route-studentId="@student.Id" asp-fragment="assign-level">@T["Set the level now"]</a>

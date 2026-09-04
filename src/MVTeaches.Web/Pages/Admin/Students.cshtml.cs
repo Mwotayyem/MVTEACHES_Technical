@@ -74,7 +74,8 @@ public class StudentsModel : PageModel
 
     public record StudentRow(long Id, string FullName, string CountryName, StudentStatus Status,
         string? CurrentLevelCode, IReadOnlyList<StudentsModel.GuardianLink> Guardians,
-        StudentLifecycleState State, string? PackageName, string? Currency,
+        StudentLifecycleState State, StudentPackageStanding PackageStanding,
+        long? AwaitingPaymentSubscriptionId, string? PackageName, string? Currency,
         decimal Billed, decimal Paid, decimal Outstanding, int RemainingMinutes, int PurchasedMinutes,
         LocalDate? StartsOn, LocalDate? ExpiresOn, int UpcomingLessonCount,
         bool HasReachablePhone)
@@ -580,6 +581,25 @@ public class StudentsModel : PageModel
             var pays = paymentsByStudent.GetValueOrDefault(s.Id, new List<Payment>());
             var running = subs.FirstOrDefault(sub => sub.Status == SubscriptionStatus.Active);
 
+            // Owner report 2026-09-05: a Draft is a package. The register used
+            // to derive this column from `running` alone, so a student who had
+            // bought a 60 JOD package and not yet paid for it was listed as
+            // having "no package" on the very row whose state chip said the
+            // payment was due. The oldest draft is the one named, matching the
+            // order the payment screen itself offers them in.
+            var awaitingPayment = subs.Where(sub => sub.Status == SubscriptionStatus.Draft)
+                .OrderBy(sub => sub.Id)
+                .FirstOrDefault();
+            var packageStanding = running is not null ? StudentPackageStanding.Active
+                : awaitingPayment is not null ? StudentPackageStanding.AwaitingPayment
+                : subs.Count > 0 ? StudentPackageStanding.Finished
+                : StudentPackageStanding.None;
+
+            // Whichever package this row is actually about - the running one, or
+            // the one being paid for. Named the same way either way, because an
+            // admin reading the row wants the course and level in both cases.
+            var describing = running ?? awaitingPayment;
+
             // The lessons still ahead of this student, soonest first.
             var upcoming = enrollmentsByStudent.GetValueOrDefault(s.Id, new List<SessionEnrollment>())
                 .Select(e => sessionsById.GetValueOrDefault(e.SessionId))
@@ -626,7 +646,9 @@ public class StudentsModel : PageModel
                     new List<MVTeaches.Domain.Placement.StudentLevel>()), courseNames, levelByI),
                 guardiansByStudent.GetValueOrDefault(s.Id, Array.Empty<GuardianLink>()),
                 state,
-                running is null ? null : $"{courseNames.GetValueOrDefault(running.CourseId, "?")} / {levelByI.GetValueOrDefault(running.LevelId, "?")}",
+                packageStanding,
+                awaitingPayment?.Id,
+                describing is null ? null : $"{courseNames.GetValueOrDefault(describing.CourseId, "?")} / {levelByI.GetValueOrDefault(describing.LevelId, "?")}",
                 currency,
                 money.Billed,
                 money.Paid,

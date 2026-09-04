@@ -20,6 +20,7 @@
   <data name="Placement" xml:space="preserve"><value>Placement</value></data>
   <data name="Placement Tests" xml:space="preserve"><value>Placement Tests</value></data>
   <data name="Packages and Payments" xml:space="preserve"><value>Packages and Payments</value></data>
+  <data name="Take the payment" xml:space="preserve"><value>Take the payment</value></data>
   <data name="Subscriptions" xml:space="preserve"><value>Subscriptions</value></data>
   <data name="Payments" xml:space="preserve"><value>Payments</value></data>
   <data name="Scheduling and Attendance" xml:space="preserve"><value>Scheduling and Attendance</value></data>
@@ -174,6 +175,8 @@
   <data name="Admin cannot take the exam for the student" xml:space="preserve"><value>An admin cannot take the exam for the student - the student must sign in with their own account.</value></data>
   <data name="Current level" xml:space="preserve"><value>Current level</value></data>
   <data name="No packages published for this level" xml:space="preserve"><value>No packages are published for this level</value></data>
+  <data name="Package awaiting payment" xml:space="preserve"><value>Package awaiting payment</value></data>
+  <data name="No package running" xml:space="preserve"><value>No package running</value></data>
   <data name="Select a package on behalf of the guardian" xml:space="preserve"><value>Select a package on behalf of the guardian</value></data>
   <data name="Request this package" xml:space="preserve"><value>Request this package</value></data>
   <data name="Payment requests" xml:space="preserve"><value>Payment requests</value></data>
@@ -1016,10 +1019,10 @@
   <data name="One period per country and date range. Verified deliveries inside the range are what gets aggregated into it." xml:space="preserve"><value>One period per country and date range. Verified deliveries inside the range are what gets aggregated into it.</value></data>
   <data name="Only {0} of the required {1} was confirmed as received — the package stays inactive until the remaining {2} is sent and confirmed." xml:space="preserve"><value>Only {0} of the required {1} was confirmed as received — the package stays inactive until the remaining {2} is sent and confirmed.</value></data>
   <data name="Open student profile" xml:space="preserve"><value>Open student profile</value></data>
-  <data name="Packages awaiting payment" xml:space="preserve"><value>Packages awaiting payment</value></data>
+  <data name="Package requests awaiting payment" xml:space="preserve"><value>Package requests awaiting payment</value></data>
   <data name="Pick both by name — start typing to narrow a long list." xml:space="preserve"><value>Pick both by name — start typing to narrow a long list.</value></data>
   <data name="Profile" xml:space="preserve"><value>Profile</value></data>
-  <data name="Purchased but still a draft — inactive until its payment is confirmed." xml:space="preserve"><value>Purchased but still a draft — inactive until its payment is confirmed.</value></data>
+  <data name="Families have asked for these packages and not paid yet. Open the list to see who, and take the payment." xml:space="preserve"><value>Families have asked for these packages and not paid yet. Open the list to see who, and take the payment.</value></data>
   <data name="Reason the payer will read" xml:space="preserve"><value>Reason the payer will read</value></data>
   <data name="Reason the student will read" xml:space="preserve"><value>Reason the student will read</value></data>
   <data name="Reason the teacher will read" xml:space="preserve"><value>Reason the teacher will read</value></data>
@@ -1984,6 +1987,7 @@
   <data name="Collect or confirm the outstanding amount." xml:space="preserve">
     <value>Collect or confirm the outstanding amount.</value>
   </data>
+  <data name="A package is bought and waiting on its payment — confirm the money to activate it." xml:space="preserve"><value>A package is bought and waiting on its payment — confirm the money to activate it.</value></data>
   <data name="Talk to the family about renewing." xml:space="preserve">
     <value>Talk to the family about renewing.</value>
   </data>

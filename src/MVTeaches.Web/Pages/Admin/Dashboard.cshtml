@@ -122,10 +122,16 @@ else
         </a>
     </div>
     <div class="col">
-        <a class="app-kpi @(Model.PackagesAwaitingPayment > 0 ? "is-attention" : "")" asp-page="/Admin/Payments">
-            <span class="app-kpi-label">@T["Packages awaiting payment"]</span>
+        @* Owner report 2026-09-05: this counted the drafts but sent the admin to
+           the unfiltered payments screen, so the number named a problem and then
+           refused to say whose. It now opens the register filtered to exactly
+           the students it counted, where each row carries the child's name, the
+           guardian, the package and what is still owed. *@
+        <a class="app-kpi @(Model.PackagesAwaitingPayment > 0 ? "is-attention" : "")"
+           asp-page="/Admin/Students" asp-route-state="PaymentDue">
+            <span class="app-kpi-label">@T["Package requests awaiting payment"]</span>
             <span class="app-kpi-value">@Model.PackagesAwaitingPayment</span>
-            <span class="app-kpi-hint">@T["Purchased but still a draft — inactive until its payment is confirmed."]</span>
+            <span class="app-kpi-hint">@T["Families have asked for these packages and not paid yet. Open the list to see who, and take the payment."]</span>
         </a>
     </div>
     <div class="col">
