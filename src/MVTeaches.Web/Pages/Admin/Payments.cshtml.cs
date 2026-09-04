@@ -200,6 +200,30 @@ public class PaymentsModel : PageModel
             return Page();
         }
 
+        // Owner decision 2026-09-04. This is what went wrong on Local
+        // Staging: two payments of 50 were recorded and confirmed with no
+        // package attached, so 100 JOD sat confirmed against a 50 JOD package
+        // that was still Draft, and the "packages awaiting payment" warning
+        // stayed up — correctly, because nothing had funded it. The money was
+        // real, the confirmation worked, and the package could never activate
+        // because no payment pointed at it.
+        //
+        // "Just record the money" is for a correction, a refund reversal, or a
+        // deposit — never for a student who is mid-purchase. If this student
+        // owes on a package, the payment has to say which one.
+        if (NewPayment.SubscriptionId is null)
+        {
+            var owing = await FindPackageStillOwingAsync(NewPayment.StudentId!.Value);
+            if (owing is not null)
+            {
+                ErrorMessage = _localizer[
+                    "This student has a package still awaiting payment (#{0}, {1} still owed). Nothing was recorded — choose that package above, so confirming this payment activates it.",
+                    owing.Id, _localizer.Money(owing.RemainingOwed, owing.Currency)].Value;
+                await LoadAsync();
+                return Page();
+            }
+        }
+
         var request = new RecordPaymentRequest(NewPayment.StudentId!.Value, NewPayment.SubscriptionId, PayerUserId: null,
             new Money(NewPayment.Amount, NewPayment.Currency), NewPayment.Method, ProofFileId: null);
         var result = await _payments.RecordManualPaymentAsync(request, HttpContext.RequestAborted);
@@ -207,6 +231,32 @@ public class PaymentsModel : PageModel
 
         await LoadAsync();
         return Page();
+    }
+
+    /// <summary>The first Draft subscription of this student that still owes
+    /// money, or null. Deliberately asks IPaymentService for the funding
+    /// status rather than re-deriving "paid" from the payments table: that
+    /// service is the one authority on what a package has actually received,
+    /// and a second opinion computed here is how the two drift apart.</summary>
+    private async Task<DraftSubscriptionRow?> FindPackageStillOwingAsync(long studentId)
+    {
+        var draftIds = await _db.Subscriptions
+            .Where(s => s.StudentId == studentId && s.Status == SubscriptionStatus.Draft)
+            .OrderBy(s => s.Id)
+            .Select(s => s.Id)
+            .ToListAsync(HttpContext.RequestAborted);
+
+        foreach (var draftId in draftIds)
+        {
+            var funding = await _payments.GetSubscriptionFundingStatusAsync(draftId, HttpContext.RequestAborted);
+            if (!funding.IsFullyFunded)
+            {
+                return new DraftSubscriptionRow(draftId, studentId, string.Empty, "—",
+                    funding.Price.Amount, funding.Price.Currency, funding.ConfirmedReceived, funding.RemainingOwed.Amount);
+            }
+        }
+
+        return null;
     }
 
     /// <summary><paramref name="receivedAmount"/>/<paramref name="receivedCurrency"/>

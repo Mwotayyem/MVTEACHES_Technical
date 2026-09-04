@@ -1239,7 +1239,8 @@
   <data name="the Awaiting confirmation list below — those are the ones with somebody waiting." xml:space="preserve"><value>the Awaiting confirmation list below — those are the ones with somebody waiting.</value></data>
   <data name="Which package is this paying for?" xml:space="preserve"><value>Which package is this paying for?</value></data>
   <data name="Not paying for a package — just record the money" xml:space="preserve"><value>Not paying for a package — just record the money</value></data>
-  <data name="Only this student's own unpaid packages are listed. Attach the payment to the one it pays for — confirming it then activates that package." xml:space="preserve"><value>Only this student's own unpaid packages are listed. Attach the payment to the one it pays for — confirming it then activates that package.</value></data>
+  <data name="Only this student's own unpaid packages are listed, and the one they owe on is chosen for you. Confirming a payment attached to a package is what activates it." xml:space="preserve"><value>Only this student's own unpaid packages are listed, and the one they owe on is chosen for you. Confirming a payment attached to a package is what activates it.</value></data>
+  <data name="This student has a package still awaiting payment (#{0}, {1} still owed). Nothing was recorded — choose that package above, so confirming this payment activates it." xml:space="preserve"><value>This student has a package still awaiting payment (#{0}, {1} still owed). Nothing was recorded — choose that package above, so confirming this payment activates it.</value></data>
   <data name="This student has no unpaid package. Either they already paid for everything, or the package has not been chosen yet — do that on the packages screen first." xml:space="preserve"><value>This student has no unpaid package. Either they already paid for everything, or the package has not been chosen yet — do that on the packages screen first.</value></data>
   <data name="Leave it on the first option for money that is not buying a package: a correction, a refund reversal, or a deposit to hold a seat." xml:space="preserve"><value>Leave it on the first option for money that is not buying a package: a correction, a refund reversal, or a deposit to hold a seat.</value></data>
   <data name="Check the centre's real account first. Confirming here says the money is in the account — it is not an acknowledgement that a receipt was uploaded." xml:space="preserve"><value>Check the centre's real account first. Confirming here says the money is in the account — it is not an acknowledgement that a receipt was uploaded.</value></data>
@@ -2263,9 +2264,7 @@
   <data name="Not paying for a package — just record the money (rare)" xml:space="preserve">
     <value>Not paying for a package — just record the money (rare)</value>
   </data>
-  <data name="Only leave it on the first option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. If the student owes on a package, choosing it here is what lets the package activate." xml:space="preserve">
-    <value>Only leave it on the first option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. If the student owes on a package, choosing it here is what lets the package activate.</value>
-  </data>
+  <data name="Only choose the last option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. While a student still owes on a package, an unattached payment is refused." xml:space="preserve"><value>Only choose the last option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. While a student still owes on a package, an unattached payment is refused.</value></data>
   <data name="Not against any package" xml:space="preserve">
     <value>Not against any package</value>
   </data>

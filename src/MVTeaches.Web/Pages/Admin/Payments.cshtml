@@ -157,9 +157,17 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label" asp-for="NewPayment.SubscriptionId">@T["Which package is this paying for?"]</label>
+                @* Owner decision 2026-09-04: the "no package" option is LAST, not
+                   first. It used to be the default, and leaving it there is what
+                   produced two confirmed payments attached to nothing while the
+                   package they paid for stayed Draft. Because the dependent-select
+                   filter re-selects index 0 after narrowing to the chosen student,
+                   putting the packages first means that student's own unpaid
+                   package is picked automatically. The server refuses an
+                   unattached payment for a student who still owes on one either
+                   way — this only stops the wrong choice being the easy one. *@
                 <select asp-for="NewPayment.SubscriptionId" id="paymentSubscription" class="form-select"
                         data-mv-options-of="#paymentStudent" data-mv-options-empty="#noDraftsForStudent">
-                    <option value="">@T["Not paying for a package — just record the money (rare)"]</option>
                     @foreach (var d in Model.DraftSubscriptions)
                     {
                         var price = T.Money(d.Price, d.Currency);
@@ -168,12 +176,13 @@
                             : $"{d.LevelCode} · {price}";
                         <option value="@d.Id" data-owner="@d.StudentId">@optionLabel</option>
                     }
+                    <option value="">@T["Not paying for a package — just record the money (rare)"]</option>
                 </select>
-                <div class="form-text">@T["Only this student's own unpaid packages are listed. Attach the payment to the one it pays for — confirming it then activates that package."]</div>
+                <div class="form-text">@T["Only this student's own unpaid packages are listed, and the one they owe on is chosen for you. Confirming a payment attached to a package is what activates it."]</div>
                 <div class="form-text text-warning" id="noDraftsForStudent" hidden>
                     @T["This student has no unpaid package. Either they already paid for everything, or the package has not been chosen yet — do that on the packages screen first."]
                 </div>
-                <div class="form-text text-warning">@T["Only leave it on the first option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. If the student owes on a package, choosing it here is what lets the package activate."]</div>
+                <div class="form-text text-warning">@T["Only choose the last option when the money genuinely is not for any package — a correction, a refund reversal, or a deposit to hold a seat. While a student still owes on a package, an unattached payment is refused."]</div>
             </div>
             <div class="col-12">
                 <hr class="my-1" />
