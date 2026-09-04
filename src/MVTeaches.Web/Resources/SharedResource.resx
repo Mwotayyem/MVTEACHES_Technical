@@ -210,6 +210,32 @@
   <data name="Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre." xml:space="preserve"><value>Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre.</value></data>
   <data name="Your guardian buys this package for you." xml:space="preserve"><value>Your guardian buys this package for you.</value></data>
   <data name="This student already has a guardian. In this version a student may have only one guardian, and there is no way to replace one yet." xml:space="preserve"><value>This student already has a guardian. In this version a student may have only one guardian, and there is no way to replace one yet.</value></data>
+  <data name="Teachers and Placement" xml:space="preserve"><value>Teachers and Placement</value></data>
+  <data name="Reports and Certificates" xml:space="preserve"><value>Reports and Certificates</value></data>
+  <data name="Centre time: {0} ({1})" xml:space="preserve"><value>Centre time: {0} ({1})</value></data>
+  <data name="Join as {0}" xml:space="preserve"><value>Join as {0}</value></data>
+  <data name="Too many failed attempts. Please try again in about {0} minute(s)." xml:space="preserve"><value>Too many failed attempts. Please try again in about {0} minute(s).</value></data>
+  <data name="How these permissions work" xml:space="preserve"><value>How these permissions work</value></data>
+  <data name="No permission ticked for a screen: the admin does not see it in the menu and cannot open it, even with a direct link." xml:space="preserve"><value>No permission ticked for a screen: the admin does not see it in the menu and cannot open it, even with a direct link.</value></data>
+  <data name="&quot;View&quot; only: the admin can open the screen and read it, but every button that changes data is refused by the server, not merely hidden." xml:space="preserve"><value>"View" only: the admin can open the screen and read it, but every button that changes data is refused by the server, not merely hidden.</value></data>
+  <data name="&quot;Manage&quot;, &quot;Confirm&quot;, or &quot;Approve&quot;: the admin can carry out that specific action. These are separate on purpose — someone may read payments without being able to confirm money." xml:space="preserve"><value>"Manage", "Confirm", or "Approve": the admin can carry out that specific action. These are separate on purpose — someone may read payments without being able to confirm money.</value></data>
+  <data name="A SystemAdmin always has everything, and is not affected by these ticks." xml:space="preserve"><value>A SystemAdmin always has everything, and is not affected by these ticks.</value></data>
+  <data name="The payment-methods screen is no longer in the menu while payments are collected manually — this permission still controls it if it is opened by its direct link." xml:space="preserve"><value>The payment-methods screen is no longer in the menu while payments are collected manually — this permission still controls it if it is opened by its direct link.</value></data>
+  <data name="Phone number" xml:space="preserve"><value>Phone number</value></data>
+  <data name="The number the centre calls about this family. Include the country code." xml:space="preserve"><value>The number the centre calls about this family. Include the country code.</value></data>
+  <data name="Phone number (required if the student signs in alone)" xml:space="preserve"><value>Phone number (required if the student signs in alone)</value></data>
+  <data name="A phone number is required for a student who gets their own login." xml:space="preserve"><value>A phone number is required for a student who gets their own login.</value></data>
+  <data name="Missing phone" xml:space="preserve"><value>Missing phone</value></data>
+  <data name="Student dues — read only" xml:space="preserve"><value>Student dues — read only</value></data>
+  <data name="Current standing across all open packages, not only this date range — an unpaid package stays owed until it is paid. Amounts are never added across currencies." xml:space="preserve"><value>Current standing across all open packages, not only this date range — an unpaid package stays owed until it is paid. Amounts are never added across currencies.</value></data>
+  <data name="No open packages, so nothing is outstanding." xml:space="preserve"><value>No open packages, so nothing is outstanding.</value></data>
+  <data name="Billed" xml:space="preserve"><value>Billed</value></data>
+  <data name="Confirmed paid" xml:space="preserve"><value>Confirmed paid</value></data>
+  <data name="Still outstanding" xml:space="preserve"><value>Still outstanding</value></data>
+  <data name="{0} student(s) currently owe something." xml:space="preserve"><value>{0} student(s) currently owe something.</value></data>
+  <data name="Suggested: {0}" xml:space="preserve"><value>Suggested: {0}</value></data>
+  <data name="Only upcoming lessons on the same course, level, and lesson type, with a free seat. The soonest one is suggested." xml:space="preserve"><value>Only upcoming lessons on the same course, level, and lesson type, with a free seat. The soonest one is suggested.</value></data>
+  <data name="There is no upcoming lesson on the same course, level, and lesson type with a free seat. Add one, then come back — the request stays here waiting." xml:space="preserve"><value>There is no upcoming lesson on the same course, level, and lesson type with a free seat. Add one, then come back — the request stays here waiting.</value></data>
   <data name="This package no longer matches the student's current level." xml:space="preserve"><value>This package no longer matches the student's current level.</value></data>
   <data name="You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again." xml:space="preserve"><value>You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again.</value></data>
   <data name="You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used." xml:space="preserve"><value>You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used.</value></data>

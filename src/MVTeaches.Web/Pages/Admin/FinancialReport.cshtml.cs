@@ -8,9 +8,12 @@ using MVTeaches.Application.Payroll;
 using MVTeaches.Application.Reports;
 using MVTeaches.Domain.Common;
 using MVTeaches.Domain.Finance;
+using MVTeaches.Domain.Payments;
 using MVTeaches.Domain.Payroll;
 using MVTeaches.Domain.Scheduling;
+using MVTeaches.Domain.Subscriptions;
 using MVTeaches.Infrastructure.Identity;
+using MVTeaches.Web.Display;
 using MVTeaches.Web.Identity;
 using MVTeaches.Web.Resources;
 using NodaTime;
@@ -91,6 +94,28 @@ public class FinancialReportModel : PageModel
         IReadOnlyList<CurrencyAmount> DueByCurrency, int SessionsMissingRate);
 
     public IReadOnlyList<TeacherDuesRow> TeacherDues { get; set; } = Array.Empty<TeacherDuesRow>();
+
+    /// <summary>Owner decision 2026-09-04 — what students still owe the centre,
+    /// one row per currency. Read-only in the strictest sense: it writes
+    /// nothing, and it invents nothing either, because
+    /// <see cref="MoneyStanding.ComputeByCurrency"/> already computes exactly
+    /// this and is already what /Admin/Students and the student profile show.
+    /// Reusing it is the whole point — a second, independently written total
+    /// would be a second opinion about how much a family owes, and the two
+    /// would eventually disagree in front of a parent.
+    /// <para>Deliberately NOT filtered to the report's date range, unlike every
+    /// other figure on this page. Outstanding money is a standing, not a flow:
+    /// a package billed in March and still unpaid in May is owed in May, and
+    /// scoping it to the period would report zero for exactly the debts that
+    /// have gone unpaid longest. The page says so where it is shown.</para>
+    /// <para><see cref="StudentsOwingCount"/> counts distinct students with a
+    /// shortfall in ANY currency, so a family owing in two currencies is one
+    /// student, not two.</para></summary>
+    public record StudentDuesRow(string Currency, decimal Billed, decimal Paid, decimal Outstanding);
+
+    public IReadOnlyList<StudentDuesRow> StudentDues { get; set; } = Array.Empty<StudentDuesRow>();
+
+    public int StudentsOwingCount { get; set; }
 
     /// <summary>The expense form used to ask for a raw "Country Id" and a
     /// typed currency code; both are now picked from configured data.</summary>
@@ -193,11 +218,58 @@ public class FinancialReportModel : PageModel
         Report = await _reports.GenerateAsync(periodStart, periodEnd, HttpContext.RequestAborted);
         Expenses = await _expenses.ListAsync(periodStart, periodEnd, HttpContext.RequestAborted);
         await LoadTeacherDuesAsync(periodStart, periodEnd, HttpContext.RequestAborted);
+        await LoadStudentDuesAsync(HttpContext.RequestAborted);
 
         var periodLengthDays = Period.Between(periodStart, periodEnd.PlusDays(1), PeriodUnits.Days).Days;
         var previousPeriodEnd = periodStart.PlusDays(-1);
         var previousPeriodStart = previousPeriodEnd.PlusDays(-(periodLengthDays - 1));
         PreviousPeriodReport = await _reports.GenerateAsync(previousPeriodStart, previousPeriodEnd, HttpContext.RequestAborted);
+    }
+
+    /// <summary>Owner decision 2026-09-04 — see <see cref="StudentDuesRow"/>.
+    /// Loads the open subscriptions and their confirmed payments and hands both
+    /// to the shared MoneyStanding helper; no arithmetic happens here and
+    /// nothing is written. Takes no period parameters on purpose — see the
+    /// record's remarks for why a debt is not a period figure.</summary>
+    private async Task LoadStudentDuesAsync(CancellationToken cancellationToken)
+    {
+        // Only Draft/Active subscriptions can be owed on at all; loading just
+        // those keeps this off the full subscription history. MoneyStanding
+        // filters to the same two statuses itself, so this is a narrowing of
+        // the query, never a second definition of "open".
+        var openSubscriptions = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            _db.Subscriptions.Where(s => s.Status == SubscriptionStatus.Draft || s.Status == SubscriptionStatus.Active),
+            cancellationToken);
+        if (openSubscriptions.Count == 0)
+        {
+            StudentDues = Array.Empty<StudentDuesRow>();
+            StudentsOwingCount = 0;
+            return;
+        }
+
+        var openSubscriptionIds = openSubscriptions.Select(s => s.Id).ToHashSet();
+        var relevantPayments = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            _db.Payments.Where(p => p.Status == PaymentStatus.Confirmed
+                                    && p.SubscriptionId != null
+                                    && openSubscriptionIds.Contains(p.SubscriptionId.Value)),
+            cancellationToken);
+
+        StudentDues = MoneyStanding.ComputeByCurrency(openSubscriptions, relevantPayments)
+            .OrderByDescending(pair => pair.Value.Outstanding)
+            .ThenBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => new StudentDuesRow(pair.Key, pair.Value.Billed, pair.Value.Paid, pair.Value.Outstanding))
+            .ToList();
+
+        // Per student, across all their own open packages — the same helper
+        // again, so "this student owes something" means the same thing here as
+        // it does on their own row in /Admin/Students.
+        var paymentsByStudent = relevantPayments.GroupBy(p => p.StudentId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyCollection<Payment>)g.ToList());
+        StudentsOwingCount = openSubscriptions
+            .GroupBy(s => s.StudentId)
+            .Count(g => MoneyStanding.ComputeByCurrency(g.ToList(),
+                    paymentsByStudent.GetValueOrDefault(g.Key, Array.Empty<Payment>()))
+                .Any(pair => pair.Value.Outstanding > 0m));
     }
 
     /// <summary>Owner decision 2026-09-04 — see the class remarks. Pure read:

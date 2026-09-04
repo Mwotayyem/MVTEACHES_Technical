@@ -210,6 +210,32 @@
   <data name="Packages for this student are purchased by their guardian. Please ask your guardian to buy it from their own account, or contact the centre." xml:space="preserve"><value>شراء الباقات لهذا الطالب يتم عن طريق ولي أمره. يرجى الطلب من ولي أمرك شراءها من حسابه، أو التواصل مع المركز.</value></data>
   <data name="Your guardian buys this package for you." xml:space="preserve"><value>ولي أمرك هو من يشتري لك هذه الباقة.</value></data>
   <data name="This student already has a guardian. In this version a student may have only one guardian, and there is no way to replace one yet." xml:space="preserve"><value>هذا الطالب لديه ولي أمر بالفعل. في هذه النسخة لا يمكن ربط أكثر من ولي أمر واحد بالطالب، ولا يوجد حتى الآن مسار لاستبدال ولي الأمر.</value></data>
+  <data name="Teachers and Placement" xml:space="preserve"><value>المعلمون وتحديد المستوى</value></data>
+  <data name="Reports and Certificates" xml:space="preserve"><value>التقارير والشهادات</value></data>
+  <data name="Centre time: {0} ({1})" xml:space="preserve"><value>توقيت المركز: {0} ({1})</value></data>
+  <data name="Join as {0}" xml:space="preserve"><value>تسجيل حضور {0}</value></data>
+  <data name="Too many failed attempts. Please try again in about {0} minute(s)." xml:space="preserve"><value>محاولات خاطئة كثيرة. يرجى المحاولة مرة أخرى بعد حوالي {0} دقيقة.</value></data>
+  <data name="How these permissions work" xml:space="preserve"><value>كيف تعمل هذه الصلاحيات</value></data>
+  <data name="No permission ticked for a screen: the admin does not see it in the menu and cannot open it, even with a direct link." xml:space="preserve"><value>بدون أي صلاحية على الشاشة: لا يراها المشرف في القائمة ولا يستطيع فتحها، حتى برابط مباشر.</value></data>
+  <data name="&quot;View&quot; only: the admin can open the screen and read it, but every button that changes data is refused by the server, not merely hidden." xml:space="preserve"><value>صلاحية «عرض» فقط: يفتح المشرف الشاشة ويقرأها، لكن كل زر يغيّر البيانات يرفضه الخادم، لا أن يُخفى فحسب.</value></data>
+  <data name="&quot;Manage&quot;, &quot;Confirm&quot;, or &quot;Approve&quot;: the admin can carry out that specific action. These are separate on purpose — someone may read payments without being able to confirm money." xml:space="preserve"><value>صلاحية «إدارة» أو «تأكيد» أو «اعتماد»: يستطيع المشرف تنفيذ ذلك الإجراء تحديدًا. وهي منفصلة عمدًا — قد يقرأ شخص الدفعات دون أن يملك تأكيد الأموال.</value></data>
+  <data name="A SystemAdmin always has everything, and is not affected by these ticks." xml:space="preserve"><value>مدير النظام يملك كل شيء دائمًا، ولا تتأثر صلاحياته بهذه الخيارات.</value></data>
+  <data name="The payment-methods screen is no longer in the menu while payments are collected manually — this permission still controls it if it is opened by its direct link." xml:space="preserve"><value>شاشة طرق الدفع لم تعد ضمن القائمة ما دام التحصيل يدويًا — وهذه الصلاحية ما زالت تتحكم بها إن فُتحت برابطها المباشر.</value></data>
+  <data name="Phone number" xml:space="preserve"><value>رقم الهاتف</value></data>
+  <data name="The number the centre calls about this family. Include the country code." xml:space="preserve"><value>الرقم الذي يتصل به المركز بخصوص هذه العائلة. أدرج رمز الدولة.</value></data>
+  <data name="Phone number (required if the student signs in alone)" xml:space="preserve"><value>رقم الهاتف (مطلوب إذا كان الطالب يسجّل الدخول بنفسه)</value></data>
+  <data name="A phone number is required for a student who gets their own login." xml:space="preserve"><value>رقم الهاتف مطلوب للطالب الذي يُنشأ له حساب دخول خاص به.</value></data>
+  <data name="Missing phone" xml:space="preserve"><value>لا يوجد رقم هاتف</value></data>
+  <data name="Student dues — read only" xml:space="preserve"><value>المطلوب من الطلاب — للقراءة فقط</value></data>
+  <data name="Current standing across all open packages, not only this date range — an unpaid package stays owed until it is paid. Amounts are never added across currencies." xml:space="preserve"><value>الوضع الحالي لكل الباقات المفتوحة، وليس هذه الفترة فقط — الباقة غير المدفوعة تبقى مستحقة حتى تُدفع. ولا تُجمع المبالغ عبر عملات مختلفة أبدًا.</value></data>
+  <data name="No open packages, so nothing is outstanding." xml:space="preserve"><value>لا توجد باقات مفتوحة، فلا يوجد مبلغ مستحق.</value></data>
+  <data name="Billed" xml:space="preserve"><value>المطلوب</value></data>
+  <data name="Confirmed paid" xml:space="preserve"><value>المؤكد دفعه</value></data>
+  <data name="Still outstanding" xml:space="preserve"><value>المتبقي</value></data>
+  <data name="{0} student(s) currently owe something." xml:space="preserve"><value>عدد الطلاب الذين عليهم مبالغ مستحقة حاليًا: {0}.</value></data>
+  <data name="Suggested: {0}" xml:space="preserve"><value>مقترح: {0}</value></data>
+  <data name="Only upcoming lessons on the same course, level, and lesson type, with a free seat. The soonest one is suggested." xml:space="preserve"><value>الحصص القادمة فقط لنفس الدورة والمستوى ونوع الحصة، وفيها مقعد شاغر. وأقربها زمنيًا هو المقترح.</value></data>
+  <data name="There is no upcoming lesson on the same course, level, and lesson type with a free seat. Add one, then come back — the request stays here waiting." xml:space="preserve"><value>لا توجد حصة قادمة لنفس الدورة والمستوى ونوع الحصة وفيها مقعد شاغر. أضف واحدة ثم عد — يبقى الطلب هنا بانتظارك.</value></data>
   <data name="This package no longer matches the student's current level." xml:space="preserve"><value>هذه الباقة لم تعد تطابق المستوى الحالي للطالب.</value></data>
   <data name="You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again." xml:space="preserve"><value>لديك طلب سابق لهذه الباقة (رقم {0}) ما زال بانتظار الدفع. أكمل دفع ذلك الطلب بالأسفل بدل إنشاء طلب جديد.</value></data>
   <data name="You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used." xml:space="preserve"><value>لديك باقة فعّالة لنفس الخطة وبها رصيد متبقٍ. لا يمكنك شراء نفس الباقة مرة أخرى قبل انتهاء الرصيد.</value></data>

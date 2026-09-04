@@ -100,7 +100,8 @@ public class StudentAdmissionServiceTests
         await EnsureRolesExistAsync(roles);
 
         var email = $"guardian-{Guid.NewGuid():N}@test.mvteaches.local";
-        var result = await service.RegisterGuardianAsync(email, "CorrectHorse123!", "Guardian Name", CancellationToken.None);
+        var result = await service.RegisterGuardianAsync(email, "CorrectHorse123!", "Guardian Name",
+            "+962790000001", CancellationToken.None);
 
         Assert.Equal(RegisterGuardianOutcome.Registered, result.Outcome);
         Assert.NotNull(result.GuardianId);
@@ -110,6 +111,9 @@ public class StudentAdmissionServiceTests
 
         var user = await db.Users.FirstAsync(u => u.Id == guardian.UserId);
         Assert.Equal(email, user.Email);
+        // Owner decision 2026-09-04 (phone capture): stored on Identity's own
+        // existing column, which is what made this possible without a migration.
+        Assert.Equal("+962790000001", user.PhoneNumber);
         Assert.True(await roles.Manager.RoleExistsAsync(RoleNames.Guardian));
     }
 
@@ -121,7 +125,7 @@ public class StudentAdmissionServiceTests
         var countryId = await SeedCountryAsync(db);
 
         var result = await service.RegisterStudentAsync(countryId, "Child Student", new LocalDate(2016, 1, 1),
-            loginEmail: null, loginPassword: null, CancellationToken.None);
+            loginEmail: null, loginPassword: null, phoneNumber: null, CancellationToken.None);
 
         Assert.Equal(RegisterStudentOutcome.Registered, result.Outcome);
         var student = await db.Students.FirstAsync(s => s.Id == result.StudentId);
@@ -139,11 +143,14 @@ public class StudentAdmissionServiceTests
 
         var email = $"student-{Guid.NewGuid():N}@test.mvteaches.local";
         var result = await service.RegisterStudentAsync(countryId, "Adult Student", new LocalDate(1995, 1, 1),
-            email, "CorrectHorse123!", CancellationToken.None);
+            email, "CorrectHorse123!", "+962790000002", CancellationToken.None);
 
         Assert.Equal(RegisterStudentOutcome.Registered, result.Outcome);
         var student = await db.Students.FirstAsync(s => s.Id == result.StudentId);
         Assert.NotNull(student.UserId);
+        // The independent-learner case: their own login carries their own number.
+        var user = await db.Users.FirstAsync(u => u.Id == student.UserId);
+        Assert.Equal("+962790000002", user.PhoneNumber);
         Assert.True(await roles.Manager.RoleExistsAsync(RoleNames.Student));
     }
 
@@ -264,5 +271,30 @@ public class StudentAdmissionServiceTests
         Assert.Equal(levelB, currentAfterSecond[0].LevelId);
         var superseded = await db.StudentLevels.Where(l => l.StudentId == student.Id && l.LevelId == levelA).ToListAsync();
         Assert.All(superseded, l => Assert.False(l.IsCurrent));
+    }
+
+    /// <summary>Owner decision 2026-09-04 (phone capture): a child registered
+    /// with no login of their own has no AspNetUsers row to hold a number, and
+    /// a Student row has no phone column — so a number passed here is
+    /// deliberately dropped rather than silently written somewhere misleading.
+    /// The reachable number for such a child is their guardian's, which the
+    /// guardian form makes mandatory. This test pins that behaviour so the
+    /// limitation stays visible instead of being rediscovered later.</summary>
+    [Fact]
+    public async Task A_student_with_no_login_has_nowhere_to_store_a_phone_number()
+    {
+        var (db, service, _) = CreateService(_fixture);
+        await using var _ = db;
+        var countryId = await SeedCountryAsync(db);
+
+        var result = await service.RegisterStudentAsync(countryId, "Child Student", new LocalDate(2016, 1, 1),
+            loginEmail: null, loginPassword: null, phoneNumber: "+962790000003", CancellationToken.None);
+
+        Assert.Equal(RegisterStudentOutcome.Registered, result.Outcome);
+        var student = await db.Students.FirstAsync(s => s.Id == result.StudentId);
+        Assert.Null(student.UserId);
+        // No user row was created for the number to land on, and none was
+        // invented to hold it.
+        Assert.Equal(0, await db.Users.CountAsync(u => u.PhoneNumber == "+962790000003"));
     }
 }

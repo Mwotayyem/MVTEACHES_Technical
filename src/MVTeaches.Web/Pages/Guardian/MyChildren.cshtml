@@ -70,16 +70,26 @@ else
 
     <div class="table-responsive">
         <table class="table table-sm table-striped">
-            <thead><tr><th>@T["Child"]</th><th>@T["When"]</th><th>@T["Course and level"]</th><th>@T["Status"]</th><th>@T["Actions"]</th></tr></thead>
+            <thead><tr><th>@T["Child"]</th><th>@T["When"]</th><th>@T["Teacher"]</th><th>@T["Course and level"]</th><th>@T["Status"]</th><th>@T["Actions"]</th></tr></thead>
             <tbody>
                 @foreach (var s in Model.UpcomingSessions)
                 {
                     <tr>
-                        <td>@s.StudentName</td>
+                        <td><strong>@s.StudentName</strong></td>
                         <td>
-                            @T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone)
-                            <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
+                            @* Owner decision 2026-09-04: the child's own country
+                               time first, always labelled. The centre's own
+                               schedule time is added underneath ONLY when the two
+                               differ - showing it always would just repeat the
+                               line above for the many families in the same zone. *@
+                            @T.SessionMoment(s.StartsAtUtc, s.StudentTimeZone)
+                            <div class="text-muted small">@DisplayFormat.ZoneLabel(s.StudentTimeZone)</div>
+                            @if (!string.Equals(s.StudentTimeZone, s.ScheduleTimeZone, StringComparison.Ordinal))
+                            {
+                                <div class="text-muted small">@T["Centre time: {0} ({1})", T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone), DisplayFormat.ZoneLabel(s.ScheduleTimeZone)]</div>
+                            }
                         </td>
+                        <td>@s.TeacherName</td>
                         <td>@s.CourseName / @s.LevelCode</td>
                         <td>
                             @if (s.AlreadyPresent)
@@ -94,10 +104,15 @@ else
                         <td>
                             @if (s.CanJoin)
                             {
+                                @* One press, one child, one session - the hidden
+                                   studentId is what the service authorizes and
+                                   deducts against, and it is per row. The label
+                                   names the child so a parent with several
+                                   children can see which button is which. *@
                                 <form method="post" asp-page-handler="Join">
                                     <input type="hidden" name="sessionId" value="@s.SessionId" />
                                     <input type="hidden" name="studentId" value="@s.StudentId" />
-                                    <button type="submit" class="btn btn-sm btn-primary">@T["Join"]</button>
+                                    <button type="submit" class="btn btn-sm btn-primary">@T["Join as {0}", s.StudentName]</button>
                                 </form>
                             }
                         </td>
@@ -105,7 +120,7 @@ else
                 }
                 @if (Model.UpcomingSessions.Count == 0)
                 {
-                    <tr><td colspan="5" class="text-muted">@T["No sessions in this window."]</td></tr>
+                    <tr><td colspan="6" class="text-muted">@T["No sessions in this window."]</td></tr>
                 }
             </tbody>
         </table>

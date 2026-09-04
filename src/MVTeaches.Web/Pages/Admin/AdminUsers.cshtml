@@ -11,6 +11,20 @@
     </div>
 </div>
 
+@* Owner decision 2026-09-04: the checkboxes below were already accurate, but
+   nothing on the page said what the two SUFFIXES mean, so a SystemAdmin had to
+   infer the rule from the labels. This states it once, plainly. It documents
+   the behaviour that is already enforced - it does not change it. *@
+<div class="alert alert-info">
+    <strong>@T["How these permissions work"]</strong>
+    <ul class="mb-0 mt-2 small">
+        <li>@T["No permission ticked for a screen: the admin does not see it in the menu and cannot open it, even with a direct link."]</li>
+        <li>@T["\"View\" only: the admin can open the screen and read it, but every button that changes data is refused by the server, not merely hidden."]</li>
+        <li>@T["\"Manage\", \"Confirm\", or \"Approve\": the admin can carry out that specific action. These are separate on purpose — someone may read payments without being able to confirm money."]</li>
+        <li>@T["A SystemAdmin always has everything, and is not affected by these ticks."]</li>
+    </ul>
+</div>
+
 @if (Model.StatusMessage is not null)
 {
     <div class="alert alert-success">@Model.StatusMessage</div>
@@ -69,6 +83,10 @@ else
                             <input class="form-check-input" type="checkbox" name="Granted" value="Admin.Payments.Manage" id="perm-@admin.Id-pm"
                                    checked="@admin.GrantedPermissions.Contains("Admin.Payments.Manage")" />
                             <label class="form-check-label" for="perm-@admin.Id-pm">@T["Manage payment methods"]</label>
+                            @* Owner decision 2026-09-04: /Admin/PaymentMethods left the
+                               menu, so this tick no longer produces a visible link. It
+                               still governs the page itself. Say so, or it reads as broken. *@
+                            <div class="form-text">@T["The payment-methods screen is no longer in the menu while payments are collected manually — this permission still controls it if it is opened by its direct link."]</div>
                         </div>
                     </div>
 

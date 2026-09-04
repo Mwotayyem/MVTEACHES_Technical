@@ -70,7 +70,8 @@ public class StudentsModel : PageModel
         string? CurrentLevelCode, IReadOnlyList<string> GuardianNames,
         StudentLifecycleState State, string? PackageName, string? Currency,
         decimal Billed, decimal Paid, decimal Outstanding, int RemainingMinutes, int PurchasedMinutes,
-        LocalDate? StartsOn, LocalDate? ExpiresOn, int UpcomingLessonCount)
+        LocalDate? StartsOn, LocalDate? ExpiresOn, int UpcomingLessonCount,
+        bool HasReachablePhone)
     {
         // Outstanding comes from MoneyStanding as a sum of PER-SUBSCRIPTION
         // shortfalls, each clamped at zero before adding up — never re-derived
@@ -156,6 +157,12 @@ public class StudentsModel : PageModel
 
         [Required(ErrorMessage = "Enter the full name.")]
         public string FullName { get; set; } = string.Empty;
+
+        /// <summary>Owner decision 2026-09-04: the centre must be able to reach
+        /// the person responsible for a child. Stored on this guardian's own
+        /// Identity user (AspNetUsers.PhoneNumber) - no schema change.</summary>
+        [Required(ErrorMessage = "Enter a phone number."), Phone(ErrorMessage = "This is not a valid phone number.")]
+        public string PhoneNumber { get; set; } = string.Empty;
     }
 
     public class RegisterStudentInput
@@ -174,6 +181,17 @@ public class StudentsModel : PageModel
 
         [MinLength(8)]
         public string? LoginPassword { get; set; }
+
+        /// <summary>Owner decision 2026-09-04: required only when this student
+        /// is being given their OWN login, which is the independent-learner
+        /// case the centre must be able to phone directly. A child registered
+        /// without a login has no AspNetUsers row to store a number on, and a
+        /// Student row has no phone column - for them the guardian's number is
+        /// the one that counts, and the guardian form makes it mandatory.
+        /// Enforced in OnPostRegisterStudentAsync, not by an attribute, because
+        /// the rule is conditional on another field.</summary>
+        [Phone(ErrorMessage = "This is not a valid phone number.")]
+        public string? PhoneNumber { get; set; }
     }
 
     public class LinkGuardianInput
@@ -231,7 +249,8 @@ public class StudentsModel : PageModel
             return Page();
         }
 
-        var result = await _admissions.RegisterGuardianAsync(NewGuardian.Email, NewGuardian.Password, NewGuardian.FullName, HttpContext.RequestAborted);
+        var result = await _admissions.RegisterGuardianAsync(NewGuardian.Email, NewGuardian.Password, NewGuardian.FullName,
+            NewGuardian.PhoneNumber, HttpContext.RequestAborted);
         if (result.Outcome == RegisterGuardianOutcome.LoginFailed)
         {
             ErrorMessage = _localizer["Could not create the guardian's login: {0}", string.Join("; ", result.Errors ?? Array.Empty<string>())].Value;
@@ -259,10 +278,23 @@ public class StudentsModel : PageModel
             return Page();
         }
 
+        // Owner decision 2026-09-04 (phone capture): a student getting their own
+        // login is a person the centre deals with directly, so a number is
+        // mandatory for them. Checked here rather than with an attribute
+        // because it depends on whether a login is being created at all.
+        var givingThemALogin = !string.IsNullOrWhiteSpace(NewStudent.LoginEmail)
+            && !string.IsNullOrWhiteSpace(NewStudent.LoginPassword);
+        if (givingThemALogin && string.IsNullOrWhiteSpace(NewStudent.PhoneNumber))
+        {
+            ErrorMessage = _localizer["A phone number is required for a student who gets their own login."].Value;
+            await LoadAsync();
+            return Page();
+        }
+
         var dateOfBirth = NewStudent.DateOfBirth!.Value;
         var dob = new LocalDate(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day);
         var result = await _admissions.RegisterStudentAsync(NewStudent.CountryId!.Value, NewStudent.FullName, dob,
-            NewStudent.LoginEmail, NewStudent.LoginPassword, HttpContext.RequestAborted);
+            NewStudent.LoginEmail, NewStudent.LoginPassword, NewStudent.PhoneNumber, HttpContext.RequestAborted);
 
         if (result.Outcome == RegisterStudentOutcome.LoginFailed)
         {
@@ -406,6 +438,28 @@ public class StudentsModel : PageModel
                 .ToListAsync())
             .ToHashSet();
 
+        // Owner decision 2026-09-04 (phone capture): a number is mandatory for
+        // every NEW registration, but the accounts already in the system predate
+        // that and must not break — so they are flagged rather than blocked, and
+        // an admin can see at a glance which families the centre cannot ring.
+        // "Reachable" is deliberately generous: EITHER the student's own login
+        // OR any linked guardian's login carrying a number satisfies it, which
+        // is exactly the rule the registration forms enforce going forward.
+        var studentsOwnPhoneIds = await _db.Students
+            .Where(s => studentIds.Contains(s.Id) && s.UserId != null)
+            .Join(_db.Users, s => s.UserId, u => u.Id, (s, u) => new { s.Id, u.PhoneNumber })
+            .Where(x => x.PhoneNumber != null && x.PhoneNumber != "")
+            .Select(x => x.Id)
+            .ToListAsync();
+        var guardianPhoneStudentIds = await _db.Guardianships
+            .Where(g => studentIds.Contains(g.StudentId))
+            .Join(_db.Guardians, g => g.GuardianId, gu => gu.Id, (g, gu) => new { g.StudentId, gu.UserId })
+            .Join(_db.Users, x => x.UserId, u => u.Id, (x, u) => new { x.StudentId, u.PhoneNumber })
+            .Where(x => x.PhoneNumber != null && x.PhoneNumber != "")
+            .Select(x => x.StudentId)
+            .ToListAsync();
+        var reachableStudentIds = studentsOwnPhoneIds.Concat(guardianPhoneStudentIds).ToHashSet();
+
         var subscriptionsByStudent = subscriptions.GroupBy(sub => sub.StudentId)
             .ToDictionary(g => g.Key, g => g.ToList());
         var paymentsByStudent = payments.GroupBy(pay => pay.StudentId)
@@ -471,7 +525,8 @@ public class StudentsModel : PageModel
                 purchasedMinutes,
                 running?.StartsOn,
                 running?.ExpiresOn,
-                upcoming.Count);
+                upcoming.Count,
+                reachableStudentIds.Contains(s.Id));
         }).ToList();
 
         StateCounts = Students.GroupBy(row => row.State).ToDictionary(g => g.Key, g => g.Count());

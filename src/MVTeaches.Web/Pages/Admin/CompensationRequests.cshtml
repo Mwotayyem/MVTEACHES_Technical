@@ -90,7 +90,7 @@
                                    button that can only fail, told the admin nothing. *@
                                 <div class="app-empty text-start">
                                     <strong>@T["This request cannot be approved yet."]</strong>
-                                    <span>@T["There is no upcoming lesson at this student's level with a free seat. Add one, then come back — the request stays here waiting."]</span>
+                                    <span>@T["There is no upcoming lesson on the same course, level, and lesson type with a free seat. Add one, then come back — the request stays here waiting."]</span>
                                     <span><a class="btn btn-sm btn-outline-primary mt-2" asp-page="/Admin/Schedules">@T["Open schedules"]</a></span>
                                 </div>
                             }
@@ -100,14 +100,20 @@
                                     <input type="hidden" name="requestId" value="@r.RequestId" />
                                     <div class="flex-grow-1">
                                         <label class="form-label small mb-0" for="replacement-@r.RequestId">@T["Which lesson do they get instead?"]<span class="app-required">*</span></label>
+                                        @* Owner decision 2026-09-04: the soonest matching
+                                           lesson with a free seat is pre-selected and marked,
+                                           so the ordinary case is one press instead of a scan
+                                           through fifty near-identical lines. It is only a
+                                           default - any other option can be chosen, and the
+                                           admin still has to press Approve. *@
                                         <select id="replacement-@r.RequestId" name="replacementSessionId" class="form-select form-select-sm" required>
                                             <option value="">@T["Select placeholder"]</option>
                                             @foreach (var opt in r.CandidateReplacementSessions)
                                             {
-                                                <option value="@opt.Id">@opt.Label</option>
+                                                <option value="@opt.Id" selected="@opt.IsSuggested">@(opt.IsSuggested ? T["Suggested: {0}", opt.Label].Value : opt.Label)</option>
                                             }
                                         </select>
-                                        <div class="form-text">@T["Only upcoming lessons at this student's own level, with a free seat."]</div>
+                                        <div class="form-text">@T["Only upcoming lessons on the same course, level, and lesson type, with a free seat. The soonest one is suggested."]</div>
                                     </div>
                                     <button type="submit" class="btn btn-sm btn-primary"
                                             data-mv-confirm="@T["Enrol this student into that lesson for free? Their missed lesson stays as it is."]">@T["Approve"]</button>

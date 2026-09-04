@@ -170,6 +170,12 @@ public class AssistedRegistrationModel : PageModel
         public string Password { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Enter the full name.")] public string FullName { get; set; } = string.Empty;
+
+        /// <summary>Owner decision 2026-09-04: the centre must be able to reach
+        /// the person responsible for a child. Stored on this guardian's own
+        /// Identity user (AspNetUsers.PhoneNumber) - no schema change.</summary>
+        [Required(ErrorMessage = "Enter a phone number."), Phone(ErrorMessage = "This is not a valid phone number.")]
+        public string PhoneNumber { get; set; } = string.Empty;
     }
 
     // Ids and dates are nullable on purpose: on a non-nullable value type an
@@ -228,7 +234,8 @@ public class AssistedRegistrationModel : PageModel
             return Page();
         }
 
-        var result = await _admissions.RegisterGuardianAsync(NewGuardian.Email, NewGuardian.Password, NewGuardian.FullName, HttpContext.RequestAborted);
+        var result = await _admissions.RegisterGuardianAsync(NewGuardian.Email, NewGuardian.Password, NewGuardian.FullName,
+            NewGuardian.PhoneNumber, HttpContext.RequestAborted);
         ErrorMessage = result.Outcome == RegisterGuardianOutcome.LoginFailed
             ? _localizer["Could not create the guardian's account: {0}", string.Join("; ", result.Errors ?? Array.Empty<string>())].Value
             : null;
@@ -252,8 +259,15 @@ public class AssistedRegistrationModel : PageModel
         // No login/password here — this student registers with no independent
         // account yet, exactly the ordinary guardian-only-child case; a login
         // can be added later from /Admin/Students if the family wants one.
+        // Owner decision 2026-09-04 (phone capture): this handler creates no
+        // login, so there is no AspNetUsers row to hold a number and a Student
+        // row has no phone column of its own. The reachable number for this
+        // child is therefore the guardian's, captured when the guardian is
+        // registered above - which is exactly why the next step this page
+        // prompts for is linking one. Passing null here is deliberate, not an
+        // omission; see the interface remarks and the report's open item.
         var result = await _admissions.RegisterStudentAsync(NewStudent.CountryId!.Value, NewStudent.FullName, dob,
-            loginEmail: null, loginPassword: null, HttpContext.RequestAborted);
+            loginEmail: null, loginPassword: null, phoneNumber: null, HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome == RegisterStudentOutcome.Registered
             ? _localizer["Student '{0}' registered — link a guardian, then direct them to the free placement test.", NewStudent.FullName].Value

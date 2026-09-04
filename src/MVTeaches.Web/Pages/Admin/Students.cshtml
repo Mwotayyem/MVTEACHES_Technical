@@ -195,6 +195,15 @@
                         {
                             <span class="app-chip is-missing">@T["No guardian linked"]</span>
                         }
+                        @* Owner decision 2026-09-04: accounts created before a
+                           phone became mandatory are flagged here, never blocked
+                           — the centre can see which families it cannot ring and
+                           fix them one at a time. A number on EITHER the
+                           student's own login or any linked guardian's counts. *@
+                        @if (!student.HasReachablePhone)
+                        {
+                            <div><span class="app-chip is-missing">@T["Missing phone"]</span></div>
+                        }
                     </td>
                     <td class="text-muted small">
                         @if (student.Status == StudentStatus.PendingVerification)
@@ -437,6 +446,12 @@
                         <span asp-validation-for="NewGuardian.FullName" class="text-danger small"></span>
                     </div>
                     <div class="mb-2">
+                        <label class="form-label" asp-for="NewGuardian.PhoneNumber">@T["Phone number"]<span class="app-required">*</span></label>
+                        <input asp-for="NewGuardian.PhoneNumber" type="tel" class="form-control" autocomplete="off" />
+                        <div class="form-text">@T["The number the centre calls about this family. Include the country code."]</div>
+                        <span asp-validation-for="NewGuardian.PhoneNumber" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-2">
                         <label class="form-label" asp-for="NewGuardian.Email">@T["Email"]<span class="app-required">*</span></label>
                         <input asp-for="NewGuardian.Email" class="form-control" autocomplete="off" />
                         <span asp-validation-for="NewGuardian.Email" class="text-danger small"></span>
@@ -496,6 +511,13 @@
                         <label class="form-label" asp-for="NewStudent.LoginPassword">@T["Sign-in password (only if the student signs in alone)"]</label>
                         <input asp-for="NewStudent.LoginPassword" type="password" class="form-control" autocomplete="new-password" />
                         <span asp-validation-for="NewStudent.LoginPassword" class="text-danger small"></span>
+                    </div>
+                    @* Owner decision 2026-09-04: required only alongside a login -
+                       see RegisterStudentInput.PhoneNumber for why. *@
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="NewStudent.PhoneNumber">@T["Phone number (required if the student signs in alone)"]</label>
+                        <input asp-for="NewStudent.PhoneNumber" type="tel" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="NewStudent.PhoneNumber" class="text-danger small"></span>
                     </div>
                     <button type="submit" class="btn btn-primary">@T["Register student"]</button>
                 </form>

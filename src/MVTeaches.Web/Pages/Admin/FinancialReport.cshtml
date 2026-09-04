@@ -185,6 +185,47 @@
     }
 
     @*
+        Owner decision 2026-09-04: the other side of the ledger — what students
+        still owe the centre. Read-only, and computed by the SAME MoneyStanding
+        helper that /Admin/Students and the student profile already use, so this
+        page can never quote a family a different number than their own row does.
+        Nothing here writes, and no PaymentService call is involved.
+    *@
+    <h2>@T["Student dues — read only"]</h2>
+    <p class="text-muted small">@T["Current standing across all open packages, not only this date range — an unpaid package stays owed until it is paid. Amounts are never added across currencies."]</p>
+    @if (Model.StudentDues.Count == 0)
+    {
+        <p class="text-muted mb-4">@T["No open packages, so nothing is outstanding."]</p>
+    }
+    else
+    {
+        <div class="table-responsive mb-2">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>@T["Currency"]</th>
+                        <th>@T["Billed"]</th>
+                        <th>@T["Confirmed paid"]</th>
+                        <th>@T["Still outstanding"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.StudentDues)
+                    {
+                        <tr>
+                            <td>@row.Currency</td>
+                            <td>@T.Money(row.Billed, row.Currency)</td>
+                            <td>@T.Money(row.Paid, row.Currency)</td>
+                            <td><strong>@T.Money(row.Outstanding, row.Currency)</strong></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small mb-4">@T["{0} student(s) currently owe something.", Model.StudentsOwingCount]</p>
+    }
+
+    @*
         Owner decision 2026-09-04 (Payroll-simplification, Review Required):
         a plain read-only reading of what each teacher is actually owed —
         delivered hours × the applicable rate — with no PayrollPeriod,

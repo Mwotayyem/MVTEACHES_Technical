@@ -139,8 +139,15 @@ else
                 {
                     <tr>
                         <td>
-                            @T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone)
-                            <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
+                            @* Owner decision 2026-09-04: the student's own country
+                               time, always labelled; the centre's schedule time is
+                               added only when the two zones actually differ. *@
+                            @T.SessionMoment(s.StartsAtUtc, Model.StudentTimeZone)
+                            <div class="text-muted small">@DisplayFormat.ZoneLabel(Model.StudentTimeZone)</div>
+                            @if (!string.Equals(Model.StudentTimeZone, s.ScheduleTimeZone, StringComparison.Ordinal))
+                            {
+                                <div class="text-muted small">@T["Centre time: {0} ({1})", T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone), DisplayFormat.ZoneLabel(s.ScheduleTimeZone)]</div>
+                            }
                         </td>
                         <td>@s.CourseName / @s.LevelCode</td>
                         <td>@T["ClassSessionStatus." + s.SessionStatus]</td>
@@ -197,8 +204,12 @@ else
                     {
                         <tr>
                             <td>
-                                @T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone)
-                                <div class="text-muted small">@DisplayFormat.ZoneLabel(s.ScheduleTimeZone)</div>
+                                @T.SessionMoment(s.StartsAtUtc, Model.StudentTimeZone)
+                                <div class="text-muted small">@DisplayFormat.ZoneLabel(Model.StudentTimeZone)</div>
+                                @if (!string.Equals(Model.StudentTimeZone, s.ScheduleTimeZone, StringComparison.Ordinal))
+                                {
+                                    <div class="text-muted small">@T["Centre time: {0} ({1})", T.SessionMoment(s.StartsAtUtc, s.ScheduleTimeZone), DisplayFormat.ZoneLabel(s.ScheduleTimeZone)]</div>
+                                }
                             </td>
                             <td>@s.CourseName / @s.LevelCode</td>
                             <td>

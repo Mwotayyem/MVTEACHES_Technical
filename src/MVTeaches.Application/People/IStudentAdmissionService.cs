@@ -58,16 +58,31 @@ public interface IStudentAdmissionService
 {
     /// <summary>Creates a real ASP.NET Core Identity login (email+password) plus
     /// the Guardian record and Guardian role membership — a guardian always has
-    /// a login (§7.1); there is no "guardian with no account" case.</summary>
-    Task<RegisterGuardianResult> RegisterGuardianAsync(string email, string password, string fullName, CancellationToken cancellationToken);
+    /// a login (§7.1); there is no "guardian with no account" case.
+    /// <para>Owner decision 2026-09-04: <paramref name="phoneNumber"/> is
+    /// mandatory. A guardian is the person the centre calls when a child does
+    /// not appear for a paid session, and 0 of the 19 accounts in staging had a
+    /// number — the centre had no way to reach anybody. It is stored on the
+    /// Identity user's own PhoneNumber column, which already exists, so this
+    /// needs no schema change.</para></summary>
+    Task<RegisterGuardianResult> RegisterGuardianAsync(string email, string password, string fullName,
+        string phoneNumber, CancellationToken cancellationToken);
 
     /// <summary>Creates a Student row (PendingVerification, §8.1) and, only if
     /// both a login email AND password are supplied, an email+password login
     /// for the student themselves. A child with no independent login (D-02/D-03)
     /// is the default — pass null/null for that case. Does not link a guardian;
-    /// call <see cref="LinkGuardianAsync"/> separately.</summary>
+    /// call <see cref="LinkGuardianAsync"/> separately.
+    /// <para>Owner decision 2026-09-04: <paramref name="phoneNumber"/> is
+    /// stored on the student's own Identity user when one is being created —
+    /// the case of an independent learner the centre must be able to reach.
+    /// It is IGNORED when no login is created, because a Student row has no
+    /// phone column of its own and adding one would be a schema change; for
+    /// that (much more common) case the number that matters is the linked
+    /// guardian's, captured by <see cref="RegisterGuardianAsync"/>. The admin
+    /// screens enforce this split — see their own remarks.</para></summary>
     Task<RegisterStudentResult> RegisterStudentAsync(int countryId, string fullName, LocalDate dateOfBirth,
-        string? loginEmail, string? loginPassword, CancellationToken cancellationToken);
+        string? loginEmail, string? loginPassword, string? phoneNumber, CancellationToken cancellationToken);
 
     /// <summary>Links a guardian to a student. Owner decision 2026-09-04: in the
     /// MVP a student has exactly ONE responsible guardian, so this refuses a

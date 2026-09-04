@@ -161,6 +161,16 @@
                             <input asp-for="NewGuardian.FullName" class="form-control" autocomplete="off" />
                             <span asp-validation-for="NewGuardian.FullName" class="text-danger small"></span>
                         </div>
+                        @* Owner decision 2026-09-04: the guardian is the person the
+                           centre phones about this family — no guardian account is
+                           created without one. Stored on their own Identity user
+                           (AspNetUsers.PhoneNumber), so no schema change. *@
+                        <div class="col-12">
+                            <label class="form-label" asp-for="NewGuardian.PhoneNumber">@T["Phone number"]<span class="app-required">*</span></label>
+                            <input asp-for="NewGuardian.PhoneNumber" type="tel" class="form-control" autocomplete="off" />
+                            <div class="form-text">@T["The number the centre calls about this family. Include the country code."]</div>
+                            <span asp-validation-for="NewGuardian.PhoneNumber" class="text-danger small"></span>
+                        </div>
                         <div class="col-12">
                             <label class="form-label" asp-for="NewGuardian.Email">@T["Email address"]<span class="app-required">*</span></label>
                             <input asp-for="NewGuardian.Email" class="form-control" autocomplete="off" />

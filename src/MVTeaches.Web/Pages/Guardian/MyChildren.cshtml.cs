@@ -43,9 +43,23 @@ public class MyChildrenModel : PageModel
         _localizer = localizer;
     }
 
+    /// <summary>Owner decision 2026-09-04, two changes to this row.
+    /// <para>Time zone: <paramref name="StudentTimeZone"/> is the child's own
+    /// country's DefaultTimeZone, and is what the guardian is shown. Nothing
+    /// about STORAGE changed — the session is still stamped in UTC and still
+    /// carries its own ScheduleTimeZone, which is kept here and shown beside
+    /// the local time whenever the two differ, so a parent phoning the centre
+    /// about "the 5 o'clock lesson" and the centre reading its own schedule
+    /// are still talking about the same moment.</para>
+    /// <para>Join context: a guardian with several children was being asked to
+    /// press one of several identical-looking Join buttons. TeacherName is
+    /// carried for that reason — the child's name, the teacher, the time, and
+    /// the level together make each row identifiable at a glance. None of it
+    /// touches what Join DOES; every press still names exactly one
+    /// studentId and one sessionId.</para></summary>
     public record ChildSessionRow(long StudentId, string StudentName, long SessionId, Instant StartsAtUtc,
-        string ScheduleTimeZone, string CourseName, string LevelCode, ClassSessionStatus SessionStatus,
-        bool AlreadyPresent, bool CanJoin);
+        string ScheduleTimeZone, string StudentTimeZone, string CourseName, string LevelCode,
+        string TeacherName, ClassSessionStatus SessionStatus, bool AlreadyPresent, bool CanJoin);
 
     public IReadOnlyList<ChildSessionRow> UpcomingSessions { get; set; } = Array.Empty<ChildSessionRow>();
 
@@ -133,6 +147,18 @@ public class MyChildrenModel : PageModel
         var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
         var enrollmentsByStudentAndSession = enrollments.ToDictionary(e => (e.SessionId, e.StudentId), e => e);
 
+        // Owner decision 2026-09-04 — see ChildSessionRow. Each child's own
+        // country zone, resolved once for the whole page rather than per row.
+        var studentTimeZones = await _db.Students
+            .Where(s => childIds.Contains(s.Id))
+            .Join(_db.Countries, s => s.CountryId, c => c.Id, (s, c) => new { s.Id, c.DefaultTimeZone })
+            .ToDictionaryAsync(x => x.Id, x => x.DefaultTimeZone);
+
+        var teacherIds = sessions.Select(s => s.TeacherId).Distinct().ToList();
+        var teacherNames = await _db.Teachers
+            .Where(t => teacherIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, t => t.FullName);
+
         var rows = new List<ChildSessionRow>();
         foreach (var session in sessions)
         {
@@ -147,7 +173,11 @@ public class MyChildrenModel : PageModel
                 var canJoin = !alreadyPresent && now >= session.StartsAtUtc && session.Status == ClassSessionStatus.Scheduled;
                 rows.Add(new ChildSessionRow(studentId, childNames.GetValueOrDefault(studentId, string.Empty),
                     session.Id, session.StartsAtUtc, session.ScheduleTimeZone,
+                    // Falls back to the session's own zone when a country row
+                    // somehow carries no zone — never to a silent UTC.
+                    studentTimeZones.GetValueOrDefault(studentId) is { Length: > 0 } zone ? zone : session.ScheduleTimeZone,
                     courseNames.GetValueOrDefault(session.CourseId, "?"), levelCodes.GetValueOrDefault(session.LevelId, "?"),
+                    teacherNames.GetValueOrDefault(session.TeacherId, "?"),
                     session.Status, alreadyPresent, canJoin));
             }
         }

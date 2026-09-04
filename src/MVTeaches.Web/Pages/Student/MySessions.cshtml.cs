@@ -105,6 +105,17 @@ public class MySessionsModel : PageModel
     /// admin assigns one.</summary>
     public bool NoLevelAssigned { get; set; }
 
+    /// <summary>Owner decision 2026-09-04: session times on this page are shown
+    /// in the student's OWN country time zone (Country.DefaultTimeZone), always
+    /// labelled, with the centre's own schedule zone shown alongside whenever
+    /// the two differ. A page-level property rather than a per-row one because
+    /// this whole page belongs to exactly one student. Nothing about STORAGE
+    /// changed: sessions are still stamped in UTC and still carry their own
+    /// ScheduleTimeZone, which every row still passes through untouched.
+    /// Falls back to the session's own zone if a country carries no zone —
+    /// never to a silent UTC.</summary>
+    public string StudentTimeZone { get; set; } = string.Empty;
+
     // Who am I, what level am I, where do I stand — the four facts a student
     // asked to see on their own screen. All read from rows this page already
     // loads; nothing new is stored.
@@ -309,6 +320,10 @@ public class MySessionsModel : PageModel
         StudentName = student.FullName;
         StudentNumber = student.Id;
         StudentStatus = student.Status;
+        StudentTimeZone = await _db.Countries
+            .Where(c => c.Id == student.CountryId)
+            .Select(c => c.DefaultTimeZone)
+            .FirstOrDefaultAsync() ?? string.Empty;
         CurrentLevelCode = currentLevelId is null ? null : levelCodes.GetValueOrDefault(currentLevelId.Value);
 
         // Remaining minutes across the student's active packages, read the one

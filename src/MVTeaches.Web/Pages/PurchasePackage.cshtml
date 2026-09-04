@@ -31,7 +31,12 @@
                 @if (poster.HasImage)
                 {
                     <div class="app-poster-image">
-                        <img src="@Url.Page("/Files/PosterImage", new { posterId = poster.Id })?v=@poster.ImageFileId"
+                        @* The cache-buster belongs INSIDE Url.Page, exactly as
+                           /Admin/Posters does it. Appended outside, it produced a
+                           second "?" (.../PosterImage?posterId=5?v=17) which the
+                           query parser reads as a posterId of "5?v=17" - no image
+                           at all. Same bug, student-facing half. *@
+                        <img src="@Url.Page("/Files/PosterImage", new { posterId = poster.Id, v = poster.ImageFileId })"
                              alt="@poster.Title" loading="lazy" />
                     </div>
                 }

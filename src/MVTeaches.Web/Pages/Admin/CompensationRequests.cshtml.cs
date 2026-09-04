@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using MVTeaches.Application.Scheduling;
+using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Scheduling;
 using MVTeaches.Infrastructure.Identity;
 using MVTeaches.Infrastructure.Persistence;
@@ -50,7 +51,13 @@ public class CompensationRequestsModel : PageModel
         long OriginalSessionId, Instant OriginalSessionStartsAtUtc, string OriginalSessionTimeZone, string? Reason,
         Instant RequestedAtUtc, IReadOnlyList<SessionOption> CandidateReplacementSessions);
 
-    public record SessionOption(long Id, string Label);
+    /// <summary>Owner decision 2026-09-04: <see cref="IsSuggested"/> marks the
+    /// ONE option this page puts forward as the obvious replacement — the
+    /// soonest matching session with a free seat. It is a suggestion in the
+    /// literal sense: it is pre-selected in the dropdown and labelled, and an
+    /// admin still has to press Approve, can pick any other option, or can
+    /// reject outright. Nothing approves itself.</summary>
+    public record SessionOption(long Id, string Label, bool IsSuggested = false);
 
     public record ResolvedRequestRow(long RequestId, long StudentId, string StudentName, CompensationRequestStatus Status,
         Instant? ReplacementStartsAtUtc, string? ReplacementTimeZone, string? RejectionReason);
@@ -137,21 +144,43 @@ public class CompensationRequestsModel : PageModel
         var originalSessions = await _db.ClassSessions.Where(s => originalSessionIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id);
         var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
 
-        // One candidate-replacement-session list per distinct level among the
-        // pending requests, shared across requests of the same level.
-        var levelsNeeded = originalSessions.Values.Select(s => s.LevelId).Distinct().ToList();
-        var candidatesByLevel = new Dictionary<int, List<SessionOption>>();
-        foreach (var levelId in levelsNeeded)
+        // Owner decision 2026-09-04 (compensation UX). Two changes here, and
+        // neither touches the compensation RULE itself: approving still books a
+        // replacement without charging a second hour, and rejecting still
+        // leaves the original deduction standing. This only changes which
+        // sessions are offered and which one is put forward first.
+        //
+        // 1. The match is now on course + level + session type, not level
+        //    alone. It used to be possible to offer a student a different
+        //    course at the same level, or a Group session as the replacement
+        //    for a Private one. Course and type are already columns on
+        //    ClassSession, so this needed no schema change.
+        // 2. The soonest match with a free seat is marked as the suggestion.
+        //
+        // The candidate key is therefore the ORIGINAL session's own
+        // (course, level, type), shared by every pending request that arose
+        // from an equivalent session.
+        var candidateKeys = originalSessions.Values
+            .Select(s => (s.CourseId, s.LevelId, s.SessionType))
+            .Distinct()
+            .ToList();
+        var candidatesByKey = new Dictionary<(long CourseId, int LevelId, SessionType SessionType), List<SessionOption>>();
+        foreach (var key in candidateKeys)
         {
             var sessions = await _db.ClassSessions
-                .Where(s => s.LevelId == levelId && s.Status == ClassSessionStatus.Scheduled
+                .Where(s => s.CourseId == key.CourseId && s.LevelId == key.LevelId
+                            && s.SessionType == key.SessionType
+                            && s.Status == ClassSessionStatus.Scheduled
                             && s.StartsAtUtc > now && s.StartsAtUtc <= windowEnd && s.SeatsTaken < s.Capacity)
                 .OrderBy(s => s.StartsAtUtc)
                 .Take(50)
                 .ToListAsync();
-            candidatesByLevel[levelId] = sessions
-                .Select(s => new SessionOption(s.Id,
-                    $"{_localizer.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone)} — {_localizer["{0} seats left", s.Capacity - s.SeatsTaken].Value}"))
+            candidatesByKey[key] = sessions
+                .Select((s, index) => new SessionOption(s.Id,
+                    $"{_localizer.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone)} — {_localizer["{0} seats left", s.Capacity - s.SeatsTaken].Value}",
+                    // Sorted by start time above, so the first row IS the
+                    // soonest one with a seat free.
+                    IsSuggested: index == 0))
                 .ToList();
         }
 
@@ -159,10 +188,14 @@ public class CompensationRequestsModel : PageModel
         {
             var original = originalSessions.GetValueOrDefault(r.OriginalSessionId);
             var levelId = original?.LevelId ?? 0;
+            var candidates = original is null
+                ? new List<SessionOption>()
+                : candidatesByKey.GetValueOrDefault((original.CourseId, original.LevelId, original.SessionType),
+                    new List<SessionOption>());
             return new PendingRequestRow(r.Id, r.StudentId, students.GetValueOrDefault(r.StudentId, string.Empty),
                 levelCodes.GetValueOrDefault(levelId, "?"), r.OriginalSessionId, original?.StartsAtUtc ?? default,
                 original?.ScheduleTimeZone ?? string.Empty,
-                r.Reason, r.RequestedAtUtc, candidatesByLevel.GetValueOrDefault(levelId, new List<SessionOption>()));
+                r.Reason, r.RequestedAtUtc, candidates);
         }).ToList();
 
         var resolved = await _db.CompensationRequests

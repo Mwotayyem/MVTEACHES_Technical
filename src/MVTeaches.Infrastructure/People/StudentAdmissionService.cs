@@ -26,9 +26,18 @@ public class StudentAdmissionService : IStudentAdmissionService
         _clock = clock;
     }
 
-    public async Task<RegisterGuardianResult> RegisterGuardianAsync(string email, string password, string fullName, CancellationToken cancellationToken)
+    public async Task<RegisterGuardianResult> RegisterGuardianAsync(string email, string password, string fullName,
+        string phoneNumber, CancellationToken cancellationToken)
     {
-        var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true };
+        // Owner decision 2026-09-04: PhoneNumber is Identity's own existing
+        // column — set at creation, so no schema change and no second write.
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            PhoneNumber = phoneNumber.Trim(),
+        };
         var createResult = await _userManager.CreateAsync(user, password);
         if (!createResult.Succeeded)
         {
@@ -46,12 +55,22 @@ public class StudentAdmissionService : IStudentAdmissionService
     }
 
     public async Task<RegisterStudentResult> RegisterStudentAsync(int countryId, string fullName, LocalDate dateOfBirth,
-        string? loginEmail, string? loginPassword, CancellationToken cancellationToken)
+        string? loginEmail, string? loginPassword, string? phoneNumber, CancellationToken cancellationToken)
     {
         long? userId = null;
         if (!string.IsNullOrWhiteSpace(loginEmail) && !string.IsNullOrWhiteSpace(loginPassword))
         {
-            var user = new ApplicationUser { UserName = loginEmail, Email = loginEmail, EmailConfirmed = true, CountryId = countryId };
+            // Owner decision 2026-09-04: only reachable when a login is being
+            // created, which is the only place a student's own number can go
+            // without a schema change — see the interface remarks.
+            var user = new ApplicationUser
+            {
+                UserName = loginEmail,
+                Email = loginEmail,
+                EmailConfirmed = true,
+                CountryId = countryId,
+                PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim(),
+            };
             var createResult = await _userManager.CreateAsync(user, loginPassword);
             if (!createResult.Succeeded)
             {

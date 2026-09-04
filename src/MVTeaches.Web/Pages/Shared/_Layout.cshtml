@@ -24,14 +24,15 @@
     var isAdminRole = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin);
     var isSystemAdmin = User.IsInRole(RoleNames.SystemAdmin);
     var canViewPayments = isAdminRole && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsView)).Succeeded;
-    // Owner UX-simplification decision (2026-09-03): Payment Methods is a
-    // technical/financial setting, not daily admin work, so its nav link is
-    // now restricted to SystemAdmin regardless of who else holds
-    // Payments.Manage — the page's own [Authorize(Policy=PaymentsManage)] is
-    // completely untouched, so any Admin who was granted that claim can still
-    // open it directly by URL exactly as before; only the sidebar entry point
-    // for the day-to-day Admin role is gone.
-    var canManagePaymentMethods = isSystemAdmin && (await AuthorizationService.AuthorizeAsync(User, PermissionKeys.PaymentsManage)).Succeeded;
+    // Owner decision 2026-09-04: /Admin/PaymentMethods leaves the navigation
+    // entirely. The centre collects money by manual transfer and confirms it
+    // by hand until an e-commerce decision is taken, so the method catalogue
+    // is a one-off setup screen, not daily work — it was already SystemAdmin-
+    // only in the sidebar (2026-09-03) and now has no sidebar entry at all.
+    // NOTHING else changed: the page, its [Authorize(Policy=PaymentsManage)],
+    // its handlers, and the payment_method_configs table are all untouched,
+    // and anyone holding Payments.Manage still opens it directly by URL.
+    // No flag is computed for it any more.
     // Owner UX-simplification decision (2026-09-03): /Admin/Payroll's own
     // open-period/approve/pay workflow is intentionally not part of the daily
     // admin nav in this MVP stage (see FinancialReport's read-only "Teacher
@@ -163,7 +164,13 @@
                 <nav class="app-nav">
                     @if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SystemAdmin))
                     {
-                        <div class="app-nav-group">@T["Overview"]</div>
+                        @* Owner decision 2026-09-04 (nav decluttering): headings
+                           that stood over a single link were carrying no
+                           information — the link already said what it was. The
+                           groups below are merged so every heading names a real
+                           set, and Dashboard leads with no heading at all since
+                           it is the first thing in the list. Only headings moved:
+                           every link, icon, and permission flag is unchanged. *@
                         @if (canViewDashboard)
                         {
                             <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
@@ -177,12 +184,11 @@
                         {
                             <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
                         }
-                        <div class="app-nav-group">@T["Teachers"]</div>
+                        <div class="app-nav-group">@T["Teachers and Placement"]</div>
                         @if (canViewTeachers)
                         {
                             <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
                         }
-                        <div class="app-nav-group">@T["Placement"]</div>
                         @if (canViewPlacementTests)
                         {
                             <a class="@NavClass("/Admin/PlacementTests")" asp-page="/Admin/PlacementTests">@NavIcon("clipboard")@T["Placement Tests"]</a>
@@ -195,10 +201,6 @@
                         @if (canViewPayments)
                         {
                             <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@NavIcon("card")@T["Payments"]</a>
-                        }
-                        @if (canManagePaymentMethods)
-                        {
-                            <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
                         }
                         @if (canViewPosters)
                         {
@@ -219,16 +221,20 @@
                            surfaced. The page, its [Authorize(Policy=SchedulesView)], and both
                            OnPost handlers (OnPostRescheduleAsync/OnPostApproveAsync) are untouched;
                            it is still reachable directly by URL for anyone holding that permission. *@
-                        <div class="app-nav-group">@T["Payroll and Expenses"]</div>
-                        @* Owner UX-simplification decision (2026-09-03): /Admin/Payroll's
-                           period-based workflow link is intentionally not shown here.
-                           FinancialReport's own "Teacher dues" section is the read-only
-                           number admins need day to day. *@
+                        @* Owner decision 2026-09-04: this heading used to read
+                           "Payroll and Expenses", which stopped being true once
+                           /Admin/Payroll left the nav (2026-09-03) and only the
+                           financial report remained under it — a heading naming
+                           two things that are not there. It now names what is
+                           actually below it. /Admin/Payroll itself, its policy,
+                           and its handlers remain untouched and URL-reachable;
+                           FinancialReport's read-only "Teacher dues" section is
+                           the number admins need day to day. *@
+                        <div class="app-nav-group">@T["Reports and Certificates"]</div>
                         @if (canViewFinancialReport)
                         {
                             <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport">@NavIcon("chart")@T["Financial Report"]</a>
                         }
-                        <div class="app-nav-group">@T["Certificates"]</div>
                         @if (canViewCertificates)
                         {
                             <a class="@NavClass("/Admin/Certificates")" asp-page="/Admin/Certificates">@NavIcon("award")@T["Certificates"]</a>
@@ -304,10 +310,6 @@
                         @if (canViewPayments)
                         {
                             <a class="@NavClass("/Admin/Payments")" asp-page="/Admin/Payments">@NavIcon("card")@T["Payments"]</a>
-                        }
-                        @if (canManagePaymentMethods)
-                        {
-                            <a class="@NavClass("/Admin/PaymentMethods")" asp-page="/Admin/PaymentMethods">@NavIcon("wallet")@T["Payment Methods"]</a>
                         }
                         @if (canViewPosters)
                         {
