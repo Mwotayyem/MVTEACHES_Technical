@@ -351,17 +351,24 @@ public class LocalizationAndShellTests : IClassFixture<LocalizationAndShellTests
     {
         var client = await CreateAuthenticatedClientAsync(AdminEmail);
 
-        // "Set a pay rate" was reworded to the question-style heading "How
-        // much is this teacher paid?" — the string below matches the
-        // current screen; the resx translation was already correct.
+        // Owner decision 2026-09-04: this screen was reordered and its two
+        // cards renumbered — teaching permission first, then the hourly rate —
+        // so the headings asserted here are the new ones. Both are checked, in
+        // order, because the point of the reordering was that an admin meets
+        // permission before pay.
         var arabicBody = WebUtility.HtmlDecode(await client.GetStringAsync("/Admin/Teachers?culture=ar-JO"));
         Assert.Contains("تسجيل معلم", arabicBody);
-        Assert.Contains("كم يتقاضى هذا المعلم؟", arabicBody);
+        Assert.Contains("١. ماذا يُسمح لهذا المعلم بتدريسه؟", arabicBody);
+        Assert.Contains("٢. أجر الساعة للمعلم", arabicBody);
+        Assert.True(arabicBody.IndexOf("١. ماذا يُسمح", StringComparison.Ordinal)
+            < arabicBody.IndexOf("٢. أجر الساعة", StringComparison.Ordinal),
+            "Teaching permission must come before the pay rate on this screen.");
         Assert.DoesNotContain("Register a teacher", arabicBody);
 
         var englishBody = await client.GetStringAsync("/Admin/Teachers?culture=en");
         Assert.Contains("Register a teacher", englishBody);
-        Assert.Contains("How much is this teacher paid?", englishBody);
+        Assert.Contains("1. What may this teacher teach?", englishBody);
+        Assert.Contains("2. The teacher", englishBody); // apostrophe is HTML-encoded in the raw body
         Assert.DoesNotContain("تسجيل معلم", englishBody);
     }
 

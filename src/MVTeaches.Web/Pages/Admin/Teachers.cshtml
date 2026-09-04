@@ -103,10 +103,71 @@ else
 
 @if (canManage)
 {
+<div class="card mb-4" id="allowed-levels">
+    <div class="card-body">
+        <h2 class="card-title h5">@T["1. What may this teacher teach?"]</h2>
+        <p class="text-muted small">@T["This is permission, not pay — do this first, then set the rate below. Tick every course and every level that apply: each course is paired with each level, so a teacher who teaches the same three levels in two courses is one submission, not two. A pair they already have is simply left as it is."]</p>
+        <form method="post" asp-page-handler="GrantLevel" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" asp-for="LevelGrant.TeacherId">@T["Teacher"]<span class="app-required">*</span></label>
+                <input type="search" class="form-control mb-1" data-mv-select-filter="#grantLevelTeacher"
+                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                <select asp-for="LevelGrant.TeacherId" id="grantLevelTeacher" class="form-select">
+                    <option value="">@T["Select placeholder"]</option>
+                    @foreach (var t in Model.Teachers)
+                    {
+                        <option value="@t.Id">@t.FullName</option>
+                    }
+                </select>
+                <span asp-validation-for="LevelGrant.TeacherId" class="text-danger small"></span>
+            </div>
+            @* Owner decision 2026-09-04: which COURSES these levels are in.
+               Never defaulted — a level with no course silently authorised
+               every subject the centre teaches. Revised the same day to allow
+               several at once: a teacher who teaches three subjects at the same
+               levels was filling this form in three times, and every pair of a
+               ticked course and a ticked level is a row the table stores
+               anyway. *@
+            <div class="col-12">
+                <label class="form-label">@T["Courses"]<span class="app-required">*</span></label>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach (var c in Model.Courses)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="LevelGrant.CourseIds"
+                                   value="@c.Id" id="grantCourse_@c.Id" />
+                            <label class="form-check-label" for="grantCourse_@c.Id">@c.NameEn</label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="col-12">
+                <label class="form-label">@T["Levels"]<span class="app-required">*</span></label>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach (var l in Model.Levels)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="LevelGrant.LevelIds"
+                                   value="@l.Id" id="grantLevel_@l.Id" />
+                            <label class="form-check-label" for="grantLevel_@l.Id">@l.Code</label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">@T["Allow these levels"]</button>
+                <div class="app-outcome mt-3">@T["Next: set what this teacher is paid, below — then they can publish their own available times from their own screen."]</div>
+            </div>
+        </form>
+    </div>
+</div>
+}
+@if (canManage)
+{
 <div class="card mb-4" id="pay-rate">
     <div class="card-body">
-        <h2 class="card-title h5">@T["How much is this teacher paid?"]</h2>
-        <p class="text-muted small">@T["Leave course, level and age group empty for the teacher's ordinary rate. Add a more specific rate only when one particular kind of class pays differently — the most specific one that fits wins at payment time."]</p>
+        <h2 class="card-title h5">@T["2. The teacher's hourly rate"]</h2>
+        <p class="text-muted small">@T["Leave course, level and age group empty for the teacher's ordinary rate — that one covers everything they teach. Add a more specific rate only when one particular kind of class pays differently; the most specific one that fits wins at payment time. A new rate takes effect today and closes the previous one for the same combination, so only ever one is in force."]</p>
         <form method="post" asp-page-handler="CreateRate" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label" asp-for="NewRate.TeacherId">@T["Teacher"]<span class="app-required">*</span></label>
@@ -176,15 +237,15 @@ else
                     }
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label" asp-for="NewRate.EffectiveFrom">@T["Paid at this rate from"]<span class="app-required">*</span></label>
-                <input asp-for="NewRate.EffectiveFrom" type="date" class="form-control" />
-                <div class="form-text">@T["Sessions before this date keep whatever rate applied then."]</div>
-                <span asp-validation-for="NewRate.EffectiveFrom" class="text-danger small"></span>
-            </div>
+            @* Owner decision 2026-09-04: no start-date field. The column stays
+               and payroll still selects on it, but a new rate always starts
+               today, so there was nothing here for an admin to key in and get
+               wrong. Sessions already delivered keep whatever rate was in force
+               on their own day - which is what the closed previous rate is
+               for. *@
             <div class="col-12">
                 <button type="submit" class="btn btn-primary">@T["Save the pay rate"]</button>
-                <div class="app-outcome mt-3">@T["Next: when a delivered session is verified on the payroll screen, this is the rate it is paid at."]</div>
+                <div class="app-outcome mt-3">@T["Next: when a delivered session is verified on the payroll screen, this is the rate it is paid at. Sessions delivered before today keep the rate that was in force then."]</div>
             </div>
         </form>
     </div>
@@ -224,61 +285,6 @@ else
     </table>
 </div>
 
-@if (canManage)
-{
-<div class="card mb-4" id="allowed-levels">
-    <div class="card-body">
-        <h2 class="card-title h5">@T["Which levels may this teacher teach?"]</h2>
-        <p class="text-muted small">@T["This is permission, not pay. A teacher can only publish sessions for the levels ticked here. Tick as many as apply — a level they already have is simply left as it is."]</p>
-        <form method="post" asp-page-handler="GrantLevel" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label" asp-for="LevelGrant.TeacherId">@T["Teacher"]<span class="app-required">*</span></label>
-                <input type="search" class="form-control mb-1" data-mv-select-filter="#grantLevelTeacher"
-                       placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
-                <select asp-for="LevelGrant.TeacherId" id="grantLevelTeacher" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var t in Model.Teachers)
-                    {
-                        <option value="@t.Id">@t.FullName</option>
-                    }
-                </select>
-                <span asp-validation-for="LevelGrant.TeacherId" class="text-danger small"></span>
-            </div>
-            @* Owner decision 2026-09-04: which COURSE these levels are in. Asked
-               first and never defaulted — a level with no course silently
-               authorised every subject the centre teaches. *@
-            <div class="col-md-4">
-                <label class="form-label" asp-for="LevelGrant.CourseId">@T["Course"]<span class="app-required">*</span></label>
-                <select asp-for="LevelGrant.CourseId" class="form-select">
-                    <option value="">@T["Select placeholder"]</option>
-                    @foreach (var c in Model.Courses)
-                    {
-                        <option value="@c.Id">@c.NameEn</option>
-                    }
-                </select>
-                <span asp-validation-for="LevelGrant.CourseId" class="text-danger small"></span>
-            </div>
-            <div class="col-md-8">
-                <label class="form-label">@T["Levels"]<span class="app-required">*</span></label>
-                <div class="d-flex flex-wrap gap-3">
-                    @foreach (var l in Model.Levels)
-                    {
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="LevelGrant.LevelIds"
-                                   value="@l.Id" id="grantLevel_@l.Id" />
-                            <label class="form-check-label" for="grantLevel_@l.Id">@l.Code</label>
-                        </div>
-                    }
-                </div>
-            </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-primary">@T["Allow these levels"]</button>
-                <div class="app-outcome mt-3">@T["Next: the teacher can publish their own available times for those levels from their own screen."]</div>
-            </div>
-        </form>
-    </div>
-</div>
-}
 
 <h2>@T["Teachers"]</h2>
 <div class="app-toolbar">

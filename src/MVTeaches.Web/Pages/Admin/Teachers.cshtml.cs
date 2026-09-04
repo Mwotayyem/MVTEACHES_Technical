@@ -43,9 +43,14 @@ public class TeachersModel : PageModel
     private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly IAuthorizationService _authorizationService;
 
+    /// <summary>Owner decision 2026-09-04: a new pay rate starts today, and the
+    /// screen no longer asks. Taken from IClock rather than DateTime.Now so it
+    /// is the same time source the rest of the application (and its tests) use.</summary>
+    private readonly IClock _clock;
+
     public TeachersModel(MvTeachesDbContext db, ITeacherAdmissionService teachers, ITeacherRateService rates,
         ITeacherLevelAuthorizationService levelAuthorization, UserManager<ApplicationUser> userManager,
-        IStringLocalizer<SharedResource> localizer, IAuthorizationService authorizationService)
+        IStringLocalizer<SharedResource> localizer, IAuthorizationService authorizationService, IClock clock)
     {
         _db = db;
         _teachers = teachers;
@@ -54,6 +59,7 @@ public class TeachersModel : PageModel
         _userManager = userManager;
         _localizer = localizer;
         _authorizationService = authorizationService;
+        _clock = clock;
     }
 
     // Fully qualified to avoid ambiguity with the sibling MVTeaches.Web.Pages.Teacher namespace.
@@ -121,11 +127,17 @@ public class TeachersModel : PageModel
     {
         [Required(ErrorMessage = "Choose a teacher.")] public long? TeacherId { get; set; }
 
-        /// <summary>Owner decision 2026-09-04: a grant says WHICH COURSE these
-        /// levels are in. Required and never defaulted — "authorised for B2"
-        /// with no course silently authorised B2 in every subject the centre
-        /// teaches, for a teacher hired for one of them.</summary>
-        [Required(ErrorMessage = "Choose a course.")] public long? CourseId { get; set; }
+        /// <summary>Owner decision 2026-09-04: a grant says WHICH COURSES these
+        /// levels are in. Never defaulted — "authorised for B2" with no course
+        /// silently authorised B2 in every subject the centre teaches, for a
+        /// teacher hired for one of them.
+        /// <para>Revised the same day: a teacher who teaches three subjects at
+        /// the same levels was being asked to fill this form in three times.
+        /// Courses and levels are both ticked now, and every pair of the two is
+        /// granted — which is exactly what the table stores anyway. Emptiness
+        /// is checked in the handler rather than by [Required], so the message
+        /// can name which box was left empty.</para></summary>
+        public List<long> CourseIds { get; set; } = new();
 
         public List<int> LevelIds { get; set; } = new();
     }
@@ -162,7 +174,14 @@ public class TeachersModel : PageModel
         public decimal? Amount { get; set; }
         [Required(ErrorMessage = "Choose a currency."), StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = string.Empty;
         [Required] public RateUnit Unit { get; set; }
-        [Required(ErrorMessage = "Enter the date this rate starts.")] public DateOnly? EffectiveFrom { get; set; }
+        /// <summary>Owner decision 2026-09-04: the screen no longer asks for
+        /// this. The column stays — PayrollRateResolver selects on it, and a
+        /// rate with no start date could never be resolved at all — but a new
+        /// rate always starts today, so there is nothing for an admin to key
+        /// in and get wrong. Kept on the DTO rather than removed so a future
+        /// "backdate this rate" screen has somewhere to put it; unset means
+        /// today. See OnPostCreateRateAsync.</summary>
+        public DateOnly? EffectiveFrom { get; set; }
     }
 
     public async Task OnGetAsync() => await LoadAsync();
@@ -211,8 +230,12 @@ public class TeachersModel : PageModel
             return Page();
         }
 
-        var from = NewRate.EffectiveFrom!.Value;
-        var effectiveFrom = new LocalDate(from.Year, from.Month, from.Day);
+        // Today unless something explicitly supplied a date. The form does
+        // not, so in practice this is always today: "what this teacher is paid
+        // from now on", which is the only question the owner wanted asked.
+        var effectiveFrom = NewRate.EffectiveFrom is { } from
+            ? new LocalDate(from.Year, from.Month, from.Day)
+            : _clock.GetCurrentInstant().InUtc().Date;
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
 
         try
@@ -267,6 +290,14 @@ public class TeachersModel : PageModel
             return Page();
         }
 
+        var courseIds = LevelGrant.CourseIds.Distinct().ToList();
+        if (courseIds.Count == 0)
+        {
+            ErrorMessage = _localizer["Tick at least one course this teacher may teach."].Value;
+            await LoadAsync();
+            return Page();
+        }
+
         var levelIds = LevelGrant.LevelIds.Distinct().ToList();
         if (levelIds.Count == 0)
         {
@@ -280,10 +311,13 @@ public class TeachersModel : PageModel
         var alreadyGranted = 0;
         string? failure = null;
 
-        foreach (var levelId in levelIds)
+        // Every ticked course crossed with every ticked level. The service
+        // still decides each one on its own — a pair already granted comes back
+        // AlreadyGranted and is counted, never re-inserted.
+        foreach (var (courseId, levelId) in courseIds.SelectMany(c => levelIds.Select(l => (c, l))))
         {
             var outcome = await _levelAuthorization.GrantAsync(LevelGrant.TeacherId!.Value,
-                LevelGrant.CourseId!.Value, levelId, actingUserId, HttpContext.RequestAborted);
+                courseId, levelId, actingUserId, HttpContext.RequestAborted);
             switch (outcome)
             {
                 case TeacherLevelGrantOutcome.CourseNotFound:
