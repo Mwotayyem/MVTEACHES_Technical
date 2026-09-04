@@ -226,6 +226,22 @@ a:hover {
   text-transform: uppercase;
 }
 
+/* The section you are standing in. Owner report 2026-09-05: pages with no nav
+   link of their own (Reschedule, StudentDetails, Payroll) left the sidebar
+   silent about where you were. */
+.app-nav-group.is-active {
+  color: var(--mv-primary-strong);
+}
+
+/* The current page named under its section, when it has no link of its own.
+   Deliberately not a link - it says where you are, it does not navigate. */
+.app-nav-link.is-here {
+  cursor: default;
+  font-weight: 700;
+  color: var(--mv-primary-strong);
+  background: var(--mv-primary-soft);
+}
+
 .app-nav-link {
   display: flex;
   align-items: center;
@@ -1785,29 +1801,78 @@ a.app-kpi:hover {
   font-weight: 700;
 }
 
-/* A long list of checkboxes given a bounded, scrollable home instead of
-   spilling across the page. Used by the teaching-permission picker, where
-   twenty-one courses were laid out loose. */
-.app-checklist {
-  max-height: 15rem;
-  overflow-y: auto;
+/* A closed-by-default multi-select: a toggle that says what is chosen, a panel
+   that opens over the page, and the picks echoed back as chips underneath.
+   Built for the teaching-permission form, where twenty-one courses used to sit
+   permanently unrolled. */
+.app-multiselect {
+  position: relative;
+}
+
+.app-multiselect-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: start;
+  background: var(--mv-surface);
   border: 1px solid var(--mv-border);
   border-radius: var(--mv-radius-sm, 8px);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--mv-text);
+  cursor: pointer;
+}
+
+.app-multiselect-toggle::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-inline-end: 2px solid currentColor;
+  border-block-end: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-25%);
+  opacity: 0.55;
+  flex: none;
+}
+
+.app-multiselect-toggle:hover,
+.app-multiselect-toggle:focus-visible {
+  border-color: var(--mv-primary);
+}
+
+.app-multiselect-toggle[aria-expanded="true"] {
+  border-color: var(--mv-primary);
+}
+
+.app-multiselect-summary.is-empty,
+[data-mv-multiselect-summary].is-empty {
+  color: var(--mv-muted);
+}
+
+.app-multiselect-panel {
+  position: absolute;
+  z-index: 30;
+  inset-inline: 0;
+  margin-top: 0.25rem;
   background: var(--mv-surface);
-  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm, 8px);
+  box-shadow: 0 10px 28px rgb(15 23 42 / 12%);
+  padding: 0.6rem;
 }
 
-.app-checklist-short {
-  max-height: 11rem;
+.app-multiselect-options {
+  max-height: 14rem;
+  overflow-y: auto;
 }
 
-.app-checklist .form-check {
+.app-multiselect-options .form-check {
   padding-block: 0.15rem;
 }
 
-/* Where the ticked ones are echoed back, so a scrolled list can be read at a
-   glance. Empty until something is chosen, and it simply stays empty if the
-   script never runs. */
+/* Where the ticked ones are echoed back, so a closed panel still says what was
+   chosen. Empty until something is picked. */
 .app-chip-tray {
   display: flex;
   flex-wrap: wrap;
@@ -1836,6 +1901,40 @@ a.app-kpi:hover {
 .app-chip.is-removable:focus-visible {
   background: var(--mv-primary);
   color: #fff;
+}
+
+/* A row that can unfold its own controls. Used by the awaiting-confirmation
+   list, where the confirm/reject form is wide but is only ever used on one
+   payment at a time. */
+.app-row-details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  list-style: none;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--mv-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--mv-primary-strong);
+  background: var(--mv-primary-soft);
+}
+
+.app-row-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-row-details[open] > summary {
+  margin-block-end: 0.5rem;
+}
+
+.app-row-details-body {
+  border: 1px solid var(--mv-border);
+  border-radius: var(--mv-radius-sm, 8px);
+  background: var(--mv-surface-muted);
+  padding: 0.75rem;
+  min-width: 22rem;
 }
 
 /* One line per course, its levels beside it. Keeps a teacher's whole teaching

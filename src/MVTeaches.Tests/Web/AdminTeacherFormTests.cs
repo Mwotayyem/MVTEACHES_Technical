@@ -207,25 +207,26 @@ public class AdminTeacherFormTests : IClassFixture<AuthorizationTests.Factory>
         Assert.Null(rate.EffectiveTo); // the only one, and open
     }
 
-    /// <summary>Owner report 2026-09-05: the picker was rebuilt as a bounded,
-    /// searchable, scrollable box with the ticked courses echoed back as chips.
-    /// That is presentation - these assertions exist to prove the rebuild did
-    /// not change what the form POSTS, which is the part the grant depends on.
-    /// The submission test above still passes because these are the same inputs
-    /// under the same names; this one pins the markup that carries them.</summary>
+    /// <summary>Owner report 2026-09-05, revised: the picker is a dropdown that
+    /// starts CLOSED. The first version of it was a scrollable box sitting open
+    /// on the page, which left twenty-one courses permanently unrolled and no
+    /// way to say "done choosing". That is presentation - these assertions exist
+    /// to prove the rebuild did not change what the form POSTS, which is what
+    /// the grant depends on.</summary>
     [Fact]
-    public async Task The_course_picker_is_a_bounded_searchable_list_posting_the_same_field()
+    public async Task The_course_picker_is_a_closed_dropdown_posting_the_same_fields()
     {
         await SeedCoursesAndLevelsAsync();
         var client = await SystemAdminClientAsync("picker");
 
         var html = await client.GetStringAsync("/Admin/Teachers");
 
-        // Bounded and scrollable rather than loose across the page, searchable,
-        // and echoing the choices back.
-        Assert.Contains("app-checklist", html);
-        Assert.Contains("data-mv-filter=\"#grantCourseList\"", html);
-        Assert.Contains("data-mv-chosen-into=\"#grantCourseChips\"", html);
+        // A dropdown with its own toggle and search, not a permanently open list.
+        Assert.Contains("app-multiselect", html);
+        Assert.Contains("data-mv-multiselect-toggle", html);
+        Assert.Contains("data-mv-multiselect-search", html);
+        Assert.Contains("aria-expanded=\"false\"", html);
+        Assert.DoesNotContain("app-checklist", html);
 
         // And still posting LevelGrant.CourseIds / LevelGrant.LevelIds as
         // checkboxes - the names OnPostGrantLevelAsync binds.

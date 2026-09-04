@@ -59,11 +59,17 @@ public class PaymentsModel : PageModel
     /// package that had 10 left owing. The screen never said what a payment
     /// was funding or how much that package still needed, so there was nothing
     /// on it to notice the mistake against.</summary>
+    /// <summary>Owner report 2026-09-05 added GuardianName and RequestedAtUtc:
+    /// the awaiting-confirmation list is read by an admin deciding whether money
+    /// really arrived, and "whose family is this" and "how long has it been
+    /// sitting there" are two of the questions they ask. Display only - neither
+    /// is used by any decision.</summary>
     public record PaymentRow(long Id, long StudentId, string StudentName, decimal Amount, string Currency, PaymentMethod Method,
         PaymentStatus Status, string ReferenceCode, string? RejectionReason, string? PayerDisplayName,
         NodaTime.LocalDate? TransferDate, string? BankReferenceNumber, bool HasReceipt, bool HasSubmittedTransferDetails,
         decimal? ReceivedAmount, string? ReceivedCurrency,
-        long? SubscriptionId, string? PackageLabel, decimal? PackagePrice, decimal? PackagePaid, decimal? PackageRemaining);
+        long? SubscriptionId, string? PackageLabel, decimal? PackagePrice, decimal? PackagePaid, decimal? PackageRemaining,
+        string? GuardianName, NodaTime.Instant RequestedAtUtc);
 
     /// <summary>The payments on one package, read together, plus where that
     /// package stands. The flat list mixed a package's own instalments with
@@ -386,6 +392,17 @@ public class PaymentsModel : PageModel
             .Where(s => neededStudentIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s.FullName);
 
+        // Who is responsible for each of these students, for the
+        // awaiting-confirmation list. Grouped rather than ToDictionary: a
+        // student may have more than one guardian row.
+        var guardianNamesByStudent = (await _db.Guardianships
+                .Where(g => neededStudentIds.Contains(g.StudentId))
+                .Join(_db.Guardians, g => g.GuardianId, gu => gu.Id,
+                    (g, gu) => new { g.StudentId, gu.FullName })
+                .ToListAsync())
+            .GroupBy(x => x.StudentId)
+            .ToDictionary(g => g.Key, g => string.Join(" · ", g.Select(x => x.FullName).Distinct()));
+
         FilterStudentName = FilterStudentId is null ? null : studentNames.GetValueOrDefault(FilterStudentId.Value);
 
         var levelCodes = await _db.Levels.ToDictionaryAsync(l => l.Id, l => l.Code);
@@ -435,7 +452,8 @@ public class PaymentsModel : PageModel
                 payment.ProviderTransactionId, payment.ProofFileId is not null, payment.HasSubmittedTransferDetails,
                 payment.ReceivedAmount, payment.ReceivedCurrency,
                 sub?.Id, sub is null ? null : PackageLabel(sub),
-                status?.Price.Amount, status?.ConfirmedReceived, status?.RemainingOwed.Amount);
+                status?.Price.Amount, status?.ConfirmedReceived, status?.RemainingOwed.Amount,
+                guardianNamesByStudent.GetValueOrDefault(payment.StudentId), payment.CreatedAtUtc);
         }
 
         PendingPayments = pending.Select(Row).ToList();

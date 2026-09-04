@@ -135,40 +135,66 @@ else
                back as chips, so the admin can see what they have picked without
                scrolling back through the list. The search box reuses the
                data-mv-filter behaviour the register already uses. *@
+            @* Owner report 2026-09-05: closed by default. The previous version
+               sat open on the page, so twenty-one courses were permanently
+               unrolled and the form looked as though it were already demanding
+               something. Same inputs, same names, same posted values - only the
+               panel around them is new, and it is hidden by script, so with
+               scripting off the list is simply always visible and still works. *@
             <div class="col-md-7">
-                <label class="form-label" for="grantCourseSearch">@T["Courses"]<span class="app-required">*</span></label>
-                <input type="search" class="form-control form-control-sm mb-2" id="grantCourseSearch"
-                       data-mv-filter="#grantCourseList" data-mv-filter-count="#grantCourseCount"
-                       placeholder="@T["Search courses…"]" autocomplete="off" />
-                <div class="app-checklist" id="grantCourseList" data-mv-chosen-into="#grantCourseChips">
-                    @foreach (var c in Model.Courses)
-                    {
-                        <div class="form-check" data-mv-filter-item="true">
-                            <input class="form-check-input" type="checkbox" name="LevelGrant.CourseIds"
-                                   value="@c.Id" id="grantCourse_@c.Id" data-mv-chosen-label="@c.NameEn" />
-                            <label class="form-check-label" for="grantCourse_@c.Id">@c.NameEn</label>
+                <label class="form-label" for="grantCourseToggle">@T["Courses"]<span class="app-required">*</span></label>
+                <div class="app-multiselect" data-mv-multiselect>
+                    <button type="button" class="app-multiselect-toggle" id="grantCourseToggle"
+                            data-mv-multiselect-toggle aria-expanded="false" aria-haspopup="listbox">
+                        <span data-mv-multiselect-summary class="is-empty"
+                              data-mv-empty-text="@T["Choose courses…"]"
+                              data-mv-one-text="@T["{0}"]"
+                              data-mv-many-text="@T["{0} courses chosen"]">@T["Choose courses…"]</span>
+                    </button>
+                    <div class="app-multiselect-panel" data-mv-multiselect-panel>
+                        <input type="search" class="form-control form-control-sm mb-2"
+                               data-mv-multiselect-search placeholder="@T["Search courses…"]"
+                               aria-label="@T["Search courses…"]" autocomplete="off" />
+                        <div class="app-multiselect-options">
+                            @foreach (var c in Model.Courses)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="LevelGrant.CourseIds"
+                                           value="@c.Id" id="grantCourse_@c.Id" data-mv-chosen-label="@c.NameEn" />
+                                    <label class="form-check-label" for="grantCourse_@c.Id">@c.NameEn</label>
+                                </div>
+                            }
                         </div>
-                    }
-                    <p class="text-muted small mb-0 p-2" data-mv-filter-empty="true" hidden>@T["No course matches this search — try part of the name instead."]</p>
+                    </div>
+                    <div class="app-chip-tray mt-2" data-mv-multiselect-chips aria-live="polite"></div>
                 </div>
-                <div class="form-text" id="grantCourseCount"></div>
-                <div class="app-chip-tray mt-2" id="grantCourseChips" aria-live="polite"></div>
             </div>
             <div class="col-md-5">
-                <label class="form-label">@T["Levels"]<span class="app-required">*</span></label>
-                @* Six of them, and they are the same six everywhere - no search
-                   box earns its place here. *@
-                <div class="app-checklist app-checklist-short" data-mv-chosen-into="#grantLevelChips">
-                    @foreach (var l in Model.Levels)
-                    {
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="LevelGrant.LevelIds"
-                                   value="@l.Id" id="grantLevel_@l.Id" data-mv-chosen-label="@l.Code" />
-                            <label class="form-check-label" for="grantLevel_@l.Id">@l.Code</label>
+                <label class="form-label" for="grantLevelToggle">@T["Levels"]<span class="app-required">*</span></label>
+                <div class="app-multiselect" data-mv-multiselect>
+                    <button type="button" class="app-multiselect-toggle" id="grantLevelToggle"
+                            data-mv-multiselect-toggle aria-expanded="false" aria-haspopup="listbox">
+                        <span data-mv-multiselect-summary class="is-empty"
+                              data-mv-empty-text="@T["Choose levels…"]"
+                              data-mv-one-text="@T["{0}"]"
+                              data-mv-many-text="@T["{0} levels chosen"]">@T["Choose levels…"]</span>
+                    </button>
+                    @* Six of them, and always the same six - no search box earns
+                       its place here. *@
+                    <div class="app-multiselect-panel" data-mv-multiselect-panel>
+                        <div class="app-multiselect-options">
+                            @foreach (var l in Model.Levels)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="LevelGrant.LevelIds"
+                                           value="@l.Id" id="grantLevel_@l.Id" data-mv-chosen-label="@l.Code" />
+                                    <label class="form-check-label" for="grantLevel_@l.Id">@l.Code</label>
+                                </div>
+                            }
                         </div>
-                    }
+                    </div>
+                    <div class="app-chip-tray mt-2" data-mv-multiselect-chips aria-live="polite"></div>
                 </div>
-                <div class="app-chip-tray mt-2" id="grantLevelChips" aria-live="polite"></div>
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-primary">@T["Allow these levels"]</button>

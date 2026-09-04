@@ -62,7 +62,13 @@
 
                         <div class="mb-2">
                             <label class="form-label" asp-for="Input.Image">@T["Image"]</label>
-                            <input asp-for="Input.Image" type="file" accept="image/jpeg,image/png" class="form-control" />
+                            @* Owner report 2026-09-05: the chosen file is shown in the
+                               preview card straight away, before saving. Display only -
+                               the upload itself is untouched, and the image still only
+                               reaches the server when the form is submitted. *@
+                            <input asp-for="Input.Image" type="file" accept="image/jpeg,image/png" class="form-control"
+                                   data-mv-image-preview="#posterPreviewImage"
+                                   data-mv-image-preview-hide="#posterPreviewPlaceholder" />
                             <div class="form-text">
                                 @T["JPEG or PNG. Uploading a new image replaces the current one — the old file is deleted, not kept."]
                                 @if (Model.Input.Id is not null)
@@ -132,14 +138,19 @@
         <div class="app-poster-rail mb-4">
             <article class="app-poster">
                 <div class="app-poster-image">
-                    @if (Model.Input.Id is not null && Model.Posters.FirstOrDefault(p => p.Id == Model.Input.Id)?.ImageFileId is long imageId)
-                    {
-                        <img src="@Url.Page("/Files/PosterImage", new { posterId = Model.Input.Id, v = imageId })" alt="" />
+                    @{
+                        var savedImageId = Model.Input.Id is not null
+                            ? Model.Posters.FirstOrDefault(p => p.Id == Model.Input.Id)?.ImageFileId
+                            : null;
                     }
-                    else
-                    {
-                        <span class="app-poster-placeholder">@T["No image yet"]</span>
-                    }
+                    @* Always rendered, hidden until there is something to show, so
+                       choosing a file has somewhere to put it without rebuilding
+                       the card. *@
+                    <img id="posterPreviewImage" alt=""
+                         src="@(savedImageId is not null ? Url.Page("/Files/PosterImage", new { posterId = Model.Input.Id, v = savedImageId }) : "")"
+                         hidden="@(savedImageId is null ? "hidden" : null)" />
+                    <span class="app-poster-placeholder" id="posterPreviewPlaceholder"
+                          hidden="@(savedImageId is not null ? "hidden" : null)">@T["No image yet"]</span>
                 </div>
                 <div class="app-poster-body">
                     <h3 data-mv-poster-preview-title>@(string.IsNullOrWhiteSpace(Model.Input.Title) ? T["Title"].Value : Model.Input.Title)</h3>

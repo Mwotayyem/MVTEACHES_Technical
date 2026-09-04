@@ -13,6 +13,7 @@
   <data name="Primary navigation" xml:space="preserve"><value>Primary navigation</value></data>
   <data name="Overview" xml:space="preserve"><value>Overview</value></data>
   <data name="Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="This page" xml:space="preserve"><value>This page</value></data>
   <data name="Students and Guardians" xml:space="preserve"><value>Students and Guardians</value></data>
   <data name="Students" xml:space="preserve"><value>Students</value></data>
   <data name="Student details" xml:space="preserve"><value>Student details</value></data>
@@ -125,6 +126,7 @@
   <data name="Pricing plan not found." xml:space="preserve"><value>Pricing plan not found.</value></data>
   <data name="Payment Methods" xml:space="preserve"><value>Payment Methods</value></data>
   <data name="Payment methods intro" xml:space="preserve"><value>These are real transfers made outside the platform — there is no online payment gateway. Add the receiving details for every way of paying the centre really accepts.</value></data>
+  <data name="Confirm or reject" xml:space="preserve"><value>Confirm or reject</value></data>
   <data name="Add a payment method" xml:space="preserve"><value>Add a payment method</value></data>
   <data name="Method type" xml:space="preserve"><value>Method type</value></data>
   <data name="PaymentMethod.CliQ" xml:space="preserve"><value>Local CliQ transfer</value></data>
@@ -184,6 +186,7 @@
   <data name="Request this package" xml:space="preserve"><value>Request this package</value></data>
   <data name="Payment requests" xml:space="preserve"><value>Payment requests</value></data>
   <data name="Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Payment method" xml:space="preserve"><value>Payment method</value></data>
   <data name="Awaiting transfer" xml:space="preserve"><value>Awaiting transfer</value></data>
   <data name="Under review" xml:space="preserve"><value>Under review</value></data>
   <data name="PaymentStatus.Pending" xml:space="preserve"><value>Pending</value></data>
@@ -648,6 +651,7 @@
   <data name="The student already has an active enrollment on that replacement session." xml:space="preserve"><value>The student already has an active enrollment on that replacement session.</value></data>
   <data name="No age group covers this student's current age." xml:space="preserve"><value>No age group covers this student's current age.</value></data>
   <data name="The replacement session is a different level than the student's." xml:space="preserve"><value>The replacement session is a different level than the student's.</value></data>
+  <data name="The replacement must be the same course and the same lesson type as the lesson that was missed." xml:space="preserve"><value>The replacement must be the same course and the same lesson type as the lesson that was missed.</value></data>
   <data name="The replacement must be a session that hasn't started yet." xml:space="preserve"><value>The replacement must be a session that hasn't started yet.</value></data>
   <data name="Could not approve the request." xml:space="preserve"><value>Could not approve the request.</value></data>
   <data name="Request rejected." xml:space="preserve"><value>Request rejected.</value></data>
@@ -1554,6 +1558,10 @@
   <data name="What the teacher earns per unit chosen beside it." xml:space="preserve"><value>What the teacher earns per unit chosen beside it.</value></data>
   <data name="Courses" xml:space="preserve"><value>Courses</value></data>
   <data name="Search courses…" xml:space="preserve"><value>Search courses…</value></data>
+  <data name="Choose courses…" xml:space="preserve"><value>Choose courses…</value></data>
+  <data name="{0} courses chosen" xml:space="preserve"><value>{0} courses chosen</value></data>
+  <data name="Choose levels…" xml:space="preserve"><value>Choose levels…</value></data>
+  <data name="{0} levels chosen" xml:space="preserve"><value>{0} levels chosen</value></data>
   <data name="No course matches this search — try part of the name instead." xml:space="preserve"><value>No course matches this search — try part of the name instead.</value></data>
   <data name="Tick at least one course this teacher may teach." xml:space="preserve"><value>Tick at least one course this teacher may teach.</value></data>
   <data name="Save the pay rate" xml:space="preserve"><value>Save the pay rate</value></data>

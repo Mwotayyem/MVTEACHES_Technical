@@ -226,18 +226,61 @@
 
 <h2>@T["Awaiting confirmation"] <span class="app-status @(Model.PendingPayments.Count > 0 ? "is-warning" : "is-muted")">@Model.PendingPayments.Count</span></h2>
 <p class="text-muted small">@T["Check the centre's real account first. Confirming here says the money is in the account — it is not an acknowledgement that a receipt was uploaded."]</p>
-<div class="mb-4">
-    @foreach (var p in Model.PendingPayments)
-    {
-        <div class="card mb-2">
-            <div class="card-body">
-                <h3 class="card-title h5 d-flex flex-wrap gap-2 align-items-center">
-                    <span class="app-ref">@p.ReferenceCode</span>
-                    <a asp-page="/Admin/StudentDetails" asp-route-id="@p.StudentId">@p.StudentName</a>
-                    <span>@T.Money(p.Amount, p.Currency)</span>
-                    <span class="text-muted fw-normal">(@T["PaymentMethod." + p.Method])</span>
-                </h3>
-                <p class="mb-2">
+@* Owner report 2026-09-05: this was one tall card per payment, stacked, so
+   three pending payments filled the screen and none of them could be compared
+   with another. It is a table now - the facts an admin scans across the row,
+   and the confirm/reject controls (which are wide, and are used on one payment
+   at a time) folded into a details panel underneath. Nothing about what the
+   forms post has changed; they are the same two forms, moved. *@
+<div class="table-responsive mb-4">
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th>@T["Reference"]</th>
+                <th>@T["Student"]</th>
+                <th>@T["Guardian"]</th>
+                <th>@T["Which package is this paying for?"]</th>
+                <th>@T["Amount"]</th>
+                <th>@T["Payment method"]</th>
+                <th>@T["Requested"]</th>
+                <th>@T["Receipt"]</th>
+                <th>@T["Status"]</th>
+                <th class="text-end">@T["Actions"]</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var p in Model.PendingPayments)
+        {
+            <tr>
+                <td><span class="app-ref">@p.ReferenceCode</span></td>
+                <td><a asp-page="/Admin/StudentDetails" asp-route-id="@p.StudentId">@p.StudentName</a></td>
+                <td class="small">@(p.GuardianName ?? T["Not specified"].Value)</td>
+                <td class="small">
+                    @if (p.SubscriptionId is not null)
+                    {
+                        @p.PackageLabel
+                        <div class="text-muted">@T["Remaining owed"]: <strong>@T.Money(p.PackageRemaining, p.Currency)</strong></div>
+                    }
+                    else
+                    {
+                        <span class="app-status is-muted">@T["Not against any package"]</span>
+                    }
+                </td>
+                <td class="fw-bold text-nowrap">@T.Money(p.Amount, p.Currency)</td>
+                <td class="small">@T["PaymentMethod." + p.Method]</td>
+                <td class="small text-nowrap">@T.Date(p.RequestedAtUtc.InUtc().Date)</td>
+                <td>
+                    @if (p.HasReceipt)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-mv-file-modal="#receiptModal"
+                                data-mv-file-url="@Url.Page("/Files/Receipt", new { paymentId = p.Id })">@T["View receipt"]</button>
+                    }
+                    else
+                    {
+                        <span class="text-muted small">@T["Not specified"]</span>
+                    }
+                </td>
+                <td>
                     @if (p.HasSubmittedTransferDetails)
                     {
                         <span class="app-status is-info">@T["Under review"]</span>
@@ -246,116 +289,99 @@
                     {
                         <span class="app-status is-warning">@T["Awaiting transfer"]</span>
                     }
-                </p>
-                @if (p.HasSubmittedTransferDetails)
-                {
-                    <dl class="row small mb-2">
-                        <dt class="col-sm-3">@T["Payer name"]</dt><dd class="col-sm-3">@(p.PayerDisplayName ?? T["Not specified"].Value)</dd>
-                        <dt class="col-sm-3">@T["Transfer date"]</dt><dd class="col-sm-3">@T.Date(p.TransferDate)</dd>
-                        <dt class="col-sm-3">@T["Bank reference number"]</dt><dd class="col-sm-3">@(p.BankReferenceNumber ?? T["Not specified"].Value)</dd>
-                        <dt class="col-sm-3">@T["Receipt"]</dt>
-                        <dd class="col-sm-3">
-                            @if (p.HasReceipt)
-                            {
-                                <button type="button" class="btn btn-sm btn-outline-secondary" data-mv-file-modal="#receiptModal"
-                                        data-mv-file-url="@Url.Page("/Files/Receipt", new { paymentId = p.Id })">@T["View receipt"]</button>
-                            }
-                            else
-                            {
-                                <span class="text-muted">@T["Not specified"]</span>
-                            }
-                        </dd>
-                    </dl>
-                }
-                @* What this payment is actually funding, and how much that
-                   package still needs. Without it the received-amount box was
-                   a number typed against nothing. *@
-                @if (p.SubscriptionId is not null)
-                {
-                    <dl class="row small app-owed-breakdown mb-2">
-                        <dt class="col-sm-4">@T["Which package is this paying for?"]</dt>
-                        <dd class="col-sm-8">@p.PackageLabel</dd>
-                        <dt class="col-sm-4">@T["Package price"]</dt>
-                        <dd class="col-sm-8">@T.Money(p.PackagePrice, p.Currency)</dd>
-                        <dt class="col-sm-4">@T["Confirmed received"]</dt>
-                        <dd class="col-sm-8">@T.Money(p.PackagePaid, p.Currency)</dd>
-                        <dt class="col-sm-4">@T["Remaining owed"]</dt>
-                        <dd class="col-sm-8 fw-bold">@T.Money(p.PackageRemaining, p.Currency)</dd>
-                    </dl>
-                }
-                else
-                {
-                    <p class="small"><span class="app-status is-muted">@T["Not against any package"]</span></p>
-                }
-                @if (canConfirm)
-                {
-                <form method="post" asp-page-handler="Confirm" class="row g-2 align-items-end mb-2">
-                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
-                    <input type="hidden" name="paymentId" value="@p.Id" />
-                    <div class="col-auto">
-                        <label class="form-label small mb-0" for="received-@p.Id">@T["Actually received amount (if different)"]</label>
-                        @{
-                            var ceiling = p.SubscriptionId is not null && p.PackageRemaining is not null
-                                ? p.PackageRemaining.Value
-                                : p.Amount;
-                        }
-                        @* The cap is a convenience that stops the typo before it
-                           is submitted. The refusal itself lives in
-                           IPaymentService.ConfirmAsync, which recomputes the
-                           remaining balance server-side and rejects an excess
-                           whatever the browser sent. *@
-                        <input type="number" step="0.001" min="0" max="@ceiling" id="received-@p.Id" name="receivedAmount"
-                               class="form-control form-control-sm" style="width:9rem" />
-                        <div class="form-text">@T["At most"] @T.Money(ceiling, p.Currency)</div>
-                    </div>
-                    <div class="col-auto">
-                        <label class="form-label small mb-0" for="receivedCurrency-@p.Id">@T["Actually received currency (if different)"]</label>
-                        <select id="receivedCurrency-@p.Id" name="receivedCurrency" class="form-select form-select-sm" style="width:8rem">
-                            @* This option's value USED to be "" — visually showing the
-                               payment's own currency while actually posting an empty
-                               string. Typing an amount here and leaving this untouched
-                               (exactly what "leave blank when it matches" invites) then
-                               made receivedCurrency blank, so the whole override was
-                               silently discarded and the payment confirmed at its FULL
-                               original amount instead of the amount just typed in — a
-                               partial payment could confirm as if paid in full. The
-                               value now really is the payment's currency. *@
-                            <option value="@p.Currency">@p.Currency</option>
-                            @foreach (var code in Model.Currencies)
-                            {
-                                if (!string.Equals(code, p.Currency, StringComparison.OrdinalIgnoreCase))
+                </td>
+                <td class="text-end">
+                    @if (canConfirm)
+                    {
+                        <details class="app-row-details">
+                            <summary>@T["Confirm or reject"]</summary>
+                            <div class="app-row-details-body text-start">
+                                @if (p.HasSubmittedTransferDetails)
                                 {
-                                    <option value="@code">@code</option>
+                                    <dl class="row small mb-2">
+                                        <dt class="col-sm-5">@T["Payer name"]</dt><dd class="col-sm-7">@(p.PayerDisplayName ?? T["Not specified"].Value)</dd>
+                                        <dt class="col-sm-5">@T["Transfer date"]</dt><dd class="col-sm-7">@T.Date(p.TransferDate)</dd>
+                                        <dt class="col-sm-5">@T["Bank reference number"]</dt><dd class="col-sm-7">@(p.BankReferenceNumber ?? T["Not specified"].Value)</dd>
+                                    </dl>
                                 }
-                            }
-                        </select>
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-sm btn-success"
-                                data-mv-confirm="@T["Confirm that this amount really arrived in the account?"]">
-                            @T["Confirm receipt of the amount and activate the package"]
-                        </button>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-text">@T["Leave both blank when the full requested amount arrived as requested."]</div>
-                        <div class="form-text text-warning">@T["More than what is still owed cannot be confirmed. If a larger sum really arrived, confirm what is owed and record the difference separately, so the extra money is visible instead of disappearing into an activation."]</div>
-                    </div>
-                </form>
-                <form method="post" asp-page-handler="Reject" class="d-flex gap-1 flex-wrap">
-                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
-                    <input type="hidden" name="paymentId" value="@p.Id" />
-                    <input type="text" name="RejectReason" class="form-control form-control-sm" style="max-width:22rem"
-                           placeholder="@T["Reason the payer will read"]" aria-label="@T["Reason the payer will read"]" />
-                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject / request correction"]</button>
-                </form>
-                }
-                else
-                {
-                    <p class="text-muted small">@T["You have view-only access to payments and cannot confirm or reject this."]</p>
-                }
-            </div>
-        </div>
-    }
+                                @if (p.SubscriptionId is not null)
+                                {
+                                    <dl class="row small app-owed-breakdown mb-2">
+                                        <dt class="col-sm-5">@T["Package price"]</dt>
+                                        <dd class="col-sm-7">@T.Money(p.PackagePrice, p.Currency)</dd>
+                                        <dt class="col-sm-5">@T["Confirmed received"]</dt>
+                                        <dd class="col-sm-7">@T.Money(p.PackagePaid, p.Currency)</dd>
+                                        <dt class="col-sm-5">@T["Remaining owed"]</dt>
+                                        <dd class="col-sm-7 fw-bold">@T.Money(p.PackageRemaining, p.Currency)</dd>
+                                    </dl>
+                                }
+                                <form method="post" asp-page-handler="Confirm" class="row g-2 align-items-end mb-2">
+                                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
+                                    <input type="hidden" name="paymentId" value="@p.Id" />
+                                    <div class="col-auto">
+                                        <label class="form-label small mb-0" for="received-@p.Id">@T["Actually received amount (if different)"]</label>
+                                        @{
+                                            var ceiling = p.SubscriptionId is not null && p.PackageRemaining is not null
+                                                ? p.PackageRemaining.Value
+                                                : p.Amount;
+                                        }
+                                        @* The cap is a convenience that stops the typo before it
+                                           is submitted. The refusal itself lives in
+                                           IPaymentService.ConfirmAsync, which recomputes the
+                                           remaining balance server-side and rejects an excess
+                                           whatever the browser sent. *@
+                                        <input type="number" step="0.001" min="0" max="@ceiling" id="received-@p.Id" name="receivedAmount"
+                                               class="form-control form-control-sm" style="width:9rem" />
+                                        <div class="form-text">@T["At most"] @T.Money(ceiling, p.Currency)</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <label class="form-label small mb-0" for="receivedCurrency-@p.Id">@T["Actually received currency (if different)"]</label>
+                                        <select id="receivedCurrency-@p.Id" name="receivedCurrency" class="form-select form-select-sm" style="width:8rem">
+                                            @* This option's value USED to be "" - visually showing the
+                                               payment's own currency while actually posting an empty
+                                               string, so an override could be silently discarded and a
+                                               partial payment confirmed as if paid in full. *@
+                                            <option value="@p.Currency">@p.Currency</option>
+                                            @foreach (var code in Model.Currencies)
+                                            {
+                                                if (!string.Equals(code, p.Currency, StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <option value="@code">@code</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="submit" class="btn btn-sm btn-success"
+                                                data-mv-confirm="@T["Confirm that this amount really arrived in the account?"]">
+                                            @T["Confirm receipt of the amount and activate the package"]
+                                        </button>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-text">@T["Leave both blank when the full requested amount arrived as requested."]</div>
+                                        <div class="form-text text-warning">@T["More than what is still owed cannot be confirmed. If a larger sum really arrived, confirm what is owed and record the difference separately, so the extra money is visible instead of disappearing into an activation."]</div>
+                                    </div>
+                                </form>
+                                <form method="post" asp-page-handler="Reject" class="d-flex gap-1 flex-wrap">
+                                    <input type="hidden" name="studentId" value="@Model.FilterStudentId" />
+                                    <input type="hidden" name="paymentId" value="@p.Id" />
+                                    <input type="text" name="RejectReason" class="form-control form-control-sm" style="max-width:22rem"
+                                           placeholder="@T["Reason the payer will read"]" aria-label="@T["Reason the payer will read"]" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">@T["Reject / request correction"]</button>
+                                </form>
+                            </div>
+                        </details>
+                    }
+                    else
+                    {
+                        <span class="text-muted small">@T["You have view-only access to payments and cannot confirm or reject this."]</span>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
     @if (Model.PendingPayments.Count == 0)
     {
         <div class="app-empty">

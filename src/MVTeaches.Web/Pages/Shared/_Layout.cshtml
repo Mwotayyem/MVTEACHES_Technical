@@ -15,6 +15,43 @@
     bool IsCurrent(string page) => string.Equals(currentPage, page, StringComparison.OrdinalIgnoreCase);
     string NavClass(string page) => IsCurrent(page) ? "app-nav-link active" : "app-nav-link";
 
+    // Owner report 2026-09-05: standing on /Admin/RescheduleSessions, the
+    // sidebar said nothing at all about where you were - that page has no nav
+    // link of its own, and neither do StudentDetails, Payroll or
+    // PaymentMethods. Two of those are deliberate (owner decision 2026-09-03
+    // took Reschedule and Payroll out of the daily nav), so the fix is NOT to
+    // put the links back: it is to light up the section they belong to, and to
+    // name the current page under it while you are on it. Display only - no
+    // link is added, nothing becomes reachable that was not, and every
+    // permission check is untouched.
+    string NavSection(string page) => page switch
+    {
+        "/Admin/Dashboard" => "dashboard",
+        "/Admin/Students" or "/Admin/StudentDetails" or "/Admin/AssistedRegistration" => "students",
+        "/Admin/Teachers" or "/Admin/PlacementTests" or "/Admin/Payroll" => "teachers",
+        "/Admin/Subscriptions" or "/Admin/Payments" or "/Admin/PaymentMethods" or "/Admin/Posters" => "packages",
+        "/Admin/Schedules" or "/Admin/CompensationRequests" or "/Admin/RescheduleSessions" => "scheduling",
+        "/Admin/FinancialReport" or "/Admin/Certificates" => "reports",
+        "/Admin/AdminUsers" => "administration",
+        _ => string.Empty,
+    };
+
+    var currentSection = NavSection(currentPage);
+
+    string GroupClass(string section) =>
+        section == currentSection && section.Length > 0 ? "app-nav-group is-active" : "app-nav-group";
+
+    // The pages that DO have a link of their own. Anything else in a section is
+    // named by NavHere below instead, since there is no link to mark active.
+    var linkedPages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "/Admin/Dashboard", "/Admin/Students", "/Admin/AssistedRegistration",
+        "/Admin/Teachers", "/Admin/PlacementTests", "/Admin/Subscriptions",
+        "/Admin/Payments", "/Admin/Posters", "/Admin/Schedules",
+        "/Admin/CompensationRequests", "/Admin/FinancialReport",
+        "/Admin/Certificates", "/Admin/AdminUsers",
+    };
+
     // Security review 2026-09-02 (Review Required — Authorization) Stage 1:
     // this hides links only — the real enforcement is server-side on each
     // page/handler (see PermissionAuthorizationHandler). Computed once here
@@ -175,7 +212,7 @@
                         {
                             <a class="@NavClass("/Admin/Dashboard")" asp-page="/Admin/Dashboard">@NavIcon("grid")@T["Dashboard"]</a>
                         }
-                        <div class="app-nav-group">@T["Students and Guardians"]</div>
+                        <div class="@GroupClass("students")">@T["Students and Guardians"]</div>
                         @if (canViewStudents)
                         {
                             <a class="@NavClass("/Admin/Students")" asp-page="/Admin/Students">@NavIcon("users")@T["Students"]</a>
@@ -184,7 +221,16 @@
                         {
                             <a class="@NavClass("/Admin/AssistedRegistration")" asp-page="/Admin/AssistedRegistration">@NavIcon("user-plus")@T["Assisted Registration"]</a>
                         }
-                        <div class="app-nav-group">@T["Teachers and Placement"]</div>
+                        @* You are on a page in this section that has no link of
+                           its own - named here so the sidebar can still answer
+                           "where am I". Not a link: it neither adds navigation
+                           nor bypasses a permission, and it disappears the
+                           moment you leave the page. *@
+                        @if (currentSection == "students" && !linkedPages.Contains(currentPage))
+                        {
+                            <span class="app-nav-link is-here" aria-current="page">@NavIcon("dot")@(ViewData["Title"]?.ToString() ?? T["This page"].Value)</span>
+                        }
+                        <div class="@GroupClass("teachers")">@T["Teachers and Placement"]</div>
                         @if (canViewTeachers)
                         {
                             <a class="@NavClass("/Admin/Teachers")" asp-page="/Admin/Teachers">@NavIcon("academic")@T["Teachers"]</a>
@@ -193,7 +239,16 @@
                         {
                             <a class="@NavClass("/Admin/PlacementTests")" asp-page="/Admin/PlacementTests">@NavIcon("clipboard")@T["Placement Tests"]</a>
                         }
-                        <div class="app-nav-group">@T["Packages and Payments"]</div>
+                        @* You are on a page in this section that has no link of
+                           its own - named here so the sidebar can still answer
+                           "where am I". Not a link: it neither adds navigation
+                           nor bypasses a permission, and it disappears the
+                           moment you leave the page. *@
+                        @if (currentSection == "teachers" && !linkedPages.Contains(currentPage))
+                        {
+                            <span class="app-nav-link is-here" aria-current="page">@NavIcon("dot")@(ViewData["Title"]?.ToString() ?? T["This page"].Value)</span>
+                        }
+                        <div class="@GroupClass("packages")">@T["Packages and Payments"]</div>
                         @if (canViewSubscriptions)
                         {
                             <a class="@NavClass("/Admin/Subscriptions")" asp-page="/Admin/Subscriptions">@NavIcon("package")@T["Subscriptions"]</a>
@@ -206,7 +261,16 @@
                         {
                             <a class="@NavClass("/Admin/Posters")" asp-page="/Admin/Posters">@NavIcon("package")@T["Offer posters"]</a>
                         }
-                        <div class="app-nav-group">@T["Scheduling and Attendance"]</div>
+                        @* You are on a page in this section that has no link of
+                           its own - named here so the sidebar can still answer
+                           "where am I". Not a link: it neither adds navigation
+                           nor bypasses a permission, and it disappears the
+                           moment you leave the page. *@
+                        @if (currentSection == "packages" && !linkedPages.Contains(currentPage))
+                        {
+                            <span class="app-nav-link is-here" aria-current="page">@NavIcon("dot")@(ViewData["Title"]?.ToString() ?? T["This page"].Value)</span>
+                        }
+                        <div class="@GroupClass("scheduling")">@T["Scheduling and Attendance"]</div>
                         @if (canViewSchedules)
                         {
                             <a class="@NavClass("/Admin/Schedules")" asp-page="/Admin/Schedules">@NavIcon("calendar")@T["Schedules"]</a>
@@ -214,6 +278,15 @@
                         @if (canViewCompensation)
                         {
                             <a class="@NavClass("/Admin/CompensationRequests")" asp-page="/Admin/CompensationRequests">@NavIcon("inbox")@T["Compensation Requests"]</a>
+                        }
+                        @* You are on a page in this section that has no link of
+                           its own - named here so the sidebar can still answer
+                           "where am I". Not a link: it neither adds navigation
+                           nor bypasses a permission, and it disappears the
+                           moment you leave the page. *@
+                        @if (currentSection == "scheduling" && !linkedPages.Contains(currentPage))
+                        {
+                            <span class="app-nav-link is-here" aria-current="page">@NavIcon("dot")@(ViewData["Title"]?.ToString() ?? T["This page"].Value)</span>
                         }
                         @* Owner UX-simplification decision (2026-09-03): Reschedule / Compensation
                            is not part of the daily nav in this MVP stage — the student/guardian
@@ -230,7 +303,7 @@
                            and its handlers remain untouched and URL-reachable;
                            FinancialReport's read-only "Teacher dues" section is
                            the number admins need day to day. *@
-                        <div class="app-nav-group">@T["Reports and Certificates"]</div>
+                        <div class="@GroupClass("reports")">@T["Reports and Certificates"]</div>
                         @if (canViewFinancialReport)
                         {
                             <a class="@NavClass("/Admin/FinancialReport")" asp-page="/Admin/FinancialReport">@NavIcon("chart")@T["Financial Report"]</a>
@@ -239,9 +312,18 @@
                         {
                             <a class="@NavClass("/Admin/Certificates")" asp-page="/Admin/Certificates">@NavIcon("award")@T["Certificates"]</a>
                         }
+                        @* You are on a page in this section that has no link of
+                           its own - named here so the sidebar can still answer
+                           "where am I". Not a link: it neither adds navigation
+                           nor bypasses a permission, and it disappears the
+                           moment you leave the page. *@
+                        @if (currentSection == "reports" && !linkedPages.Contains(currentPage))
+                        {
+                            <span class="app-nav-link is-here" aria-current="page">@NavIcon("dot")@(ViewData["Title"]?.ToString() ?? T["This page"].Value)</span>
+                        }
                         @if (isSystemAdmin)
                         {
-                            <div class="app-nav-group">@T["Administration"]</div>
+                            <div class="@GroupClass("administration")">@T["Administration"]</div>
                             <a class="@NavClass("/Admin/AdminUsers")" asp-page="/Admin/AdminUsers">@NavIcon("shield")@T["Admin accounts and permissions"]</a>
                         }
                     }

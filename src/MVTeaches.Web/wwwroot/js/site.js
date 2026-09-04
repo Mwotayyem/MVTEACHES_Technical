@@ -167,10 +167,25 @@
                 closePanel();
             }
 
+            // Owner report 2026-09-05: re-opening a combo that already had a
+            // name in it listed only that one name, because the box's text -
+            // the full label of the current pick - was being used as the search
+            // term. Changing your mind therefore meant clearing the field with
+            // the little x first, which is not something a picker should ask
+            // for. Re-opening on the current selection now shows the WHOLE list
+            // and selects the text, so typing replaces it and the existing pick
+            // is still visible to keep or change.
             function openPanel() {
                 panel.hidden = false;
                 input.setAttribute("aria-expanded", "true");
-                renderPanel(input.value.trim().toLowerCase());
+
+                var term = input.value.trim();
+                var showAll = term === "" || term === currentLabel();
+                renderPanel(showAll ? "" : term.toLowerCase());
+
+                if (showAll && term !== "" && document.activeElement === input) {
+                    input.select();
+                }
             }
 
             function closePanel() {
@@ -191,7 +206,13 @@
 
             input.addEventListener("focus", openPanel);
             input.addEventListener("click", openPanel);
-            input.addEventListener("input", function () { openPanel(); });
+            input.addEventListener("input", function () {
+                // Typing always filters by exactly what is in the box - only
+                // FOCUS/CLICK re-opening treats the current label as "show all".
+                panel.hidden = false;
+                input.setAttribute("aria-expanded", "true");
+                renderPanel(input.value.trim().toLowerCase());
+            });
             input.addEventListener("blur", function () {
                 // Delayed so a mousedown pick on a panel option still lands first.
                 window.setTimeout(closePanel, 150);
@@ -759,48 +780,171 @@
         });
     }
 
-    // <div data-mv-chosen-into="#tray"> containing checkboxes that each carry
-    // data-mv-chosen-label. Echoes the ticked ones into that tray as chips, so a
-    // long scrollable list can be read back at a glance instead of scrolled
-    // through again. Clicking a chip unticks its box.
+    // <div class="app-multiselect" data-mv-multiselect> — a closed-by-default
+    // dropdown holding checkboxes, with its own search box and the ticked ones
+    // echoed back as chips underneath.
     //
-    // Display only: the checkboxes themselves stay the one source of truth and
-    // are what the form posts, exactly as before. If this script never runs the
-    // form still works - the tray is simply empty.
-    function wireChosenChips() {
-        document.querySelectorAll("[data-mv-chosen-into]").forEach(function (list) {
-            var tray = document.querySelector(list.getAttribute("data-mv-chosen-into"));
-            if (!tray) {
-                return;
+    // Owner report 2026-09-05: the previous version of this control was a
+    // scrollable box that sat OPEN on the page all the time. Twenty-one courses
+    // permanently unrolled made the form look like it was already asking for
+    // something, and left no way to say "I am done choosing". It opens when
+    // asked now, and closes on Escape, on an outside click, or on the toggle.
+    //
+    // Display only: the checkboxes inside are the same inputs with the same
+    // names, and they are what the form posts. With scripting off the panel is
+    // simply always visible (it is hidden by an attribute this code sets), so
+    // the form still works.
+    function wireMultiSelects() {
+        document.querySelectorAll("[data-mv-multiselect]").forEach(function (root) {
+            var toggle = root.querySelector("[data-mv-multiselect-toggle]");
+            var panel = root.querySelector("[data-mv-multiselect-panel]");
+            var search = root.querySelector("[data-mv-multiselect-search]");
+            var chips = root.querySelector("[data-mv-multiselect-chips]");
+            var summary = root.querySelector("[data-mv-multiselect-summary]");
+            if (!toggle || !panel) { return; }
+
+            var boxes = Array.prototype.slice.call(
+                root.querySelectorAll('input[type="checkbox"][data-mv-chosen-label]'));
+
+            // Hidden only once the script is running - see the note above.
+            panel.hidden = true;
+            toggle.setAttribute("aria-expanded", "false");
+
+            function chosen() {
+                return boxes.filter(function (box) { return box.checked; });
             }
 
-            var boxes = list.querySelectorAll('input[type="checkbox"][data-mv-chosen-label]');
+            function renderSummary() {
+                if (!summary) { return; }
+                var picked = chosen();
+                var none = summary.getAttribute("data-mv-empty-text") || "";
+                if (picked.length === 0) {
+                    summary.textContent = none;
+                    summary.classList.add("is-empty");
+                    return;
+                }
+                summary.classList.remove("is-empty");
+                var one = summary.getAttribute("data-mv-one-text") || "{0}";
+                var many = summary.getAttribute("data-mv-many-text") || "{0}";
+                summary.textContent = picked.length === 1
+                    ? one.replace("{0}", picked[0].getAttribute("data-mv-chosen-label"))
+                    : many.replace("{0}", String(picked.length));
+            }
 
-            function render() {
-                tray.textContent = "";
-                boxes.forEach(function (box) {
-                    if (!box.checked) {
-                        return;
-                    }
-
+            function renderChips() {
+                if (!chips) { return; }
+                chips.textContent = "";
+                chosen().forEach(function (box) {
                     var chip = document.createElement("button");
                     chip.type = "button";
                     chip.className = "app-chip is-removable";
                     chip.textContent = box.getAttribute("data-mv-chosen-label");
-                    chip.setAttribute("aria-label", box.getAttribute("data-mv-chosen-label"));
                     chip.addEventListener("click", function () {
                         box.checked = false;
                         render();
-                        box.focus();
                     });
-                    tray.appendChild(chip);
+                    chips.appendChild(chip);
+                });
+            }
+
+            function render() {
+                renderSummary();
+                renderChips();
+            }
+
+            function filter(term) {
+                boxes.forEach(function (box) {
+                    var row = box.closest(".form-check") || box.parentNode;
+                    var label = (box.getAttribute("data-mv-chosen-label") || "").toLowerCase();
+                    row.hidden = term !== "" && label.indexOf(term) === -1;
+                });
+            }
+
+            function open() {
+                panel.hidden = false;
+                toggle.setAttribute("aria-expanded", "true");
+                if (search) {
+                    search.value = "";
+                    filter("");
+                    search.focus();
+                }
+            }
+
+            function close() {
+                panel.hidden = true;
+                toggle.setAttribute("aria-expanded", "false");
+            }
+
+            toggle.addEventListener("click", function () {
+                if (panel.hidden) { open(); } else { close(); }
+            });
+
+            if (search) {
+                search.addEventListener("input", function () {
+                    filter(search.value.trim().toLowerCase());
                 });
             }
 
             boxes.forEach(function (box) {
                 box.addEventListener("change", render);
             });
+
+            root.addEventListener("keydown", function (e) {
+                if (e.key === "Escape" && !panel.hidden) {
+                    e.preventDefault();
+                    close();
+                    toggle.focus();
+                }
+            });
+
+            document.addEventListener("click", function (e) {
+                if (!panel.hidden && !root.contains(e.target)) { close(); }
+            });
+
             render();
+        });
+    }
+
+    // <input type="file" data-mv-image-preview="#img" data-mv-image-preview-hide="#placeholder">
+    // Shows the picked image immediately, before anything is uploaded.
+    //
+    // Owner report 2026-09-05: the poster screen previewed the title and the
+    // details live but not the image, so the one thing you actually needed to
+    // look at only appeared after saving. Nothing about the upload changes -
+    // the file still reaches the server only when the form is submitted; this
+    // reads it locally with a blob URL, and revokes the previous one so
+    // choosing five files in a row does not leak five of them.
+    function wireImagePreviews() {
+        document.querySelectorAll("input[type=file][data-mv-image-preview]").forEach(function (input) {
+            var img = document.querySelector(input.getAttribute("data-mv-image-preview"));
+            var placeholder = optionalTarget(input.getAttribute("data-mv-image-preview-hide"));
+            if (!img) { return; }
+
+            var lastUrl = null;
+
+            input.addEventListener("change", function () {
+                var file = input.files && input.files[0];
+
+                if (lastUrl) {
+                    URL.revokeObjectURL(lastUrl);
+                    lastUrl = null;
+                }
+
+                if (!file || file.type.indexOf("image/") !== 0) {
+                    // Cleared, or something that is not an image: fall back to
+                    // whatever the card showed before rather than a broken icon.
+                    if (!img.getAttribute("src")) {
+                        img.hidden = true;
+                        if (placeholder) { placeholder.hidden = false; }
+                    }
+                    return;
+                }
+
+                lastUrl = URL.createObjectURL(file);
+                img.src = lastUrl;
+                img.hidden = false;
+                if (placeholder) { placeholder.hidden = true; }
+            });
         });
     }
 
@@ -812,7 +956,8 @@
         wireDependentFields();
         wireOwnedOptions();
         wireEchoes();
-        wireChosenChips();
+        wireMultiSelects();
+        wireImagePreviews();
         wireStepProgress();
         wireConfirmations();
         wireFileModals();
