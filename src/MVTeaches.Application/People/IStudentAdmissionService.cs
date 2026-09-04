@@ -73,14 +73,14 @@ public interface IStudentAdmissionService
     /// for the student themselves. A child with no independent login (D-02/D-03)
     /// is the default — pass null/null for that case. Does not link a guardian;
     /// call <see cref="LinkGuardianAsync"/> separately.
-    /// <para>Owner decision 2026-09-04: <paramref name="phoneNumber"/> is
-    /// stored on the student's own Identity user when one is being created —
-    /// the case of an independent learner the centre must be able to reach.
-    /// It is IGNORED when no login is created, because a Student row has no
-    /// phone column of its own and adding one would be a schema change; for
-    /// that (much more common) case the number that matters is the linked
-    /// guardian's, captured by <see cref="RegisterGuardianAsync"/>. The admin
-    /// screens enforce this split — see their own remarks.</para></summary>
+    /// <para>Owner decision 2026-09-04: <paramref name="phoneNumber"/> is stored
+    /// on the Student row itself (Student.PhoneNumber), and additionally on the
+    /// student's Identity user when a login is being created. Storing it on the
+    /// Student row is what makes a number capturable for a child with NO login
+    /// — the common case, and previously the one the centre could not record at
+    /// all. Null is always accepted: for a child under a guardian, the number
+    /// the centre actually calls is the guardian's, and this one is simply
+    /// recorded when the family has one to give.</para></summary>
     Task<RegisterStudentResult> RegisterStudentAsync(int countryId, string fullName, LocalDate dateOfBirth,
         string? loginEmail, string? loginPassword, string? phoneNumber, CancellationToken cancellationToken);
 

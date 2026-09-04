@@ -217,6 +217,14 @@
                             <div class="form-text">@T["Used to pick the right age group for sessions."]</div>
                             <span asp-validation-for="NewStudent.DateOfBirth" class="text-danger small"></span>
                         </div>
+                        @* Owner decision 2026-09-04: optional here - this form
+                           registers a child whose reachable number is their
+                           guardian's. Stored on the Student row when given. *@
+                        <div class="col-12">
+                            <label class="form-label" asp-for="NewStudent.PhoneNumber">@T["Phone number (optional for a child under a guardian)"]</label>
+                            <input asp-for="NewStudent.PhoneNumber" type="tel" class="form-control" autocomplete="off" />
+                            <span asp-validation-for="NewStudent.PhoneNumber" class="text-danger small"></span>
+                        </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">@T["Register the student"]</button>
                         </div>

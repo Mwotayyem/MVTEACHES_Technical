@@ -33,6 +33,11 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
         b.Property(x => x.FullName).HasColumnName("full_name").IsRequired();
         b.Property(x => x.DateOfBirth).HasColumnName("date_of_birth").HasColumnType("date");
         b.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(30);
+        // Owner decision 2026-09-04 — see Student.PhoneNumber. Nullable and
+        // unconstrained by design: every existing row predates the column, and
+        // "required" is enforced by the registration screens for new adult
+        // students, never as a retroactive database rule on old data.
+        b.Property(x => x.PhoneNumber).HasColumnName("phone_number").HasMaxLength(32);
         b.Ignore(x => x.CanPressJoin);
     }
 }

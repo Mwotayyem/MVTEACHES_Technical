@@ -60,9 +60,6 @@ public class StudentAdmissionService : IStudentAdmissionService
         long? userId = null;
         if (!string.IsNullOrWhiteSpace(loginEmail) && !string.IsNullOrWhiteSpace(loginPassword))
         {
-            // Owner decision 2026-09-04: only reachable when a login is being
-            // created, which is the only place a student's own number can go
-            // without a schema change — see the interface remarks.
             var user = new ApplicationUser
             {
                 UserName = loginEmail,
@@ -82,7 +79,14 @@ public class StudentAdmissionService : IStudentAdmissionService
             userId = user.Id;
         }
 
-        var student = new Student(countryId, fullName, dateOfBirth, userId);
+        // Owner decision 2026-09-04 (student phone, stage 1): the number is now
+        // stored on the Student row itself as well, which is what finally makes
+        // it capturable for a child with no login. When a login WAS created it
+        // is deliberately written in both places: Identity needs it on the user
+        // for anything account-related, and the Student row is what every
+        // "who do we call about this student" query reads, whether or not that
+        // student ever signs in.
+        var student = new Student(countryId, fullName, dateOfBirth, userId, phoneNumber);
         _db.Students.Add(student);
         await _db.SaveChangesAsync(cancellationToken);
 

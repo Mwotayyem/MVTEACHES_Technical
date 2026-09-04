@@ -273,15 +273,14 @@ public class StudentAdmissionServiceTests
         Assert.All(superseded, l => Assert.False(l.IsCurrent));
     }
 
-    /// <summary>Owner decision 2026-09-04 (phone capture): a child registered
-    /// with no login of their own has no AspNetUsers row to hold a number, and
-    /// a Student row has no phone column — so a number passed here is
-    /// deliberately dropped rather than silently written somewhere misleading.
-    /// The reachable number for such a child is their guardian's, which the
-    /// guardian form makes mandatory. This test pins that behaviour so the
-    /// limitation stays visible instead of being rediscovered later.</summary>
+    /// <summary>Owner decision 2026-09-04, stage 1 of the big-features work:
+    /// Student.PhoneNumber closed the gap this test used to pin OPEN. A child
+    /// with no login of their own now has somewhere to keep a number — the
+    /// Student row itself — which is precisely the case the centre most needed
+    /// and previously could not record at all. No Identity user is invented for
+    /// them; the number simply lives where the student does.</summary>
     [Fact]
-    public async Task A_student_with_no_login_has_nowhere_to_store_a_phone_number()
+    public async Task A_student_with_no_login_can_now_store_their_own_phone_number()
     {
         var (db, service, _) = CreateService(_fixture);
         await using var _ = db;
@@ -292,9 +291,27 @@ public class StudentAdmissionServiceTests
 
         Assert.Equal(RegisterStudentOutcome.Registered, result.Outcome);
         var student = await db.Students.FirstAsync(s => s.Id == result.StudentId);
-        Assert.Null(student.UserId);
-        // No user row was created for the number to land on, and none was
-        // invented to hold it.
+        Assert.Null(student.UserId); // still no login - that has not changed
+        Assert.Equal("+962790000003", student.PhoneNumber);
+        // And no Identity user was conjured up just to hold it.
         Assert.Equal(0, await db.Users.CountAsync(u => u.PhoneNumber == "+962790000003"));
+    }
+
+    /// <summary>The column is nullable and stays nullable: a child registered
+    /// with no number at all is a legitimate, unbroken record, which is what
+    /// lets every student who predates the column survive its arrival.</summary>
+    [Fact]
+    public async Task A_student_registered_without_a_phone_number_is_still_valid()
+    {
+        var (db, service, _) = CreateService(_fixture);
+        await using var _ = db;
+        var countryId = await SeedCountryAsync(db);
+
+        var result = await service.RegisterStudentAsync(countryId, "No Number", new LocalDate(2016, 1, 1),
+            loginEmail: null, loginPassword: null, phoneNumber: null, CancellationToken.None);
+
+        Assert.Equal(RegisterStudentOutcome.Registered, result.Outcome);
+        var student = await db.Students.FirstAsync(s => s.Id == result.StudentId);
+        Assert.Null(student.PhoneNumber);
     }
 }

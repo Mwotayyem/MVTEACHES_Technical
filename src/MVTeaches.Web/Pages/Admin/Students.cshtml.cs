@@ -442,10 +442,16 @@ public class StudentsModel : PageModel
         // every NEW registration, but the accounts already in the system predate
         // that and must not break — so they are flagged rather than blocked, and
         // an admin can see at a glance which families the centre cannot ring.
-        // "Reachable" is deliberately generous: EITHER the student's own login
-        // OR any linked guardian's login carrying a number satisfies it, which
-        // is exactly the rule the registration forms enforce going forward.
+        // "Reachable" is deliberately generous: a number on the student's OWN
+        // row, or on their login, or on any linked guardian's login satisfies
+        // it — which is exactly the rule the registration forms enforce going
+        // forward. Student.PhoneNumber (added 2026-09-04) is checked first
+        // because it is the only one a child with no login can ever have.
         var studentsOwnPhoneIds = await _db.Students
+            .Where(s => studentIds.Contains(s.Id) && s.PhoneNumber != null && s.PhoneNumber != "")
+            .Select(s => s.Id)
+            .ToListAsync();
+        var studentLoginPhoneIds = await _db.Students
             .Where(s => studentIds.Contains(s.Id) && s.UserId != null)
             .Join(_db.Users, s => s.UserId, u => u.Id, (s, u) => new { s.Id, u.PhoneNumber })
             .Where(x => x.PhoneNumber != null && x.PhoneNumber != "")
@@ -458,7 +464,10 @@ public class StudentsModel : PageModel
             .Where(x => x.PhoneNumber != null && x.PhoneNumber != "")
             .Select(x => x.StudentId)
             .ToListAsync();
-        var reachableStudentIds = studentsOwnPhoneIds.Concat(guardianPhoneStudentIds).ToHashSet();
+        var reachableStudentIds = studentsOwnPhoneIds
+            .Concat(studentLoginPhoneIds)
+            .Concat(guardianPhoneStudentIds)
+            .ToHashSet();
 
         var subscriptionsByStudent = subscriptions.GroupBy(sub => sub.StudentId)
             .ToDictionary(g => g.Key, g => g.ToList());

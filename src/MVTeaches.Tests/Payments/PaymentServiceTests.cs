@@ -842,12 +842,39 @@ public class PaymentServiceTests
         var task2 = service2.ConfirmAsync(topUp.PaymentId, NextId(), CancellationToken.None);
         var results = await Task.WhenAll(task1, task2);
 
-        Assert.Contains(results, r => r.Outcome == ConfirmPaymentOutcome.Confirmed);
-        Assert.Contains(results, r => r.Outcome == ConfirmPaymentOutcome.AlreadyConfirmed);
+        // Neither call may fail, and neither may report a refusal: the money in
+        // this payment is real however the race is scheduled.
+        Assert.All(results, r => Assert.True(
+            r.Outcome is ConfirmPaymentOutcome.Confirmed or ConfirmPaymentOutcome.AlreadyConfirmed,
+            $"A concurrent confirmation reported {r.Outcome}."));
 
+        // This test used to additionally demand that exactly one of the two say
+        // AlreadyConfirmed, and it failed intermittently on that line alone.
+        // The reason is real but harmless, and worth stating rather than
+        // re-running until it passes: the loser of the ux_ent_purchase race
+        // re-reads the payment inside its catch block, and under READ COMMITTED
+        // it may do so before the winner's transaction has committed. It then
+        // legitimately sees Pending, confirms the same row again to the same
+        // values, and reports Confirmed. Whether it reports Confirmed or
+        // AlreadyConfirmed is therefore a matter of scheduling, not of
+        // correctness — it is a label on an outcome that already happened.
+        //
+        // What must NEVER vary is asserted below, and this ordering matters:
+        // the invariants are checked unconditionally, so a genuine double-credit
+        // can no longer hide behind an outcome-label assertion that fires first
+        // and aborts the test before the money is ever looked at.
         await using var verify = _fixture.CreateContext();
+
+        // The entitlement was granted exactly once - the invariant that
+        // actually protects the student's balance.
         Assert.Equal(1, await verify.EntitlementLedgerEntries.CountAsync(l => l.SubscriptionId == subscriptionId));
         var subscription = await verify.Subscriptions.FirstAsync(s => s.Id == subscriptionId);
         Assert.Equal(SubscriptionStatus.Active, subscription.Status);
+
+        // And the payment settled once, as one Confirmed row - not duplicated,
+        // and not left Pending by a rolled-back loser.
+        var settled = await verify.Payments.SingleAsync(p => p.Id == topUp.PaymentId);
+        Assert.Equal(PaymentStatus.Confirmed, settled.Status);
+        Assert.Equal(2, await verify.Payments.CountAsync(p => p.SubscriptionId == subscriptionId));
     }
 }

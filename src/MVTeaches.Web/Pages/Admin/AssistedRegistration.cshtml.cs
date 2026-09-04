@@ -187,6 +187,11 @@ public class AssistedRegistrationModel : PageModel
         [Required(ErrorMessage = "Choose a country.")] public int? CountryId { get; set; }
         [Required(ErrorMessage = "Enter the full name.")] public string FullName { get; set; } = string.Empty;
         [Required(ErrorMessage = "Enter the date of birth.")] public DateOnly? DateOfBirth { get; set; }
+
+        /// <summary>Optional: this form registers a child whose reachable number
+        /// is their guardian's. Stored on the Student row when given.</summary>
+        [Phone(ErrorMessage = "This is not a valid phone number.")]
+        public string? PhoneNumber { get; set; }
     }
 
     public class LinkInput
@@ -259,15 +264,12 @@ public class AssistedRegistrationModel : PageModel
         // No login/password here — this student registers with no independent
         // account yet, exactly the ordinary guardian-only-child case; a login
         // can be added later from /Admin/Students if the family wants one.
-        // Owner decision 2026-09-04 (phone capture): this handler creates no
-        // login, so there is no AspNetUsers row to hold a number and a Student
-        // row has no phone column of its own. The reachable number for this
-        // child is therefore the guardian's, captured when the guardian is
-        // registered above - which is exactly why the next step this page
-        // prompts for is linking one. Passing null here is deliberate, not an
-        // omission; see the interface remarks and the report's open item.
+        // Owner decision 2026-09-04: this handler creates no login, but a number
+        // can now still be stored - on the Student row itself. Optional here on
+        // purpose: this form registers a child whose reachable number is their
+        // guardian's, so it is offered rather than demanded.
         var result = await _admissions.RegisterStudentAsync(NewStudent.CountryId!.Value, NewStudent.FullName, dob,
-            loginEmail: null, loginPassword: null, phoneNumber: null, HttpContext.RequestAborted);
+            loginEmail: null, loginPassword: null, NewStudent.PhoneNumber, HttpContext.RequestAborted);
 
         StatusMessage = result.Outcome == RegisterStudentOutcome.Registered
             ? _localizer["Student '{0}' registered — link a guardian, then direct them to the free placement test.", NewStudent.FullName].Value

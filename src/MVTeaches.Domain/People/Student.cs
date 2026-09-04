@@ -26,9 +26,27 @@ public class Student
 
     public StudentStatus Status { get; private set; }
 
+    /// <summary>Owner decision 2026-09-04: the student's own contact number,
+    /// stored HERE rather than only on an Identity user, because the common
+    /// case — a child with no login at all — has no Identity row to put it on.
+    /// Until this column existed, a number could only be captured for someone
+    /// who signed in, which left exactly the children the centre most needs to
+    /// reach unreachable.
+    /// <para>Nullable on purpose, and stays nullable: every student already in
+    /// the database predates this column, and none of them may be broken by
+    /// its arrival. "Required" is a rule the REGISTRATION screens apply to new
+    /// adult students — see IStudentAdmissionService — not a database
+    /// constraint applied retroactively to old rows.</para>
+    /// <para>For a child under a guardian, the guardian's number is the one
+    /// the centre actually calls; this one is stored when the family gives it
+    /// (an older child's own mobile) and is simply left null when they do
+    /// not.</para></summary>
+    public string? PhoneNumber { get; private set; }
+
     private Student() { }
 
-    public Student(int countryId, string fullName, LocalDate dateOfBirth, long? userId = null)
+    public Student(int countryId, string fullName, LocalDate dateOfBirth, long? userId = null,
+        string? phoneNumber = null)
     {
         if (string.IsNullOrWhiteSpace(fullName))
         {
@@ -39,8 +57,16 @@ public class Student
         FullName = fullName;
         DateOfBirth = dateOfBirth;
         UserId = userId;
+        PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim();
         Status = StudentStatus.PendingVerification;
     }
+
+    /// <summary>Records or corrects the student's own number after registration
+    /// — an admin fixing a typo, or a family supplying one they did not have at
+    /// sign-up. Blank clears it back to "not known", which is a legitimate
+    /// state rather than an error.</summary>
+    public void SetPhoneNumber(string? phoneNumber) =>
+        PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim();
 
     public void MarkVerified() => Status = StudentStatus.PendingLevel;
 
