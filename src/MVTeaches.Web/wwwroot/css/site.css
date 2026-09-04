@@ -1827,7 +1827,7 @@ a.app-kpi:hover {
 }
 
 .app-chip.is-removable::after {
-  content: " d7";
+  content: "×";
   font-weight: 700;
   opacity: 0.7;
 }
