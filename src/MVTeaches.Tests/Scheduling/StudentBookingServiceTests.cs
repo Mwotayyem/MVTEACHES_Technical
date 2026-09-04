@@ -453,4 +453,112 @@ public class StudentBookingServiceTests
         var second = await service.BookSessionAsync(fx.StudentId, session2.Id, fx.StudentUserId, CancellationToken.None);
         Assert.Equal(BookSessionOutcome.Booked, second.Outcome);
     }
+
+    /// <summary>Owner decision 2026-09-04. Seeds the exact family shape the
+    /// guardian self-registration flow produces: a child with NO login of their
+    /// own, reachable only through their guardian's account.</summary>
+    private async Task<(Fixture Fixture, long GuardianUserId)> SeedChildWithGuardianAsync(MvTeachesDbContext db)
+    {
+        var fx = await SeedStudentWithLevelAsync(db);
+
+        // Take the login away: a child added by their guardian never has one.
+        var child = await db.Students.FirstAsync(s => s.Id == fx.StudentId);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE students SET user_id = NULL WHERE \"Id\" = {fx.StudentId}");
+        db.Entry(child).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+
+        var guardianUserId = await CreateUserAsync(db, "guardian");
+        var guardian = new Guardian(guardianUserId, "Guardian");
+        db.Guardians.Add(guardian);
+        await db.SaveChangesAsync();
+
+        db.Guardianships.Add(new Guardianship(guardian.Id, fx.StudentId, GuardianRelationship.Parent,
+            isPrimary: true, guardianUserId));
+        await db.SaveChangesAsync();
+
+        return (fx, guardianUserId);
+    }
+
+    /// <summary>
+    /// Owner decision 2026-09-04, and the whole reason this widened. A child
+    /// registered through their guardian has no login by design, so before this
+    /// there was no path to a seat at all: this service accepted only the
+    /// student's own account, and the guardian screen had no booking action.
+    /// A family could buy a package and never be able to use it.
+    /// </summary>
+    [Fact]
+    public async Task A_guardian_can_book_for_their_own_child_who_has_no_login()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var (fx, guardianUserId) = await SeedChildWithGuardianAsync(db);
+        await SeedSubscriptionAsync(db, fx, 120, now);
+        var session = NewSession(fx, fx.LevelId, fx.CourseId, 60, now.Plus(Duration.FromDays(1)));
+        db.ClassSessions.Add(session);
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db, now).BookSessionAsync(fx.StudentId, session.Id, guardianUserId, CancellationToken.None);
+
+        Assert.Equal(BookSessionOutcome.Booked, result.Outcome);
+
+        await using var verify = _fixture.CreateContext();
+        Assert.True(await verify.SessionEnrollments.AnyAsync(
+            e => e.SessionId == session.Id && e.StudentId == fx.StudentId && e.State == EnrollmentState.Active));
+        var refreshed = await verify.ClassSessions.AsNoTracking().FirstAsync(s => s.Id == session.Id);
+        Assert.Equal(1, refreshed.SeatsTaken);
+
+        // The child still has no login — nothing here created one.
+        Assert.Null(await verify.Students.Where(s => s.Id == fx.StudentId).Select(s => s.UserId).FirstAsync());
+    }
+
+    /// <summary>Widening the identity check must not widen it to everyone: a
+    /// Guardian account that is not THIS child's guardian is still refused, and
+    /// the refusal is the same Unauthorized a stranger always got.</summary>
+    [Fact]
+    public async Task A_guardian_of_a_different_child_cannot_book_for_this_one()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var (fx, _) = await SeedChildWithGuardianAsync(db);
+        var (_, strangerGuardianUserId) = await SeedChildWithGuardianAsync(db);
+        await SeedSubscriptionAsync(db, fx, 120, now);
+        var session = NewSession(fx, fx.LevelId, fx.CourseId, 60, now.Plus(Duration.FromDays(1)));
+        db.ClassSessions.Add(session);
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db, now)
+            .BookSessionAsync(fx.StudentId, session.Id, strangerGuardianUserId, CancellationToken.None);
+
+        Assert.Equal(BookSessionOutcome.Unauthorized, result.Outcome);
+        await using var verify = _fixture.CreateContext();
+        Assert.False(await verify.SessionEnrollments.AnyAsync(e => e.SessionId == session.Id));
+        var untouched = await verify.ClassSessions.AsNoTracking().FirstAsync(s => s.Id == session.Id);
+        Assert.Equal(0, untouched.SeatsTaken);
+    }
+
+    /// <summary>Every other rule still applies when a guardian is the caller —
+    /// they are questions about the STUDENT, not about who pressed the button.
+    /// A guardian cannot book their child past what the package can cover.</summary>
+    [Fact]
+    public async Task A_guardian_cannot_book_beyond_what_the_childs_package_covers()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var (fx, guardianUserId) = await SeedChildWithGuardianAsync(db);
+        await SeedSubscriptionAsync(db, fx, 60, now); // exactly one 60-minute lesson
+
+        var first = NewSession(fx, fx.LevelId, fx.CourseId, 60, now.Plus(Duration.FromDays(1)));
+        var second = NewSession(fx, fx.LevelId, fx.CourseId, 60, now.Plus(Duration.FromDays(2)));
+        db.ClassSessions.AddRange(first, second);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, now);
+        Assert.Equal(BookSessionOutcome.Booked,
+            (await service.BookSessionAsync(fx.StudentId, first.Id, guardianUserId, CancellationToken.None)).Outcome);
+        Assert.Equal(BookSessionOutcome.PackageLimitExceeded,
+            (await service.BookSessionAsync(fx.StudentId, second.Id, guardianUserId, CancellationToken.None)).Outcome);
+
+        await using var verify = _fixture.CreateContext();
+        Assert.Equal(1, await verify.SessionEnrollments.CountAsync(e => e.StudentId == fx.StudentId && e.State == EnrollmentState.Active));
+    }
 }

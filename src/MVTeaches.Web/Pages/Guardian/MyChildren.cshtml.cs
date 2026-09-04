@@ -37,8 +37,15 @@ public class MyChildrenModel : PageModel
     /// here rather than phoning the centre to have it typed in for them.</summary>
     private readonly MVTeaches.Application.People.ISelfRegistrationService _selfRegistration;
 
+    /// <summary>Owner decision 2026-09-04: a guardian books their child's
+    /// lessons. Same service the student's own screen uses — every level,
+    /// age-group, package-capacity and seat rule lives there and is asked the
+    /// same questions whoever pressed the button.</summary>
+    private readonly MVTeaches.Application.Scheduling.IStudentBookingService _booking;
+
     public MyChildrenModel(MvTeachesDbContext db, IJoinAttendanceService join, UserManager<ApplicationUser> userManager, IClock clock,
-        IStringLocalizer<SharedResource> localizer, MVTeaches.Application.People.ISelfRegistrationService selfRegistration)
+        IStringLocalizer<SharedResource> localizer, MVTeaches.Application.People.ISelfRegistrationService selfRegistration,
+        MVTeaches.Application.Scheduling.IStudentBookingService booking)
     {
         _db = db;
         _join = join;
@@ -46,6 +53,7 @@ public class MyChildrenModel : PageModel
         _clock = clock;
         _localizer = localizer;
         _selfRegistration = selfRegistration;
+        _booking = booking;
     }
 
     /// <summary>Owner decision 2026-09-04: the guardian's own add-a-child form.
@@ -144,6 +152,20 @@ public class MyChildrenModel : PageModel
 
     public IReadOnlyList<ChildSessionRow> UpcomingSessions { get; set; } = Array.Empty<ChildSessionRow>();
 
+    /// <summary>Owner decision 2026-09-04: a lesson this child could be booked
+    /// into. Narrowed to what actually applies to them — a (course, level) pair
+    /// they currently hold, still Scheduled, still in the future — and carrying
+    /// enough to tell one from another without opening anything.
+    /// <para><paramref name="AlreadyBooked"/> and a full session are shown
+    /// rather than hidden: a lesson that quietly disappears from the list reads
+    /// as a mistake, and "your child is already in this one" is the answer the
+    /// guardian was looking for.</para></summary>
+    public record BookableSessionRow(long StudentId, string StudentName, long SessionId, Instant StartsAtUtc,
+        string ScheduleTimeZone, string StudentTimeZone, string CourseName, string LevelCode, string TeacherName,
+        int DurationMinutes, int SeatsTaken, int Capacity, bool AlreadyBooked);
+
+    public IReadOnlyList<BookableSessionRow> BookableSessions { get; set; } = Array.Empty<BookableSessionRow>();
+
     /// <summary>Who this guardian's children are, independently of whether any
     /// of them happens to have a session this week — the previous page showed
     /// nothing at all in that (very common) case.</summary>
@@ -179,6 +201,54 @@ public class MyChildrenModel : PageModel
             JoinOutcome.SessionNotFound => _localizer["Session not found."].Value,
             JoinOutcome.SessionNotYetJoinable => _localizer["This session hasn't started yet."].Value,
             JoinOutcome.InsufficientBalance => _localizer["No subscription has enough remaining balance to cover this session."].Value,
+            _ => null,
+        };
+
+        await LoadAsync();
+        return Page();
+    }
+
+    /// <summary>Owner decision 2026-09-04. A child registered by their
+    /// guardian has no login by design, so before this there was no path at all
+    /// to a seat: the student screen requires the student's own account, and
+    /// the admin enrolment screen only reaches sessions belonging to a weekly
+    /// class. A family could buy a package and never be able to use it.
+    ///
+    /// <para>This page decides nothing. IStudentBookingService re-resolves the
+    /// guardian link, the child's level in that session's own course, their age
+    /// group, what their packages can still cover, and claims the seat
+    /// atomically — a made-up studentId in this POST is refused there, not
+    /// here.</para></summary>
+    public async Task<IActionResult> OnPostBookAsync(long sessionId, long studentId)
+    {
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var result = await _booking.BookSessionAsync(studentId, sessionId, actingUserId, HttpContext.RequestAborted);
+
+        StatusMessage = result.Outcome == MVTeaches.Application.Scheduling.BookSessionOutcome.Booked
+            ? _localizer["Booked. The lesson now appears below, and Join opens when it starts."].Value
+            : null;
+        ErrorMessage = result.Outcome switch
+        {
+            MVTeaches.Application.Scheduling.BookSessionOutcome.Unauthorized =>
+                _localizer["This account is not registered as that child's guardian."].Value,
+            MVTeaches.Application.Scheduling.BookSessionOutcome.SessionNotFound =>
+                _localizer["Session not found."].Value,
+            MVTeaches.Application.Scheduling.BookSessionOutcome.NoCurrentLevelAssigned =>
+                _localizer["This child has no level in that course yet — the centre assigns one first."].Value,
+            MVTeaches.Application.Scheduling.BookSessionOutcome.SessionLevelMismatch =>
+                _localizer["That lesson is not at this child's level."].Value,
+            MVTeaches.Application.Scheduling.BookSessionOutcome.SessionNotBookable =>
+                _localizer["That lesson has already started or is no longer open for booking."].Value,
+            MVTeaches.Application.Scheduling.BookSessionOutcome.AlreadyBooked =>
+                _localizer["This child is already booked into that lesson."].Value,
+            MVTeaches.Application.Scheduling.BookSessionOutcome.SessionFull =>
+                _localizer["That lesson is full."].Value,
+            MVTeaches.Application.Scheduling.BookSessionOutcome.PackageLimitExceeded =>
+                _localizer["This child's package does not have enough hours left for another lesson — including the ones already booked."].Value,
+            // Owner decision 2026-09-04: age groups are not being changed, so
+            // this says plainly what happened instead of failing silently.
+            MVTeaches.Application.Scheduling.BookSessionOutcome.NoApplicableAgeGroup =>
+                _localizer["This child's age does not fall into any age group the centre teaches, so no lesson can be booked for them yet. Please contact the centre."].Value,
             _ => null,
         };
 
@@ -266,19 +336,119 @@ public class MyChildrenModel : PageModel
 
         UpcomingSessions = rows;
 
-        var currentLevelByChild = await _db.StudentLevels
+        // Owner decision 2026-09-04 (multi-course levels): a child holds one
+        // current level PER COURSE, so this can no longer be keyed by student
+        // alone — ToDictionary threw the moment a child studied two subjects.
+        // The label names the course beside each level for the same reason.
+        var currentLevels = await _db.StudentLevels
             .Where(l => childIds.Contains(l.StudentId) && l.IsCurrent)
-            .ToDictionaryAsync(l => l.StudentId, l => l.LevelId);
+            .ToListAsync();
+        var levelLabelByChild = currentLevels
+            .GroupBy(l => l.StudentId)
+            .ToDictionary(g => g.Key, g => string.Join(" · ", g
+                .Select(l => $"{courseNames.GetValueOrDefault(l.CourseId, "?")} {levelCodes.GetValueOrDefault(l.LevelId, "?")}")
+                .OrderBy(text => text)));
         var children = await _db.Students
             .Where(s => childIds.Contains(s.Id))
             .OrderBy(s => s.FullName)
             .ToListAsync();
 
+        await LoadBookableSessionsAsync(childIds, currentLevels, childNames, studentTimeZones, teacherNames,
+            courseNames, levelCodes, enrollments, now);
+
         Children = children.Select(child => new ChildRow(
             child.Id,
             child.FullName,
-            currentLevelByChild.TryGetValue(child.Id, out var levelId) ? levelCodes.GetValueOrDefault(levelId) : null,
+            levelLabelByChild.GetValueOrDefault(child.Id),
             child.Status,
             rows.Count(r => r.StudentId == child.Id))).ToList();
+    }
+
+    /// <summary>Owner decision 2026-09-04: what each child could actually be
+    /// booked into, and nothing else. Filtered on the (course, level) PAIRS the
+    /// child currently holds — matching on the level alone would offer every
+    /// other course's lessons at that level, in subjects they were never placed
+    /// in. The two Contains() clauses only narrow the query; the pair check is
+    /// what decides.
+    ///
+    /// <para>Whether the child's package can cover it is deliberately NOT
+    /// filtered here: IStudentBookingService answers that at the moment of
+    /// booking, against every other not-yet-consumed booking, and a list that
+    /// tried to predict it would be a second opinion that drifts. A lesson they
+    /// cannot afford is offered and then refused with a reason, rather than
+    /// silently missing.</para></summary>
+    private async Task LoadBookableSessionsAsync(
+        IReadOnlyList<long> childIds,
+        IReadOnlyList<MVTeaches.Domain.Placement.StudentLevel> currentLevels,
+        Dictionary<long, string> childNames,
+        Dictionary<long, string> studentTimeZones,
+        Dictionary<long, string> teacherNames,
+        Dictionary<long, string> courseNames,
+        Dictionary<int, string> levelCodes,
+        IReadOnlyList<SessionEnrollment> enrollments,
+        Instant now)
+    {
+        if (currentLevels.Count == 0)
+        {
+            return;
+        }
+
+        var windowEnd = now.Plus(Duration.FromDays(30));
+        var courseIds = currentLevels.Select(l => l.CourseId).Distinct().ToList();
+        var levelIds = currentLevels.Select(l => l.LevelId).Distinct().ToList();
+
+        var candidates = await _db.ClassSessions
+            .Where(s => courseIds.Contains(s.CourseId) && levelIds.Contains(s.LevelId)
+                        && s.Status == ClassSessionStatus.Scheduled
+                        && s.StartsAtUtc > now && s.StartsAtUtc <= windowEnd)
+            .OrderBy(s => s.StartsAtUtc)
+            .Take(200)
+            .ToListAsync();
+
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        var missingTeacherIds = candidates.Select(s => s.TeacherId).Distinct()
+            .Where(id => !teacherNames.ContainsKey(id)).ToList();
+        if (missingTeacherIds.Count > 0)
+        {
+            var extra = await _db.Teachers.Where(te => missingTeacherIds.Contains(te.Id))
+                .ToDictionaryAsync(te => te.Id, te => te.FullName);
+            foreach (var pair in extra)
+            {
+                teacherNames[pair.Key] = pair.Value;
+            }
+        }
+
+        var booked = enrollments
+            .Where(e => e.State == EnrollmentState.Active)
+            .Select(e => (e.SessionId, e.StudentId))
+            .ToHashSet();
+
+        var rows = new List<BookableSessionRow>();
+        foreach (var level in currentLevels.OrderBy(l => l.StudentId))
+        {
+            foreach (var session in candidates.Where(s => s.CourseId == level.CourseId && s.LevelId == level.LevelId))
+            {
+                rows.Add(new BookableSessionRow(
+                    level.StudentId,
+                    childNames.GetValueOrDefault(level.StudentId, string.Empty),
+                    session.Id,
+                    session.StartsAtUtc,
+                    session.ScheduleTimeZone,
+                    studentTimeZones.GetValueOrDefault(level.StudentId) is { Length: > 0 } zone ? zone : session.ScheduleTimeZone,
+                    courseNames.GetValueOrDefault(session.CourseId, "?"),
+                    levelCodes.GetValueOrDefault(session.LevelId, "?"),
+                    teacherNames.GetValueOrDefault(session.TeacherId, "?"),
+                    session.DurationMinutes,
+                    session.SeatsTaken,
+                    session.Capacity,
+                    booked.Contains((session.Id, level.StudentId))));
+            }
+        }
+
+        BookableSessions = rows.OrderBy(r => r.StartsAtUtc).ThenBy(r => r.StudentName).ToList();
     }
 }

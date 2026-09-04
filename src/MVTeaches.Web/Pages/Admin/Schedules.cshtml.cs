@@ -121,6 +121,9 @@ public class SchedulesModel : PageModel
     public EnrollInput Enroll { get; set; } = new();
 
     [BindProperty]
+    public EnrollSessionInput EnrollSession { get; set; } = new();
+
+    [BindProperty]
     public CancelInput Cancel { get; set; } = new();
 
     [BindProperty]
@@ -147,6 +150,17 @@ public class SchedulesModel : PageModel
     public class EnrollInput
     {
         [Required(ErrorMessage = "Choose a schedule.")] public long? RecurringScheduleId { get; set; }
+        [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
+    }
+
+    /// <summary>Owner decision 2026-09-04: enrolling into ONE session rather
+    /// than a whole weekly class. A session published straight from a teacher's
+    /// own slots carries no recurring_id, so the bulk form above — which works
+    /// per weekly class — could not reach it at all, and an admin had no way to
+    /// put a student in it.</summary>
+    public class EnrollSessionInput
+    {
+        [Required(ErrorMessage = "Choose a session.")] public long? SessionId { get; set; }
         [Required(ErrorMessage = "Choose a student.")] public long? StudentId { get; set; }
     }
 
@@ -288,6 +302,48 @@ public class SchedulesModel : PageModel
         var count = await _enrollments.EnrollInUpcomingSessionsAsync(Enroll.RecurringScheduleId!.Value, Enroll.StudentId!.Value,
             actingUserId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Enrolled the student into {0} upcoming session(s) generated from this schedule.", count].Value;
+
+        await LoadAsync();
+        return Page();
+    }
+
+    /// <summary>Owner decision 2026-09-04. IEnrollmentService.EnrollInSessionAsync
+    /// already worked on any single session — the gap was that no screen ever
+    /// called it, so a session with no recurring_id (a teacher's own published
+    /// slot) had no enrolment path at all. Same permission and same service as
+    /// the bulk form; only the target is narrower.</summary>
+    public async Task<IActionResult> OnPostEnrollSessionAsync()
+    {
+        if (await this.RequirePermissionAsync(_authorizationService, PermissionKeys.SchedulesManage) is { } deny)
+        {
+            return deny;
+        }
+
+        ActiveTab = "enroll";
+        ModelState.Clear();
+        if (!TryValidateModel(EnrollSession, nameof(EnrollSession)))
+        {
+            await LoadAsync();
+            return Page();
+        }
+
+        var actingUserId = long.Parse(_userManager.GetUserId(User)!);
+        var result = await _enrollments.EnrollInSessionAsync(EnrollSession.SessionId!.Value, EnrollSession.StudentId!.Value,
+            actingUserId, HttpContext.RequestAborted);
+
+        StatusMessage = result.Outcome == EnrollOutcome.Enrolled
+            ? _localizer["Enrolled the student into that one session."].Value
+            : null;
+        ErrorMessage = result.Outcome switch
+        {
+            EnrollOutcome.AlreadyEnrolled => _localizer["That student is already enrolled in that session."].Value,
+            EnrollOutcome.SessionFull => _localizer["That session is full."].Value,
+            EnrollOutcome.SessionNotFound => _localizer["Session not found."].Value,
+            EnrollOutcome.StudentNotFound => _localizer["Student not found."].Value,
+            EnrollOutcome.NoApplicableAgeGroup =>
+                _localizer["This student's age does not fall into any age group the centre teaches, so they cannot be enrolled yet."].Value,
+            _ => null,
+        };
 
         await LoadAsync();
         return Page();

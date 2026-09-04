@@ -448,6 +448,21 @@
   <data name="Present" xml:space="preserve"><value>Present</value></data>
   <data name="Join" xml:space="preserve"><value>Join</value></data>
   <data name="No sessions in this window." xml:space="preserve"><value>No sessions in this window.</value></data>
+  <data name="Book a lesson" xml:space="preserve"><value>Book a lesson</value></data>
+  <data name="The next 30 days, showing only lessons in a course and level your child is placed in. Booking holds a seat; the hours are drawn from the package when you press Join, not now." xml:space="preserve"><value>The next 30 days, showing only lessons in a course and level your child is placed in. Booking holds a seat; the hours are drawn from the package when you press Join, not now.</value></data>
+  <data name="Book for {0}" xml:space="preserve"><value>Book for {0}</value></data>
+  <data name="Booked" xml:space="preserve"><value>Booked</value></data>
+  <data name="{0} minutes" xml:space="preserve"><value>{0} minutes</value></data>
+  <data name="No lessons are open for booking at your children's courses and levels right now." xml:space="preserve"><value>No lessons are open for booking at your children's courses and levels right now.</value></data>
+  <data name="Booked. The lesson now appears below, and Join opens when it starts." xml:space="preserve"><value>Booked. The lesson now appears below, and Join opens when it starts.</value></data>
+  <data name="This account is not registered as that child's guardian." xml:space="preserve"><value>This account is not registered as that child's guardian.</value></data>
+  <data name="This child has no level in that course yet — the centre assigns one first." xml:space="preserve"><value>This child has no level in that course yet — the centre assigns one first.</value></data>
+  <data name="That lesson is not at this child's level." xml:space="preserve"><value>That lesson is not at this child's level.</value></data>
+  <data name="That lesson has already started or is no longer open for booking." xml:space="preserve"><value>That lesson has already started or is no longer open for booking.</value></data>
+  <data name="This child is already booked into that lesson." xml:space="preserve"><value>This child is already booked into that lesson.</value></data>
+  <data name="That lesson is full." xml:space="preserve"><value>That lesson is full.</value></data>
+  <data name="This child's package does not have enough hours left for another lesson — including the ones already booked." xml:space="preserve"><value>This child's package does not have enough hours left for another lesson — including the ones already booked.</value></data>
+  <data name="This child's age does not fall into any age group the centre teaches, so no lesson can be booked for them yet. Please contact the centre." xml:space="preserve"><value>This child's age does not fall into any age group the centre teaches, so no lesson can be booked for them yet. Please contact the centre.</value></data>
   <data name="Attendance recorded — the session's full duration has been drawn from the subscription." xml:space="preserve"><value>Attendance recorded — the session's full duration has been drawn from the subscription.</value></data>
   <data name="Already marked present for this session." xml:space="preserve"><value>Already marked present for this session.</value></data>
   <data name="This child is not enrolled in that session, or this account is not their guardian." xml:space="preserve"><value>This child is not enrolled in that session, or this account is not their guardian.</value></data>
@@ -489,6 +504,7 @@
   <data name="That session can no longer be booked." xml:space="preserve"><value>That session can no longer be booked.</value></data>
   <data name="You're already booked into that session." xml:space="preserve"><value>You're already booked into that session.</value></data>
   <data name="That session is full." xml:space="preserve"><value>That session is full.</value></data>
+  <data name="This student's age does not fall into any age group the centre teaches, so they cannot be enrolled yet." xml:space="preserve"><value>This student's age does not fall into any age group the centre teaches, so they cannot be enrolled yet.</value></data>
   <data name="Booking this session would exceed your remaining package balance." xml:space="preserve"><value>This session was not booked. Your package does not have enough remaining balance to cover it — contact the centre to add hours, or wait for a new package.</value></data>
   <data name="No age group covers your current age." xml:space="preserve"><value>No age group covers your current age.</value></data>
   <data name="Replacement request submitted — an admin will review it." xml:space="preserve"><value>Replacement request submitted — an admin will review it.</value></data>
@@ -824,6 +840,11 @@
   <data name="This enrolls the student directly into every currently-generated, not-yet-started session under the chosen schedule — a one-time bulk action, not a standing membership. A student added to a schedule AFTER new sessions are generated needs enrolling again for those new ones." xml:space="preserve"><value>This enrolls the student directly into every currently-generated, not-yet-started session under the chosen schedule — a one-time bulk action, not a standing membership. A student added to a schedule AFTER new sessions are generated needs enrolling again for those new ones.</value></data>
   <data name="Schedule" xml:space="preserve"><value>Schedule</value></data>
   <data name="Enroll into upcoming sessions" xml:space="preserve"><value>Enroll into upcoming sessions</value></data>
+  <data name="Or enroll into one single session" xml:space="preserve"><value>Or enroll into one single session</value></data>
+  <data name="Use this for a lesson that does not belong to a weekly class — a slot a teacher published on their own. It puts the student into that one session and nothing else." xml:space="preserve"><value>Use this for a lesson that does not belong to a weekly class — a slot a teacher published on their own. It puts the student into that one session and nothing else.</value></data>
+  <data name="Enroll into this session" xml:space="preserve"><value>Enroll into this session</value></data>
+  <data name="Enrolled the student into that one session." xml:space="preserve"><value>Enrolled the student into that one session.</value></data>
+  <data name="That student is already enrolled in that session." xml:space="preserve"><value>That student is already enrolled in that session.</value></data>
   <data name="Cancel a session" xml:space="preserve"><value>Cancel a session</value></data>
   <data name="Give a replacement session and every not-yet-joined enrollment transfers to it with no ledger movement — the substitute session's own Join is the one deduction. Leave it blank for a plain cancellation. A student who already pressed Join before the problem occurred is never touched automatically — approve their specific replacement lesson on" xml:space="preserve"><value>Give a replacement session and every not-yet-joined enrollment transfers to it with no ledger movement — the substitute session's own Join is the one deduction. Leave it blank for a plain cancellation. A student who already pressed Join before the problem occurred is never touched automatically — approve their specific replacement lesson on</value></data>
   <data name="instead." xml:space="preserve"><value>instead.</value></data>

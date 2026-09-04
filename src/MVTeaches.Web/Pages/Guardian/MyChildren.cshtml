@@ -110,6 +110,66 @@ else
         </div>
     </details>
 
+    @* Owner decision 2026-09-04: a guardian books their child's lessons here.
+       A child registered by their guardian has no login of their own, so
+       before this there was no path to a seat at all except an admin. The
+       table matches the Sessions one below deliberately - it is the same kind
+       of working list, read the same way. *@
+    <h2 class="h4">@T["Book a lesson"]</h2>
+    <p class="text-muted">@T["The next 30 days, showing only lessons in a course and level your child is placed in. Booking holds a seat; the hours are drawn from the package when you press Join, not now."]</p>
+
+    <div class="table-responsive mb-4">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>@T["Child"]</th><th>@T["When"]</th><th>@T["Teacher"]</th><th>@T["Course and level"]</th><th>@T["Seats"]</th><th>@T["Actions"]</th></tr></thead>
+            <tbody>
+                @foreach (var b in Model.BookableSessions)
+                {
+                    <tr>
+                        <td><strong>@b.StudentName</strong></td>
+                        <td>
+                            @T.SessionMoment(b.StartsAtUtc, b.StudentTimeZone)
+                            <div class="text-muted small">@DisplayFormat.ZoneLabel(b.StudentTimeZone)</div>
+                            @if (!string.Equals(b.StudentTimeZone, b.ScheduleTimeZone, StringComparison.Ordinal))
+                            {
+                                <div class="text-muted small">@T["Centre time: {0} ({1})", T.SessionMoment(b.StartsAtUtc, b.ScheduleTimeZone), DisplayFormat.ZoneLabel(b.ScheduleTimeZone)]</div>
+                            }
+                            <div class="text-muted small">@T["{0} minutes", b.DurationMinutes]</div>
+                        </td>
+                        <td>@b.TeacherName</td>
+                        <td>@b.CourseName / @b.LevelCode</td>
+                        <td>@b.SeatsTaken / @b.Capacity</td>
+                        <td>
+                            @* A full lesson and one already booked are both shown
+                               with the reason said out loud rather than dropped
+                               from the list: a lesson that quietly vanishes reads
+                               as a mistake. *@
+                            @if (b.AlreadyBooked)
+                            {
+                                <span class="app-status is-success">@T["Booked"]</span>
+                            }
+                            else if (b.SeatsTaken >= b.Capacity)
+                            {
+                                <span class="text-muted">@T["Full"]</span>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Book">
+                                    <input type="hidden" name="sessionId" value="@b.SessionId" />
+                                    <input type="hidden" name="studentId" value="@b.StudentId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">@T["Book for {0}", b.StudentName]</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.BookableSessions.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-muted">@T["No lessons are open for booking at your children's courses and levels right now."]</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
     <h2 class="h4">@T["Sessions"]</h2>
     <p class="text-muted">@T["Yesterday through the next 7 days. Press Join once the session has started — the child's full attendance for that session is recorded immediately; pressing again does nothing extra."]</p>
 

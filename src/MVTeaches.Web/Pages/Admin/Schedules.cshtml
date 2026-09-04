@@ -262,6 +262,41 @@
                         <button type="submit" class="btn btn-primary">@T["Enroll into upcoming sessions"]</button>
                     </div>
                 </form>
+
+                @* Owner decision 2026-09-04: the form above works per weekly
+                   class, so a session published straight from a teacher's own
+                   slots — which carries no schedule — could not be reached by
+                   it at all. This one targets a single session by name. *@
+                <hr class="my-4" />
+                <h5 class="card-title">@T["Or enroll into one single session"]</h5>
+                <p class="text-muted small">@T["Use this for a lesson that does not belong to a weekly class — a slot a teacher published on their own. It puts the student into that one session and nothing else."]</p>
+                <form method="post" asp-page-handler="EnrollSession" class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label" asp-for="EnrollSession.StudentId">@T["Student"]</label>
+                        <input type="search" class="form-control mb-1" data-mv-select-filter="#enrollSessionStudent"
+                               placeholder="@T["Search by name…"]" aria-label="@T["Search by name…"]" />
+                        <select asp-for="EnrollSession.StudentId" id="enrollSessionStudent" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var s in Model.Students)
+                            {
+                                <option value="@s.Id">@s.FullName @(s.CurrentLevelLabel is null ? T["(no level yet)"].Value : $"— {s.CurrentLevelLabel}")</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" asp-for="EnrollSession.SessionId">@T["Session"]</label>
+                        <select asp-for="EnrollSession.SessionId" class="form-select">
+                            <option value="">@T["Select placeholder"]</option>
+                            @foreach (var s in Model.UpcomingSessions)
+                            {
+                                <option value="@s.Id">@T.SessionOption(s.StartsAtUtc, s.ScheduleTimeZone) — @s.CourseName / @s.LevelCode — @s.TeacherName (@s.SeatsTaken/@s.Capacity)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary">@T["Enroll into this session"]</button>
+                    </div>
+                </form>
         </div>
         <div class="tab-pane fade @(Model.ActiveTab == "cancel" ? "show active" : null)" id="panel-cancel"
              role="tabpanel" aria-labelledby="tab-cancel" tabindex="0">

@@ -25,13 +25,21 @@ public class StudentBookingService : IStudentBookingService
 
     public async Task<BookSessionResult> BookSessionAsync(long studentId, long sessionId, long actingUserId, CancellationToken cancellationToken)
     {
-        // Identity resolved entirely server-side: the acting account must
-        // actually be THIS student's own login. sessionId/studentId arriving
-        // together in one request is never trusted on its own — this is the
-        // one query that turns "some authenticated caller" into "this exact
-        // student, provably".
-        var student = await _db.Students.FirstOrDefaultAsync(s => s.Id == studentId && s.UserId == actingUserId, cancellationToken);
-        if (student is null)
+        // Identity resolved entirely server-side: the acting account must be
+        // THIS student's own login, or one of THIS student's guardians.
+        // sessionId/studentId arriving together in one request is never
+        // trusted on its own — this is what turns "some authenticated caller"
+        // into "somebody entitled to act for this exact student, provably".
+        //
+        // Owner decision 2026-09-04: the guardian half is new. A child
+        // registered through their guardian has no login by design, so
+        // self-only meant such a child could be booked in by nobody but an
+        // admin — a family could buy a package and never be able to use it.
+        // This is the same rule IPaymentService and IPlacementAttemptService
+        // already apply, deliberately written the same way rather than a
+        // fourth variation of it.
+        var student = await _db.Students.FirstOrDefaultAsync(s => s.Id == studentId, cancellationToken);
+        if (student is null || !await IsAuthorizedForStudentAsync(studentId, actingUserId, cancellationToken))
         {
             return new BookSessionResult(BookSessionOutcome.Unauthorized);
         }
@@ -152,10 +160,19 @@ public class StudentBookingService : IStudentBookingService
         var enrollment = new SessionEnrollment(sessionId, studentId, ageGroup.Id, actingUserId, now);
         _db.SessionEnrollments.Add(enrollment);
 
-        // Owner decision 2026-08-30 rule 9: booking confirmation. student.UserId
-        // is guaranteed non-null here — this method only ever loads a Student
-        // row matched by s.UserId == actingUserId (see above), so there is
-        // always a real account to notify at this point.
+        // Owner decision 2026-08-30 rule 9: booking confirmation.
+        //
+        // student.UserId used to be guaranteed non-null here, because this
+        // method only ever loaded a Student row matched by
+        // s.UserId == actingUserId. Owner decision 2026-09-04 removed that
+        // guarantee along with the self-only check: a child registered by their
+        // guardian has no login at all, and dereferencing it threw.
+        //
+        // The student's own account still gets the message whenever they have
+        // one — including when their guardian did the booking, which is who
+        // needs to know the lesson is now theirs to attend. A child with no
+        // login has no inbox of their own, so it goes to whoever booked, which
+        // in that case is by definition their guardian.
         var payload = JsonSerializer.Serialize(new Dictionary<string, string>
         {
             ["StudentName"] = student.FullName,
@@ -163,7 +180,8 @@ public class StudentBookingService : IStudentBookingService
             ["StartsAtUtc"] = session.StartsAtUtc.ToString(),
         });
         _db.NotificationOutboxItems.Add(new NotificationOutboxItem(
-            NotificationEvent.BookingConfirmed, NotificationChannel.WhatsApp, student.UserId!.Value, payload, now));
+            NotificationEvent.BookingConfirmed, NotificationChannel.WhatsApp,
+            student.UserId ?? actingUserId, payload, now));
 
         try
         {
@@ -180,5 +198,25 @@ public class StudentBookingService : IStudentBookingService
             _db.ChangeTracker.Clear();
             return new BookSessionResult(BookSessionOutcome.AlreadyBooked);
         }
+    }
+
+    /// <summary>Self, or one of this student's guardians — the same rule
+    /// IPaymentService.IsAuthorizedForStudentAsync and
+    /// PlacementAttemptService.IsAuthorizedAsync already enforce, resolved from
+    /// the Student and Guardianship rows and never from anything in the
+    /// request. A guardian link that has been removed stops authorising the
+    /// very next call, because this is a live query rather than a cached
+    /// claim.</summary>
+    private async Task<bool> IsAuthorizedForStudentAsync(long studentId, long actingUserId, CancellationToken ct)
+    {
+        var isTheStudentThemself = await _db.Students.AnyAsync(s => s.Id == studentId && s.UserId == actingUserId, ct);
+        if (isTheStudentThemself)
+        {
+            return true;
+        }
+
+        return await _db.Guardianships
+            .Join(_db.Guardians, gs => gs.GuardianId, g => g.Id, (gs, g) => new { gs.StudentId, g.UserId })
+            .AnyAsync(x => x.StudentId == studentId && x.UserId == actingUserId, ct);
     }
 }

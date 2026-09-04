@@ -448,6 +448,21 @@
   <data name="Present" xml:space="preserve"><value>حاضر</value></data>
   <data name="Join" xml:space="preserve"><value>انضمام</value></data>
   <data name="No sessions in this window." xml:space="preserve"><value>لا توجد حصص في هذه الفترة.</value></data>
+  <data name="Book a lesson" xml:space="preserve"><value>حجز حصة</value></data>
+  <data name="The next 30 days, showing only lessons in a course and level your child is placed in. Booking holds a seat; the hours are drawn from the package when you press Join, not now." xml:space="preserve"><value>الـ 30 يومًا القادمة، وتُعرَض فقط الحصص في دورة ومستوى ابنك المسجَّل فيهما. الحجز يحفظ مقعدًا فقط؛ والساعات تُخصم من الباقة عند الضغط على «Join» لا الآن.</value></data>
+  <data name="Book for {0}" xml:space="preserve"><value>احجز لـ {0}</value></data>
+  <data name="Booked" xml:space="preserve"><value>محجوز</value></data>
+  <data name="{0} minutes" xml:space="preserve"><value>{0} دقيقة</value></data>
+  <data name="No lessons are open for booking at your children's courses and levels right now." xml:space="preserve"><value>لا توجد حصص متاحة للحجز الآن في دورات ومستويات أبنائك.</value></data>
+  <data name="Booked. The lesson now appears below, and Join opens when it starts." xml:space="preserve"><value>تم الحجز. الحصة ظاهرة بالأسفل، ويُفتح «Join» عند بدايتها.</value></data>
+  <data name="This account is not registered as that child's guardian." xml:space="preserve"><value>هذا الحساب غير مسجَّل وليَ أمر لهذا الطفل.</value></data>
+  <data name="This child has no level in that course yet — the centre assigns one first." xml:space="preserve"><value>لا يوجد لهذا الطفل مستوى في تلك الدورة بعد — يحدّده المركز أولًا.</value></data>
+  <data name="That lesson is not at this child's level." xml:space="preserve"><value>تلك الحصة ليست في مستوى هذا الطفل.</value></data>
+  <data name="That lesson has already started or is no longer open for booking." xml:space="preserve"><value>تلك الحصة بدأت أو لم تعد متاحة للحجز.</value></data>
+  <data name="This child is already booked into that lesson." xml:space="preserve"><value>هذا الطفل محجوز أصلًا في تلك الحصة.</value></data>
+  <data name="That lesson is full." xml:space="preserve"><value>تلك الحصة مكتملة.</value></data>
+  <data name="This child's package does not have enough hours left for another lesson — including the ones already booked." xml:space="preserve"><value>باقة هذا الطفل لا يكفي رصيدها لحصة أخرى — محسوبًا معها الحصص المحجوزة مسبقًا.</value></data>
+  <data name="This child's age does not fall into any age group the centre teaches, so no lesson can be booked for them yet. Please contact the centre." xml:space="preserve"><value>عمر هذا الطفل لا يقع ضمن أي فئة عمرية يدرّسها المركز، فلا يمكن حجز حصة له بعد. يُرجى التواصل مع المركز.</value></data>
   <data name="Attendance recorded — the session's full duration has been drawn from the subscription." xml:space="preserve"><value>تم تسجيل الحضور — تم خصم مدة الحصة الكاملة من الاشتراك.</value></data>
   <data name="Already marked present for this session." xml:space="preserve"><value>تم تسجيل الحضور مسبقًا لهذه الحصة.</value></data>
   <data name="This child is not enrolled in that session, or this account is not their guardian." xml:space="preserve"><value>هذا الابن غير مسجّل في تلك الحصة، أو هذا الحساب ليس ولي أمره.</value></data>
@@ -489,6 +504,7 @@
   <data name="That session can no longer be booked." xml:space="preserve"><value>لم يعد بالإمكان حجز تلك الحصة.</value></data>
   <data name="You're already booked into that session." xml:space="preserve"><value>أنت محجوز بالفعل في تلك الحصة.</value></data>
   <data name="That session is full." xml:space="preserve"><value>تلك الحصة ممتلئة.</value></data>
+  <data name="This student's age does not fall into any age group the centre teaches, so they cannot be enrolled yet." xml:space="preserve"><value>عمر هذا الطالب لا يقع ضمن أي فئة عمرية يدرّسها المركز، فلا يمكن تسجيله بعد.</value></data>
   <data name="Booking this session would exceed your remaining package balance." xml:space="preserve"><value>لم تُحجز الحصة. رصيد باقتك المتبقي لا يكفي مدة هذه الحصة — تواصل مع الإدارة لإضافة ساعات، أو انتظر تفعيل باقة جديدة.</value></data>
   <data name="No age group covers your current age." xml:space="preserve"><value>لا توجد فئة عمرية تغطي عمرك الحالي.</value></data>
   <data name="Replacement request submitted — an admin will review it." xml:space="preserve"><value>تم إرسال طلب الحصة البديلة — ستراجعه الإدارة.</value></data>
@@ -824,6 +840,11 @@
   <data name="This enrolls the student directly into every currently-generated, not-yet-started session under the chosen schedule — a one-time bulk action, not a standing membership. A student added to a schedule AFTER new sessions are generated needs enrolling again for those new ones." xml:space="preserve"><value>يقوم هذا بتسجيل الطالب مباشرة في كل حصة تم إنشاؤها ولم تبدأ بعد ضمن الجدول المختار — إجراء دفعي لمرة واحدة، وليس عضوية دائمة. الطالب المضاف إلى جدول بعد إنشاء حصص جديدة يحتاج إلى تسجيل مجدداً لتلك الحصص الجديدة.</value></data>
   <data name="Schedule" xml:space="preserve"><value>الجدول</value></data>
   <data name="Enroll into upcoming sessions" xml:space="preserve"><value>تسجيل في الحصص القادمة</value></data>
+  <data name="Or enroll into one single session" xml:space="preserve"><value>أو التسجيل في حصة واحدة فقط</value></data>
+  <data name="Use this for a lesson that does not belong to a weekly class — a slot a teacher published on their own. It puts the student into that one session and nothing else." xml:space="preserve"><value>استخدم هذا لحصة لا تنتمي إلى صف أسبوعي — موعد نشره المعلم بنفسه. يُسجِّل الطالب في تلك الحصة وحدها.</value></data>
+  <data name="Enroll into this session" xml:space="preserve"><value>سجِّل في هذه الحصة</value></data>
+  <data name="Enrolled the student into that one session." xml:space="preserve"><value>تم تسجيل الطالب في تلك الحصة.</value></data>
+  <data name="That student is already enrolled in that session." xml:space="preserve"><value>الطالب مسجَّل أصلًا في تلك الحصة.</value></data>
   <data name="Cancel a session" xml:space="preserve"><value>إلغاء حصة</value></data>
   <data name="Give a replacement session and every not-yet-joined enrollment transfers to it with no ledger movement — the substitute session's own Join is the one deduction. Leave it blank for a plain cancellation. A student who already pressed Join before the problem occurred is never touched automatically — approve their specific replacement lesson on" xml:space="preserve"><value>حدِّد حصة بديلة وستنتقل إليها كل حالات التسجيل التي لم تُستهلك بعد دون أي حركة في السجل — ضغط &quot;انضمام&quot; في الحصة البديلة نفسها هو الخصم الوحيد. اتركها فارغة للإلغاء البسيط. الطالب الذي ضغط &quot;انضمام&quot; بالفعل قبل حدوث المشكلة لا يُعدَّل تلقائيًا أبدًا — وافق على حصة بديلة محددة له على</value></data>
   <data name="instead." xml:space="preserve"><value>بدلاً من ذلك.</value></data>
