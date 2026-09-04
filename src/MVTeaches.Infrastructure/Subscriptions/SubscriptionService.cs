@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MVTeaches.Application.Ledger;
 using MVTeaches.Application.Subscriptions;
 using MVTeaches.Domain.Catalog;
 using MVTeaches.Domain.Common;
@@ -15,10 +16,18 @@ public class SubscriptionService : ISubscriptionService
     private readonly MvTeachesDbContext _db;
     private readonly IClock _clock;
 
-    public SubscriptionService(MvTeachesDbContext db, IClock clock)
+    /// <summary>Owner decision 2026-09-04 (duplicate-purchase guard): the
+    /// remaining minutes on an existing subscription are read through the one
+    /// approved path (D-36/§20.2's SUM at read time), never re-derived inline
+    /// here — that is precisely what IEntitlementBalanceQuery's own remarks
+    /// forbid every caller from doing.</summary>
+    private readonly IEntitlementBalanceQuery _balances;
+
+    public SubscriptionService(MvTeachesDbContext db, IClock clock, IEntitlementBalanceQuery balances)
     {
         _db = db;
         _clock = clock;
+        _balances = balances;
     }
 
     public async Task<CreatePricingPlanResult> CreatePricingPlanAsync(int countryId, long courseId, int? levelId,
@@ -88,15 +97,86 @@ public class SubscriptionService : ISubscriptionService
             return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.LevelMismatch);
         }
 
+        // Owner decision 2026-09-04 (duplicate-purchase guard). Until this
+        // existed, nothing stopped the same package being bought over and
+        // over for the same student, and staging shows exactly what that
+        // costs: one student holding FOUR separately-paid subscriptions for
+        // the identical plan — 200 JOD for a 50 JOD package — bought partly
+        // from their own login and partly from their guardian's. That is why
+        // this is keyed on studentId and never on actingUserId: who clicks is
+        // irrelevant, what the STUDENT already owns is the whole question.
+        //
+        // The row lock is the same tool (and the same reason)
+        // StudentBookingService.BookSessionAsync uses for its own
+        // "sum across many rows" rule: no single-row CHECK constraint can
+        // express "this student must not already hold this plan", and a
+        // partial unique index would be a schema change. Serializing this
+        // student's own concurrent attempts is what makes two fast clicks
+        // resolve to one subscription instead of both racing past the same
+        // read. Everything cheaper (authorization, plan, level) has already
+        // been checked above, so the lock is only ever taken on a request
+        // that would otherwise really create a row.
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM students WHERE \"Id\" = {studentId} FOR UPDATE", cancellationToken);
+
+        // Draft = requested, not yet paid. Active/Extended = paid and live
+        // (Extended is an Active subscription whose expiry a human pushed
+        // out — still usable, so still a package the student holds).
+        // Expired/Cancelled/Completed are deliberately absent: those are done,
+        // and buying the same package again is exactly what SHOULD happen next.
+        var heldForThisPlan = await _db.Subscriptions
+            .Where(s => s.StudentId == studentId && s.PricingPlanId == pricingPlanId
+                        && (s.Status == SubscriptionStatus.Draft
+                            || s.Status == SubscriptionStatus.Active
+                            || s.Status == SubscriptionStatus.Extended))
+            .OrderBy(s => s.Id)
+            .ToListAsync(cancellationToken);
+
+        var awaitingPayment = heldForThisPlan.FirstOrDefault(s => s.Status == SubscriptionStatus.Draft);
+        if (awaitingPayment is not null)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.DraftAlreadyAwaitingPayment,
+                awaitingPayment.Id, awaitingPayment.Price);
+        }
+
+        var live = heldForThisPlan.Where(s => s.Status != SubscriptionStatus.Draft).ToList();
+        if (live.Count > 0)
+        {
+            var balances = await _balances.GetSubscriptionBalancesAsync(
+                live.Select(s => s.Id).ToList(), cancellationToken);
+            var stillUsable = live.FirstOrDefault(s => balances.GetValueOrDefault(s.Id) > 0);
+            if (stillUsable is not null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.ActivePackageStillHasBalance,
+                    stillUsable.Id, stillUsable.Price);
+            }
+        }
+
         // A genuine, documented simplification (matches DashboardModel's own
         // "today" convention) — not per-country-timezone purchase dating.
         var today = _clock.GetCurrentInstant().InUtc().Date;
 
+        // D-10's price SNAPSHOT, as its own value rather than a reference to
+        // the plan's live one. Both Subscription.Price and PricingPlan.Amount
+        // are EF OWNED types (see SubscriptionsPaymentsConfigurations), and an
+        // owned instance belongs to exactly one principal — handing this same
+        // tracked Money to a second Subscription makes EF try to re-parent it
+        // and throw ("Price#Money.SubscriptionId is part of a key"). That
+        // never surfaced while one plan could only ever be bought once per
+        // context; it does the moment a student may legitimately re-buy a
+        // plan they have finished (see the guard above). Same amount, same
+        // currency — this changes what is stored not at all.
+        var price = new Money(plan.Amount.Amount, plan.Amount.Currency);
+
         var subscription = new Subscription(studentId, plan.CountryId, plan.CourseId, plan.LevelId.Value,
-            plan.SessionType, plan.Amount, plan.Id, plan.SessionsCount, plan.MinutesTotal, today, plan.ValidityDays,
+            plan.SessionType, price, plan.Id, plan.SessionsCount, plan.MinutesTotal, today, plan.ValidityDays,
             origin, actingUserId, createdReason: null); // reason only mandatory for AdminCreated — see GrantAdminSubscriptionAsync
         _db.Subscriptions.Add(subscription);
         await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return new PurchaseFromPlanResult(PurchaseFromPlanOutcome.Purchased, subscription.Id, plan.Amount);
     }

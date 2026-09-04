@@ -223,6 +223,17 @@ public class SubscriptionsModel : PageModel
             PurchaseFromPlanOutcome.PlanNotPublishedForAnyLevel => _localizer["This plan has no specific level (or is inactive) and cannot be purchased - every published package must be tied to exactly one level."].Value,
             PurchaseFromPlanOutcome.StudentHasNoAssignedLevel => _localizer["This student has no current assigned level yet - a level must be assigned before any package can be purchased."].Value,
             PurchaseFromPlanOutcome.LevelMismatch => _localizer["This plan's level does not match the student's current assigned level."].Value,
+            // Owner decision 2026-09-04 (duplicate-purchase guard): the same
+            // refusal an admin gets, naming the subscription that is already
+            // in the way so it can be checked rather than guessed at. An
+            // admin who genuinely must add a package on top still has the
+            // separate, reason-carrying "give a student a package" grant path.
+            PurchaseFromPlanOutcome.DraftAlreadyAwaitingPayment =>
+                _localizer["This student already has a draft request for this exact plan (subscription #{0}) still awaiting payment - record the payment against that one instead of creating a second request.",
+                    result.SubscriptionId!].Value,
+            PurchaseFromPlanOutcome.ActivePackageStillHasBalance =>
+                _localizer["This student already holds a live subscription for this exact plan (subscription #{0}) with hours still remaining - the same package cannot be sold again until those hours are used.",
+                    result.SubscriptionId!].Value,
             _ => _localizer["Could not record this purchase."].Value,
         };
         if (result.Outcome == PurchaseFromPlanOutcome.Purchased)

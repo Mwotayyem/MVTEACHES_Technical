@@ -166,6 +166,15 @@ public class PurchasePackageModel : PageModel
                 PurchaseFromPlanOutcome.PlanNotPublishedForAnyLevel => _localizer["This package is no longer available."].Value,
                 PurchaseFromPlanOutcome.StudentHasNoAssignedLevel => _localizer["A placement result is required before purchasing a package."].Value,
                 PurchaseFromPlanOutcome.LevelMismatch => _localizer["This package no longer matches the student's current level."].Value,
+                // Owner decision 2026-09-04 (duplicate-purchase guard): both of
+                // these name what the payer already has, so the next step is
+                // obvious — finish paying that request, or use up those hours —
+                // instead of leaving them to press the same button again.
+                PurchaseFromPlanOutcome.DraftAlreadyAwaitingPayment =>
+                    _localizer["You already have a request for this package (#{0}) still awaiting payment. Complete that payment below instead of requesting it again.",
+                        result.SubscriptionId!].Value,
+                PurchaseFromPlanOutcome.ActivePackageStillHasBalance =>
+                    _localizer["You already have an active package on this same plan with hours still remaining. The same package cannot be bought again until those hours are used."].Value,
                 _ => _localizer["Could not record this purchase."].Value,
             };
         }

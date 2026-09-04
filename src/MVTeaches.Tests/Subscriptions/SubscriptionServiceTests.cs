@@ -111,7 +111,7 @@ public class SubscriptionServiceTests
     }
 
     private static ISubscriptionService CreateService(MvTeachesDbContext db, Instant now) =>
-        new SubscriptionService(db, new FakeClock(now));
+        new SubscriptionService(db, new FakeClock(now), CreateBalanceQuery(db));
 
     private static IEntitlementBalanceQuery CreateBalanceQuery(MvTeachesDbContext db) =>
         new EntitlementBalanceQuery(db);
@@ -317,5 +317,229 @@ public class SubscriptionServiceTests
 
         var balance = await CreateBalanceQuery(db).GetSubscriptionBalanceAsync(subscription.Id, CancellationToken.None);
         Assert.Equal(240, balance);
+    }
+
+    // =================================================================
+    // Duplicate-purchase guard (owner decision 2026-09-04, Review Required
+    // — Payment). Staging showed one student holding FOUR separately-paid
+    // subscriptions for the identical plan — 200 JOD for a 50 JOD package —
+    // bought partly from their own login and partly from their guardian's.
+    // Nothing in the purchase path stopped it. These cover the rule the
+    // owner set: a Draft awaiting payment, or a live package with hours
+    // still on it, blocks buying the same plan again; a used-up or expired
+    // one does not.
+    // =================================================================
+
+    /// <summary>Activates a subscription and posts the entitlement it bought,
+    /// the same shape IPaymentService.ConfirmAsync produces once a package is
+    /// paid in full — without driving the whole payment flow for tests whose
+    /// subject is the purchase guard, not the payment.</summary>
+    private static async Task ActivateWithEntitlementAsync(MvTeachesDbContext db, long subscriptionId,
+        long studentId, long courseId, int levelId, int purchasedMinutes, int consumedMinutes)
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        var subscription = await db.Subscriptions.FirstAsync(s => s.Id == subscriptionId);
+        subscription.Activate();
+        db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForAdminGrant(studentId, subscriptionId,
+            courseId, levelId, subscription.SessionType, purchasedMinutes, NextId(), "seed", now));
+        if (consumedMinutes > 0)
+        {
+            db.EntitlementLedgerEntries.Add(EntitlementLedgerEntry.ForConsumption(studentId, subscriptionId,
+                courseId, levelId, subscription.SessionType, consumedMinutes, NextId(), NextId(), now));
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<(ISubscriptionService Service, long PlanId, long StudentId, long StudentUserId, long CourseId, int LevelId)>
+        SeedPurchasablePlanAsync(MvTeachesDbContext db)
+    {
+        var (countryId, courseId, levelId, studentId, studentUserId) = await SeedCatalogAndStudentAsync(db);
+        var service = CreateService(db, SystemClock.Instance.GetCurrentInstant());
+        var plan = await service.CreatePricingPlanAsync(countryId, courseId, levelId, null, SessionType.Group,
+            10, 600, new Money(50m, "JOD"), 90, new LocalDate(2026, 1, 1), createdByUserId: NextId(), CancellationToken.None);
+        return (service, plan.PricingPlanId, studentId, studentUserId, courseId, levelId);
+    }
+
+    /// <summary>The plain double-click: pressing "buy" twice must leave one
+    /// subscription, not two, and the second press must hand back the FIRST
+    /// one's id so the payer is sent to finish paying it.</summary>
+    [Fact]
+    public async Task Purchasing_the_same_plan_twice_creates_only_one_subscription()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, _, _) = await SeedPurchasablePlanAsync(db);
+
+        var first = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        var second = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.Purchased, first.Outcome);
+        Assert.Equal(PurchaseFromPlanOutcome.DraftAlreadyAwaitingPayment, second.Outcome);
+        // The refusal names the request already waiting, so the caller can
+        // point at it rather than leaving the payer to press again.
+        Assert.Equal(first.SubscriptionId, second.SubscriptionId);
+        Assert.Equal(50m, second.Price!.Amount);
+        Assert.Equal(1, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
+    }
+
+    /// <summary>The student's own login is blocked by their own live package.</summary>
+    [Fact]
+    public async Task A_student_cannot_buy_a_package_they_already_hold_with_hours_left()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, courseId, levelId) = await SeedPurchasablePlanAsync(db);
+
+        var first = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        await ActivateWithEntitlementAsync(db, first.SubscriptionId!.Value, studentId, courseId, levelId,
+            purchasedMinutes: 600, consumedMinutes: 60); // 540 minutes still unused
+
+        var second = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.ActivePackageStillHasBalance, second.Outcome);
+        Assert.Equal(first.SubscriptionId, second.SubscriptionId);
+        Assert.Equal(1, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
+    }
+
+    /// <summary>The staging incident's actual shape: the guardian buys the
+    /// same package the STUDENT already bought from their own login. The
+    /// guard is keyed on the student, so a different acting account changes
+    /// nothing.</summary>
+    [Fact]
+    public async Task A_guardian_cannot_buy_a_package_their_child_already_holds_with_hours_left()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, courseId, levelId) = await SeedPurchasablePlanAsync(db);
+
+        var guardianUserId = await CreateUserAsync(db, "guardian");
+        var guardian = new Guardian(guardianUserId, "Guardian");
+        db.Guardians.Add(guardian);
+        await db.SaveChangesAsync();
+        db.Guardianships.Add(new Guardianship(guardian.Id, studentId, GuardianRelationship.Parent, isPrimary: true, guardianUserId));
+        await db.SaveChangesAsync();
+
+        // The student buys and pays for it from their OWN account.
+        var bought = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        await ActivateWithEntitlementAsync(db, bought.SubscriptionId!.Value, studentId, courseId, levelId,
+            purchasedMinutes: 600, consumedMinutes: 0);
+
+        // The guardian, on a different account, tries to buy the same thing.
+        var guardianAttempt = await service.PurchaseFromPlanAsync(studentId, planId, guardianUserId,
+            SubscriptionOrigin.GuardianPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.ActivePackageStillHasBalance, guardianAttempt.Outcome);
+        Assert.Equal(1, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
+    }
+
+    /// <summary>Once the hours are gone the package has done its job — buying
+    /// the same one again is exactly what should happen next.</summary>
+    [Fact]
+    public async Task A_used_up_active_package_does_not_block_buying_the_same_plan_again()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, courseId, levelId) = await SeedPurchasablePlanAsync(db);
+
+        var first = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        await ActivateWithEntitlementAsync(db, first.SubscriptionId!.Value, studentId, courseId, levelId,
+            purchasedMinutes: 600, consumedMinutes: 600); // fully spent
+
+        var second = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.Purchased, second.Outcome);
+        Assert.NotEqual(first.SubscriptionId, second.SubscriptionId);
+        Assert.Equal(2, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
+    }
+
+    /// <summary>An Expired package never blocks, whatever is left on it —
+    /// the owner's rule names expiry as its own release condition, separate
+    /// from the balance.</summary>
+    [Fact]
+    public async Task An_expired_package_does_not_block_buying_the_same_plan_again()
+    {
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, courseId, levelId) = await SeedPurchasablePlanAsync(db);
+
+        var first = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        await ActivateWithEntitlementAsync(db, first.SubscriptionId!.Value, studentId, courseId, levelId,
+            purchasedMinutes: 600, consumedMinutes: 0); // deliberately still has minutes on it
+
+        var expired = await db.Subscriptions.FirstAsync(s => s.Id == first.SubscriptionId!.Value);
+        expired.MarkExpired();
+        await db.SaveChangesAsync();
+
+        var second = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+
+        Assert.Equal(PurchaseFromPlanOutcome.Purchased, second.Outcome);
+        Assert.Equal(2, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
+    }
+
+    /// <summary>The one interaction that mattered most to get right: the
+    /// shortfall/top-up path (pay 40 of 50, then the remaining 10) must still
+    /// activate the package exactly as before — the guard blocks a second
+    /// SUBSCRIPTION, never a second PAYMENT against the same one. Runs the
+    /// real payment service end to end, and checks the guard is live
+    /// throughout rather than assuming it.</summary>
+    [Fact]
+    public async Task Paying_a_shortfall_then_the_remainder_still_activates_while_the_duplicate_guard_holds()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var (service, planId, studentId, studentUserId, _, _) = await SeedPurchasablePlanAsync(db);
+
+        var purchase = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        var subscriptionId = purchase.SubscriptionId!.Value;
+
+        var payments = new MVTeaches.Infrastructure.Payments.PaymentService(db, new FakeClock(now));
+
+        // 40 of 50 — short, so nothing activates yet.
+        var first = await payments.RecordManualPaymentAsync(
+            new MVTeaches.Application.Payments.RecordPaymentRequest(studentId, subscriptionId, PayerUserId: null,
+                new Money(50m, "JOD"), MVTeaches.Domain.Payments.PaymentMethod.BankTransfer, null),
+            CancellationToken.None);
+        await payments.ConfirmAsync(first.PaymentId, confirmedByUserId: NextId(), CancellationToken.None,
+            actuallyReceivedAmount: new Money(40m, "JOD"));
+
+        Assert.Equal(SubscriptionStatus.Draft, (await db.Subscriptions.FirstAsync(s => s.Id == subscriptionId)).Status);
+
+        // Still short and still Draft — and still refused as a duplicate,
+        // pointed at the request already open rather than a new one.
+        var whileShort = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        Assert.Equal(PurchaseFromPlanOutcome.DraftAlreadyAwaitingPayment, whileShort.Outcome);
+        Assert.Equal(subscriptionId, whileShort.SubscriptionId);
+
+        // The remaining 10 arrives on its own payment row against the SAME
+        // subscription — the guard never touched this path.
+        var second = await payments.RecordManualPaymentAsync(
+            new MVTeaches.Application.Payments.RecordPaymentRequest(studentId, subscriptionId, PayerUserId: null,
+                new Money(10m, "JOD"), MVTeaches.Domain.Payments.PaymentMethod.BankTransfer, null),
+            CancellationToken.None);
+        var confirmed = await payments.ConfirmAsync(second.PaymentId, confirmedByUserId: NextId(), CancellationToken.None);
+
+        Assert.Equal(MVTeaches.Application.Payments.ConfirmPaymentOutcome.Confirmed, confirmed.Outcome);
+        var activated = await db.Subscriptions.FirstAsync(s => s.Id == subscriptionId);
+        Assert.Equal(SubscriptionStatus.Active, activated.Status);
+
+        // Exactly one subscription, two payments, one Purchase ledger entry.
+        Assert.Equal(1, await db.Subscriptions.CountAsync(s => s.StudentId == studentId && s.PricingPlanId == planId));
+        Assert.Equal(2, await db.Payments.CountAsync(p => p.SubscriptionId == subscriptionId));
+        var entries = await db.EntitlementLedgerEntries.Where(l => l.SubscriptionId == subscriptionId).ToListAsync();
+        Assert.Single(entries);
+        Assert.Equal(activated.MinutesTotal, entries[0].DeltaMinutes);
+
+        // And now that it is Active with its full balance, the same package
+        // is refused for the reason that actually applies.
+        var afterActivation = await service.PurchaseFromPlanAsync(studentId, planId, studentUserId,
+            SubscriptionOrigin.SelfPurchase, isAdminInitiated: false, CancellationToken.None);
+        Assert.Equal(PurchaseFromPlanOutcome.ActivePackageStillHasBalance, afterActivation.Outcome);
     }
 }

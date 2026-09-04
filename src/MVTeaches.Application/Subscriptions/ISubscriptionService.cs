@@ -28,6 +28,24 @@ public enum PurchaseFromPlanOutcome
     /// compared against the student's own current StudentLevel row.</summary>
     LevelMismatch,
 
+    /// <summary>Owner decision 2026-09-04 (duplicate-purchase guard): this
+    /// student already has a Draft subscription for this exact plan that is
+    /// still waiting to be paid. Creating a second one would put two
+    /// identical requests — and later two identical amounts — in front of
+    /// the admin. The caller is handed that existing subscription's id and
+    /// price so it can point the payer at finishing THAT request instead.
+    /// </summary>
+    DraftAlreadyAwaitingPayment,
+
+    /// <summary>Owner decision 2026-09-04 (duplicate-purchase guard): this
+    /// student already holds a live subscription for this exact plan with
+    /// entitlement minutes still left on it. Buying the same package again
+    /// before those minutes are used is the exact situation that produced
+    /// four separately-paid identical subscriptions for one student in
+    /// staging. The existing subscription's id and price are returned so the
+    /// caller can name it in the refusal.</summary>
+    ActivePackageStillHasBalance,
+
     Unauthorized,
 }
 
@@ -72,7 +90,23 @@ public interface ISubscriptionService
     /// whose own [Authorize(Roles=Admin,SystemAdmin)] already establishes the
     /// caller's authority — it never skips the level/session-type checks,
     /// which D-94 requires apply to a manual payment exactly as they do to
-    /// self-service.</summary>
+    /// self-service.
+    ///
+    /// Owner decision 2026-09-04 (duplicate-purchase guard): a student may
+    /// not hold the same plan twice over. If they already have a Draft for
+    /// this plan awaiting payment, or a live one with entitlement minutes
+    /// still left, this refuses with
+    /// <see cref="PurchaseFromPlanOutcome.DraftAlreadyAwaitingPayment"/> /
+    /// <see cref="PurchaseFromPlanOutcome.ActivePackageStillHasBalance"/>
+    /// instead of creating another subscription. Like every other check
+    /// here, it is keyed on the STUDENT, never on the acting account —
+    /// the staging incident it exists to prevent was one student buying the
+    /// same package from their own login and their guardian's. It applies
+    /// to <paramref name="isAdminInitiated"/> callers too, for the same
+    /// reason the level check does: whose finger is on the button does not
+    /// change what the student already owns. An admin who genuinely must
+    /// add an extra package still has GrantAdminSubscriptionAsync, which is
+    /// a different, audited, reason-carrying path.</summary>
     Task<PurchaseFromPlanResult> PurchaseFromPlanAsync(long studentId, long pricingPlanId, long actingUserId,
         SubscriptionOrigin origin, bool isAdminInitiated, CancellationToken cancellationToken);
 
