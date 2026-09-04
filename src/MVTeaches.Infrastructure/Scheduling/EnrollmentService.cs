@@ -199,6 +199,14 @@ public class EnrollmentService : IEnrollmentService
             return new ApproveReplacementResult(ApproveReplacementOutcome.ReplacementSessionLevelMismatch);
         }
 
+        // Owner report 2026-09-05: the same COURSE and the same lesson type as
+        // the session being compensated. See ReplacementSessionCourseMismatch.
+        if (replacementSession.CourseId != originalSession.CourseId
+            || replacementSession.SessionType != originalSession.SessionType)
+        {
+            return new ApproveReplacementResult(ApproveReplacementOutcome.ReplacementSessionCourseMismatch);
+        }
+
         if (replacementSession.StartsAtUtc <= _clock.GetCurrentInstant())
         {
             return new ApproveReplacementResult(ApproveReplacementOutcome.ReplacementSessionNotInFuture);

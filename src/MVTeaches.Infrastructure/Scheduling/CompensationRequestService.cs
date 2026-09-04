@@ -199,6 +199,7 @@ public class CompensationRequestService : ICompensationRequestService
         ApproveReplacementOutcome.AlreadyEnrolledInReplacementSession => ResolveCompensationRequestOutcome.AlreadyEnrolledInReplacementSession,
         ApproveReplacementOutcome.NoApplicableAgeGroup => ResolveCompensationRequestOutcome.NoApplicableAgeGroup,
         ApproveReplacementOutcome.ReplacementSessionLevelMismatch => ResolveCompensationRequestOutcome.ReplacementSessionLevelMismatch,
+        ApproveReplacementOutcome.ReplacementSessionCourseMismatch => ResolveCompensationRequestOutcome.ReplacementSessionCourseMismatch,
         ApproveReplacementOutcome.ReplacementSessionNotInFuture => ResolveCompensationRequestOutcome.ReplacementSessionNotInFuture,
         _ => ResolveCompensationRequestOutcome.ReplacementSessionNotFound,
     };

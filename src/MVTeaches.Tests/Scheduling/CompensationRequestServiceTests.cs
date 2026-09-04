@@ -301,6 +301,74 @@ public class CompensationRequestServiceTests
         Assert.Equal(0, await db.NotificationOutboxItems.CountAsync(n => n.RecipientUserId == fx.StudentUserId));
     }
 
+    /// <summary>Owner report 2026-09-05: "لا يختار حصة من دورة أو مستوى غلط".
+    /// The admin screen has always filtered its candidate list on course, level
+    /// and lesson type together — but the service checked only the level, so
+    /// that filter was the entire guard. A posted id for another course's
+    /// session at the same level would have enrolled the student in a subject
+    /// they were never placed in.</summary>
+    [Fact]
+    public async Task Approving_a_replacement_in_a_different_course_is_rejected()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var fx = await SeedStudentAsync(db);
+        var originalSessionId = await SeedConfirmedNoShowAsync(db, fx, now);
+
+        // Same level, same teacher, same time — a DIFFERENT course. Nothing but
+        // the course distinguishes it, so nothing but the course check can
+        // refuse it.
+        var otherCourse = new MVTeaches.Domain.Catalog.Course($"COMP-{NextId()}", "دورة أخرى", "Other Course");
+        db.Courses.Add(otherCourse);
+        await db.SaveChangesAsync();
+
+        var wrongCourseSession = new ClassSession(fx.CountryId, null, otherCourse.Id, fx.LevelId, fx.AgeGroupId, fx.TeacherId,
+            now.Plus(Duration.FromDays(4)), now.Plus(Duration.FromDays(4)).Plus(Duration.FromMinutes(60)),
+            "Asia/Amman", "10:00", SessionType.Group, now);
+        db.ClassSessions.Add(wrongCourseSession);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, now);
+        var request = await service.RequestReplacementAsync(fx.StudentId, originalSessionId, "reason", fx.StudentUserId, CancellationToken.None);
+
+        var approve = await service.ApproveAsync(request.RequestId!.Value, wrongCourseSession.Id, approvedByUserId: NextId(), CancellationToken.None);
+
+        Assert.Equal(ResolveCompensationRequestOutcome.ReplacementSessionCourseMismatch, approve.Outcome);
+
+        // Refused means refused: no enrollment, no notification, and the
+        // request is still waiting for a real replacement.
+        Assert.Equal(0, await db.SessionEnrollments.CountAsync(e => e.SessionId == wrongCourseSession.Id));
+        Assert.Equal(0, await db.NotificationOutboxItems.CountAsync(n => n.RecipientUserId == fx.StudentUserId));
+        var stillPending = await db.CompensationRequests.SingleAsync(r => r.Id == request.RequestId!.Value);
+        Assert.Equal(CompensationRequestStatus.Pending, stillPending.Status);
+    }
+
+    /// <summary>The same rule for lesson TYPE: a Group session is not a
+    /// replacement for a missed Private one, whatever the course and level
+    /// say.</summary>
+    [Fact]
+    public async Task Approving_a_replacement_of_a_different_lesson_type_is_rejected()
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+        await using var db = _fixture.CreateContext();
+        var fx = await SeedStudentAsync(db);
+        var originalSessionId = await SeedConfirmedNoShowAsync(db, fx, now);
+
+        var privateSession = new ClassSession(fx.CountryId, null, fx.CourseId, fx.LevelId, fx.AgeGroupId, fx.TeacherId,
+            now.Plus(Duration.FromDays(5)), now.Plus(Duration.FromDays(5)).Plus(Duration.FromMinutes(60)),
+            "Asia/Amman", "11:00", SessionType.Private, now);
+        db.ClassSessions.Add(privateSession);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, now);
+        var request = await service.RequestReplacementAsync(fx.StudentId, originalSessionId, "reason", fx.StudentUserId, CancellationToken.None);
+
+        var approve = await service.ApproveAsync(request.RequestId!.Value, privateSession.Id, approvedByUserId: NextId(), CancellationToken.None);
+
+        Assert.Equal(ResolveCompensationRequestOutcome.ReplacementSessionCourseMismatch, approve.Outcome);
+        Assert.Equal(0, await db.SessionEnrollments.CountAsync(e => e.SessionId == privateSession.Id));
+    }
+
     [Fact]
     public async Task Approving_an_already_resolved_request_is_rejected()
     {

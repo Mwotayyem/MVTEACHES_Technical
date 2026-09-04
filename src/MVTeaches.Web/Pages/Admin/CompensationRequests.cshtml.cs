@@ -96,6 +96,7 @@ public class CompensationRequestsModel : PageModel
             ResolveCompensationRequestOutcome.AlreadyEnrolledInReplacementSession => _localizer["The student already has an active enrollment on that replacement session."].Value,
             ResolveCompensationRequestOutcome.NoApplicableAgeGroup => _localizer["No age group covers this student's current age."].Value,
             ResolveCompensationRequestOutcome.ReplacementSessionLevelMismatch => _localizer["The replacement session is a different level than the student's."].Value,
+            ResolveCompensationRequestOutcome.ReplacementSessionCourseMismatch => _localizer["The replacement must be the same course and the same lesson type as the lesson that was missed."].Value,
             ResolveCompensationRequestOutcome.ReplacementSessionNotInFuture => _localizer["The replacement must be a session that hasn't started yet."].Value,
             _ => _localizer["Could not approve the request."].Value,
         };

@@ -37,6 +37,7 @@ public enum ResolveCompensationRequestOutcome
     // IEnrollmentService.ApproveReplacementLessonAsync, which this service
     // calls internally to do the actual granting — never duplicated here.
     ReplacementSessionNotFound,
+    ReplacementSessionCourseMismatch,
     ReplacementSessionIsTheSameSession,
     ReplacementSessionFull,
     AlreadyEnrolledInReplacementSession,

@@ -60,6 +60,17 @@ public enum ApproveReplacementOutcome
     OriginalSessionNotFound,
 
     ReplacementSessionNotFound,
+
+    /// <summary>Owner report 2026-09-05: the replacement is in a different
+    /// COURSE, or is a different lesson type (a Group session offered for a
+    /// missed Private one). The admin screen has always filtered its candidate
+    /// list on course, level and type together, but only the level was ever
+    /// checked here - so a posted id for another course's session at the same
+    /// level would have been accepted, enrolling a student in a subject they
+    /// were never placed in. A screen narrowing a list is a convenience; this
+    /// is the rule.</summary>
+    ReplacementSessionCourseMismatch,
+
     ReplacementSessionIsTheSameSession,
     ReplacementSessionFull,
 
