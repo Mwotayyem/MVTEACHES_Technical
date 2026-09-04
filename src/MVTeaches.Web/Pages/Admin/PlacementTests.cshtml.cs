@@ -285,6 +285,12 @@ public class PlacementTestsModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         await _admin.RemoveQuestionAsync(questionId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Question removed."].Value;
         await LoadAsync(versionId);
@@ -345,6 +351,12 @@ public class PlacementTestsModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         await _admin.RemoveScoreRangeAsync(scoreRangeId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Score range removed."].Value;
         await LoadAsync(versionId);
@@ -357,6 +369,12 @@ public class PlacementTestsModel : PageModel
         {
             return deny;
         }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
 
         var actingUserId = GetCurrentUserId();
         var result = await _admin.PublishAsync(versionId, actingUserId, HttpContext.RequestAborted);
@@ -388,6 +406,12 @@ public class PlacementTestsModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         var result = await _admin.ActivateAsync(versionId, HttpContext.RequestAborted);
         StatusMessage = result == ActivateOutcome.Activated ? _localizer["Version activated — new attempts will use it."].Value : null;
         ErrorMessage = result switch
@@ -408,6 +432,12 @@ public class PlacementTestsModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         var actingUserId = GetCurrentUserId();
         var result = await _admin.ApproveRetakeAsync(retakeRequestId, actingUserId, reason, HttpContext.RequestAborted);
         StatusMessage = result == RetakeDecisionOutcome.Decided ? _localizer["Retake approved."].Value : null;
@@ -423,6 +453,12 @@ public class PlacementTestsModel : PageModel
         {
             return deny;
         }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
 
         var actingUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(reason))

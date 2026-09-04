@@ -751,6 +751,7 @@
   <data name="Student '{0}' registered (pending verification)." xml:space="preserve"><value>تم تسجيل الطالب '{0}' (بانتظار التوثيق).</value></data>
   <data name="This student already has a primary guardian — un-primary the existing one first." xml:space="preserve"><value>لهذا الطالب بالفعل ولي أمر أساسي — ألغِ الأساسي الحالي أولًا.</value></data>
   <data name="Student marked verified." xml:space="preserve"><value>تم تعليم الطالب كموثّق.</value></data>
+  <data name="Choose which student to confirm — that student was not found." xml:space="preserve"><value>اختر الطالب المراد تأكيده — لم يُعثر على هذا الطالب.</value></data>
   <data name="Level assigned." xml:space="preserve"><value>تم تعيين المستوى.</value></data>
   <data name="StudentStatus.PendingVerification" xml:space="preserve"><value>بانتظار التوثيق</value></data>
   <data name="StudentStatus.PendingLevel" xml:space="preserve"><value>بانتظار تحديد المستوى</value></data>

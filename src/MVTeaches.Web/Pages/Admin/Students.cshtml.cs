@@ -408,6 +408,23 @@ public class StudentsModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
+        // A missing or unknown id is the only thing this handler can be wrong
+        // about, so it says so itself. Without this, VerifyStudentAsync throws
+        // "Student not found." and the admin gets a 500 page instead of a
+        // sentence about the one field this action actually has.
+        if (studentId <= 0 || !await _db.Students.AnyAsync(s => s.Id == studentId))
+        {
+            ErrorMessage = _localizer["Choose which student to confirm — that student was not found."].Value;
+            await LoadAsync();
+            return Page();
+        }
+
         await _admissions.VerifyStudentAsync(studentId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Student marked verified."].Value;
         await LoadAsync();

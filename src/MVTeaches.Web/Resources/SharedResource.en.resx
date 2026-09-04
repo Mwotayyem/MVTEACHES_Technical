@@ -751,6 +751,7 @@
   <data name="Student '{0}' registered (pending verification)." xml:space="preserve"><value>Student '{0}' registered (pending verification).</value></data>
   <data name="This student already has a primary guardian — un-primary the existing one first." xml:space="preserve"><value>This student already has a primary guardian — un-primary the existing one first.</value></data>
   <data name="Student marked verified." xml:space="preserve"><value>Student marked verified.</value></data>
+  <data name="Choose which student to confirm — that student was not found." xml:space="preserve"><value>Choose which student to confirm — that student was not found.</value></data>
   <data name="Level assigned." xml:space="preserve"><value>Level assigned.</value></data>
   <data name="StudentStatus.PendingVerification" xml:space="preserve"><value>Pending verification</value></data>
   <data name="StudentStatus.PendingLevel" xml:space="preserve"><value>Pending level</value></data>

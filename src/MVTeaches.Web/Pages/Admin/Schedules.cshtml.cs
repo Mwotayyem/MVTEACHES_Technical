@@ -452,6 +452,12 @@ public class SchedulesModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         ActiveTab = "create";
         await _schedules.PauseAsync(scheduleId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Schedule paused — future occurrences stop generating; nothing already generated is affected."].Value;
@@ -465,6 +471,12 @@ public class SchedulesModel : PageModel
         {
             return deny;
         }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
 
         ActiveTab = "create";
         await _schedules.ResumeAsync(scheduleId, HttpContext.RequestAborted);

@@ -253,6 +253,11 @@ public class AssistedRegistrationModel : PageModel
 
     public async Task<IActionResult> OnPostSearchAsync()
     {
+        // Searching validates nothing but the query itself. Without this, the
+        // page's other seven bound forms - all empty, all full of [Required]
+        // fields - report their errors the moment someone presses Search.
+        ModelState.Clear();
+
         await LoadAsync(null, Search.Query);
         return Page();
     }

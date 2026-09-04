@@ -365,6 +365,12 @@ public class TeachersModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         var actingUserId = long.Parse(_userManager.GetUserId(User)!);
         var outcome = await _levelAuthorization.RevokeAsync(teacherId, courseId, levelId, actingUserId,
             HttpContext.RequestAborted);
@@ -388,6 +394,12 @@ public class TeachersModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         await _teachers.DeactivateAsync(teacherId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Teacher deactivated."].Value;
         await LoadAsync();
@@ -400,6 +412,12 @@ public class TeachersModel : PageModel
         {
             return deny;
         }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
 
         await _teachers.ReactivateAsync(teacherId, HttpContext.RequestAborted);
         StatusMessage = _localizer["Teacher reactivated."].Value;

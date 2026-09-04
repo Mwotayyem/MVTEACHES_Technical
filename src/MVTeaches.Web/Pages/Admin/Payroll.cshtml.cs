@@ -91,6 +91,12 @@ public class PayrollModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         var verifiedByUserId = long.Parse(_userManager.GetUserId(User)!);
 
         try
@@ -124,6 +130,12 @@ public class PayrollModel : PageModel
         {
             return deny;
         }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
 
         var rejectedByUserId = long.Parse(_userManager.GetUserId(User)!);
         var reason = string.IsNullOrWhiteSpace(RejectReason) ? _localizer["No reason given"].Value : RejectReason;
@@ -191,6 +203,12 @@ public class PayrollModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         var created = await _payroll.AggregateVerifiedDeliveriesAsync(periodId, HttpContext.RequestAborted);
         StatusMessage = _localizer["{0} payroll line(s) added.", created].Value;
         await LoadAsync();
@@ -203,6 +221,12 @@ public class PayrollModel : PageModel
         {
             return deny;
         }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
 
         try
         {
@@ -224,6 +248,12 @@ public class PayrollModel : PageModel
         {
             return deny;
         }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
 
         var approvedByUserId = long.Parse(_userManager.GetUserId(User)!);
         try
@@ -247,6 +277,12 @@ public class PayrollModel : PageModel
             return deny;
         }
 
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
+
         try
         {
             await _payroll.MarkPeriodPaidAsync(periodId, HttpContext.RequestAborted);
@@ -267,6 +303,12 @@ public class PayrollModel : PageModel
         {
             return deny;
         }
+
+        // This handler's inputs arrive as route/form values rather than a bound
+        // model, so the page-wide ModelState holds nothing but the OTHER forms'
+        // unfilled [Required] errors - which would otherwise be rendered on top
+        // of this handler's own success message.
+        ModelState.Clear();
 
         try
         {
